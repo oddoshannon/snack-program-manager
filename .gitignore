@@ -1,0 +1,5 @@
+drive-download-*/
+*.zip
+*.docx
+*.xlsx
+*.pdf

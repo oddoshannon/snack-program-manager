@@ -1,0 +1,389 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #183230;
+        --muted: #5c6f6c;
+        --line: #d8e2df;
+        --soft: #f4f8f7;
+        --accent: #1f7a68;
+        --accent-2: #b4532a;
+        --paper: #ffffff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--soft);
+        color: var(--ink);
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+      }
+
+      header {
+        align-items: center;
+        background: var(--paper);
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        gap: 16px;
+        justify-content: space-between;
+        padding: 16px 20px;
+      }
+
+      h1 {
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0;
+      }
+
+      main {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: 320px 1fr;
+        padding: 16px;
+      }
+
+      button, input, select, textarea {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        font: inherit;
+      }
+
+      button {
+        background: var(--accent);
+        color: white;
+        cursor: pointer;
+        font-weight: 700;
+        min-height: 36px;
+        padding: 8px 12px;
+      }
+
+      button.secondary {
+        background: var(--paper);
+        color: var(--ink);
+      }
+
+      input, select, textarea {
+        background: white;
+        min-height: 36px;
+        padding: 8px 10px;
+        width: 100%;
+      }
+
+      label {
+        color: var(--muted);
+        display: grid;
+        gap: 5px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .panel {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .metrics {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(5, minmax(110px, 1fr));
+      }
+
+      .metric {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 24px;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .list {
+        display: grid;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .item {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        display: grid;
+        gap: 6px;
+        padding: 10px;
+      }
+
+      .item-title {
+        align-items: center;
+        display: flex;
+        gap: 8px;
+        justify-content: space-between;
+      }
+
+      .badge {
+        background: #edf5f3;
+        border-radius: 999px;
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 8px;
+        white-space: nowrap;
+      }
+
+      .danger {
+        color: var(--accent-2);
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .form-grid {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .full {
+        grid-column: 1 / -1;
+      }
+
+      @media (max-width: 900px) {
+        main, .grid, .metrics {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>SNACK CRM</h1>
+        <div class="muted" id="todayLabel">Loading dashboard...</div>
+      </div>
+      <button class="secondary" onclick="loadDashboard()">Refresh</button>
+    </header>
+
+    <main>
+      <aside class="stack">
+        <section class="panel stack">
+          <strong>New Task</strong>
+          <label>Task Type<select id="taskType"></select></label>
+          <label>Description<textarea id="taskDescription" rows="3"></textarea></label>
+          <div class="form-grid">
+            <label>Priority<select id="taskPriority"></select></label>
+            <label>Due Date<input id="taskDueDate" type="date"></label>
+          </div>
+          <label>Assigned Staff<input id="taskStaff" placeholder="Name or email"></label>
+          <button onclick="createManualTask()">Create Task</button>
+        </section>
+
+        <section class="panel stack">
+          <strong>Quick Contact</strong>
+          <div class="form-grid">
+            <label>First Name<input id="firstName"></label>
+            <label>Last Name<input id="lastName"></label>
+          </div>
+          <label>Phone<input id="phone"></label>
+          <label>Category<input id="category" value="Client"></label>
+          <button onclick="createQuickContact()">Create Contact</button>
+        </section>
+      </aside>
+
+      <section class="stack">
+        <div class="metrics" id="metrics"></div>
+
+        <div class="grid">
+          <section class="panel">
+            <strong>Today's Appointments</strong>
+            <div class="list" id="todayAppointments"></div>
+          </section>
+
+          <section class="panel">
+            <strong>Due Today</strong>
+            <div class="list" id="dueTodayTasks"></div>
+          </section>
+
+          <section class="panel">
+            <strong class="danger">Overdue</strong>
+            <div class="list" id="overdueTasks"></div>
+          </section>
+
+          <section class="panel">
+            <strong>Follow-Ups</strong>
+            <div class="list" id="followUps"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      let bootstrap = {};
+
+      document.addEventListener('DOMContentLoaded', () => {
+        google.script.run
+          .withSuccessHandler((data) => {
+            bootstrap = data;
+            hydrateControls(data);
+            loadDashboard();
+          })
+          .getBootstrapData();
+      });
+
+      function hydrateControls(data) {
+        document.getElementById('todayLabel').textContent = data.today;
+        document.getElementById('taskDueDate').value = data.today;
+        setOptions('taskType', data.taskTypes);
+        setOptions('taskPriority', data.priorities);
+      }
+
+      function setOptions(id, values) {
+        const select = document.getElementById(id);
+        select.innerHTML = values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join('');
+      }
+
+      function loadDashboard() {
+        google.script.run
+          .withSuccessHandler(renderDashboard)
+          .getDashboardData({});
+      }
+
+      function renderDashboard(data) {
+        document.getElementById('todayLabel').textContent = data.today;
+        renderMetrics(data.counts);
+        renderList('todayAppointments', data.todayAppointments, renderAppointment);
+        renderList('dueTodayTasks', data.dueTodayTasks, renderTask);
+        renderList('overdueTasks', data.overdueTasks, renderTask);
+        renderList('followUps', data.followUps, renderTask);
+      }
+
+      function renderMetrics(counts) {
+        const metrics = [
+          ['Appointments', counts.todayAppointments],
+          ['Due Today', counts.dueTodayTasks],
+          ['Overdue', counts.overdueTasks],
+          ['Open Tasks', counts.openTasks],
+          ['No-Shows', counts.noShows]
+        ];
+        document.getElementById('metrics').innerHTML = metrics.map(([label, value]) => `
+          <div class="metric"><strong>${value}</strong><span>${label}</span></div>
+        `).join('');
+      }
+
+      function renderList(id, rows, renderer) {
+        const element = document.getElementById(id);
+        element.innerHTML = rows.length ? rows.map(renderer).join('') : '<div class="muted">Nothing here.</div>';
+      }
+
+      function renderAppointment(row) {
+        return `
+          <div class="item">
+            <div class="item-title">
+              <strong>${escapeHtml(row.Time || 'No time')} ${escapeHtml(row.ContactName || row.ContactID || '')}</strong>
+              <span class="badge">${escapeHtml(row.Status || '')}</span>
+            </div>
+            <div class="muted">${escapeHtml(row['Appointment Type'] || '')} ${escapeHtml(row.Goal || '')}</div>
+            <div>
+              <button class="secondary" onclick="completeAppointment('${escapeHtml(row.AppointmentID)}')">Complete</button>
+              <button class="secondary" onclick="markNoShow('${escapeHtml(row.AppointmentID)}')">No-Show</button>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderTask(row) {
+        return `
+          <div class="item">
+            <div class="item-title">
+              <strong>${escapeHtml(row.Description || '')}</strong>
+              <span class="badge">${escapeHtml(row.Priority || '')}</span>
+            </div>
+            <div class="muted">${escapeHtml(row['Task Type'] || '')} · ${escapeHtml(row.ContactName || row.ContactID || 'No contact')} · Due ${escapeHtml(row['Due Date'] || '')}</div>
+            <button class="secondary" onclick="completeTask('${escapeHtml(row.TaskID)}')">Mark Complete</button>
+          </div>
+        `;
+      }
+
+      function createManualTask() {
+        const task = {
+          'Task Type': value('taskType'),
+          Description: value('taskDescription'),
+          Priority: value('taskPriority'),
+          'Due Date': value('taskDueDate'),
+          'Assigned Staff': value('taskStaff') || 'Unassigned',
+          'Created By Automation': false
+        };
+        google.script.run.withSuccessHandler(() => {
+          document.getElementById('taskDescription').value = '';
+          loadDashboard();
+        }).createTask(task);
+      }
+
+      function createQuickContact() {
+        const contact = {
+          'First Name': value('firstName'),
+          'Last Name': value('lastName'),
+          Phone: value('phone'),
+          Category: value('category')
+        };
+        google.script.run.withSuccessHandler(() => {
+          ['firstName', 'lastName', 'phone'].forEach((id) => document.getElementById(id).value = '');
+          loadDashboard();
+        }).createContact(contact);
+      }
+
+      function completeTask(taskId) {
+        google.script.run.withSuccessHandler(loadDashboard).updateTaskStatus(taskId, 'Completed');
+      }
+
+      function completeAppointment(appointmentId) {
+        google.script.run.withSuccessHandler(loadDashboard).completeAppointment(appointmentId);
+      }
+
+      function markNoShow(appointmentId) {
+        google.script.run.withSuccessHandler(loadDashboard).markAppointmentNoShow(appointmentId);
+      }
+
+      function value(id) {
+        return document.getElementById(id).value.trim();
+      }
+
+      function escapeHtml(value) {
+        return String(value || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+    </script>
+  </body>
+</html>
