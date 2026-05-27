@@ -32,11 +32,21 @@ function seedDemoData() {
     Email: 'maya@example.com',
     Address: '123 Sample St',
     Language: 'English',
+    'Parent/Guardian Name': 'Ana Rivera',
+    'Preferred Contact Method': 'Text',
+    'SMS Consent': true,
+    'Email Consent': true,
     'YCCO Status': 'Active',
     Category: 'Client',
     Status: SNACK.CONTACT_STATUS.SCHEDULED,
     'Referral Source': 'Provider',
+    'Referral Type': 'Internal provider referral',
     'First Appointment Date': today,
+    'Current Lesson Number': 2,
+    'Current Lesson Topic': 'Nutrient Density',
+    'Last Goal': 'Try one new vegetable this week',
+    'Next Appointment Date': today,
+    'Completed Appointment Count': 1,
     Notes: 'Demo data client.'
   });
 
@@ -45,9 +55,12 @@ function seedDemoData() {
     'Last Name': 'Lee',
     Phone: '555-0102',
     Language: 'Spanish',
+    'Parent/Guardian Name': 'Marisol Lee',
+    'Preferred Contact Method': 'Call',
     Category: 'Referral',
-    Status: SNACK.CONTACT_STATUS.RESCHEDULE,
+    Status: 'Left Voicemail',
     'Referral Source': 'Athena SNACK Bucket',
+    'Referral Type': 'Nutrition assessment',
     Notes: 'Demo data referral.'
   });
 
@@ -60,6 +73,8 @@ function seedDemoData() {
     Staff: 'Shannon',
     Status: SNACK.APPOINTMENT_STATUS.SCHEDULED,
     'Lesson Number': 2,
+    'Lesson Topic': 'Nutrient Density',
+    'Previous Goal': 'Try one new vegetable this week',
     Goal: 'Review grocery goals',
     Notes: 'Demo data appointment.',
     'Calendar Event ID': '',
@@ -76,6 +91,7 @@ function seedDemoData() {
     Staff: 'Shannon',
     Status: SNACK.APPOINTMENT_STATUS.NO_SHOW,
     'Lesson Number': 1,
+    'Lesson Topic': 'Enrollment',
     Goal: 'Initial enrollment',
     Notes: 'Demo data no-show.',
     'Calendar Event ID': '',

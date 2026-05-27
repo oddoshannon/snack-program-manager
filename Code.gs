@@ -35,7 +35,10 @@ function getBootstrapData() {
     staff: getRows_(SNACK.SHEETS.STAFF).filter((row) => row.Active !== false && row.Active !== 'FALSE'),
     taskTypes: getSettingsByType_('task_type').map((row) => row.Name),
     appointmentTypes: getSettingsByType_('appointment_type').map((row) => row.Name),
-    priorities: getSettingsByType_('priority').map((row) => row.Name)
+    priorities: getSettingsByType_('priority').map((row) => row.Name),
+    contactStatuses: getSettingsByType_('contact_status').map((row) => row.Name),
+    referralTypes: getSettingsByType_('referral_type').map((row) => row.Name),
+    contactMethods: getSettingsByType_('contact_method').map((row) => row.Name)
   };
 }
 
@@ -52,6 +55,30 @@ function createContact(contact) {
 
   appendRow_(SNACK.SHEETS.CONTACTS, record);
   return record;
+}
+
+function createReferral(referral) {
+  const record = Object.assign({
+    Category: 'Referral',
+    Status: 'New Referral',
+    'Referral Type': 'Internal provider referral',
+    'Preferred Contact Method': 'Text',
+    'SMS Consent': true,
+    'Email Consent': true
+  }, referral || {});
+
+  const created = createContact(record);
+  createTask({
+    'Task Type': 'Referral Follow-Up',
+    Description: `Contact ${contactDisplayName_(created)} about SNACK referral`,
+    ContactID: created.ContactID,
+    'Assigned Staff': created['Contact Owner'] || SNACK.DEFAULT_STAFF,
+    Priority: 'Normal',
+    'Due Date': today_(),
+    'Created By Automation': true,
+    Notes: `Referral type: ${created['Referral Type'] || ''}`
+  });
+  return created;
 }
 
 function createAppointment(appointment) {
@@ -74,7 +101,7 @@ function createAppointment(appointment) {
   return record;
 }
 
-function completeAppointment(appointmentId) {
+function completeAppointment(appointmentId, completionDetails) {
   const appointment = findById_(SNACK.SHEETS.APPOINTMENTS, 'AppointmentID', appointmentId);
   if (!appointment) {
     throw new Error(`Appointment not found: ${appointmentId}`);
@@ -82,6 +109,9 @@ function completeAppointment(appointmentId) {
 
   const updates = {
     Status: SNACK.APPOINTMENT_STATUS.COMPLETED,
+    'New Goal': completionDetails && completionDetails['New Goal'] ? completionDetails['New Goal'] : appointment['New Goal'],
+    'Next Appointment Scheduled': completionDetails && completionDetails['Next Appointment Scheduled'] !== undefined ? completionDetails['Next Appointment Scheduled'] : appointment['Next Appointment Scheduled'],
+    'Chart Note Complete': completionDetails && completionDetails['Chart Note Complete'] !== undefined ? completionDetails['Chart Note Complete'] : appointment['Chart Note Complete'],
     'Updated At': timestamp_()
   };
   updateRow_(SNACK.SHEETS.APPOINTMENTS, appointment._rowNumber, updates);
@@ -163,9 +193,22 @@ function getDashboardData(filters) {
   const withContactName = (record) => {
     const contact = contactById[record.ContactID] || {};
     return Object.assign({}, record, {
-      ContactName: [contact['First Name'], contact['Last Name']].filter(Boolean).join(' ')
+      ContactName: contactDisplayName_(contact),
+      ParentName: contact['Parent/Guardian Name'] || '',
+      PreferredLanguage: contact.Language || '',
+      PreferredContactMethod: contact['Preferred Contact Method'] || '',
+      CurrentLesson: contact['Current Lesson Number'] || record['Lesson Number'] || '',
+      CurrentLessonTopic: contact['Current Lesson Topic'] || record['Lesson Topic'] || '',
+      LastGoal: contact['Last Goal'] || record['Previous Goal'] || '',
+      DaysSinceLastAppointment: daysSince_(contact['Last Appointment Date'])
     });
   };
+
+  const referrals = contacts.filter((contact) => contact.Category === 'Referral');
+  const clients = contacts.filter((contact) => contact.Category === 'Client');
+  const activeClients = clients.filter((contact) => ['Active', 'Scheduled'].indexOf(String(contact.Status)) !== -1);
+  const needsReschedule = clients.filter((contact) => String(contact.Status) === SNACK.CONTACT_STATUS.NEEDS_RESCHEDULE);
+  const graduatedThisYear = clients.filter((contact) => String(contact.Status) === SNACK.CONTACT_STATUS.GRADUATED && String(contact['Completion Date'] || '').slice(0, 4) === today.slice(0, 4));
 
   return {
     today,
@@ -174,7 +217,11 @@ function getDashboardData(filters) {
       overdueTasks: openTasks.filter((task) => task['Due Date'] && task['Due Date'] < today).length,
       dueTodayTasks: openTasks.filter((task) => task['Due Date'] === today).length,
       noShows: appointments.filter((appointment) => appointment.Status === SNACK.APPOINTMENT_STATUS.NO_SHOW).length,
-      openTasks: openTasks.length
+      openTasks: openTasks.length,
+      activeClients: activeClients.length,
+      openReferrals: referrals.length,
+      needsReschedule: needsReschedule.length,
+      graduatedYtd: graduatedThisYear.length
     },
     todayAppointments: appointments
       .filter((appointment) => appointment.Date === today)
@@ -190,6 +237,64 @@ function getDashboardData(filters) {
     followUps: openTasks
       .filter((task) => String(task['Task Type']).indexOf('Follow-Up') !== -1)
       .map(withContactName)
+  };
+}
+
+function getCrmModuleData() {
+  const contacts = getRows_(SNACK.SHEETS.CONTACTS);
+  const appointments = getRows_(SNACK.SHEETS.APPOINTMENTS);
+  const tasks = getRows_(SNACK.SHEETS.TASKS).filter((task) => task.Status !== SNACK.TASK_STATUS.COMPLETED);
+  const latestAppointmentByContact = {};
+  const nextAppointmentByContact = {};
+  const today = today_();
+
+  appointments.forEach((appointment) => {
+    const contactId = appointment.ContactID;
+    if (!contactId) {
+      return;
+    }
+    if (appointment.Date && appointment.Date <= today) {
+      const current = latestAppointmentByContact[contactId];
+      if (!current || String(appointment.Date).localeCompare(String(current.Date)) > 0) {
+        latestAppointmentByContact[contactId] = appointment;
+      }
+    }
+    if (appointment.Date && appointment.Date >= today && appointment.Status === SNACK.APPOINTMENT_STATUS.SCHEDULED) {
+      const current = nextAppointmentByContact[contactId];
+      if (!current || String(appointment.Date).localeCompare(String(current.Date)) < 0) {
+        nextAppointmentByContact[contactId] = appointment;
+      }
+    }
+  });
+
+  const taskCountsByContact = {};
+  tasks.forEach((task) => {
+    if (task.ContactID) {
+      taskCountsByContact[task.ContactID] = (taskCountsByContact[task.ContactID] || 0) + 1;
+    }
+  });
+
+  const enrich = (contact) => Object.assign({}, contact, {
+    DisplayName: contactDisplayName_(contact),
+    LatestAppointment: latestAppointmentByContact[contact.ContactID] || null,
+    NextAppointment: nextAppointmentByContact[contact.ContactID] || null,
+    OpenTaskCount: taskCountsByContact[contact.ContactID] || 0,
+    ProgramProgress: programProgress_(contact)
+  });
+
+  return {
+    clients: contacts
+      .filter((contact) => contact.Category === 'Client')
+      .map(enrich)
+      .sort((a, b) => String(a.DisplayName).localeCompare(String(b.DisplayName))),
+    referrals: contacts
+      .filter((contact) => contact.Category === 'Referral')
+      .map(enrich)
+      .sort((a, b) => String(a['Created At'] || '').localeCompare(String(b['Created At'] || '')) * -1),
+    providers: contacts
+      .filter((contact) => contact.Category === 'Provider')
+      .map(enrich)
+      .sort((a, b) => String(a.DisplayName).localeCompare(String(b.DisplayName)))
   };
 }
 
@@ -221,4 +326,35 @@ function createDailyRecapDraft() {
 
   GmailApp.createDraft('', `SNACK Daily Recap - ${today_()}`, lines.join('\n'));
   SpreadsheetApp.getUi().alert('Daily recap draft created in Gmail.');
+}
+
+function contactDisplayName_(contact) {
+  if (!contact) {
+    return '';
+  }
+  return [contact['First Name'], contact['Last Name']].filter(Boolean).join(' ') || contact.ContactID || '';
+}
+
+function daysSince_(dateString) {
+  if (!dateString) {
+    return '';
+  }
+  const start = new Date(`${dateString}T00:00:00`);
+  if (Number.isNaN(start.getTime())) {
+    return '';
+  }
+  const today = new Date(`${today_()}T00:00:00`);
+  return Math.max(0, Math.round((today.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)));
+}
+
+function programProgress_(contact) {
+  const completed = Number(contact['Completed Appointment Count'] || 0);
+  if (completed > 0) {
+    return Math.min(completed, 8);
+  }
+  const currentLesson = Number(contact['Current Lesson Number'] || 0);
+  if (currentLesson > 0) {
+    return Math.max(0, Math.min(currentLesson - 1, 8));
+  }
+  return 0;
 }

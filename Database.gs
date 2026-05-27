@@ -28,7 +28,8 @@ function setupSnackCrm() {
 }
 
 function ensureHeaderRow_(sheet, headers) {
-  const existing = sheet.getRange(1, 1, 1, headers.length).getValues()[0];
+  const existingWidth = Math.max(sheet.getLastColumn(), headers.length);
+  const existing = sheet.getRange(1, 1, 1, existingWidth).getValues()[0];
   const hasAnyHeader = existing.some((value) => String(value).trim());
 
   if (!hasAnyHeader) {
@@ -37,10 +38,11 @@ function ensureHeaderRow_(sheet, headers) {
     return;
   }
 
-  headers.forEach((header, index) => {
-    if (existing[index] !== header) {
-      sheet.getRange(1, index + 1).setValue(header);
-    }
+  const existingHeaders = new Set(existing.map((value) => String(value).trim()).filter(Boolean));
+  const missingHeaders = headers.filter((header) => !existingHeaders.has(header));
+
+  missingHeaders.forEach((header) => {
+    sheet.getRange(1, sheet.getLastColumn() + 1).setValue(header);
   });
 }
 
@@ -96,6 +98,7 @@ function getRows_(sheetName) {
 function appendRow_(sheetName, record) {
   const sheet = getSheet_(sheetName);
   const headers = HEADERS[sheetName];
+  ensureHeaderRow_(sheet, headers);
   const row = headers.map((header) => record[header] === undefined ? '' : record[header]);
   sheet.appendRow(row);
   return record;
@@ -104,6 +107,7 @@ function appendRow_(sheetName, record) {
 function updateRow_(sheetName, rowNumber, updates) {
   const sheet = getSheet_(sheetName);
   const headers = HEADERS[sheetName];
+  ensureHeaderRow_(sheet, headers);
   const current = sheet.getRange(rowNumber, 1, 1, headers.length).getValues()[0];
   const next = headers.map((header, index) => {
     return updates[header] === undefined ? current[index] : updates[header];

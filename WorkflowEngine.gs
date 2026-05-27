@@ -1,9 +1,16 @@
 function runAppointmentCreatedWorkflow_(appointment) {
-  updateContact_(appointment.ContactID, {
+  const contact = findById_(SNACK.SHEETS.CONTACTS, 'ContactID', appointment.ContactID) || {};
+  const contactUpdates = {
+    Category: contact.Category === 'Referral' ? 'Client' : contact.Category,
     Status: SNACK.CONTACT_STATUS.SCHEDULED,
     'First Appointment Date': appointment.Date,
+    'Next Appointment Date': appointment.Date,
+    'Current Lesson Number': appointment['Lesson Number'] || contact['Current Lesson Number'],
+    'Current Lesson Topic': appointment['Lesson Topic'] || contact['Current Lesson Topic'],
     'Updated At': timestamp_()
-  }, { onlySetFirstAppointmentDateIfBlank: true });
+  };
+
+  updateContact_(appointment.ContactID, contactUpdates, { onlySetFirstAppointmentDateIfBlank: true });
 
   createTask({
     'Task Type': 'Administrative',
@@ -33,6 +40,19 @@ function runAppointmentCreatedWorkflow_(appointment) {
 }
 
 function runAppointmentCompletedWorkflow_(appointment) {
+  const contact = findById_(SNACK.SHEETS.CONTACTS, 'ContactID', appointment.ContactID) || {};
+  const completedCount = Number(contact['Completed Appointment Count'] || 0) + 1;
+
+  updateContact_(appointment.ContactID, {
+    Status: SNACK.CONTACT_STATUS.ACTIVE,
+    'Last Appointment Date': appointment.Date || today_(),
+    'Last Goal': appointment['New Goal'] || appointment.Goal || contact['Last Goal'],
+    'Completed Appointment Count': completedCount,
+    'Current Lesson Number': appointment['Lesson Number'] || contact['Current Lesson Number'],
+    'Current Lesson Topic': appointment['Lesson Topic'] || contact['Current Lesson Topic'],
+    'Updated At': timestamp_()
+  });
+
   createTask({
     'Task Type': 'Chart Note',
     Description: 'Complete Athena chart note',
@@ -48,7 +68,7 @@ function runAppointmentCompletedWorkflow_(appointment) {
   if (requiresFormEntry_(appointment)) {
     createTask({
       'Task Type': 'Form Entry',
-      Description: `Enter ${appointment['Appointment Type']} paperwork in Google Forms`,
+      Description: `Complete ${appointment['Appointment Type']} paperwork/forms`,
       ContactID: appointment.ContactID,
       AppointmentID: appointment.AppointmentID,
       'Assigned Staff': appointment.Staff || SNACK.DEFAULT_STAFF,
@@ -62,6 +82,7 @@ function runAppointmentCompletedWorkflow_(appointment) {
   if (isGraduationAppointment_(appointment)) {
     updateContact_(appointment.ContactID, {
       Status: SNACK.CONTACT_STATUS.GRADUATED,
+      'Completion Date': appointment.Date || today_(),
       'Updated At': timestamp_()
     });
     createTask({
@@ -81,23 +102,27 @@ function runAppointmentCompletedWorkflow_(appointment) {
 function runNoShowWorkflow_(appointment) {
   const contact = findById_(SNACK.SHEETS.CONTACTS, 'ContactID', appointment.ContactID);
   const newClient = isNewClientNoShow_(appointment, contact);
-  const nextStatus = newClient ? SNACK.CONTACT_STATUS.RESCHEDULE : SNACK.CONTACT_STATUS.PRIORITY_RESCHEDULE;
+  const nextStatus = SNACK.CONTACT_STATUS.NEEDS_RESCHEDULE;
+  const reason = newClient ? 'Missed first appointment' : 'Returning client no-show';
+  const noShowCount = Number(contact && contact['No Show Count'] ? contact['No Show Count'] : 0) + 1;
 
   updateContact_(appointment.ContactID, {
     Status: nextStatus,
+    'Reschedule Reason': reason,
+    'No Show Count': noShowCount,
     'Updated At': timestamp_()
   });
 
   createTask({
     'Task Type': 'Client Follow-Up',
-    Description: newClient ? 'Reschedule new client after no-show' : 'Priority reschedule returning client after no-show',
+    Description: newClient ? 'Reschedule client after missed first appointment' : 'Priority reschedule returning client after no-show',
     ContactID: appointment.ContactID,
     AppointmentID: appointment.AppointmentID,
     'Assigned Staff': appointment.Staff || SNACK.DEFAULT_STAFF,
     Priority: newClient ? 'Normal' : 'High',
     'Due Date': today_(),
     'Created By Automation': true,
-    Notes: `Contact status set to ${nextStatus}.`
+    Notes: `Contact status set to ${nextStatus}. Reason: ${reason}.`
   });
 }
 

@@ -80,6 +80,8 @@ function findOrCreateContactFromForm_(namedValues) {
     Category: inferContactCategory_(getFormNameFromNamedValues_(namedValues)),
     Status: SNACK.CONTACT_STATUS.ACTIVE,
     'Referral Source': firstFormValue_(namedValues, ['Referral Source', 'How did you hear about us?']),
+    'Referral Type': inferReferralType_(getFormNameFromNamedValues_(namedValues)),
+    'Preferred Contact Method': firstFormValue_(namedValues, ['Preferred Contact Method', 'Preferred Communication Method']),
     Notes: 'Created from Google Form submission.'
   });
 }
@@ -118,13 +120,24 @@ function inferFormTaskType_(formName) {
 
 function inferContactCategory_(formName) {
   const lower = String(formName).toLowerCase();
-  if (lower.indexOf('referral') !== -1) {
+  if (lower.indexOf('referral') !== -1 || lower.indexOf('assessment') !== -1) {
     return 'Referral';
   }
-  if (lower.indexOf('assessment') !== -1) {
-    return 'Assessment Lead';
-  }
   return 'Client';
+}
+
+function inferReferralType_(formName) {
+  const lower = String(formName).toLowerCase();
+  if (lower.indexOf('assessment') !== -1) {
+    return 'Nutrition assessment';
+  }
+  if (lower.indexOf('event') !== -1 || lower.indexOf('class') !== -1) {
+    return 'Hosted event/class interest';
+  }
+  if (lower.indexOf('referral') !== -1) {
+    return 'External clinic referral';
+  }
+  return '';
 }
 
 function appendNote_(existingNotes, note) {

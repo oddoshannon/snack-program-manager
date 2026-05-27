@@ -6,13 +6,19 @@
     <style>
       :root {
         color-scheme: light;
-        --ink: #183230;
-        --muted: #5c6f6c;
-        --line: #d8e2df;
-        --soft: #f4f8f7;
-        --accent: #1f7a68;
-        --accent-2: #b4532a;
+        --ink: #172b2a;
+        --muted: #667875;
+        --line: #d9e3e0;
+        --soft: #f5f7f4;
         --paper: #ffffff;
+        --accent: #1f7a68;
+        --accent-soft: #e5f1ee;
+        --warn: #a05a1f;
+        --warn-soft: #fff3df;
+        --danger: #a33b2f;
+        --danger-soft: #fdecea;
+        --blue: #2f638f;
+        --blue-soft: #e7f0f7;
       }
 
       * {
@@ -34,20 +40,26 @@
         display: flex;
         gap: 16px;
         justify-content: space-between;
-        padding: 16px 20px;
+        padding: 14px 20px;
+        position: sticky;
+        top: 0;
+        z-index: 2;
       }
 
-      h1 {
-        font-size: 22px;
-        font-weight: 700;
+      h1, h2, h3 {
         margin: 0;
       }
 
-      main {
-        display: grid;
-        gap: 16px;
-        grid-template-columns: 320px 1fr;
-        padding: 16px;
+      h1 {
+        font-size: 20px;
+      }
+
+      h2 {
+        font-size: 16px;
+      }
+
+      h3 {
+        font-size: 13px;
       }
 
       button, input, select, textarea {
@@ -61,8 +73,8 @@
         color: white;
         cursor: pointer;
         font-weight: 700;
-        min-height: 36px;
-        padding: 8px 12px;
+        min-height: 34px;
+        padding: 7px 11px;
       }
 
       button.secondary {
@@ -70,10 +82,15 @@
         color: var(--ink);
       }
 
+      button.small {
+        min-height: 28px;
+        padding: 4px 8px;
+      }
+
       input, select, textarea {
         background: white;
-        min-height: 36px;
-        padding: 8px 10px;
+        min-height: 34px;
+        padding: 7px 9px;
         width: 100%;
       }
 
@@ -83,6 +100,41 @@
         gap: 5px;
         font-size: 12px;
         font-weight: 700;
+      }
+
+      main {
+        display: grid;
+        gap: 16px;
+        padding: 16px;
+      }
+
+      .topline {
+        align-items: center;
+        display: flex;
+        gap: 12px;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .nav {
+        background: var(--paper);
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        gap: 6px;
+        padding: 8px 16px;
+      }
+
+      .nav button {
+        background: transparent;
+        border-color: transparent;
+        color: var(--muted);
+      }
+
+      .nav button.active {
+        background: var(--accent-soft);
+        color: var(--accent);
       }
 
       .panel {
@@ -97,28 +149,10 @@
         gap: 12px;
       }
 
-      .metrics {
+      .layout {
         display: grid;
-        gap: 10px;
-        grid-template-columns: repeat(5, minmax(110px, 1fr));
-      }
-
-      .metric {
-        background: white;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 12px;
-      }
-
-      .metric strong {
-        display: block;
-        font-size: 24px;
-      }
-
-      .metric span {
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 700;
+        gap: 16px;
+        grid-template-columns: 340px 1fr;
       }
 
       .grid {
@@ -127,43 +161,31 @@
         grid-template-columns: 1fr 1fr;
       }
 
-      .list {
+      .metrics {
         display: grid;
-        gap: 8px;
-        margin-top: 10px;
+        gap: 10px;
+        grid-template-columns: repeat(6, minmax(120px, 1fr));
       }
 
-      .item {
+      .metric {
+        background: var(--paper);
         border: 1px solid var(--line);
         border-radius: 8px;
-        display: grid;
-        gap: 6px;
-        padding: 10px;
+        padding: 12px;
       }
 
-      .item-title {
-        align-items: center;
-        display: flex;
-        gap: 8px;
-        justify-content: space-between;
+      .metric strong {
+        display: block;
+        font-size: 24px;
+        line-height: 1;
       }
 
-      .badge {
-        background: #edf5f3;
-        border-radius: 999px;
-        color: var(--accent);
-        font-size: 11px;
-        font-weight: 700;
-        padding: 3px 8px;
-        white-space: nowrap;
-      }
-
-      .danger {
-        color: var(--accent-2);
-      }
-
-      .muted {
+      .metric span {
         color: var(--muted);
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 5px;
       }
 
       .form-grid {
@@ -176,8 +198,126 @@
         grid-column: 1 / -1;
       }
 
-      @media (max-width: 900px) {
-        main, .grid, .metrics {
+      .list {
+        display: grid;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .item {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+      }
+
+      .item-title, .item-actions, .row {
+        align-items: center;
+        display: flex;
+        gap: 8px;
+      }
+
+      .item-title {
+        justify-content: space-between;
+      }
+
+      .item-actions {
+        flex-wrap: wrap;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .badge {
+        background: var(--accent-soft);
+        border-radius: 999px;
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 8px;
+        white-space: nowrap;
+      }
+
+      .badge.warn {
+        background: var(--warn-soft);
+        color: var(--warn);
+      }
+
+      .badge.danger {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .badge.blue {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+
+      .table {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .table-row {
+        align-items: center;
+        border-top: 1px solid var(--line);
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 1.1fr .85fr .85fr .8fr .7fr;
+        min-height: 50px;
+        padding: 9px 11px;
+      }
+
+      .table-row:first-child {
+        border-top: 0;
+      }
+
+      .table-row.header {
+        background: #eef4f2;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        min-height: 38px;
+      }
+
+      .profile {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: 1.2fr .8fr;
+      }
+
+      .progress {
+        background: #e9efed;
+        border-radius: 999px;
+        height: 8px;
+        overflow: hidden;
+      }
+
+      .progress div {
+        background: var(--accent);
+        height: 100%;
+      }
+
+      .view {
+        display: none;
+      }
+
+      .view.active {
+        display: grid;
+        gap: 16px;
+      }
+
+      @media (max-width: 980px) {
+        .layout, .grid, .metrics, .profile {
+          grid-template-columns: 1fr;
+        }
+
+        .table-row {
           grid-template-columns: 1fr;
         }
       }
@@ -186,74 +326,152 @@
   <body>
     <header>
       <div>
-        <h1>SNACK CRM</h1>
+        <div class="topline">
+          <h1>SNACK CRM</h1>
+          <span class="badge blue">Playground Phase 1</span>
+        </div>
         <div class="muted" id="todayLabel">Loading dashboard...</div>
       </div>
-      <button class="secondary" onclick="loadDashboard()">Refresh</button>
+      <button class="secondary" onclick="refreshAll()">Refresh</button>
     </header>
 
+    <nav class="nav">
+      <button id="tab-dashboard" class="active" onclick="showView('dashboard')">Dashboard</button>
+      <button id="tab-clients" onclick="showView('clients')">Clients</button>
+      <button id="tab-referrals" onclick="showView('referrals')">Referrals</button>
+      <button id="tab-providers" onclick="showView('providers')">Providers</button>
+      <button id="tab-tasks" onclick="showView('tasks')">Tasks</button>
+    </nav>
+
     <main>
-      <aside class="stack">
-        <section class="panel stack">
-          <strong>New Task</strong>
-          <label>Task Type<select id="taskType"></select></label>
-          <label>Description<textarea id="taskDescription" rows="3"></textarea></label>
-          <div class="form-grid">
-            <label>Priority<select id="taskPriority"></select></label>
-            <label>Due Date<input id="taskDueDate" type="date"></label>
-          </div>
-          <label>Assigned Staff<input id="taskStaff" placeholder="Name or email"></label>
-          <button onclick="createManualTask()">Create Task</button>
-        </section>
-
-        <section class="panel stack">
-          <strong>Quick Contact</strong>
-          <div class="form-grid">
-            <label>First Name<input id="firstName"></label>
-            <label>Last Name<input id="lastName"></label>
-          </div>
-          <label>Phone<input id="phone"></label>
-          <label>Category<input id="category" value="Client"></label>
-          <button onclick="createQuickContact()">Create Contact</button>
-        </section>
-      </aside>
-
-      <section class="stack">
+      <section id="view-dashboard" class="view active">
         <div class="metrics" id="metrics"></div>
+        <div class="layout">
+          <aside class="stack">
+            <section class="panel stack">
+              <h2>New Referral</h2>
+              <div class="form-grid">
+                <label>Child First Name<input id="refFirstName"></label>
+                <label>Child Last Name<input id="refLastName"></label>
+              </div>
+              <label>Referral Type<select id="referralType"></select></label>
+              <div class="form-grid">
+                <label>Parent/Guardian<input id="refParentName"></label>
+                <label>Preferred Language<input id="refLanguage" value="English"></label>
+              </div>
+              <div class="form-grid">
+                <label>Phone<input id="refPhone"></label>
+                <label>Email<input id="refEmail"></label>
+              </div>
+              <label>Preferred Contact Method<select id="refContactMethod"></select></label>
+              <label>Referral Detail<input id="refDetail" placeholder="Provider, event, class, clinic, or short context"></label>
+              <label>Note<textarea id="refNote" rows="3"></textarea></label>
+              <button onclick="createReferralFromForm()">Create Referral</button>
+            </section>
 
-        <div class="grid">
-          <section class="panel">
-            <strong>Today's Appointments</strong>
-            <div class="list" id="todayAppointments"></div>
-          </section>
+            <section class="panel stack">
+              <h2>New Task</h2>
+              <label>Task Type<select id="taskType"></select></label>
+              <label>Description<textarea id="taskDescription" rows="3"></textarea></label>
+              <div class="form-grid">
+                <label>Priority<select id="taskPriority"></select></label>
+                <label>Due Date<input id="taskDueDate" type="date"></label>
+              </div>
+              <label>Assigned Staff<input id="taskStaff" placeholder="Name or email"></label>
+              <button onclick="createManualTask()">Create Task</button>
+            </section>
+          </aside>
 
-          <section class="panel">
-            <strong>Due Today</strong>
-            <div class="list" id="dueTodayTasks"></div>
-          </section>
+          <section class="stack">
+            <div class="grid">
+              <section class="panel">
+                <h2>Today's Appointments</h2>
+                <div class="list" id="todayAppointments"></div>
+              </section>
 
-          <section class="panel">
-            <strong class="danger">Overdue</strong>
-            <div class="list" id="overdueTasks"></div>
-          </section>
+              <section class="panel">
+                <h2>Due Today</h2>
+                <div class="list" id="dueTodayTasks"></div>
+              </section>
 
-          <section class="panel">
-            <strong>Follow-Ups</strong>
-            <div class="list" id="followUps"></div>
+              <section class="panel">
+                <h2>Overdue</h2>
+                <div class="list" id="overdueTasks"></div>
+              </section>
+
+              <section class="panel">
+                <h2>Follow-Ups</h2>
+                <div class="list" id="followUps"></div>
+              </section>
+            </div>
           </section>
         </div>
+      </section>
+
+      <section id="view-clients" class="view">
+        <section class="panel">
+          <div class="item-title">
+            <h2>Clients</h2>
+            <span class="muted">Active program records and reschedules</span>
+          </div>
+          <div id="clientsTable" class="table"></div>
+        </section>
+        <section class="panel">
+          <h2>Selected Client Preview</h2>
+          <div id="clientPreview" class="muted">Select a client from the list.</div>
+        </section>
+      </section>
+
+      <section id="view-referrals" class="view">
+        <section class="panel">
+          <div class="item-title">
+            <h2>Referrals</h2>
+            <span class="muted">Provider, assessment, self referral, and event interest records</span>
+          </div>
+          <div id="referralsTable" class="table"></div>
+        </section>
+      </section>
+
+      <section id="view-providers" class="view">
+        <section class="panel">
+          <div class="item-title">
+            <h2>Providers</h2>
+            <span class="muted">Provider module placeholder for the next CRM pass</span>
+          </div>
+          <div id="providersTable" class="table"></div>
+        </section>
+      </section>
+
+      <section id="view-tasks" class="view">
+        <section class="panel">
+          <div class="item-title">
+            <h2>Tasks</h2>
+            <span class="muted">Todoist-style task module starts here</span>
+          </div>
+          <div class="grid">
+            <div>
+              <h3>Due Today</h3>
+              <div class="list" id="tasksDueToday"></div>
+            </div>
+            <div>
+              <h3>Overdue</h3>
+              <div class="list" id="tasksOverdue"></div>
+            </div>
+          </div>
+        </section>
       </section>
     </main>
 
     <script>
       let bootstrap = {};
+      let crmData = { clients: [], referrals: [], providers: [] };
 
       document.addEventListener('DOMContentLoaded', () => {
         google.script.run
           .withSuccessHandler((data) => {
             bootstrap = data;
             hydrateControls(data);
-            loadDashboard();
+            refreshAll();
           })
           .getBootstrapData();
       });
@@ -263,17 +481,37 @@
         document.getElementById('taskDueDate').value = data.today;
         setOptions('taskType', data.taskTypes);
         setOptions('taskPriority', data.priorities);
+        setOptions('referralType', data.referralTypes);
+        setOptions('refContactMethod', data.contactMethods);
       }
 
       function setOptions(id, values) {
         const select = document.getElementById(id);
-        select.innerHTML = values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join('');
+        select.innerHTML = (values || []).map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join('');
+      }
+
+      function refreshAll() {
+        loadDashboard();
+        loadCrmModules();
+      }
+
+      function showView(name) {
+        document.querySelectorAll('.view').forEach((view) => view.classList.remove('active'));
+        document.querySelectorAll('.nav button').forEach((button) => button.classList.remove('active'));
+        document.getElementById(`view-${name}`).classList.add('active');
+        document.getElementById(`tab-${name}`).classList.add('active');
       }
 
       function loadDashboard() {
         google.script.run
           .withSuccessHandler(renderDashboard)
           .getDashboardData({});
+      }
+
+      function loadCrmModules() {
+        google.script.run
+          .withSuccessHandler(renderCrmModules)
+          .getCrmModuleData();
       }
 
       function renderDashboard(data) {
@@ -283,37 +521,123 @@
         renderList('dueTodayTasks', data.dueTodayTasks, renderTask);
         renderList('overdueTasks', data.overdueTasks, renderTask);
         renderList('followUps', data.followUps, renderTask);
+        renderList('tasksDueToday', data.dueTodayTasks, renderTask);
+        renderList('tasksOverdue', data.overdueTasks, renderTask);
       }
 
       function renderMetrics(counts) {
         const metrics = [
-          ['Appointments', counts.todayAppointments],
-          ['Due Today', counts.dueTodayTasks],
-          ['Overdue', counts.overdueTasks],
-          ['Open Tasks', counts.openTasks],
-          ['No-Shows', counts.noShows]
+          ['Appointments Today', counts.todayAppointments],
+          ['Active Clients', counts.activeClients],
+          ['Open Referrals', counts.openReferrals],
+          ['Needs Reschedule', counts.needsReschedule],
+          ['Overdue Tasks', counts.overdueTasks],
+          ['Graduated YTD', counts.graduatedYtd]
         ];
         document.getElementById('metrics').innerHTML = metrics.map(([label, value]) => `
-          <div class="metric"><strong>${value}</strong><span>${label}</span></div>
+          <div class="metric"><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></div>
         `).join('');
+      }
+
+      function renderCrmModules(data) {
+        crmData = data || { clients: [], referrals: [], providers: [] };
+        renderContactsTable('clientsTable', crmData.clients, 'clients');
+        renderContactsTable('referralsTable', crmData.referrals, 'referrals');
+        renderContactsTable('providersTable', crmData.providers, 'providers');
+      }
+
+      function renderContactsTable(id, rows, kind) {
+        const element = document.getElementById(id);
+        const headers = kind === 'referrals'
+          ? ['Name', 'Referral Type', 'Status', 'Contact', 'Tasks']
+          : ['Name', 'Status', 'Progress', 'Next Appt', 'Tasks'];
+        const body = rows.length ? rows.map((row, index) => renderContactRow(row, index, kind)).join('') : `<div class="table-row"><span class="muted">No records yet.</span></div>`;
+        element.innerHTML = `
+          <div class="table-row header">${headers.map((header) => `<div>${escapeHtml(header)}</div>`).join('')}</div>
+          ${body}
+        `;
+      }
+
+      function renderContactRow(row, index, kind) {
+        if (kind === 'referrals') {
+          return `
+            <div class="table-row">
+              <div><strong>${escapeHtml(row.DisplayName)}</strong><div class="muted">${escapeHtml(row['Parent/Guardian Name'] || '')}</div></div>
+              <div><span class="badge blue">${escapeHtml(row['Referral Type'] || 'Referral')}</span></div>
+              <div>${statusBadge(row.Status)}</div>
+              <div class="muted">${escapeHtml(row.Phone || '')}<br>${escapeHtml(row.Email || '')}</div>
+              <div>${escapeHtml(row.OpenTaskCount || 0)}</div>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="table-row" onclick="previewClient(${index})">
+            <div><strong>${escapeHtml(row.DisplayName)}</strong><div class="muted">${escapeHtml(row['Parent/Guardian Name'] || '')}</div></div>
+            <div>${statusBadge(row.Status)}</div>
+            <div>${progressBar(row.ProgramProgress || 0)}<div class="muted">${escapeHtml(row.ProgramProgress || 0)} / 8</div></div>
+            <div class="muted">${escapeHtml(row.NextAppointment ? `${row.NextAppointment.Date} ${row.NextAppointment.Time || ''}` : row['Next Appointment Date'] || 'Not scheduled')}</div>
+            <div>${escapeHtml(row.OpenTaskCount || 0)}</div>
+          </div>
+        `;
+      }
+
+      function previewClient(index) {
+        const row = crmData.clients[index];
+        if (!row) {
+          return;
+        }
+        document.getElementById('clientPreview').innerHTML = `
+          <div class="profile">
+            <div class="stack">
+              <div class="item-title">
+                <h2>${escapeHtml(row.DisplayName)}</h2>
+                ${statusBadge(row.Status)}
+              </div>
+              <div class="chips">
+                <span class="badge">${escapeHtml(row.Language || 'Language unknown')}</span>
+                <span class="badge blue">${escapeHtml(row['Preferred Contact Method'] || 'No contact preference')}</span>
+                <span class="badge warn">${escapeHtml(row['Reschedule Reason'] || 'No reschedule reason')}</span>
+              </div>
+              <div>${progressBar(row.ProgramProgress || 0)}</div>
+              <div class="muted">Program progress: ${escapeHtml(row.ProgramProgress || 0)} / 8</div>
+            </div>
+            <div class="stack">
+              <div><strong>Parent</strong><div class="muted">${escapeHtml(row['Parent/Guardian Name'] || '')}</div></div>
+              <div><strong>Phone</strong><div class="muted">${escapeHtml(row.Phone || '')}</div></div>
+              <div><strong>Email</strong><div class="muted">${escapeHtml(row.Email || '')}</div></div>
+              <div><strong>Last Goal</strong><div class="muted">${escapeHtml(row['Last Goal'] || 'No goal recorded')}</div></div>
+            </div>
+          </div>
+        `;
       }
 
       function renderList(id, rows, renderer) {
         const element = document.getElementById(id);
+        if (!element) {
+          return;
+        }
         element.innerHTML = rows.length ? rows.map(renderer).join('') : '<div class="muted">Nothing here.</div>';
       }
 
       function renderAppointment(row) {
+        const since = row.DaysSinceLastAppointment === '' ? 'No prior appt' : `${row.DaysSinceLastAppointment} days since last appt`;
         return `
           <div class="item">
             <div class="item-title">
               <strong>${escapeHtml(row.Time || 'No time')} ${escapeHtml(row.ContactName || row.ContactID || '')}</strong>
-              <span class="badge">${escapeHtml(row.Status || '')}</span>
+              ${statusBadge(row.Status)}
             </div>
-            <div class="muted">${escapeHtml(row['Appointment Type'] || '')} ${escapeHtml(row.Goal || '')}</div>
-            <div>
-              <button class="secondary" onclick="completeAppointment('${escapeHtml(row.AppointmentID)}')">Complete</button>
-              <button class="secondary" onclick="markNoShow('${escapeHtml(row.AppointmentID)}')">No-Show</button>
+            <div class="chips">
+              <span class="badge blue">${escapeHtml(row['Appointment Type'] || 'Appointment')}</span>
+              <span class="badge">${escapeHtml(row.CurrentLessonTopic || `Lesson ${row.CurrentLesson || ''}`)}</span>
+              <span class="badge warn">${escapeHtml(since)}</span>
+            </div>
+            <div class="muted">Parent: ${escapeHtml(row.ParentName || 'Not listed')} · Goal: ${escapeHtml(row.LastGoal || row.Goal || 'No goal recorded')}</div>
+            <div class="item-actions">
+              <button class="secondary small" onclick="completeAppointment('${escapeHtml(row.AppointmentID)}')">Complete</button>
+              <button class="secondary small" onclick="markNoShow('${escapeHtml(row.AppointmentID)}')">No-Show</button>
+              <button class="secondary small" onclick="alert('Reschedule date picker is planned for the next pass.')">Reschedule</button>
             </div>
           </div>
         `;
@@ -327,9 +651,20 @@
               <span class="badge">${escapeHtml(row.Priority || '')}</span>
             </div>
             <div class="muted">${escapeHtml(row['Task Type'] || '')} · ${escapeHtml(row.ContactName || row.ContactID || 'No contact')} · Due ${escapeHtml(row['Due Date'] || '')}</div>
-            <button class="secondary" onclick="completeTask('${escapeHtml(row.TaskID)}')">Mark Complete</button>
+            <button class="secondary small" onclick="completeTask('${escapeHtml(row.TaskID)}')">Mark Complete</button>
           </div>
         `;
+      }
+
+      function statusBadge(status) {
+        const statusText = status || 'Unknown';
+        const klass = String(statusText).indexOf('Reschedule') !== -1 ? 'warn' : String(statusText).indexOf('Closed') !== -1 ? 'danger' : '';
+        return `<span class="badge ${klass}">${escapeHtml(statusText)}</span>`;
+      }
+
+      function progressBar(value) {
+        const width = Math.max(0, Math.min(100, Number(value || 0) / 8 * 100));
+        return `<div class="progress"><div style="width:${width}%"></div></div>`;
       }
 
       function createManualTask() {
@@ -343,33 +678,45 @@
         };
         google.script.run.withSuccessHandler(() => {
           document.getElementById('taskDescription').value = '';
-          loadDashboard();
+          refreshAll();
         }).createTask(task);
       }
 
-      function createQuickContact() {
-        const contact = {
-          'First Name': value('firstName'),
-          'Last Name': value('lastName'),
-          Phone: value('phone'),
-          Category: value('category')
+      function createReferralFromForm() {
+        const referral = {
+          'First Name': value('refFirstName'),
+          'Last Name': value('refLastName'),
+          Phone: value('refPhone'),
+          Email: value('refEmail'),
+          Language: value('refLanguage') || 'English',
+          'Parent/Guardian Name': value('refParentName'),
+          'Preferred Contact Method': value('refContactMethod'),
+          'Referral Type': value('referralType'),
+          'Referral Detail': value('refDetail'),
+          Notes: value('refNote')
         };
         google.script.run.withSuccessHandler(() => {
-          ['firstName', 'lastName', 'phone'].forEach((id) => document.getElementById(id).value = '');
-          loadDashboard();
-        }).createContact(contact);
+          ['refFirstName', 'refLastName', 'refPhone', 'refEmail', 'refParentName', 'refDetail', 'refNote'].forEach((id) => document.getElementById(id).value = '');
+          refreshAll();
+          showView('referrals');
+        }).createReferral(referral);
       }
 
       function completeTask(taskId) {
-        google.script.run.withSuccessHandler(loadDashboard).updateTaskStatus(taskId, 'Completed');
+        google.script.run.withSuccessHandler(refreshAll).updateTaskStatus(taskId, 'Completed');
       }
 
       function completeAppointment(appointmentId) {
-        google.script.run.withSuccessHandler(loadDashboard).completeAppointment(appointmentId);
+        const nextScheduled = window.confirm('Was the next appointment scheduled while the family was still there?');
+        const newGoal = window.prompt('New goal from this appointment, if available:', '');
+        google.script.run.withSuccessHandler(refreshAll).completeAppointment(appointmentId, {
+          'Next Appointment Scheduled': nextScheduled,
+          'New Goal': newGoal || ''
+        });
       }
 
       function markNoShow(appointmentId) {
-        google.script.run.withSuccessHandler(loadDashboard).markAppointmentNoShow(appointmentId);
+        google.script.run.withSuccessHandler(refreshAll).markAppointmentNoShow(appointmentId);
       }
 
       function value(id) {
