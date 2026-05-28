@@ -59,6 +59,20 @@ h1 {
   line-height: 1.4;
 }
 
+.auth-row {
+  display: grid;
+  gap: 12px;
+  align-items: start;
+  margin-top: 24px;
+}
+
+.user {
+  min-height: 1.5rem;
+  margin: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
 .status {
   min-height: 1.5rem;
   margin: 0 0 24px;
@@ -84,4 +98,8 @@ button:hover {
 button:disabled {
   cursor: wait;
   opacity: 0.65;
+}
+
+[hidden] {
+  display: none !important;
 }

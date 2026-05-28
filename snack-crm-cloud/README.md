@@ -5,7 +5,9 @@ This folder is a tiny full-stack starting point for a future SNACK Program CRM o
 It intentionally does almost nothing:
 
 - The frontend says `SNACK CRM`.
+- The frontend asks the user to sign in with Google.
 - The backend has a `/health` endpoint.
+- The backend verifies the Firebase sign-in token before returning API data.
 - The backend reads one message from a Firestore database collection named `messages`.
 - The frontend calls the backend and displays that database message.
 
@@ -77,7 +79,7 @@ cp .env.example .env
 npm run dev
 ```
 
-The backend reads `.env` during local development. That file tells the backend to use the local Firestore emulator instead of the real cloud database.
+The backend reads `.env` during local development. That file tells the backend to use the local Firestore emulator instead of the real cloud database. It also tells the backend to accept Firebase sign-in tokens from the `snack-crm` Firebase project and only allow `snackprogram.org` email addresses.
 
 Open a third terminal in this folder and start the frontend:
 
@@ -92,13 +94,12 @@ Then open:
 http://localhost:5002
 ```
 
-You should see `SNACK CRM` and the message `Hello from the SNACK CRM database.`
+You should see `SNACK CRM`. After you sign in with a SNACK Google account, you should see the message `Hello from the SNACK CRM database.`
 
 You can also test the backend directly:
 
 ```text
 http://localhost:8080/health
-http://localhost:8080/api/message
 ```
 
 ## Google Cloud and Firebase Setup
@@ -156,7 +157,19 @@ Firebase Hosting will serve the frontend.
 4. Continue through the setup prompts.
 5. In the Firebase project, go to **Build > Hosting** and click **Get started**.
 
-### 6. Login locally
+### 6. Enable Google sign-in
+
+Firebase Authentication is the login system.
+
+1. Go to `https://console.firebase.google.com/project/snack-crm/authentication`.
+2. Click **Get started** if Authentication has not been set up yet.
+3. Go to the **Sign-in method** tab.
+4. Choose **Google**.
+5. Enable it.
+6. Pick the support email shown by Firebase.
+7. Save.
+
+### 7. Login locally
 
 These commands let your computer deploy to your Google accounts:
 
@@ -190,17 +203,7 @@ https://YOUR_CLOUD_RUN_URL/health
 
 ## Deploy the Frontend to Firebase Hosting
 
-Open `frontend/public/app-config.js` and replace this local URL:
-
-```js
-API_BASE_URL: "http://localhost:8080"
-```
-
-with your Cloud Run URL:
-
-```js
-API_BASE_URL: "https://YOUR_CLOUD_RUN_URL"
-```
+The deployed frontend calls `/api/message` on the same Firebase Hosting website. Firebase Hosting forwards that request to Cloud Run using the rewrite rules in `firebase.json`.
 
 Create a real Firebase project config file:
 
@@ -216,13 +219,12 @@ Then deploy from the `snack-crm-cloud` folder:
 firebase deploy --only hosting
 ```
 
-Firebase prints a Hosting URL. Open it and confirm the page says `SNACK CRM` and shows the database message.
+Firebase prints a Hosting URL. Open it, sign in with a SNACK Google account, and confirm the page says `SNACK CRM` and shows the database message.
 
 ## Later, Not Now
 
 This first version is only the plumbing test. Later versions can add:
 
-- Login with Firebase Auth or Google sign-in
 - Clients
 - Referrals
 - Appointments
