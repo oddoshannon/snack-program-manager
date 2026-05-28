@@ -16,6 +16,24 @@
           }
         ]
       }
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "snack-crm-api",
+          "region": "us-central1",
+          "pinTag": true
+        }
+      },
+      {
+        "source": "/health",
+        "run": {
+          "serviceId": "snack-crm-api",
+          "region": "us-central1",
+          "pinTag": true
+        }
+      }
     ]
   },
   "emulators": {
