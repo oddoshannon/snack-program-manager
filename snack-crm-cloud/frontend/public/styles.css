@@ -155,6 +155,7 @@ label {
 }
 
 input,
+select,
 textarea {
   width: 100%;
   border: 1px solid var(--line);
@@ -166,6 +167,11 @@ textarea {
 
 textarea {
   resize: vertical;
+}
+
+.status-field {
+  max-width: 220px;
+  margin-top: 14px;
 }
 
 .full-field,

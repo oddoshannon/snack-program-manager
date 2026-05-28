@@ -96,7 +96,25 @@ function renderReferrals(referrals) {
 
     const meta = document.createElement("p");
     meta.className = "referral-meta";
-    meta.textContent = `Status: ${referral.status}${referral.referralSource ? ` | Source: ${referral.referralSource}` : ""}`;
+    meta.textContent = referral.referralSource ? `Source: ${referral.referralSource}` : "No referral source yet.";
+
+    const statusLabel = document.createElement("label");
+    statusLabel.className = "status-field";
+    statusLabel.textContent = "Status";
+
+    const statusSelect = document.createElement("select");
+    statusSelect.value = referral.status;
+    statusSelect.dataset.referralId = referral.id;
+
+    for (const status of ["new", "contacted", "scheduled", "closed"]) {
+      const option = document.createElement("option");
+      option.value = status;
+      option.textContent = status;
+      statusSelect.append(option);
+    }
+
+    statusSelect.addEventListener("change", () => updateReferralStatus(referral, statusSelect.value));
+    statusLabel.append(statusSelect);
 
     const deleteButton = document.createElement("button");
     deleteButton.className = "secondary-button";
@@ -104,7 +122,7 @@ function renderReferrals(referrals) {
     deleteButton.textContent = "Delete";
     deleteButton.addEventListener("click", () => deleteReferral(referral));
 
-    item.append(title, details, meta);
+    item.append(title, details, meta, statusLabel);
 
     if (referral.notes) {
       const notes = document.createElement("p");
@@ -206,6 +224,32 @@ async function deleteReferral(referral) {
   } catch (error) {
     referralsStatusEl.textContent = error.message || "Could not delete referral yet.";
     console.error(error);
+  }
+}
+
+async function updateReferralStatus(referral, status) {
+  referralsStatusEl.textContent = "Updating referral status...";
+
+  try {
+    const response = await authedFetch(`/api/referrals/${encodeURIComponent(referral.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ status })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    referralsStatusEl.textContent = "Referral status updated.";
+    await loadReferrals();
+  } catch (error) {
+    referralsStatusEl.textContent = error.message || "Could not update referral status yet.";
+    console.error(error);
+    await loadReferrals();
   }
 }
 

@@ -8,6 +8,7 @@ const frontendOrigin = process.env.FRONTEND_ORIGIN || "*";
 const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT || process.env.PROJECT_ID;
 const firebaseAuthProjectId = process.env.FIREBASE_AUTH_PROJECT_ID || "snack-crm";
 const allowedEmailDomain = process.env.ALLOWED_EMAIL_DOMAIN || "snackprogram.org";
+const allowedReferralStatuses = new Set(["new", "contacted", "scheduled", "closed"]);
 
 const firestore = projectId ? new Firestore({ projectId }) : new Firestore();
 const messages = firestore.collection("messages");
@@ -196,6 +197,50 @@ app.delete("/api/referrals/:referralId", requireAuth, async (request, response, 
     await docRef.delete();
 
     response.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/referrals/:referralId", requireAuth, async (request, response, next) => {
+  try {
+    const referralId = cleanString(request.params.referralId);
+    const status = cleanString(request.body.status);
+
+    if (!referralId) {
+      response.status(400).json({
+        error: "Referral ID is required."
+      });
+      return;
+    }
+
+    if (!allowedReferralStatuses.has(status)) {
+      response.status(400).json({
+        error: "Referral status is not valid."
+      });
+      return;
+    }
+
+    const docRef = referrals.doc(referralId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Referral was not found."
+      });
+      return;
+    }
+
+    await docRef.update({
+      status,
+      updatedAt: new Date().toISOString(),
+      updatedBy: request.user.email
+    });
+    const updated = await docRef.get();
+
+    response.json({
+      referral: toReferral(updated)
+    });
   } catch (error) {
     next(error);
   }
