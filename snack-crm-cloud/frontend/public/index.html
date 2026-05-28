@@ -59,6 +59,22 @@
           <h3>Recent referrals</h3>
           <p id="referrals-status" class="status" aria-live="polite"></p>
         </div>
+        <div class="filters">
+          <label>
+            Search
+            <input id="referral-search" type="search" autocomplete="off">
+          </label>
+          <label>
+            Status
+            <select id="status-filter">
+              <option value="all">All statuses</option>
+              <option value="new">new</option>
+              <option value="contacted">contacted</option>
+              <option value="scheduled">scheduled</option>
+              <option value="closed">closed</option>
+            </select>
+          </label>
+        </div>
         <div id="referrals-list" class="referrals-list"></div>
       </section>
     </main>

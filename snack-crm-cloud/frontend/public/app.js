@@ -19,6 +19,8 @@ const saveReferralButton = document.querySelector("#save-referral");
 const cancelEditButton = document.querySelector("#cancel-edit");
 const referralsList = document.querySelector("#referrals-list");
 const referralsStatusEl = document.querySelector("#referrals-status");
+const referralSearchInput = document.querySelector("#referral-search");
+const statusFilterSelect = document.querySelector("#status-filter");
 
 const app = initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
@@ -26,6 +28,7 @@ const provider = new GoogleAuthProvider();
 
 let currentUser = null;
 let editingReferralId = null;
+let loadedReferrals = [];
 
 async function authedFetch(path, options = {}) {
   const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL;
@@ -74,13 +77,41 @@ function referralName(referral) {
   return `${referral.firstName} ${referral.lastName}`.trim();
 }
 
-function renderReferrals(referrals) {
+function referralMatchesFilters(referral) {
+  const statusFilter = statusFilterSelect.value;
+  const query = referralSearchInput.value.trim().toLowerCase();
+
+  if (statusFilter !== "all" && referral.status !== statusFilter) {
+    return false;
+  }
+
+  if (!query) {
+    return true;
+  }
+
+  const searchable = [
+    referral.firstName,
+    referral.lastName,
+    referral.phone,
+    referral.email,
+    referral.referralSource,
+    referral.notes
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return searchable.includes(query);
+}
+
+function renderReferrals() {
   referralsList.innerHTML = "";
+  const referrals = loadedReferrals.filter(referralMatchesFilters);
 
   if (!referrals.length) {
     const empty = document.createElement("p");
     empty.className = "empty-state";
-    empty.textContent = "No referrals yet.";
+    empty.textContent = loadedReferrals.length ? "No referrals match the current filters." : "No referrals yet.";
     referralsList.append(empty);
     return;
   }
@@ -164,8 +195,9 @@ async function loadReferrals() {
     }
 
     const data = await response.json();
-    renderReferrals(data.referrals);
-    referralsStatusEl.textContent = `${data.referrals.length} referral${data.referrals.length === 1 ? "" : "s"} loaded.`;
+    loadedReferrals = data.referrals;
+    renderReferrals();
+    referralsStatusEl.textContent = `${loadedReferrals.length} referral${loadedReferrals.length === 1 ? "" : "s"} loaded.`;
   } catch (error) {
     referralsStatusEl.textContent = "Could not load referrals yet.";
     console.error(error);
@@ -326,6 +358,7 @@ onAuthStateChanged(auth, (user) => {
     statusEl.textContent = "Sign in to load the database message.";
     referralsStatusEl.textContent = "";
     referralsList.innerHTML = "";
+    loadedReferrals = [];
     referralForm.reset();
     stopEditingReferral();
   }
@@ -335,6 +368,8 @@ signInButton.addEventListener("click", signIn);
 signOutButton.addEventListener("click", signOutUser);
 refreshButton.addEventListener("click", loadMessage);
 referralForm.addEventListener("submit", saveReferral);
+referralSearchInput.addEventListener("input", renderReferrals);
+statusFilterSelect.addEventListener("change", renderReferrals);
 cancelEditButton.addEventListener("click", () => {
   referralForm.reset();
   stopEditingReferral();
