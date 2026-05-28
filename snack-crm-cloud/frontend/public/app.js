@@ -21,6 +21,7 @@ const referralsList = document.querySelector("#referrals-list");
 const referralsStatusEl = document.querySelector("#referrals-status");
 const referralSearchInput = document.querySelector("#referral-search");
 const statusFilterSelect = document.querySelector("#status-filter");
+const referralSummary = document.querySelector("#referral-summary");
 
 const app = initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
@@ -178,6 +179,24 @@ function renderReferrals() {
   }
 }
 
+function renderReferralSummary() {
+  referralSummary.innerHTML = "";
+  const statuses = ["new", "contacted", "scheduled", "closed"];
+
+  for (const status of statuses) {
+    const count = loadedReferrals.filter((referral) => referral.status === status).length;
+    const item = document.createElement("button");
+    item.className = "summary-item";
+    item.type = "button";
+    item.textContent = `${count} ${status}`;
+    item.addEventListener("click", () => {
+      statusFilterSelect.value = status;
+      renderReferrals();
+    });
+    referralSummary.append(item);
+  }
+}
+
 async function loadReferrals() {
   if (!currentUser) {
     referralsStatusEl.textContent = "";
@@ -196,6 +215,7 @@ async function loadReferrals() {
 
     const data = await response.json();
     loadedReferrals = data.referrals;
+    renderReferralSummary();
     renderReferrals();
     referralsStatusEl.textContent = `${loadedReferrals.length} referral${loadedReferrals.length === 1 ? "" : "s"} loaded.`;
   } catch (error) {
@@ -358,6 +378,7 @@ onAuthStateChanged(auth, (user) => {
     statusEl.textContent = "Sign in to load the database message.";
     referralsStatusEl.textContent = "";
     referralsList.innerHTML = "";
+    referralSummary.innerHTML = "";
     loadedReferrals = [];
     referralForm.reset();
     stopEditingReferral();
