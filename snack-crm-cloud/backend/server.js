@@ -214,7 +214,7 @@ app.patch("/api/referrals/:referralId", requireAuth, async (request, response, n
       return;
     }
 
-    if (!allowedReferralStatuses.has(status)) {
+    if (status && !allowedReferralStatuses.has(status)) {
       response.status(400).json({
         error: "Referral status is not valid."
       });
@@ -231,11 +231,36 @@ app.patch("/api/referrals/:referralId", requireAuth, async (request, response, n
       return;
     }
 
-    await docRef.update({
-      status,
+    const updates = {
       updatedAt: new Date().toISOString(),
       updatedBy: request.user.email
-    });
+    };
+
+    if (status) {
+      updates.status = status;
+    }
+
+    for (const field of ["firstName", "lastName", "phone", "email", "referralSource", "notes"]) {
+      if (Object.hasOwn(request.body, field)) {
+        updates[field] = cleanString(request.body[field]);
+      }
+    }
+
+    if (Object.hasOwn(updates, "firstName") && !updates.firstName) {
+      response.status(400).json({
+        error: "First name is required."
+      });
+      return;
+    }
+
+    if (Object.hasOwn(updates, "lastName") && !updates.lastName) {
+      response.status(400).json({
+        error: "Last name is required."
+      });
+      return;
+    }
+
+    await docRef.update(updates);
     const updated = await docRef.get();
 
     response.json({

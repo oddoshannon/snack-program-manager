@@ -175,8 +175,19 @@ textarea {
 }
 
 .full-field,
-.referral-form button {
+.form-actions {
   grid-column: 1 / -1;
+}
+
+.form-actions,
+.card-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.form-actions button {
+  flex: 1 1 180px;
 }
 
 .list-header {

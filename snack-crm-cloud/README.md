@@ -10,7 +10,7 @@ It intentionally does almost nothing:
 - The backend verifies the Firebase sign-in token before returning API data.
 - The backend reads one message from a Firestore database collection named `messages`.
 - The frontend calls the backend and displays that database message.
-- Signed-in users can create, list, update status for, and delete simple test referrals.
+- Signed-in users can create, list, edit, update status for, and delete simple test referrals.
 
 The existing Google Apps Script CRM files in the parent folder are not part of this app.
 

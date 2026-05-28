@@ -16,6 +16,7 @@ const userEl = document.querySelector("#user");
 const referralsPanel = document.querySelector("#referrals-panel");
 const referralForm = document.querySelector("#referral-form");
 const saveReferralButton = document.querySelector("#save-referral");
+const cancelEditButton = document.querySelector("#cancel-edit");
 const referralsList = document.querySelector("#referrals-list");
 const referralsStatusEl = document.querySelector("#referrals-status");
 
@@ -24,6 +25,7 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
 let currentUser = null;
+let editingReferralId = null;
 
 async function authedFetch(path, options = {}) {
   const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL;
@@ -122,6 +124,16 @@ function renderReferrals(referrals) {
     deleteButton.textContent = "Delete";
     deleteButton.addEventListener("click", () => deleteReferral(referral));
 
+    const editButton = document.createElement("button");
+    editButton.className = "secondary-button";
+    editButton.type = "button";
+    editButton.textContent = "Edit";
+    editButton.addEventListener("click", () => startEditingReferral(referral));
+
+    const actions = document.createElement("div");
+    actions.className = "card-actions";
+    actions.append(editButton, deleteButton);
+
     item.append(title, details, meta, statusLabel);
 
     if (referral.notes) {
@@ -130,7 +142,7 @@ function renderReferrals(referrals) {
       item.append(notes);
     }
 
-    item.append(deleteButton);
+    item.append(actions);
     referralsList.append(item);
   }
 }
@@ -170,13 +182,15 @@ async function saveReferral(event) {
 
   const formData = new FormData(referralForm);
   const referral = Object.fromEntries(formData.entries());
+  const isEditing = Boolean(editingReferralId);
 
-  referralsStatusEl.textContent = "Saving referral...";
+  referralsStatusEl.textContent = isEditing ? "Updating referral..." : "Saving referral...";
   saveReferralButton.disabled = true;
 
   try {
-    const response = await authedFetch("/api/referrals", {
-      method: "POST",
+    const path = isEditing ? `/api/referrals/${encodeURIComponent(editingReferralId)}` : "/api/referrals";
+    const response = await authedFetch(path, {
+      method: isEditing ? "PATCH" : "POST",
       headers: {
         "Content-Type": "application/json"
       },
@@ -189,7 +203,8 @@ async function saveReferral(event) {
     }
 
     referralForm.reset();
-    referralsStatusEl.textContent = "Referral saved.";
+    stopEditingReferral();
+    referralsStatusEl.textContent = isEditing ? "Referral updated." : "Referral saved.";
     await loadReferrals();
   } catch (error) {
     referralsStatusEl.textContent = error.message || "Could not save referral yet.";
@@ -197,6 +212,26 @@ async function saveReferral(event) {
   } finally {
     saveReferralButton.disabled = false;
   }
+}
+
+function startEditingReferral(referral) {
+  editingReferralId = referral.id;
+  referralForm.elements.firstName.value = referral.firstName || "";
+  referralForm.elements.lastName.value = referral.lastName || "";
+  referralForm.elements.phone.value = referral.phone || "";
+  referralForm.elements.email.value = referral.email || "";
+  referralForm.elements.referralSource.value = referral.referralSource || "";
+  referralForm.elements.notes.value = referral.notes || "";
+  saveReferralButton.textContent = "Update referral";
+  cancelEditButton.hidden = false;
+  referralsStatusEl.textContent = `Editing ${referralName(referral)}.`;
+  referralForm.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function stopEditingReferral() {
+  editingReferralId = null;
+  saveReferralButton.textContent = "Save referral";
+  cancelEditButton.hidden = true;
 }
 
 async function deleteReferral(referral) {
@@ -291,6 +326,8 @@ onAuthStateChanged(auth, (user) => {
     statusEl.textContent = "Sign in to load the database message.";
     referralsStatusEl.textContent = "";
     referralsList.innerHTML = "";
+    referralForm.reset();
+    stopEditingReferral();
   }
 });
 
@@ -298,3 +335,8 @@ signInButton.addEventListener("click", signIn);
 signOutButton.addEventListener("click", signOutUser);
 refreshButton.addEventListener("click", loadMessage);
 referralForm.addEventListener("submit", saveReferral);
+cancelEditButton.addEventListener("click", () => {
+  referralForm.reset();
+  stopEditingReferral();
+  referralsStatusEl.textContent = "Edit canceled.";
+});
