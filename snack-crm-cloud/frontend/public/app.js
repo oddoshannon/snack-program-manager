@@ -78,6 +78,17 @@ function referralName(referral) {
   return `${referral.firstName} ${referral.lastName}`.trim();
 }
 
+function formatDate(value) {
+  if (!value) {
+    return "Date not set";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(value));
+}
+
 function referralMatchesFilters(referral) {
   const statusFilter = statusFilterSelect.value;
   const query = referralSearchInput.value.trim().toLowerCase();
@@ -132,6 +143,10 @@ function renderReferrals() {
     meta.className = "referral-meta";
     meta.textContent = referral.referralSource ? `Source: ${referral.referralSource}` : "No referral source yet.";
 
+    const created = document.createElement("p");
+    created.className = "referral-meta";
+    created.textContent = `Created ${formatDate(referral.createdAt)}`;
+
     const statusLabel = document.createElement("label");
     statusLabel.className = "status-field";
     statusLabel.textContent = "Status";
@@ -166,7 +181,7 @@ function renderReferrals() {
     actions.className = "card-actions";
     actions.append(editButton, deleteButton);
 
-    item.append(title, details, meta, statusLabel);
+    item.append(title, details, meta, created, statusLabel);
 
     if (referral.notes) {
       const notes = document.createElement("p");
