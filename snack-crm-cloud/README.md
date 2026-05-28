@@ -77,6 +77,8 @@ cp .env.example .env
 npm run dev
 ```
 
+The backend reads `.env` during local development. That file tells the backend to use the local Firestore emulator instead of the real cloud database.
+
 Open a third terminal in this folder and start the frontend:
 
 ```bash
