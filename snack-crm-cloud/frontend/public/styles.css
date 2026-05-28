@@ -23,8 +23,11 @@ body {
 
 .shell {
   min-height: 100vh;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
   padding: 24px;
 }
 
@@ -35,6 +38,11 @@ body {
   border-radius: 8px;
   padding: 32px;
   box-shadow: 0 18px 40px rgba(31, 42, 46, 0.12);
+}
+
+.intro-panel,
+.referrals-panel {
+  width: min(100%, 720px);
 }
 
 .eyebrow {
@@ -50,6 +58,20 @@ h1 {
   margin: 0;
   font-size: clamp(2.25rem, 8vw, 4rem);
   line-height: 1;
+}
+
+h2,
+h3,
+h4 {
+  margin: 0;
+}
+
+h2 {
+  font-size: 1.75rem;
+}
+
+h3 {
+  font-size: 1.1rem;
 }
 
 .message {
@@ -100,6 +122,88 @@ button:disabled {
   opacity: 0.65;
 }
 
+.section-heading {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.referral-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 11px 12px;
+  color: var(--ink);
+  font: inherit;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.full-field,
+.referral-form button {
+  grid-column: 1 / -1;
+}
+
+.list-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.referrals-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.referral-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.referral-item p {
+  margin: 8px 0 0;
+}
+
+.referral-meta,
+.empty-state {
+  color: var(--muted);
+}
+
 [hidden] {
   display: none !important;
+}
+
+@media (max-width: 640px) {
+  .panel {
+    padding: 24px;
+  }
+
+  .referral-form {
+    grid-template-columns: 1fr;
+  }
+
+  .list-header {
+    display: grid;
+  }
 }

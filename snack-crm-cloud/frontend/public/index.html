@@ -8,7 +8,7 @@
   </head>
   <body>
     <main class="shell">
-      <section class="panel" aria-labelledby="page-title">
+      <section class="panel intro-panel" aria-labelledby="page-title">
         <p class="eyebrow">Hello world foundation</p>
         <h1 id="page-title">SNACK CRM</h1>
         <div class="auth-row">
@@ -19,6 +19,44 @@
         <p id="message" class="message" aria-live="polite"></p>
         <p id="status" class="status" aria-live="polite"></p>
         <button id="refresh" type="button">Refresh message</button>
+      </section>
+      <section id="referrals-panel" class="panel referrals-panel" aria-labelledby="referrals-title" hidden>
+        <div class="section-heading">
+          <p class="eyebrow">First protected CRM feature</p>
+          <h2 id="referrals-title">Referrals</h2>
+        </div>
+        <form id="referral-form" class="referral-form">
+          <label>
+            First name
+            <input id="first-name" name="firstName" autocomplete="given-name" required>
+          </label>
+          <label>
+            Last name
+            <input id="last-name" name="lastName" autocomplete="family-name" required>
+          </label>
+          <label>
+            Phone
+            <input id="phone" name="phone" autocomplete="tel">
+          </label>
+          <label>
+            Email
+            <input id="email" name="email" type="email" autocomplete="email">
+          </label>
+          <label>
+            Referral source
+            <input id="referral-source" name="referralSource">
+          </label>
+          <label class="full-field">
+            Notes
+            <textarea id="notes" name="notes" rows="3"></textarea>
+          </label>
+          <button id="save-referral" type="submit">Save referral</button>
+        </form>
+        <div class="list-header">
+          <h3>Recent referrals</h3>
+          <p id="referrals-status" class="status" aria-live="polite"></p>
+        </div>
+        <div id="referrals-list" class="referrals-list"></div>
       </section>
     </main>
     <script src="./app-config.js"></script>

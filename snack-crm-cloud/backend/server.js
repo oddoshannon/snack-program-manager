@@ -11,6 +11,7 @@ const allowedEmailDomain = process.env.ALLOWED_EMAIL_DOMAIN || "snackprogram.org
 
 const firestore = projectId ? new Firestore({ projectId }) : new Firestore();
 const messages = firestore.collection("messages");
+const referrals = firestore.collection("referrals");
 const firebaseJwtKeys = createRemoteJWKSet(
   new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
 );
@@ -76,6 +77,27 @@ async function ensureHelloMessage() {
   }
 }
 
+function cleanString(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function toReferral(snapshot) {
+  const data = snapshot.data();
+
+  return {
+    id: snapshot.id,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    phone: data.phone,
+    email: data.email,
+    referralSource: data.referralSource,
+    status: data.status,
+    notes: data.notes,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt
+  };
+}
+
 app.get("/health", (_request, response) => {
   response.json({
     ok: true,
@@ -99,10 +121,61 @@ app.get("/api/message", requireAuth, async (_request, response, next) => {
   }
 });
 
+app.get("/api/referrals", requireAuth, async (_request, response, next) => {
+  try {
+    const snapshot = await referrals.orderBy("createdAt", "desc").limit(25).get();
+
+    response.json({
+      referrals: snapshot.docs.map(toReferral)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/referrals", requireAuth, async (request, response, next) => {
+  try {
+    const firstName = cleanString(request.body.firstName);
+    const lastName = cleanString(request.body.lastName);
+    const phone = cleanString(request.body.phone);
+    const email = cleanString(request.body.email);
+    const referralSource = cleanString(request.body.referralSource);
+    const notes = cleanString(request.body.notes);
+    const now = new Date().toISOString();
+
+    if (!firstName || !lastName) {
+      response.status(400).json({
+        error: "First name and last name are required."
+      });
+      return;
+    }
+
+    const docRef = await referrals.add({
+      firstName,
+      lastName,
+      phone,
+      email,
+      referralSource,
+      status: "new",
+      notes,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: request.user.email
+    });
+    const created = await docRef.get();
+
+    response.status(201).json({
+      referral: toReferral(created)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use((error, _request, response, _next) => {
   console.error(error);
   response.status(500).json({
-    error: "The SNACK CRM API could not read the database message."
+    error: "The SNACK CRM API could not complete the request."
   });
 });
 

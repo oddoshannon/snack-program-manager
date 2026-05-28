@@ -10,6 +10,7 @@ It intentionally does almost nothing:
 - The backend verifies the Firebase sign-in token before returning API data.
 - The backend reads one message from a Firestore database collection named `messages`.
 - The frontend calls the backend and displays that database message.
+- Signed-in users can create and list simple test referrals.
 
 The existing Google Apps Script CRM files in the parent folder are not part of this app.
 
@@ -95,6 +96,7 @@ http://localhost:5002
 ```
 
 You should see `SNACK CRM`. After you sign in with a SNACK Google account, you should see the message `Hello from the SNACK CRM database.`
+You should also see a small `Referrals` section where you can create and list test referrals.
 
 You can also test the backend directly:
 

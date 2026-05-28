@@ -13,6 +13,11 @@ const refreshButton = document.querySelector("#refresh");
 const signInButton = document.querySelector("#sign-in");
 const signOutButton = document.querySelector("#sign-out");
 const userEl = document.querySelector("#user");
+const referralsPanel = document.querySelector("#referrals-panel");
+const referralForm = document.querySelector("#referral-form");
+const saveReferralButton = document.querySelector("#save-referral");
+const referralsList = document.querySelector("#referrals-list");
+const referralsStatusEl = document.querySelector("#referrals-status");
 
 const app = initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
@@ -20,9 +25,20 @@ const provider = new GoogleAuthProvider();
 
 let currentUser = null;
 
-async function loadMessage() {
+async function authedFetch(path, options = {}) {
   const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL;
+  const token = await currentUser.getIdToken();
 
+  return fetch(`${apiBaseUrl}${path}`, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+async function loadMessage() {
   if (!currentUser) {
     statusEl.textContent = "Sign in to load the database message.";
     messageEl.textContent = "";
@@ -34,12 +50,7 @@ async function loadMessage() {
   refreshButton.disabled = true;
 
   try {
-    const token = await currentUser.getIdToken();
-    const response = await fetch(`${apiBaseUrl}/api/message`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+    const response = await authedFetch("/api/message");
 
     if (!response.ok) {
       throw new Error(`API returned ${response.status}`);
@@ -54,6 +65,112 @@ async function loadMessage() {
     console.error(error);
   } finally {
     refreshButton.disabled = false;
+  }
+}
+
+function referralName(referral) {
+  return `${referral.firstName} ${referral.lastName}`.trim();
+}
+
+function renderReferrals(referrals) {
+  referralsList.innerHTML = "";
+
+  if (!referrals.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No referrals yet.";
+    referralsList.append(empty);
+    return;
+  }
+
+  for (const referral of referrals) {
+    const item = document.createElement("article");
+    item.className = "referral-item";
+
+    const title = document.createElement("h4");
+    title.textContent = referralName(referral);
+
+    const details = document.createElement("p");
+    const contact = [referral.phone, referral.email].filter(Boolean).join(" | ");
+    details.textContent = contact || "No contact info yet.";
+
+    const meta = document.createElement("p");
+    meta.className = "referral-meta";
+    meta.textContent = `Status: ${referral.status}${referral.referralSource ? ` | Source: ${referral.referralSource}` : ""}`;
+
+    item.append(title, details, meta);
+
+    if (referral.notes) {
+      const notes = document.createElement("p");
+      notes.textContent = referral.notes;
+      item.append(notes);
+    }
+
+    referralsList.append(item);
+  }
+}
+
+async function loadReferrals() {
+  if (!currentUser) {
+    referralsStatusEl.textContent = "";
+    referralsList.innerHTML = "";
+    return;
+  }
+
+  referralsStatusEl.textContent = "Loading referrals...";
+
+  try {
+    const response = await authedFetch("/api/referrals");
+
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    renderReferrals(data.referrals);
+    referralsStatusEl.textContent = `${data.referrals.length} referral${data.referrals.length === 1 ? "" : "s"} loaded.`;
+  } catch (error) {
+    referralsStatusEl.textContent = "Could not load referrals yet.";
+    console.error(error);
+  }
+}
+
+async function saveReferral(event) {
+  event.preventDefault();
+
+  if (!currentUser) {
+    referralsStatusEl.textContent = "Sign in before saving a referral.";
+    return;
+  }
+
+  const formData = new FormData(referralForm);
+  const referral = Object.fromEntries(formData.entries());
+
+  referralsStatusEl.textContent = "Saving referral...";
+  saveReferralButton.disabled = true;
+
+  try {
+    const response = await authedFetch("/api/referrals", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(referral)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    referralForm.reset();
+    referralsStatusEl.textContent = "Referral saved.";
+    await loadReferrals();
+  } catch (error) {
+    referralsStatusEl.textContent = error.message || "Could not save referral yet.";
+    console.error(error);
+  } finally {
+    saveReferralButton.disabled = false;
   }
 }
 
@@ -84,16 +201,21 @@ onAuthStateChanged(auth, (user) => {
   signInButton.hidden = signedIn;
   signOutButton.hidden = !signedIn;
   refreshButton.disabled = !signedIn;
+  referralsPanel.hidden = !signedIn;
   userEl.textContent = signedIn ? `Signed in as ${user.email}` : "Please sign in with your SNACK Google account.";
 
   if (signedIn) {
     loadMessage();
+    loadReferrals();
   } else {
     messageEl.textContent = "";
     statusEl.textContent = "Sign in to load the database message.";
+    referralsStatusEl.textContent = "";
+    referralsList.innerHTML = "";
   }
 });
 
 signInButton.addEventListener("click", signIn);
 signOutButton.addEventListener("click", signOutUser);
 refreshButton.addEventListener("click", loadMessage);
+referralForm.addEventListener("submit", saveReferral);

@@ -33,6 +33,7 @@ The app has four pieces:
    - Stores app data.
    - Current test collection: `messages`
    - Current test document: `messages/hello`
+   - First CRM collection: `referrals`
 
 ## Request Flow
 
@@ -158,11 +159,9 @@ Expected result:
 - A future version should add roles such as `admin`, `staff`, or `viewer`.
 - The Cloud Run Invoker IAM check is disabled so Firebase Hosting can forward browser requests to Cloud Run. The app-level Firebase token check is what protects the API.
 
-## First Real Feature Decision
+## First Real Feature
 
-Before adding screens, decide the first real data model.
-
-Recommended first model:
+The first protected CRM feature is:
 
 ```text
 referrals
@@ -170,7 +169,7 @@ referrals
 
 Reason: referrals are likely the first intake point before clients, appointments, tasks, or reports.
 
-Possible first fields:
+Current fields:
 
 ```text
 referrals/{referralId}
@@ -183,6 +182,7 @@ referrals/{referralId}
   notes
   createdAt
   updatedAt
+  createdBy
 ```
 
-Keep this small at first. The goal of the next phase should be one protected page that can create and list test referrals.
+The current app can create referrals and list the 25 most recent referrals. Keep this small until roles, editing, and deletion rules are designed.
