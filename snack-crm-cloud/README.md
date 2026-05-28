@@ -87,7 +87,7 @@ firebase emulators:start --only hosting
 Then open:
 
 ```text
-http://localhost:5000
+http://localhost:5002
 ```
 
 You should see `SNACK CRM` and the message `Hello from the SNACK CRM database.`

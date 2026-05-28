@@ -11,7 +11,8 @@
   "dependencies": {
     "@google-cloud/firestore": "^8.6.0",
     "cors": "^2.8.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "proto3-json-serializer": "^3.0.4"
   },
   "engines": {
     "node": ">=20"
