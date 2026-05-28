@@ -4,13 +4,9 @@ import { Firestore } from "@google-cloud/firestore";
 
 const port = Number(process.env.PORT || 8080);
 const frontendOrigin = process.env.FRONTEND_ORIGIN || "*";
-const projectId =
-  process.env.GOOGLE_CLOUD_PROJECT ||
-  process.env.GCLOUD_PROJECT ||
-  process.env.PROJECT_ID ||
-  "snack-crm-local";
+const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT || process.env.PROJECT_ID;
 
-const firestore = new Firestore({ projectId });
+const firestore = projectId ? new Firestore({ projectId }) : new Firestore();
 const messages = firestore.collection("messages");
 
 const app = express();
