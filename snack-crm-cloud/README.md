@@ -67,6 +67,8 @@ Start the local Firestore database emulator:
 firebase emulators:start --only firestore
 ```
 
+The Firestore emulator runs at `127.0.0.1:8085`. That is the local fake database used for practice.
+
 Open a second terminal in this folder and start the backend:
 
 ```bash
