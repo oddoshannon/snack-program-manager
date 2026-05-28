@@ -98,6 +98,12 @@ function renderReferrals(referrals) {
     meta.className = "referral-meta";
     meta.textContent = `Status: ${referral.status}${referral.referralSource ? ` | Source: ${referral.referralSource}` : ""}`;
 
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "secondary-button";
+    deleteButton.type = "button";
+    deleteButton.textContent = "Delete";
+    deleteButton.addEventListener("click", () => deleteReferral(referral));
+
     item.append(title, details, meta);
 
     if (referral.notes) {
@@ -106,6 +112,7 @@ function renderReferrals(referrals) {
       item.append(notes);
     }
 
+    item.append(deleteButton);
     referralsList.append(item);
   }
 }
@@ -171,6 +178,34 @@ async function saveReferral(event) {
     console.error(error);
   } finally {
     saveReferralButton.disabled = false;
+  }
+}
+
+async function deleteReferral(referral) {
+  const name = referralName(referral);
+  const confirmed = window.confirm(`Delete referral for ${name}?`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  referralsStatusEl.textContent = "Deleting referral...";
+
+  try {
+    const response = await authedFetch(`/api/referrals/${encodeURIComponent(referral.id)}`, {
+      method: "DELETE"
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    referralsStatusEl.textContent = "Referral deleted.";
+    await loadReferrals();
+  } catch (error) {
+    referralsStatusEl.textContent = error.message || "Could not delete referral yet.";
+    console.error(error);
   }
 }
 

@@ -185,4 +185,4 @@ referrals/{referralId}
   createdBy
 ```
 
-The current app can create referrals and list the 25 most recent referrals. Keep this small until roles, editing, and deletion rules are designed.
+The current app can create referrals, list the 25 most recent referrals, and delete test referrals. Keep this small until roles, editing, and stricter deletion rules are designed.

@@ -172,6 +172,35 @@ app.post("/api/referrals", requireAuth, async (request, response, next) => {
   }
 });
 
+app.delete("/api/referrals/:referralId", requireAuth, async (request, response, next) => {
+  try {
+    const referralId = cleanString(request.params.referralId);
+
+    if (!referralId) {
+      response.status(400).json({
+        error: "Referral ID is required."
+      });
+      return;
+    }
+
+    const docRef = referrals.doc(referralId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Referral was not found."
+      });
+      return;
+    }
+
+    await docRef.delete();
+
+    response.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use((error, _request, response, _next) => {
   console.error(error);
   response.status(500).json({
