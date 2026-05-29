@@ -459,7 +459,8 @@ function renderReferralDetail() {
   deleteButton.textContent = "Delete";
   deleteButton.addEventListener("click", () => deleteReferral(referral));
 
-  actions.append(editButton, deleteButton);
+  actions.append(editButton, deleteButton, closeReferralModalButton);
+  syncModalCloseButton();
   heading.append(titleWrap, actions);
 
   const statusLabel = document.createElement("label");

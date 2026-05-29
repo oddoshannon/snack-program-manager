@@ -607,12 +607,9 @@ dd {
 }
 
 .icon-button {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  float: right;
+  position: static;
   min-height: 42px;
-  margin-left: 16px;
+  margin: 0;
   border: 1px solid var(--line);
   background: #ffffff;
   color: var(--accent-dark);
