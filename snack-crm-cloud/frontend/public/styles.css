@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700;800&display=swap");
+
 :root {
   color-scheme: light;
   --ink: #172126;
@@ -23,9 +25,13 @@
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Public Sans", Arial, Helvetica, sans-serif;
   background: var(--page);
   color: var(--ink);
+}
+
+body.modal-open {
+  overflow: hidden;
 }
 
 button,
@@ -253,16 +259,20 @@ h4 {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .summary-item {
-  min-height: 86px;
-  display: grid;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   align-content: center;
-  gap: 4px;
+  gap: 10px;
   border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 12px;
   background: var(--surface);
   color: var(--ink);
   text-align: left;
@@ -276,26 +286,22 @@ h4 {
 }
 
 .summary-item strong {
-  font-size: 1.65rem;
+  font-size: 1.2rem;
   line-height: 1;
 }
 
 .summary-item span {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   text-transform: capitalize;
 }
 
 .referrals-layout {
   min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
-  gap: 20px;
-  align-items: start;
+  display: block;
 }
 
-.list-panel,
-.detail-panel {
+.list-panel {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -305,12 +311,6 @@ h4 {
 
 .list-panel {
   overflow: hidden;
-}
-
-.detail-panel {
-  position: sticky;
-  top: 28px;
-  padding: 22px;
 }
 
 .list-toolbar {
@@ -476,7 +476,7 @@ textarea {
 
 .detail-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin: 0;
 }
@@ -525,6 +525,63 @@ dd {
 
 .form-actions button {
   flex: 1 1 160px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(23, 33, 38, 0.4);
+}
+
+.modal-card {
+  position: relative;
+  width: min(1080px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 24px;
+  background: var(--surface);
+  box-shadow: 0 28px 70px rgba(23, 33, 38, 0.25);
+}
+
+.icon-button {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  float: right;
+  min-height: 36px;
+  margin-left: 16px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--accent-dark);
+}
+
+.icon-button:hover {
+  background: var(--soft);
+}
+
+.checkbox-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.checkbox-row label {
+  display: flex;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-row input {
+  width: auto;
+  min-height: auto;
 }
 
 [hidden] {
@@ -590,6 +647,10 @@ dd {
   .detail-grid,
   .referral-form {
     grid-template-columns: 1fr;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .table-head {

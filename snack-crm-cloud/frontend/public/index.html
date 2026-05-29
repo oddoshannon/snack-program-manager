@@ -55,7 +55,7 @@
             <section class="list-panel" aria-label="Referral list">
               <div class="list-toolbar">
                 <div>
-                  <h3>Recent referrals</h3>
+                  <h3>Referrals</h3>
                   <p id="referrals-status" class="status" aria-live="polite"></p>
                 </div>
                 <div class="filters">
@@ -80,7 +80,7 @@
                   </label>
                 </div>
               </div>
-              <div class="referrals-table" role="table" aria-label="Recent referrals">
+              <div class="referrals-table" role="table" aria-label="Referrals">
                 <div class="table-head" role="row">
                   <span role="columnheader">Name</span>
                   <span role="columnheader">Contact</span>
@@ -90,25 +90,32 @@
               </div>
             </section>
 
-            <aside class="detail-panel" aria-label="Referral profile">
-              <div id="referral-detail" class="referral-detail"></div>
-              <form id="referral-form" class="referral-form" hidden>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="referral-modal" class="modal-backdrop" hidden>
+      <section class="modal-card" role="dialog" aria-modal="true" aria-label="Referral profile">
+        <button id="close-referral-modal" class="icon-button" type="button" aria-label="Close referral profile">Close</button>
+        <div id="referral-detail" class="referral-detail"></div>
+        <form id="referral-form" class="referral-form" hidden>
                 <div class="detail-heading">
                   <div>
                     <p class="eyebrow">Referral</p>
-                    <h3 id="form-title">New referral</h3>
+                    <h3 id="form-title">New Referral</h3>
                   </div>
                 </div>
                 <label>
-                  Child first name
+                  Child First Name
                   <input id="first-name" name="firstName" autocomplete="given-name" required>
                 </label>
                 <label>
-                  Child last name
+                  Child Last Name
                   <input id="last-name" name="lastName" autocomplete="family-name" required>
                 </label>
                 <label>
-                  Parent/guardian
+                  Parent/Guardian
                   <input id="parent-name" name="parentName" required>
                 </label>
                 <label>
@@ -120,14 +127,14 @@
                   <input id="email" name="email" type="email" autocomplete="email">
                 </label>
                 <label>
-                  Preferred language
+                  Preferred Language
                   <select id="preferred-language" name="preferredLanguage" required>
                     <option value="English">English</option>
                     <option value="Spanish">Spanish</option>
                   </select>
                 </label>
                 <label>
-                  Preferred contact
+                  Preferred Contact
                   <select id="preferred-contact-method" name="preferredContactMethod">
                     <option value="">Not sure yet</option>
                     <option value="Text">Text</option>
@@ -136,7 +143,7 @@
                   </select>
                 </label>
                 <label>
-                  Referral type
+                  Referral Type
                   <select id="referral-type" name="referralType" required>
                     <option value="Internal Clinic Referral">Internal Clinic Referral</option>
                     <option value="External Clinic Referral">External Clinic Referral</option>
@@ -149,16 +156,21 @@
                   </select>
                 </label>
                 <label>
-                  Provider/org/source
+                  Source
                   <input id="referral-source" name="referralSource">
                 </label>
                 <label>
-                  Date of birth
+                  Date of Birth
                   <input id="date-of-birth" name="dateOfBirth" type="date">
                 </label>
                 <label>
                   Gender
-                  <input id="gender" name="gender">
+                  <select id="gender" name="gender">
+                    <option value="Unspecified">Unspecified</option>
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Non-Binary">Non-Binary</option>
+                  </select>
                 </label>
                 <label>
                   YCCO
@@ -169,13 +181,59 @@
                   </select>
                 </label>
                 <label>
-                  Assessment score
+                  Assessment Score
                   <input id="assessment-score" name="assessmentScore" type="number" min="0" step="1">
                 </label>
                 <label>
-                  Willingness score
+                  Willingness Score
                   <input id="willingness-score" name="willingnessScore" type="number" min="0" step="1">
                 </label>
+                <label>
+                  Referral Date
+                  <input id="referral-date" name="referralDate" type="date">
+                </label>
+                <label>
+                  First Contact Date
+                  <input id="first-contact-date" name="firstContactDate" type="date">
+                </label>
+                <label>
+                  Most Recent Contact Date
+                  <input id="most-recent-contact-date" name="mostRecentContactDate" type="date">
+                </label>
+                <label>
+                  First Appointment Date
+                  <input id="first-appointment-date" name="firstAppointmentDate" type="date">
+                </label>
+                <label>
+                  Last Appointment Date
+                  <input id="last-appointment-date" name="lastAppointmentDate" type="date">
+                </label>
+                <label class="full-field">
+                  Street Address
+                  <input id="address-street" name="addressStreet" autocomplete="street-address">
+                </label>
+                <label>
+                  City
+                  <input id="address-city" name="addressCity" autocomplete="address-level2">
+                </label>
+                <label>
+                  State
+                  <input id="address-state" name="addressState" autocomplete="address-level1">
+                </label>
+                <label>
+                  Zip Code
+                  <input id="address-zip" name="addressZip" autocomplete="postal-code">
+                </label>
+                <div class="checkbox-row full-field">
+                  <label>
+                    <input id="email-opt-out" name="emailOptOut" type="checkbox">
+                    Email Opt Out
+                  </label>
+                  <label>
+                    <input id="text-opt-out" name="textOptOut" type="checkbox">
+                    Text Opt Out
+                  </label>
+                </div>
                 <label class="full-field">
                   Notes
                   <textarea id="notes" name="notes" rows="5"></textarea>
@@ -184,11 +242,8 @@
                   <button id="save-referral" type="submit">Save referral</button>
                   <button id="cancel-edit" class="secondary-button" type="button" hidden>Cancel</button>
                 </div>
-              </form>
-            </aside>
-          </div>
-        </section>
-      </main>
+        </form>
+      </section>
     </div>
     <script src="./app-config.js"></script>
     <script type="module" src="./app.js"></script>

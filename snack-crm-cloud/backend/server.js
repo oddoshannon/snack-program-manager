@@ -118,6 +118,10 @@ function cleanOptionalNumber(value) {
   return Number.isNaN(number) ? null : number;
 }
 
+function cleanBoolean(value) {
+  return value === true || value === "true";
+}
+
 function normalizeStatus(status) {
   const cleaned = cleanString(status);
   return legacyStatusMap[cleaned] || cleaned || "New";
@@ -139,6 +143,17 @@ function toReferral(snapshot) {
     preferredContactMethod: data.preferredContactMethod,
     referralType: data.referralType,
     referralSource: data.referralSource,
+    referralDate: data.referralDate,
+    firstContactDate: data.firstContactDate,
+    mostRecentContactDate: data.mostRecentContactDate,
+    firstAppointmentDate: data.firstAppointmentDate,
+    lastAppointmentDate: data.lastAppointmentDate,
+    addressStreet: data.addressStreet,
+    addressCity: data.addressCity,
+    addressState: data.addressState,
+    addressZip: data.addressZip,
+    emailOptOut: Boolean(data.emailOptOut),
+    textOptOut: Boolean(data.textOptOut),
     ycco: data.ycco,
     assessmentScore: data.assessmentScore,
     willingnessScore: data.willingnessScore,
@@ -165,6 +180,18 @@ function toClient(snapshot) {
     preferredContactMethod: data.preferredContactMethod,
     sourceReferralId: data.sourceReferralId,
     referralType: data.referralType,
+    referralSource: data.referralSource,
+    referralDate: data.referralDate,
+    firstContactDate: data.firstContactDate,
+    mostRecentContactDate: data.mostRecentContactDate,
+    firstAppointmentDate: data.firstAppointmentDate,
+    lastAppointmentDate: data.lastAppointmentDate,
+    addressStreet: data.addressStreet,
+    addressCity: data.addressCity,
+    addressState: data.addressState,
+    addressZip: data.addressZip,
+    emailOptOut: Boolean(data.emailOptOut),
+    textOptOut: Boolean(data.textOptOut),
     status: data.status,
     createdAt: data.createdAt,
     updatedAt: data.updatedAt
@@ -219,6 +246,17 @@ app.post("/api/referrals", requireAuth, async (request, response, next) => {
     const preferredContactMethod = cleanString(request.body.preferredContactMethod);
     const referralType = cleanString(request.body.referralType);
     const referralSource = cleanString(request.body.referralSource);
+    const referralDate = cleanString(request.body.referralDate);
+    const firstContactDate = cleanString(request.body.firstContactDate);
+    const mostRecentContactDate = cleanString(request.body.mostRecentContactDate);
+    const firstAppointmentDate = cleanString(request.body.firstAppointmentDate);
+    const lastAppointmentDate = cleanString(request.body.lastAppointmentDate);
+    const addressStreet = cleanString(request.body.addressStreet);
+    const addressCity = cleanString(request.body.addressCity);
+    const addressState = cleanString(request.body.addressState);
+    const addressZip = cleanString(request.body.addressZip);
+    const emailOptOut = cleanBoolean(request.body.emailOptOut);
+    const textOptOut = cleanBoolean(request.body.textOptOut);
     const ycco = cleanString(request.body.ycco);
     const assessmentScore = cleanOptionalNumber(request.body.assessmentScore);
     const willingnessScore = cleanOptionalNumber(request.body.willingnessScore);
@@ -251,6 +289,17 @@ app.post("/api/referrals", requireAuth, async (request, response, next) => {
       preferredContactMethod,
       referralType,
       referralSource,
+      referralDate: referralDate || now.slice(0, 10),
+      firstContactDate,
+      mostRecentContactDate,
+      firstAppointmentDate,
+      lastAppointmentDate,
+      addressStreet,
+      addressCity,
+      addressState,
+      addressZip,
+      emailOptOut,
+      textOptOut,
       ycco,
       assessmentScore,
       willingnessScore,
@@ -350,6 +399,15 @@ app.patch("/api/referrals/:referralId", requireAuth, async (request, response, n
       "preferredContactMethod",
       "referralType",
       "referralSource",
+      "referralDate",
+      "firstContactDate",
+      "mostRecentContactDate",
+      "firstAppointmentDate",
+      "lastAppointmentDate",
+      "addressStreet",
+      "addressCity",
+      "addressState",
+      "addressZip",
       "ycco",
       "notes"
     ]) {
@@ -364,6 +422,14 @@ app.patch("/api/referrals/:referralId", requireAuth, async (request, response, n
 
     if (Object.hasOwn(request.body, "willingnessScore")) {
       updates.willingnessScore = cleanOptionalNumber(request.body.willingnessScore);
+    }
+
+    if (Object.hasOwn(request.body, "emailOptOut")) {
+      updates.emailOptOut = cleanBoolean(request.body.emailOptOut);
+    }
+
+    if (Object.hasOwn(request.body, "textOptOut")) {
+      updates.textOptOut = cleanBoolean(request.body.textOptOut);
     }
 
     if (Object.hasOwn(updates, "firstName") && !updates.firstName) {
@@ -464,6 +530,17 @@ app.post("/api/referrals/:referralId/convert", requireAuth, async (request, resp
       preferredContactMethod: referral.preferredContactMethod || "",
       referralType: referral.referralType || "",
       referralSource: referral.referralSource || "",
+      referralDate: referral.referralDate || "",
+      firstContactDate: referral.firstContactDate || "",
+      mostRecentContactDate: referral.mostRecentContactDate || "",
+      firstAppointmentDate: referral.firstAppointmentDate || "",
+      lastAppointmentDate: referral.lastAppointmentDate || "",
+      addressStreet: referral.addressStreet || "",
+      addressCity: referral.addressCity || "",
+      addressState: referral.addressState || "",
+      addressZip: referral.addressZip || "",
+      emailOptOut: Boolean(referral.emailOptOut),
+      textOptOut: Boolean(referral.textOptOut),
       ycco: referral.ycco || "",
       assessmentScore: referral.assessmentScore ?? null,
       willingnessScore: referral.willingnessScore ?? null,

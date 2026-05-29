@@ -28,6 +28,8 @@ const referralSearchInput = document.querySelector("#referral-search");
 const statusFilterSelect = document.querySelector("#status-filter");
 const referralSummary = document.querySelector("#referral-summary");
 const referralDetail = document.querySelector("#referral-detail");
+const referralModal = document.querySelector("#referral-modal");
+const closeReferralModalButton = document.querySelector("#close-referral-modal");
 
 const app = initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
@@ -49,11 +51,20 @@ const statuses = [
   "Not Interested",
   "Closed / No Further Outreach"
 ];
+const summaryGroups = [
+  { key: "all", label: "All", statuses },
+  { key: "new", label: "New", statuses: ["New"] },
+  { key: "contacted", label: "Contacted", statuses: ["Texted", "Left Voicemail", "Emailed"] },
+  { key: "follow-up", label: "Follow Up", statuses: ["Requested Call Back", "Parent Will Call Back"] },
+  { key: "scheduled", label: "Scheduled", statuses: ["Scheduled"] },
+  { key: "closed", label: "Closed", statuses: ["Not Interested", "Closed / No Further Outreach"] }
+];
 
 let currentUser = null;
 let editingReferralId = null;
 let selectedReferralId = null;
 let loadedReferrals = [];
+let summaryFilter = "all";
 
 async function authedFetch(path, options = {}) {
   const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL;
@@ -119,6 +130,22 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+function formatDateOnly(value) {
+  if (!value) {
+    return "Not set";
+  }
+
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Not set";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium"
+  }).format(date);
+}
+
 function formatContact(referral) {
   return [referral.phone, referral.email].filter(Boolean).join(" | ") || "No contact info yet";
 }
@@ -141,8 +168,14 @@ function setReferralsLoadedStatus() {
 function referralMatchesFilters(referral) {
   const statusFilter = statusFilterSelect.value;
   const query = referralSearchInput.value.trim().toLowerCase();
+  const group = summaryGroups.find((item) => item.key === summaryFilter);
+  const normalizedStatus = normalizeStatus(referral.status);
 
-  if (statusFilter !== "all" && normalizeStatus(referral.status) !== statusFilter) {
+  if (group && group.key !== "all" && !group.statuses.includes(normalizedStatus)) {
+    return false;
+  }
+
+  if (statusFilter !== "all" && normalizedStatus !== statusFilter) {
     return false;
   }
 
@@ -175,9 +208,30 @@ function getSelectedReferral() {
 
 function setSelectedReferral(referralId) {
   selectedReferralId = referralId;
-  stopEditingReferral();
+  referralForm.reset();
+  editingReferralId = null;
+  referralForm.hidden = true;
+  referralDetail.hidden = false;
+  openReferralModal();
   renderReferrals();
   renderReferralDetail();
+}
+
+function openReferralModal() {
+  referralModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeReferralModal() {
+  referralModal.hidden = true;
+  document.body.classList.remove("modal-open");
+  editingReferralId = null;
+  referralForm.reset();
+  referralForm.hidden = true;
+  referralDetail.hidden = false;
+  selectedReferralId = null;
+  renderReferrals();
+  setReferralsLoadedStatus();
 }
 
 function statusBadge(status = "New") {
@@ -193,11 +247,7 @@ function renderReferrals() {
   const referrals = loadedReferrals.filter(referralMatchesFilters);
 
   if (selectedReferralId && !referrals.some((referral) => referral.id === selectedReferralId)) {
-    selectedReferralId = referrals[0]?.id || null;
-  }
-
-  if (!selectedReferralId && referrals.length) {
-    selectedReferralId = referrals[0].id;
+    selectedReferralId = null;
   }
 
   if (!referrals.length) {
@@ -205,7 +255,6 @@ function renderReferrals() {
     empty.className = "empty-state";
     empty.textContent = loadedReferrals.length ? "No referrals match the current filters." : "No referrals yet.";
     referralsList.append(empty);
-    renderReferralDetail();
     return;
   }
 
@@ -240,20 +289,18 @@ function renderReferrals() {
     row.addEventListener("click", () => setSelectedReferral(referral.id));
     referralsList.append(row);
   }
-
-  renderReferralDetail();
 }
 
 function renderReferralSummary() {
   referralSummary.innerHTML = "";
 
-  for (const status of statuses) {
-    const count = loadedReferrals.filter((referral) => normalizeStatus(referral.status) === status).length;
+  for (const group of summaryGroups.filter((item) => item.key !== "all")) {
+    const count = loadedReferrals.filter((referral) => group.statuses.includes(normalizeStatus(referral.status))).length;
     const item = document.createElement("button");
     item.className = "summary-item";
     item.type = "button";
 
-    if (statusFilterSelect.value === status) {
+    if (summaryFilter === group.key) {
       item.classList.add("active");
     }
 
@@ -261,11 +308,12 @@ function renderReferralSummary() {
     countEl.textContent = count;
 
     const labelEl = document.createElement("span");
-    labelEl.textContent = status;
+    labelEl.textContent = group.label;
 
     item.append(countEl, labelEl);
     item.addEventListener("click", () => {
-      statusFilterSelect.value = status;
+      summaryFilter = summaryFilter === group.key ? "all" : group.key;
+      statusFilterSelect.value = "all";
       renderReferralSummary();
       renderReferrals();
     });
@@ -354,9 +402,19 @@ function renderReferralDetail() {
   addDetailField(infoGrid, "Preferred Language", referral.preferredLanguage || "Not set");
   addDetailField(infoGrid, "Preferred Contact", referral.preferredContactMethod || "Not set");
   addDetailField(infoGrid, "Source", referral.referralSource || "No source yet");
+  addDetailField(infoGrid, "Date of Birth", formatDateOnly(referral.dateOfBirth));
+  addDetailField(infoGrid, "Gender", referral.gender || "Unspecified");
   addDetailField(infoGrid, "YCCO", referral.ycco || "Unknown");
   addDetailField(infoGrid, "Assessment Score", referral.assessmentScore ?? "Not set");
   addDetailField(infoGrid, "Willingness Score", referral.willingnessScore ?? "Not set");
+  addDetailField(infoGrid, "Referral Date", formatDateOnly(referral.referralDate));
+  addDetailField(infoGrid, "First Contact Date", formatDateOnly(referral.firstContactDate));
+  addDetailField(infoGrid, "Most Recent Contact Date", formatDateOnly(referral.mostRecentContactDate));
+  addDetailField(infoGrid, "First Appointment Date", formatDateOnly(referral.firstAppointmentDate));
+  addDetailField(infoGrid, "Last Appointment Date", formatDateOnly(referral.lastAppointmentDate));
+  addDetailField(infoGrid, "Address", formatAddress(referral));
+  addDetailField(infoGrid, "Email Opt Out", referral.emailOptOut ? "Yes" : "No");
+  addDetailField(infoGrid, "Text Opt Out", referral.textOptOut ? "Yes" : "No");
   addDetailField(infoGrid, "Created", formatDate(referral.createdAt));
 
   if (referral.convertedClientId) {
@@ -405,9 +463,16 @@ function emptyDetail(text, actionLabel, action) {
 function clearReferralFilters() {
   referralSearchInput.value = "";
   statusFilterSelect.value = "all";
-  selectedReferralId = loadedReferrals[0]?.id || null;
+  summaryFilter = "all";
+  selectedReferralId = null;
   renderReferralSummary();
   renderReferrals();
+}
+
+function formatAddress(referral) {
+  return [referral.addressStreet, referral.addressCity, referral.addressState, referral.addressZip]
+    .filter(Boolean)
+    .join(", ") || "Not set";
 }
 
 function addDetailField(container, label, value) {
@@ -441,6 +506,9 @@ async function loadReferrals() {
     loadedReferrals = data.referrals;
     renderReferralSummary();
     renderReferrals();
+    if (!referralModal.hidden && selectedReferralId) {
+      renderReferralDetail();
+    }
     setReferralsLoadedStatus();
   } catch (error) {
     referralsStatusEl.textContent = "Could not load referrals yet.";
@@ -458,6 +526,8 @@ async function saveReferral(event) {
 
   const formData = new FormData(referralForm);
   const referral = Object.fromEntries(formData.entries());
+  referral.emailOptOut = referralForm.elements.emailOptOut.checked;
+  referral.textOptOut = referralForm.elements.textOptOut.checked;
   const isEditing = Boolean(editingReferralId);
 
   referralsStatusEl.textContent = isEditing ? "Updating referral..." : "Saving referral...";
@@ -481,9 +551,11 @@ async function saveReferral(event) {
     const data = await response.json();
     selectedReferralId = data.referral?.id || editingReferralId;
     referralForm.reset();
-    stopEditingReferral();
     referralsStatusEl.textContent = isEditing ? "Referral updated." : "Referral saved.";
     await loadReferrals();
+    referralForm.hidden = true;
+    referralDetail.hidden = false;
+    renderReferralDetail();
   } catch (error) {
     referralsStatusEl.textContent = error.message || "Could not save referral yet.";
     console.error(error);
@@ -496,11 +568,12 @@ function startNewReferral() {
   editingReferralId = null;
   selectedReferralId = null;
   referralForm.reset();
-  formTitle.textContent = "New referral";
+  formTitle.textContent = "New Referral";
   saveReferralButton.textContent = "Save referral";
   cancelEditButton.hidden = false;
   referralForm.hidden = false;
   referralDetail.hidden = true;
+  openReferralModal();
   referralsStatusEl.textContent = "Creating a new referral.";
 }
 
@@ -517,22 +590,34 @@ function startEditingReferral(referral) {
   referralForm.elements.referralType.value = referral.referralType || "Internal Clinic Referral";
   referralForm.elements.referralSource.value = referral.referralSource || "";
   referralForm.elements.dateOfBirth.value = referral.dateOfBirth || "";
-  referralForm.elements.gender.value = referral.gender || "";
+  referralForm.elements.gender.value = referral.gender || "Unspecified";
   referralForm.elements.ycco.value = referral.ycco || "";
   referralForm.elements.assessmentScore.value = referral.assessmentScore ?? "";
   referralForm.elements.willingnessScore.value = referral.willingnessScore ?? "";
+  referralForm.elements.referralDate.value = referral.referralDate || "";
+  referralForm.elements.firstContactDate.value = referral.firstContactDate || "";
+  referralForm.elements.mostRecentContactDate.value = referral.mostRecentContactDate || "";
+  referralForm.elements.firstAppointmentDate.value = referral.firstAppointmentDate || "";
+  referralForm.elements.lastAppointmentDate.value = referral.lastAppointmentDate || "";
+  referralForm.elements.addressStreet.value = referral.addressStreet || "";
+  referralForm.elements.addressCity.value = referral.addressCity || "";
+  referralForm.elements.addressState.value = referral.addressState || "";
+  referralForm.elements.addressZip.value = referral.addressZip || "";
+  referralForm.elements.emailOptOut.checked = Boolean(referral.emailOptOut);
+  referralForm.elements.textOptOut.checked = Boolean(referral.textOptOut);
   referralForm.elements.notes.value = referral.notes || "";
   formTitle.textContent = `Edit ${referralName(referral)}`;
   saveReferralButton.textContent = "Update referral";
   cancelEditButton.hidden = false;
   referralForm.hidden = false;
   referralDetail.hidden = true;
+  openReferralModal();
   referralsStatusEl.textContent = `Editing ${referralName(referral)}.`;
 }
 
 function stopEditingReferral() {
   editingReferralId = null;
-  formTitle.textContent = "New referral";
+  formTitle.textContent = "New Referral";
   saveReferralButton.textContent = "Save referral";
   cancelEditButton.hidden = true;
   referralForm.hidden = true;
@@ -564,8 +649,9 @@ async function deleteReferral(referral) {
       selectedReferralId = null;
     }
 
-    referralsStatusEl.textContent = "Referral deleted.";
     await loadReferrals();
+    closeReferralModal();
+    referralsStatusEl.textContent = "Referral deleted.";
   } catch (error) {
     referralsStatusEl.textContent = error.message || "Could not delete referral yet.";
     console.error(error);
@@ -679,7 +765,7 @@ onAuthStateChanged(auth, (user) => {
     selectedReferralId = null;
     loadedReferrals = [];
     referralForm.reset();
-    stopEditingReferral();
+    closeReferralModal();
   }
 });
 
@@ -694,11 +780,22 @@ referralSearchInput.addEventListener("input", () => {
   renderReferrals();
 });
 statusFilterSelect.addEventListener("change", () => {
+  summaryFilter = "all";
   renderReferralSummary();
   renderReferrals();
 });
 cancelEditButton.addEventListener("click", () => {
   referralForm.reset();
-  stopEditingReferral();
-  setReferralsLoadedStatus();
+  if (selectedReferralId) {
+    stopEditingReferral();
+    setReferralsLoadedStatus();
+    return;
+  }
+  closeReferralModal();
+});
+closeReferralModalButton.addEventListener("click", closeReferralModal);
+referralModal.addEventListener("click", (event) => {
+  if (event.target === referralModal) {
+    closeReferralModal();
+  }
 });
