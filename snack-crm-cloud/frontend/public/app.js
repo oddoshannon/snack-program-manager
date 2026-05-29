@@ -146,8 +146,23 @@ function formatDateOnly(value) {
   }).format(date);
 }
 
+function formatListDate(value) {
+  return value ? formatDateOnly(value) : "";
+}
+
+function formatPhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  const normalized = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+
+  if (normalized.length !== 10) {
+    return value || "";
+  }
+
+  return `(${normalized.slice(0, 3)}) ${normalized.slice(3, 6)}-${normalized.slice(6)}`;
+}
+
 function formatContact(referral) {
-  return [referral.phone, referral.email].filter(Boolean).join(" | ") || "No contact info yet";
+  return [formatPhone(referral.phone), referral.email].filter(Boolean).join(" | ") || "No contact info yet";
 }
 
 function normalizeStatus(status) {
@@ -275,17 +290,37 @@ function renderReferrals() {
     nameCell.setAttribute("role", "cell");
     nameCell.textContent = referralName(referral);
 
-    const contactCell = document.createElement("span");
-    contactCell.className = "table-cell muted-cell";
-    contactCell.setAttribute("role", "cell");
-    contactCell.textContent = formatContact(referral);
-
     const statusCell = document.createElement("span");
     statusCell.className = "table-cell";
     statusCell.setAttribute("role", "cell");
     statusCell.append(statusBadge(referral.status));
 
-    row.append(nameCell, contactCell, statusCell);
+    const recentContactCell = document.createElement("span");
+    recentContactCell.className = "table-cell muted-cell";
+    recentContactCell.setAttribute("role", "cell");
+    recentContactCell.textContent = formatListDate(referral.mostRecentContactDate);
+
+    const phoneCell = document.createElement("span");
+    phoneCell.className = "table-cell muted-cell";
+    phoneCell.setAttribute("role", "cell");
+    phoneCell.textContent = formatPhone(referral.phone);
+
+    const languageCell = document.createElement("span");
+    languageCell.className = "table-cell";
+    languageCell.setAttribute("role", "cell");
+    languageCell.textContent = referral.preferredLanguage || "";
+
+    const parentCell = document.createElement("span");
+    parentCell.className = "table-cell muted-cell";
+    parentCell.setAttribute("role", "cell");
+    parentCell.textContent = referral.parentName || "";
+
+    const emailCell = document.createElement("span");
+    emailCell.className = "table-cell muted-cell";
+    emailCell.setAttribute("role", "cell");
+    emailCell.textContent = referral.email || "";
+
+    row.append(statusCell, recentContactCell, nameCell, phoneCell, languageCell, parentCell, emailCell);
     row.addEventListener("click", () => setSelectedReferral(referral.id));
     referralsList.append(row);
   }
@@ -396,7 +431,7 @@ function renderReferralDetail() {
   const infoGrid = document.createElement("dl");
   infoGrid.className = "detail-grid";
   addDetailField(infoGrid, "Parent", referral.parentName || "Not provided");
-  addDetailField(infoGrid, "Phone", referral.phone || "Not provided");
+  addDetailField(infoGrid, "Phone", formatPhone(referral.phone) || "Not provided");
   addDetailField(infoGrid, "Email", referral.email || "Not provided");
   addDetailField(infoGrid, "Referral Type", referral.referralType || "Not set");
   addDetailField(infoGrid, "Preferred Language", referral.preferredLanguage || "Not set");
@@ -418,7 +453,7 @@ function renderReferralDetail() {
   addDetailField(infoGrid, "Created", formatDate(referral.createdAt));
 
   if (referral.convertedClientId) {
-    addDetailField(infoGrid, "Converted Client", referral.convertedClientId);
+    addDetailField(infoGrid, "Conversion", "Converted to client");
   }
 
   const notes = document.createElement("section");
