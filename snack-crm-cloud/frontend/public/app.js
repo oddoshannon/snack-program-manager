@@ -152,7 +152,6 @@ function renderReferrals() {
     statusLabel.textContent = "Status";
 
     const statusSelect = document.createElement("select");
-    statusSelect.value = referral.status;
     statusSelect.dataset.referralId = referral.id;
 
     for (const status of ["new", "contacted", "scheduled", "closed"]) {
@@ -162,6 +161,7 @@ function renderReferrals() {
       statusSelect.append(option);
     }
 
+    statusSelect.value = referral.status || "new";
     statusSelect.addEventListener("change", () => updateReferralStatus(referral, statusSelect.value));
     statusLabel.append(statusSelect);
 
