@@ -121,7 +121,7 @@ function referralName(referral) {
 
 function formatDate(value) {
   if (!value) {
-    return "Date not set";
+    return "-";
   }
 
   return new Intl.DateTimeFormat("en-US", {
@@ -132,13 +132,13 @@ function formatDate(value) {
 
 function formatDateOnly(value) {
   if (!value) {
-    return "Not set";
+    return "-";
   }
 
   const date = new Date(`${value}T00:00:00`);
 
   if (Number.isNaN(date.getTime())) {
-    return "Not set";
+    return "-";
   }
 
   return new Intl.DateTimeFormat("en-US", {
@@ -159,6 +159,14 @@ function formatPhone(value) {
   }
 
   return `(${normalized.slice(0, 3)}) ${normalized.slice(3, 6)}-${normalized.slice(6)}`;
+}
+
+function displayValue(value) {
+  return value === null || value === undefined || value === "" ? "-" : value;
+}
+
+function displayBoolean(value) {
+  return value ? "✓" : "-";
 }
 
 function formatContact(referral) {
@@ -428,43 +436,65 @@ function renderReferralDetail() {
   statusSelect.addEventListener("change", () => updateReferralStatus(referral, statusSelect.value));
   statusLabel.append(statusSelect);
 
-  const infoGrid = document.createElement("dl");
+  const infoGrid = document.createElement("div");
   infoGrid.className = "detail-grid";
-  addDetailField(infoGrid, "Parent", referral.parentName || "Not provided");
-  addDetailField(infoGrid, "Phone", formatPhone(referral.phone) || "Not provided");
-  addDetailField(infoGrid, "Email", referral.email || "Not provided");
-  addDetailField(infoGrid, "Referral Type", referral.referralType || "Not set");
-  addDetailField(infoGrid, "Preferred Language", referral.preferredLanguage || "Not set");
-  addDetailField(infoGrid, "Preferred Contact", referral.preferredContactMethod || "Not set");
-  addDetailField(infoGrid, "Source", referral.referralSource || "No source yet");
-  addDetailField(infoGrid, "Date of Birth", formatDateOnly(referral.dateOfBirth));
-  addDetailField(infoGrid, "Gender", referral.gender || "Unspecified");
-  addDetailField(infoGrid, "YCCO", referral.ycco || "Unknown");
-  addDetailField(infoGrid, "Assessment Score", referral.assessmentScore ?? "Not set");
-  addDetailField(infoGrid, "Willingness Score", referral.willingnessScore ?? "Not set");
-  addDetailField(infoGrid, "Referral Date", formatDateOnly(referral.referralDate));
-  addDetailField(infoGrid, "First Contact Date", formatDateOnly(referral.firstContactDate));
-  addDetailField(infoGrid, "Most Recent Contact Date", formatDateOnly(referral.mostRecentContactDate));
-  addDetailField(infoGrid, "First Appointment Date", formatDateOnly(referral.firstAppointmentDate));
-  addDetailField(infoGrid, "Last Appointment Date", formatDateOnly(referral.lastAppointmentDate));
-  addDetailField(infoGrid, "Address", formatAddress(referral));
-  addDetailField(infoGrid, "Email Opt Out", referral.emailOptOut ? "Yes" : "No");
-  addDetailField(infoGrid, "Text Opt Out", referral.textOptOut ? "Yes" : "No");
-  addDetailField(infoGrid, "Created", formatDate(referral.createdAt));
+  const leftColumn = document.createElement("dl");
+  leftColumn.className = "detail-column";
+  const rightColumn = document.createElement("dl");
+  rightColumn.className = "detail-column";
+
+  addDetailField(leftColumn, "Client Name", referralName(referral));
+  addDetailField(leftColumn, "Date of Birth", formatDateOnly(referral.dateOfBirth));
+  addDetailField(leftColumn, "Gender", displayValue(referral.gender));
+  addDetailField(leftColumn, "Parent Name", displayValue(referral.parentName));
+  addDetailField(leftColumn, "Email", displayValue(referral.email));
+  addDetailField(leftColumn, "Mobile", displayValue(formatPhone(referral.phone)));
+  addDetailField(leftColumn, "Preferred Language", displayValue(referral.preferredLanguage));
+  addDetailField(leftColumn, "Source", displayValue(referral.referralSource));
+  addDetailField(leftColumn, "YCCO", referral.ycco === "Yes" ? "✓" : "-");
+
+  addDetailField(rightColumn, "Assessment Score", displayValue(referral.assessmentScore));
+  addDetailField(rightColumn, "Willingness Score", displayValue(referral.willingnessScore));
+  addDetailField(rightColumn, "Referral Type", displayValue(referral.referralType));
+  addDetailField(rightColumn, "Preferred Contact", displayValue(referral.preferredContactMethod));
+  addDetailField(rightColumn, "Email Opt Out", displayBoolean(referral.emailOptOut));
+  addDetailField(rightColumn, "Text Opt Out", displayBoolean(referral.textOptOut));
+  addDetailField(rightColumn, "Address", formatAddress(referral));
+  addDetailField(rightColumn, "Created", formatDate(referral.createdAt));
 
   if (referral.convertedClientId) {
-    addDetailField(infoGrid, "Conversion", "Converted to client");
+    addDetailField(rightColumn, "Conversion", "✓");
   }
+
+  infoGrid.append(leftColumn, rightColumn);
+
+  const trackingGrid = document.createElement("div");
+  trackingGrid.className = "detail-grid detail-tracking-grid";
+  const trackingLeftColumn = document.createElement("dl");
+  trackingLeftColumn.className = "detail-column";
+  const trackingRightColumn = document.createElement("dl");
+  trackingRightColumn.className = "detail-column";
+
+  addDetailField(trackingLeftColumn, "Referral Date", formatDateOnly(referral.referralDate));
+  addDetailField(trackingLeftColumn, "First Contact Date", formatDateOnly(referral.firstContactDate));
+  addDetailField(trackingLeftColumn, "Most Recent Contact Date", formatDateOnly(referral.mostRecentContactDate));
+  addDetailField(trackingRightColumn, "First Appointment Date", formatDateOnly(referral.firstAppointmentDate));
+  addDetailField(trackingRightColumn, "Last Appointment Date", formatDateOnly(referral.lastAppointmentDate));
+  trackingGrid.append(trackingLeftColumn, trackingRightColumn);
 
   const notes = document.createElement("section");
   notes.className = "notes-panel";
   const notesTitle = document.createElement("h4");
   notesTitle.textContent = "Notes";
   const notesText = document.createElement("p");
-  notesText.textContent = referral.notes || "No notes yet.";
+  notesText.textContent = referral.notes || "-";
   notes.append(notesTitle, notesText);
 
-  referralDetail.append(heading, statusLabel, infoGrid, notes);
+  const trackingTitle = document.createElement("h4");
+  trackingTitle.className = "section-title";
+  trackingTitle.textContent = "Data Tracking";
+
+  referralDetail.append(heading, statusLabel, infoGrid, trackingTitle, trackingGrid, notes);
 
   if (normalizeStatus(referral.status) === "Scheduled" && !referral.convertedClientId) {
     const convertButton = document.createElement("button");
@@ -507,7 +537,7 @@ function clearReferralFilters() {
 function formatAddress(referral) {
   return [referral.addressStreet, referral.addressCity, referral.addressState, referral.addressZip]
     .filter(Boolean)
-    .join(", ") || "Not set";
+    .join(", ") || "-";
 }
 
 function addDetailField(container, label, value) {
