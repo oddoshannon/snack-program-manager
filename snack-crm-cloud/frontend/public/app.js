@@ -38,7 +38,9 @@ const legacyStatusMap = {
   new: "New",
   contacted: "Texted",
   scheduled: "Scheduled",
-  closed: "Closed / No Further Outreach"
+  closed: "Closed / No Further Outreach",
+  "Parent Will Call Back": "Caregiver Will Call Back",
+  "Parent will Call Back": "Caregiver Will Call Back"
 };
 const statuses = [
   "New",
@@ -46,7 +48,7 @@ const statuses = [
   "Left Voicemail",
   "Emailed",
   "Requested Call Back",
-  "Parent Will Call Back",
+  "Caregiver Will Call Back",
   "Scheduled",
   "Not Interested",
   "Closed / No Further Outreach"
@@ -55,7 +57,7 @@ const summaryGroups = [
   { key: "all", label: "All", statuses },
   { key: "new", label: "New", statuses: ["New"] },
   { key: "contacted", label: "Contacted", statuses: ["Texted", "Left Voicemail", "Emailed"] },
-  { key: "follow-up", label: "Follow Up", statuses: ["Requested Call Back", "Parent Will Call Back"] },
+  { key: "follow-up", label: "Follow Up", statuses: ["Requested Call Back", "Caregiver Will Call Back"] },
   { key: "scheduled", label: "Scheduled", statuses: ["Scheduled"] },
   { key: "closed", label: "Closed", statuses: ["Not Interested", "Closed / No Further Outreach"] }
 ];
@@ -177,6 +179,12 @@ function normalizeStatus(status) {
   return legacyStatusMap[status] || status || "New";
 }
 
+function statusGroupKey(status) {
+  const normalized = normalizeStatus(status);
+  const group = summaryGroups.find((item) => item.key !== "all" && item.statuses.includes(normalized));
+  return group?.key || "new";
+}
+
 function cssToken(value) {
   return String(value || "")
     .toLowerCase()
@@ -260,9 +268,16 @@ function closeReferralModal() {
 function statusBadge(status = "New") {
   const normalized = normalizeStatus(status);
   const badge = document.createElement("span");
-  badge.className = `status-badge status-${cssToken(normalized)}`;
+  badge.className = `status-badge status-${cssToken(normalized)} status-group-${statusGroupKey(normalized)}`;
   badge.textContent = normalized;
   return badge;
+}
+
+function applyStatusSelectColor(select, status) {
+  for (const key of ["new", "contacted", "follow-up", "scheduled", "closed"]) {
+    select.classList.remove(`status-group-${key}`);
+  }
+  select.classList.add("status-select", `status-group-${statusGroupKey(status)}`);
 }
 
 function renderReferrals() {
@@ -429,11 +444,16 @@ function renderReferralDetail() {
     const option = document.createElement("option");
     option.value = status;
     option.textContent = status;
+    option.className = `status-group-${statusGroupKey(status)}`;
     statusSelect.append(option);
   }
 
   statusSelect.value = normalizeStatus(referral.status);
-  statusSelect.addEventListener("change", () => updateReferralStatus(referral, statusSelect.value));
+  applyStatusSelectColor(statusSelect, statusSelect.value);
+  statusSelect.addEventListener("change", () => {
+    applyStatusSelectColor(statusSelect, statusSelect.value);
+    updateReferralStatus(referral, statusSelect.value);
+  });
   statusLabel.append(statusSelect);
 
   const infoGrid = document.createElement("div");
@@ -446,7 +466,7 @@ function renderReferralDetail() {
   addDetailField(leftColumn, "Client Name", referralName(referral));
   addDetailField(leftColumn, "Date of Birth", formatDateOnly(referral.dateOfBirth));
   addDetailField(leftColumn, "Gender", displayValue(referral.gender));
-  addDetailField(leftColumn, "Parent Name", displayValue(referral.parentName));
+  addDetailField(leftColumn, "Caregiver", displayValue(referral.parentName));
   addDetailField(leftColumn, "Email", displayValue(referral.email));
   addDetailField(leftColumn, "Mobile", displayValue(formatPhone(referral.phone)));
   addDetailField(leftColumn, "Preferred Language", displayValue(referral.preferredLanguage));

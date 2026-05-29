@@ -61,7 +61,7 @@
                 <div class="filters">
                   <label>
                     Search
-                    <input id="referral-search" type="search" autocomplete="off" placeholder="Name, parent, phone, email">
+                    <input id="referral-search" type="search" autocomplete="off" placeholder="Name, caregiver, phone, email">
                   </label>
                   <label>
                     Status
@@ -72,7 +72,7 @@
                       <option value="Left Voicemail">Left Voicemail</option>
                       <option value="Emailed">Emailed</option>
                       <option value="Requested Call Back">Requested Call Back</option>
-                      <option value="Parent Will Call Back">Parent Will Call Back</option>
+                      <option value="Caregiver Will Call Back">Caregiver Will Call Back</option>
                       <option value="Scheduled">Scheduled</option>
                       <option value="Not Interested">Not Interested</option>
                       <option value="Closed / No Further Outreach">Closed / No Further Outreach</option>
@@ -83,11 +83,11 @@
               <div class="referrals-table" role="table" aria-label="Referrals">
                 <div class="table-head" role="row">
                   <span role="columnheader">Status</span>
-                  <span role="columnheader">Most Recent Contact</span>
+                  <span role="columnheader">Recent Contact</span>
                   <span role="columnheader">Name</span>
                   <span role="columnheader">Phone</span>
                   <span role="columnheader">Language</span>
-                  <span role="columnheader">Parent/Guardian</span>
+                  <span role="columnheader">Caregiver</span>
                   <span role="columnheader">Email</span>
                 </div>
                 <div id="referrals-list" class="referrals-list" role="rowgroup"></div>
@@ -119,7 +119,7 @@
                   <input id="last-name" name="lastName" autocomplete="family-name" required>
                 </label>
                 <label>
-                  Parent/Guardian
+                  Caregiver
                   <input id="parent-name" name="parentName" required>
                 </label>
                 <label>

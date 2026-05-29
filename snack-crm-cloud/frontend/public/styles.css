@@ -434,38 +434,34 @@ textarea {
   text-transform: capitalize;
 }
 
-.status-new {
-  background: #e7f0ff;
-  color: #255b9f;
+.status-group-new {
+  background: #e5f6ef;
+  color: #078b4d;
 }
 
-.status-texted,
-.status-left-voicemail,
-.status-emailed,
-.status-requested-call-back,
-.status-parent-will-call-back {
+.status-group-contacted {
   background: #fff1d8;
-  color: var(--warning);
+  color: #9f6a22;
 }
 
-.status-scheduled {
-  background: var(--accent-soft);
-  color: var(--accent-dark);
+.status-group-follow-up {
+  background: #f6eeff;
+  color: #7a33c2;
 }
 
-.status-closed {
-  background: #eceff1;
-  color: #59656b;
+.status-group-scheduled {
+  background: #eff6ff;
+  color: #004aad;
 }
 
-.status-not-interested {
-  background: #fff7f6;
-  color: var(--danger);
+.status-group-closed {
+  background: #ffe5e8;
+  color: #b42336;
 }
 
-.status-closed-no-further-outreach {
-  background: #eceff1;
-  color: #59656b;
+.status-select {
+  border-color: currentColor;
+  font-weight: 800;
 }
 
 .empty-state {

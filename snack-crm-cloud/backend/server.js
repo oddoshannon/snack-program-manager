@@ -14,7 +14,7 @@ const allowedReferralStatuses = new Set([
   "Left Voicemail",
   "Emailed",
   "Requested Call Back",
-  "Parent Will Call Back",
+  "Caregiver Will Call Back",
   "Scheduled",
   "Not Interested",
   "Closed / No Further Outreach"
@@ -33,7 +33,9 @@ const legacyStatusMap = {
   new: "New",
   contacted: "Texted",
   scheduled: "Scheduled",
-  closed: "Closed / No Further Outreach"
+  closed: "Closed / No Further Outreach",
+  "Parent Will Call Back": "Caregiver Will Call Back",
+  "Parent will Call Back": "Caregiver Will Call Back"
 };
 
 const firestore = projectId ? new Firestore({ projectId }) : new Firestore();
@@ -265,7 +267,7 @@ app.post("/api/referrals", requireAuth, async (request, response, next) => {
 
     if (!firstName || !lastName || !parentName || !phone || !preferredLanguage || !referralType) {
       response.status(400).json({
-        error: "Child name, parent name, phone, preferred language, and referral type are required."
+        error: "Child name, caregiver name, phone, preferred language, and referral type are required."
       });
       return;
     }
@@ -448,7 +450,7 @@ app.patch("/api/referrals/:referralId", requireAuth, async (request, response, n
 
     if (Object.hasOwn(updates, "parentName") && !updates.parentName) {
       response.status(400).json({
-        error: "Parent/guardian name is required."
+        error: "Caregiver name is required."
       });
       return;
     }
