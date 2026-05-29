@@ -176,6 +176,8 @@ function toClient(snapshot) {
     firstName: data.firstName,
     lastName: data.lastName,
     parentName: data.parentName,
+    dateOfBirth: data.dateOfBirth,
+    gender: data.gender,
     phone: data.phone,
     email: data.email,
     preferredLanguage: data.preferredLanguage,
@@ -194,7 +196,11 @@ function toClient(snapshot) {
     addressZip: data.addressZip,
     emailOptOut: Boolean(data.emailOptOut),
     textOptOut: Boolean(data.textOptOut),
+    ycco: data.ycco,
+    assessmentScore: data.assessmentScore,
+    willingnessScore: data.willingnessScore,
     status: data.status,
+    notes: data.notes,
     createdAt: data.createdAt,
     updatedAt: data.updatedAt
   };
@@ -229,6 +235,18 @@ app.get("/api/referrals", requireAuth, async (_request, response, next) => {
 
     response.json({
       referrals: snapshot.docs.map(toReferral)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/clients", requireAuth, async (_request, response, next) => {
+  try {
+    const snapshot = await clients.orderBy("createdAt", "desc").limit(50).get();
+
+    response.json({
+      clients: snapshot.docs.map(toClient)
     });
   } catch (error) {
     next(error);

@@ -325,6 +325,10 @@ h4 {
   align-items: end;
 }
 
+.client-filters {
+  grid-template-columns: minmax(240px, 380px);
+}
+
 label {
   display: grid;
   gap: 8px;

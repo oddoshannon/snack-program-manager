@@ -17,7 +17,8 @@
           </div>
         </div>
         <nav class="primary-nav" aria-label="Primary">
-          <button class="nav-item active" type="button" aria-current="page">Referrals</button>
+          <button id="nav-referrals" class="nav-item active" type="button" aria-current="page">Referrals</button>
+          <button id="nav-clients" class="nav-item" type="button">Clients</button>
         </nav>
         <div class="sidebar-footer">
           <p id="user" class="user">Please sign in with your SNACK Google account.</p>
@@ -103,6 +104,47 @@
               </div>
             </section>
 
+          </div>
+        </section>
+
+        <section id="clients-panel" class="referrals-panel" aria-labelledby="clients-title" hidden>
+          <header class="workspace-header">
+            <div>
+              <p class="eyebrow">CRM</p>
+              <h2 id="clients-title">Clients</h2>
+            </div>
+            <div class="header-actions">
+              <button id="refresh-clients" class="secondary-button" type="button">Refresh clients</button>
+            </div>
+          </header>
+
+          <div class="referrals-layout">
+            <section class="list-panel" aria-label="Client list">
+              <div class="list-toolbar">
+                <div>
+                  <h3>Clients</h3>
+                  <p id="clients-status" class="status" aria-live="polite"></p>
+                </div>
+                <div class="filters client-filters">
+                  <label>
+                    Search
+                    <input id="client-search" type="search" autocomplete="off">
+                  </label>
+                </div>
+              </div>
+              <div class="referrals-table" role="table" aria-label="Clients">
+                <div class="table-head client-table-head" role="row">
+                  <span role="columnheader">Status</span>
+                  <span role="columnheader">Last Appointment</span>
+                  <span role="columnheader">Client Name</span>
+                  <span role="columnheader">Phone</span>
+                  <span role="columnheader">Language</span>
+                  <span role="columnheader">Caregiver</span>
+                  <span role="columnheader">Email</span>
+                </div>
+                <div id="clients-list" class="referrals-list" role="rowgroup"></div>
+              </div>
+            </section>
           </div>
         </section>
       </main>
@@ -257,6 +299,12 @@
                   <textarea id="notes" name="notes" rows="5"></textarea>
                 </label>
         </form>
+      </section>
+    </div>
+
+    <div id="client-modal" class="modal-backdrop" hidden>
+      <section class="modal-card" role="dialog" aria-modal="true" aria-label="Client profile">
+        <div id="client-detail" class="referral-detail"></div>
       </section>
     </div>
     <script src="./app-config.js"></script>
