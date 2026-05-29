@@ -56,7 +56,7 @@ const statuses = [
   "Closed / No Further Outreach"
 ];
 const summaryGroups = [
-  { key: "all", label: "All", statuses },
+  { key: "all", label: "Total", statuses },
   { key: "new", label: "New", statuses: ["New"] },
   { key: "contacted", label: "Contacted", statuses: ["Texted", "Left Voicemail", "Emailed"] },
   { key: "follow-up", label: "Follow Up", statuses: ["Requested Call Back", "Caregiver Will Call Back"] },
@@ -374,7 +374,7 @@ function renderReferrals() {
 function renderReferralSummary() {
   referralSummary.innerHTML = "";
 
-  for (const group of summaryGroups.filter((item) => item.key !== "all")) {
+  for (const group of summaryGroups) {
     const count = loadedReferrals.filter((referral) => group.statuses.includes(normalizeStatus(referral.status))).length;
     const item = document.createElement("button");
     item.className = "summary-item";
@@ -392,7 +392,7 @@ function renderReferralSummary() {
 
     item.append(countEl, labelEl);
     item.addEventListener("click", () => {
-      summaryFilter = summaryFilter === group.key ? "all" : group.key;
+      summaryFilter = group.key === "all" || summaryFilter === group.key ? "all" : group.key;
       statusFilterSelect.value = "all";
       renderReferralSummary();
       renderReferrals();
