@@ -30,6 +30,8 @@ const referralSummary = document.querySelector("#referral-summary");
 const referralDetail = document.querySelector("#referral-detail");
 const referralModal = document.querySelector("#referral-modal");
 const closeReferralModalButton = document.querySelector("#close-referral-modal");
+const referralSourceInput = document.querySelector("#referral-source");
+const referralSourceOptions = document.querySelector("#referral-source-options");
 
 const app = initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
@@ -194,6 +196,26 @@ function cssToken(value) {
 
 function setReferralsLoadedStatus() {
   referralsStatusEl.textContent = `${loadedReferrals.length} referral${loadedReferrals.length === 1 ? "" : "s"} loaded.`;
+}
+
+function knownReferralSources() {
+  return [...new Set(loadedReferrals.map((referral) => referral.referralSource).filter(Boolean))]
+    .sort((first, second) => first.localeCompare(second));
+}
+
+function renderReferralSourceOptions() {
+  const query = referralSourceInput.value.trim().toLowerCase();
+  const sources = knownReferralSources()
+    .filter((source) => !query || source.toLowerCase().includes(query))
+    .slice(0, 10);
+
+  referralSourceOptions.innerHTML = "";
+
+  for (const source of sources) {
+    const option = document.createElement("option");
+    option.value = source;
+    referralSourceOptions.append(option);
+  }
 }
 
 function referralMatchesFilters(referral) {
@@ -470,7 +492,7 @@ function renderReferralDetail() {
   addDetailField(leftColumn, "Email", displayValue(referral.email));
   addDetailField(leftColumn, "Mobile", displayValue(formatPhone(referral.phone)));
   addDetailField(leftColumn, "Preferred Language", displayValue(referral.preferredLanguage));
-  addDetailField(leftColumn, "Source", displayValue(referral.referralSource));
+  addDetailField(leftColumn, "Referral Source", displayValue(referral.referralSource));
   addDetailField(leftColumn, "YCCO", referral.ycco === "Yes" ? "✓" : "-");
 
   addDetailField(rightColumn, "Assessment Score", displayValue(referral.assessmentScore));
@@ -591,6 +613,7 @@ async function loadReferrals() {
     loadedReferrals = data.referrals;
     renderReferralSummary();
     renderReferrals();
+    renderReferralSourceOptions();
     if (!referralModal.hidden && selectedReferralId) {
       renderReferralDetail();
     }
@@ -653,6 +676,7 @@ function startNewReferral() {
   editingReferralId = null;
   selectedReferralId = null;
   referralForm.reset();
+  renderReferralSourceOptions();
   formTitle.textContent = "New Referral";
   saveReferralButton.textContent = "Save referral";
   cancelEditButton.hidden = false;
@@ -691,6 +715,7 @@ function startEditingReferral(referral) {
   referralForm.elements.emailOptOut.checked = Boolean(referral.emailOptOut);
   referralForm.elements.textOptOut.checked = Boolean(referral.textOptOut);
   referralForm.elements.notes.value = referral.notes || "";
+  renderReferralSourceOptions();
   formTitle.textContent = `Edit ${referralName(referral)}`;
   saveReferralButton.textContent = "Update referral";
   cancelEditButton.hidden = false;
@@ -764,7 +789,7 @@ async function updateReferralStatus(referral, status) {
     selectedReferralId = referral.id;
 
     if (status === "Scheduled" && !data.referral?.convertedClientId) {
-      const shouldConvert = window.confirm("This referral is now scheduled. Convert this referral to a client?");
+      const shouldConvert = window.confirm("This referral is now Scheduled. Convert this referral to a Client now?");
 
       if (shouldConvert) {
         await convertReferralToClient(data.referral);
@@ -860,6 +885,8 @@ refreshButton.addEventListener("click", loadMessage);
 refreshConnectionButton.addEventListener("click", loadMessage);
 newReferralButton.addEventListener("click", startNewReferral);
 referralForm.addEventListener("submit", saveReferral);
+referralSourceInput.addEventListener("focus", renderReferralSourceOptions);
+referralSourceInput.addEventListener("input", renderReferralSourceOptions);
 referralSearchInput.addEventListener("input", () => {
   renderReferralSummary();
   renderReferrals();

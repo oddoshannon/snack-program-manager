@@ -111,19 +111,19 @@
                   </div>
                 </div>
                 <label>
-                  Child First Name
+                  <span class="label-text">Child First Name <span class="required-marker" aria-label="required">*</span></span>
                   <input id="first-name" name="firstName" autocomplete="given-name" required>
                 </label>
                 <label>
-                  Child Last Name
+                  <span class="label-text">Child Last Name <span class="required-marker" aria-label="required">*</span></span>
                   <input id="last-name" name="lastName" autocomplete="family-name" required>
                 </label>
                 <label>
-                  Caregiver
+                  <span class="label-text">Caregiver <span class="required-marker" aria-label="required">*</span></span>
                   <input id="parent-name" name="parentName" required>
                 </label>
                 <label>
-                  Phone
+                  <span class="label-text">Phone <span class="required-marker" aria-label="required">*</span></span>
                   <input id="phone" name="phone" autocomplete="tel" required>
                 </label>
                 <label>
@@ -131,7 +131,7 @@
                   <input id="email" name="email" type="email" autocomplete="email">
                 </label>
                 <label>
-                  Preferred Language
+                  <span class="label-text">Preferred Language <span class="required-marker" aria-label="required">*</span></span>
                   <select id="preferred-language" name="preferredLanguage" required>
                     <option value="English">English</option>
                     <option value="Spanish">Spanish</option>
@@ -147,7 +147,7 @@
                   </select>
                 </label>
                 <label>
-                  Referral Type
+                  <span class="label-text">Referral Type <span class="required-marker" aria-label="required">*</span></span>
                   <select id="referral-type" name="referralType" required>
                     <option value="Internal Clinic Referral">Internal Clinic Referral</option>
                     <option value="External Clinic Referral">External Clinic Referral</option>
@@ -160,8 +160,9 @@
                   </select>
                 </label>
                 <label>
-                  Source
-                  <input id="referral-source" name="referralSource">
+                  Referral Source
+                  <input id="referral-source" name="referralSource" list="referral-source-options" autocomplete="off">
+                  <datalist id="referral-source-options"></datalist>
                 </label>
                 <label>
                   Date of Birth
