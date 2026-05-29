@@ -265,14 +265,20 @@ function setSelectedReferral(referralId) {
   editingReferralId = null;
   referralForm.hidden = true;
   referralDetail.hidden = false;
+  syncModalCloseButton();
   openReferralModal();
   renderReferrals();
   renderReferralDetail();
 }
 
+function syncModalCloseButton() {
+  closeReferralModalButton.hidden = !referralForm.hidden;
+}
+
 function openReferralModal() {
   referralModal.hidden = false;
   document.body.classList.add("modal-open");
+  syncModalCloseButton();
 }
 
 function closeReferralModal() {
@@ -282,6 +288,7 @@ function closeReferralModal() {
   referralForm.reset();
   referralForm.hidden = true;
   referralDetail.hidden = false;
+  syncModalCloseButton();
   selectedReferralId = null;
   renderReferrals();
   setReferralsLoadedStatus();
@@ -663,6 +670,7 @@ async function saveReferral(event) {
     await loadReferrals();
     referralForm.hidden = true;
     referralDetail.hidden = false;
+    syncModalCloseButton();
     renderReferralDetail();
   } catch (error) {
     referralsStatusEl.textContent = error.message || "Could not save referral yet.";
@@ -682,6 +690,7 @@ function startNewReferral() {
   cancelEditButton.hidden = false;
   referralForm.hidden = false;
   referralDetail.hidden = true;
+  syncModalCloseButton();
   openReferralModal();
   referralsStatusEl.textContent = "Creating a new referral.";
 }
@@ -721,6 +730,7 @@ function startEditingReferral(referral) {
   cancelEditButton.hidden = false;
   referralForm.hidden = false;
   referralDetail.hidden = true;
+  syncModalCloseButton();
   openReferralModal();
   referralsStatusEl.textContent = `Editing ${referralName(referral)}.`;
 }
@@ -732,6 +742,7 @@ function stopEditingReferral() {
   cancelEditButton.hidden = true;
   referralForm.hidden = true;
   referralDetail.hidden = false;
+  syncModalCloseButton();
   renderReferralDetail();
 }
 
