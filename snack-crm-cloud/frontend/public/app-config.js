@@ -1,5 +1,7 @@
 window.SNACK_CONFIG = {
-  API_BASE_URL: window.location.hostname === "localhost" ? "http://localhost:8080" : "",
+  API_BASE_URL: ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname)
+    ? "http://localhost:8080"
+    : "",
   FIREBASE_CONFIG: {
     apiKey: "AIzaSyDzwojeeO6N-n38vX3rdKJ2VNV-KZ3dnSE",
     authDomain: "snack-crm.firebaseapp.com",

@@ -8,11 +8,38 @@ const frontendOrigin = process.env.FRONTEND_ORIGIN || "*";
 const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT || process.env.PROJECT_ID;
 const firebaseAuthProjectId = process.env.FIREBASE_AUTH_PROJECT_ID || "snack-crm";
 const allowedEmailDomain = process.env.ALLOWED_EMAIL_DOMAIN || "snackprogram.org";
-const allowedReferralStatuses = new Set(["new", "contacted", "scheduled", "closed"]);
+const allowedReferralStatuses = new Set([
+  "New",
+  "Texted",
+  "Left Voicemail",
+  "Emailed",
+  "Requested Call Back",
+  "Parent Will Call Back",
+  "Scheduled",
+  "Not Interested",
+  "Closed / No Further Outreach"
+]);
+const allowedReferralTypes = new Set([
+  "Internal Clinic Referral",
+  "External Clinic Referral",
+  "Community Org Referral",
+  "Nutrition Assessment",
+  "Self Referral",
+  "Outreach Event Interest",
+  "Hosted Event/Class Interest",
+  "Other"
+]);
+const legacyStatusMap = {
+  new: "New",
+  contacted: "Texted",
+  scheduled: "Scheduled",
+  closed: "Closed / No Further Outreach"
+};
 
 const firestore = projectId ? new Firestore({ projectId }) : new Firestore();
 const messages = firestore.collection("messages");
 const referrals = firestore.collection("referrals");
+const clients = firestore.collection("clients");
 const firebaseJwtKeys = createRemoteJWKSet(
   new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
 );
@@ -82,6 +109,20 @@ function cleanString(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function cleanOptionalNumber(value) {
+  const cleaned = cleanString(value);
+  if (!cleaned) {
+    return null;
+  }
+  const number = Number(cleaned);
+  return Number.isNaN(number) ? null : number;
+}
+
+function normalizeStatus(status) {
+  const cleaned = cleanString(status);
+  return legacyStatusMap[cleaned] || cleaned || "New";
+}
+
 function toReferral(snapshot) {
   const data = snapshot.data();
 
@@ -89,11 +130,42 @@ function toReferral(snapshot) {
     id: snapshot.id,
     firstName: data.firstName,
     lastName: data.lastName,
+    parentName: data.parentName,
+    dateOfBirth: data.dateOfBirth,
+    gender: data.gender,
     phone: data.phone,
     email: data.email,
+    preferredLanguage: data.preferredLanguage,
+    preferredContactMethod: data.preferredContactMethod,
+    referralType: data.referralType,
     referralSource: data.referralSource,
-    status: data.status,
+    ycco: data.ycco,
+    assessmentScore: data.assessmentScore,
+    willingnessScore: data.willingnessScore,
+    status: normalizeStatus(data.status),
     notes: data.notes,
+    convertedClientId: data.convertedClientId,
+    convertedAt: data.convertedAt,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt
+  };
+}
+
+function toClient(snapshot) {
+  const data = snapshot.data();
+
+  return {
+    id: snapshot.id,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    parentName: data.parentName,
+    phone: data.phone,
+    email: data.email,
+    preferredLanguage: data.preferredLanguage,
+    preferredContactMethod: data.preferredContactMethod,
+    sourceReferralId: data.sourceReferralId,
+    referralType: data.referralType,
+    status: data.status,
     createdAt: data.createdAt,
     updatedAt: data.updatedAt
   };
@@ -138,15 +210,31 @@ app.post("/api/referrals", requireAuth, async (request, response, next) => {
   try {
     const firstName = cleanString(request.body.firstName);
     const lastName = cleanString(request.body.lastName);
+    const parentName = cleanString(request.body.parentName);
+    const dateOfBirth = cleanString(request.body.dateOfBirth);
+    const gender = cleanString(request.body.gender);
     const phone = cleanString(request.body.phone);
     const email = cleanString(request.body.email);
+    const preferredLanguage = cleanString(request.body.preferredLanguage);
+    const preferredContactMethod = cleanString(request.body.preferredContactMethod);
+    const referralType = cleanString(request.body.referralType);
     const referralSource = cleanString(request.body.referralSource);
+    const ycco = cleanString(request.body.ycco);
+    const assessmentScore = cleanOptionalNumber(request.body.assessmentScore);
+    const willingnessScore = cleanOptionalNumber(request.body.willingnessScore);
     const notes = cleanString(request.body.notes);
     const now = new Date().toISOString();
 
-    if (!firstName || !lastName) {
+    if (!firstName || !lastName || !parentName || !phone || !preferredLanguage || !referralType) {
       response.status(400).json({
-        error: "First name and last name are required."
+        error: "Child name, parent name, phone, preferred language, and referral type are required."
+      });
+      return;
+    }
+
+    if (!allowedReferralTypes.has(referralType)) {
+      response.status(400).json({
+        error: "Referral type is not valid."
       });
       return;
     }
@@ -154,10 +242,19 @@ app.post("/api/referrals", requireAuth, async (request, response, next) => {
     const docRef = await referrals.add({
       firstName,
       lastName,
+      parentName,
+      dateOfBirth,
+      gender,
       phone,
       email,
+      preferredLanguage,
+      preferredContactMethod,
+      referralType,
       referralSource,
-      status: "new",
+      ycco,
+      assessmentScore,
+      willingnessScore,
+      status: "New",
       notes,
       createdAt: now,
       updatedAt: now,
@@ -205,7 +302,8 @@ app.delete("/api/referrals/:referralId", requireAuth, async (request, response, 
 app.patch("/api/referrals/:referralId", requireAuth, async (request, response, next) => {
   try {
     const referralId = cleanString(request.params.referralId);
-    const status = cleanString(request.body.status);
+    const hasStatusUpdate = Object.hasOwn(request.body, "status");
+    const status = hasStatusUpdate ? normalizeStatus(request.body.status) : "";
 
     if (!referralId) {
       response.status(400).json({
@@ -214,7 +312,7 @@ app.patch("/api/referrals/:referralId", requireAuth, async (request, response, n
       return;
     }
 
-    if (status && !allowedReferralStatuses.has(status)) {
+    if (hasStatusUpdate && !allowedReferralStatuses.has(status)) {
       response.status(400).json({
         error: "Referral status is not valid."
       });
@@ -236,14 +334,36 @@ app.patch("/api/referrals/:referralId", requireAuth, async (request, response, n
       updatedBy: request.user.email
     };
 
-    if (status) {
+    if (hasStatusUpdate) {
       updates.status = status;
     }
 
-    for (const field of ["firstName", "lastName", "phone", "email", "referralSource", "notes"]) {
+    for (const field of [
+      "firstName",
+      "lastName",
+      "parentName",
+      "dateOfBirth",
+      "gender",
+      "phone",
+      "email",
+      "preferredLanguage",
+      "preferredContactMethod",
+      "referralType",
+      "referralSource",
+      "ycco",
+      "notes"
+    ]) {
       if (Object.hasOwn(request.body, field)) {
         updates[field] = cleanString(request.body[field]);
       }
+    }
+
+    if (Object.hasOwn(request.body, "assessmentScore")) {
+      updates.assessmentScore = cleanOptionalNumber(request.body.assessmentScore);
+    }
+
+    if (Object.hasOwn(request.body, "willingnessScore")) {
+      updates.willingnessScore = cleanOptionalNumber(request.body.willingnessScore);
     }
 
     if (Object.hasOwn(updates, "firstName") && !updates.firstName) {
@@ -260,11 +380,115 @@ app.patch("/api/referrals/:referralId", requireAuth, async (request, response, n
       return;
     }
 
+    if (Object.hasOwn(updates, "parentName") && !updates.parentName) {
+      response.status(400).json({
+        error: "Parent/guardian name is required."
+      });
+      return;
+    }
+
+    if (Object.hasOwn(updates, "phone") && !updates.phone) {
+      response.status(400).json({
+        error: "Phone is required."
+      });
+      return;
+    }
+
+    if (Object.hasOwn(updates, "preferredLanguage") && !updates.preferredLanguage) {
+      response.status(400).json({
+        error: "Preferred language is required."
+      });
+      return;
+    }
+
+    if (Object.hasOwn(updates, "referralType") && !allowedReferralTypes.has(updates.referralType)) {
+      response.status(400).json({
+        error: "Referral type is not valid."
+      });
+      return;
+    }
+
     await docRef.update(updates);
     const updated = await docRef.get();
 
     response.json({
       referral: toReferral(updated)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/referrals/:referralId/convert", requireAuth, async (request, response, next) => {
+  try {
+    const referralId = cleanString(request.params.referralId);
+
+    if (!referralId) {
+      response.status(400).json({
+        error: "Referral ID is required."
+      });
+      return;
+    }
+
+    const referralRef = referrals.doc(referralId);
+    const referralSnapshot = await referralRef.get();
+
+    if (!referralSnapshot.exists) {
+      response.status(404).json({
+        error: "Referral was not found."
+      });
+      return;
+    }
+
+    const referral = toReferral(referralSnapshot);
+
+    if (referral.convertedClientId) {
+      const existingClient = await clients.doc(referral.convertedClientId).get();
+      response.json({
+        client: existingClient.exists ? toClient(existingClient) : null,
+        referral
+      });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const clientRef = await clients.add({
+      firstName: referral.firstName || "",
+      lastName: referral.lastName || "",
+      parentName: referral.parentName || "",
+      dateOfBirth: referral.dateOfBirth || "",
+      gender: referral.gender || "",
+      phone: referral.phone || "",
+      email: referral.email || "",
+      preferredLanguage: referral.preferredLanguage || "",
+      preferredContactMethod: referral.preferredContactMethod || "",
+      referralType: referral.referralType || "",
+      referralSource: referral.referralSource || "",
+      ycco: referral.ycco || "",
+      assessmentScore: referral.assessmentScore ?? null,
+      willingnessScore: referral.willingnessScore ?? null,
+      sourceReferralId: referralId,
+      status: "Scheduled",
+      notes: referral.notes || "",
+      createdAt: now,
+      updatedAt: now,
+      createdBy: request.user.email
+    });
+
+    await referralRef.update({
+      status: "Scheduled",
+      convertedClientId: clientRef.id,
+      convertedAt: now,
+      updatedAt: now,
+      updatedBy: request.user.email
+    });
+
+    const clientSnapshot = await clientRef.get();
+    const updatedReferralSnapshot = await referralRef.get();
+
+    response.status(201).json({
+      client: toClient(clientSnapshot),
+      referral: toReferral(updatedReferralSnapshot)
     });
   } catch (error) {
     next(error);
