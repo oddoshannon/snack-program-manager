@@ -29,6 +29,16 @@ const allowedReferralTypes = new Set([
   "Hosted Event/Class Interest",
   "Other"
 ]);
+const allowedClientStatuses = new Set([
+  "Scheduled",
+  "Active",
+  "Needs Reschedule",
+  "Needs Language Support",
+  "Waiting on Family",
+  "Graduated",
+  "Inactive",
+  "Closed"
+]);
 const legacyStatusMap = {
   new: "New",
   contacted: "Texted",
@@ -206,6 +216,48 @@ function toClient(snapshot) {
   };
 }
 
+function cleanPersonPayload(body) {
+  return {
+    firstName: cleanString(body.firstName),
+    lastName: cleanString(body.lastName),
+    parentName: cleanString(body.parentName),
+    dateOfBirth: cleanString(body.dateOfBirth),
+    gender: cleanString(body.gender),
+    phone: cleanString(body.phone),
+    email: cleanString(body.email),
+    preferredLanguage: cleanString(body.preferredLanguage),
+    preferredContactMethod: cleanString(body.preferredContactMethod),
+    referralType: cleanString(body.referralType),
+    referralSource: cleanString(body.referralSource),
+    referralDate: cleanString(body.referralDate),
+    firstContactDate: cleanString(body.firstContactDate),
+    mostRecentContactDate: cleanString(body.mostRecentContactDate),
+    firstAppointmentDate: cleanString(body.firstAppointmentDate),
+    lastAppointmentDate: cleanString(body.lastAppointmentDate),
+    addressStreet: cleanString(body.addressStreet),
+    addressCity: cleanString(body.addressCity),
+    addressState: cleanString(body.addressState),
+    addressZip: cleanString(body.addressZip),
+    emailOptOut: cleanBoolean(body.emailOptOut),
+    textOptOut: cleanBoolean(body.textOptOut),
+    ycco: cleanString(body.ycco),
+    assessmentScore: cleanOptionalNumber(body.assessmentScore),
+    willingnessScore: cleanOptionalNumber(body.willingnessScore),
+    notes: cleanString(body.notes)
+  };
+}
+
+function validateRequiredPersonFields(payload, response) {
+  if (!payload.firstName || !payload.lastName || !payload.parentName || !payload.phone || !payload.preferredLanguage) {
+    response.status(400).json({
+      error: "Name, caregiver name, phone, and preferred language are required."
+    });
+    return false;
+  }
+
+  return true;
+}
+
 app.get("/health", (_request, response) => {
   response.json({
     ok: true,
@@ -248,6 +300,212 @@ app.get("/api/clients", requireAuth, async (_request, response, next) => {
     response.json({
       clients: snapshot.docs.map(toClient)
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/clients", requireAuth, async (request, response, next) => {
+  try {
+    const payload = cleanPersonPayload(request.body);
+    const status = cleanString(request.body.status) || "Scheduled";
+    const now = new Date().toISOString();
+
+    if (!validateRequiredPersonFields(payload, response)) {
+      return;
+    }
+
+    if (status && !allowedClientStatuses.has(status)) {
+      response.status(400).json({
+        error: "Client status is not valid."
+      });
+      return;
+    }
+
+    if (payload.referralType && !allowedReferralTypes.has(payload.referralType)) {
+      response.status(400).json({
+        error: "Referral type is not valid."
+      });
+      return;
+    }
+
+    const docRef = await clients.add({
+      ...payload,
+      status,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: request.user.email
+    });
+    const created = await docRef.get();
+
+    response.status(201).json({
+      client: toClient(created)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/clients/:clientId", requireAuth, async (request, response, next) => {
+  try {
+    const clientId = cleanString(request.params.clientId);
+    const hasStatusUpdate = Object.hasOwn(request.body, "status");
+    const status = hasStatusUpdate ? cleanString(request.body.status) : "";
+
+    if (!clientId) {
+      response.status(400).json({
+        error: "Client ID is required."
+      });
+      return;
+    }
+
+    if (hasStatusUpdate && !allowedClientStatuses.has(status)) {
+      response.status(400).json({
+        error: "Client status is not valid."
+      });
+      return;
+    }
+
+    const docRef = clients.doc(clientId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Client was not found."
+      });
+      return;
+    }
+
+    const updates = {
+      updatedAt: new Date().toISOString(),
+      updatedBy: request.user.email
+    };
+
+    if (hasStatusUpdate) {
+      updates.status = status;
+    }
+
+    for (const field of [
+      "firstName",
+      "lastName",
+      "parentName",
+      "dateOfBirth",
+      "gender",
+      "phone",
+      "email",
+      "preferredLanguage",
+      "preferredContactMethod",
+      "referralType",
+      "referralSource",
+      "referralDate",
+      "firstContactDate",
+      "mostRecentContactDate",
+      "firstAppointmentDate",
+      "lastAppointmentDate",
+      "addressStreet",
+      "addressCity",
+      "addressState",
+      "addressZip",
+      "ycco",
+      "notes"
+    ]) {
+      if (Object.hasOwn(request.body, field)) {
+        updates[field] = cleanString(request.body[field]);
+      }
+    }
+
+    if (Object.hasOwn(request.body, "assessmentScore")) {
+      updates.assessmentScore = cleanOptionalNumber(request.body.assessmentScore);
+    }
+
+    if (Object.hasOwn(request.body, "willingnessScore")) {
+      updates.willingnessScore = cleanOptionalNumber(request.body.willingnessScore);
+    }
+
+    if (Object.hasOwn(request.body, "emailOptOut")) {
+      updates.emailOptOut = cleanBoolean(request.body.emailOptOut);
+    }
+
+    if (Object.hasOwn(request.body, "textOptOut")) {
+      updates.textOptOut = cleanBoolean(request.body.textOptOut);
+    }
+
+    if (Object.hasOwn(updates, "firstName") && !updates.firstName) {
+      response.status(400).json({
+        error: "First name is required."
+      });
+      return;
+    }
+
+    if (Object.hasOwn(updates, "lastName") && !updates.lastName) {
+      response.status(400).json({
+        error: "Last name is required."
+      });
+      return;
+    }
+
+    if (Object.hasOwn(updates, "parentName") && !updates.parentName) {
+      response.status(400).json({
+        error: "Caregiver name is required."
+      });
+      return;
+    }
+
+    if (Object.hasOwn(updates, "phone") && !updates.phone) {
+      response.status(400).json({
+        error: "Phone is required."
+      });
+      return;
+    }
+
+    if (Object.hasOwn(updates, "preferredLanguage") && !updates.preferredLanguage) {
+      response.status(400).json({
+        error: "Preferred language is required."
+      });
+      return;
+    }
+
+    if (Object.hasOwn(updates, "referralType") && updates.referralType && !allowedReferralTypes.has(updates.referralType)) {
+      response.status(400).json({
+        error: "Referral type is not valid."
+      });
+      return;
+    }
+
+    await docRef.update(updates);
+    const updated = await docRef.get();
+
+    response.json({
+      client: toClient(updated)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/clients/:clientId", requireAuth, async (request, response, next) => {
+  try {
+    const clientId = cleanString(request.params.clientId);
+
+    if (!clientId) {
+      response.status(400).json({
+        error: "Client ID is required."
+      });
+      return;
+    }
+
+    const docRef = clients.doc(clientId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Client was not found."
+      });
+      return;
+    }
+
+    await docRef.delete();
+    response.status(204).send();
   } catch (error) {
     next(error);
   }

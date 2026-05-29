@@ -40,13 +40,11 @@
         <section id="referrals-panel" class="referrals-panel" aria-labelledby="referrals-title" hidden>
           <header class="workspace-header">
             <div>
-              <p class="eyebrow">Dashboard</p>
+              <p class="eyebrow">CRM</p>
               <h2 id="referrals-title">Referrals</h2>
             </div>
             <div class="header-actions">
-              <p id="connection-status" class="connection-status" aria-live="polite"></p>
-              <button id="refresh-connection" class="secondary-button" type="button">Refresh connection</button>
-              <button id="new-referral" type="button">New referral</button>
+              <button id="new-referral" type="button">New Referral</button>
             </div>
           </header>
 
@@ -114,9 +112,11 @@
               <h2 id="clients-title">Clients</h2>
             </div>
             <div class="header-actions">
-              <button id="refresh-clients" class="secondary-button" type="button">Refresh clients</button>
+              <button id="new-client" type="button">New Client</button>
             </div>
           </header>
+
+          <section id="client-summary" class="summary-grid client-summary-grid" aria-label="Client status summary"></section>
 
           <div class="referrals-layout">
             <section class="list-panel" aria-label="Client list">
@@ -129,6 +129,29 @@
                   <label>
                     Search
                     <input id="client-search" type="search" autocomplete="off">
+                  </label>
+                  <label>
+                    Status
+                    <select id="client-status-filter">
+                      <option value="all">All statuses</option>
+                      <option value="Scheduled">Scheduled</option>
+                      <option value="Active">Active</option>
+                      <option value="Needs Reschedule">Needs Reschedule</option>
+                      <option value="Needs Language Support">Needs Language Support</option>
+                      <option value="Waiting on Family">Waiting on Family</option>
+                      <option value="Graduated">Graduated</option>
+                      <option value="Inactive">Inactive</option>
+                      <option value="Closed">Closed</option>
+                    </select>
+                  </label>
+                  <label>
+                    Sort
+                    <select id="sort-clients">
+                      <option value="status">Status</option>
+                      <option value="last-appointment">Last Appointment</option>
+                      <option value="newest-client">Newest Client</option>
+                      <option value="name">Name</option>
+                    </select>
                   </label>
                 </div>
               </div>
@@ -305,6 +328,164 @@
     <div id="client-modal" class="modal-backdrop" hidden>
       <section class="modal-card" role="dialog" aria-modal="true" aria-label="Client profile">
         <div id="client-detail" class="referral-detail"></div>
+        <form id="client-form" class="referral-form" hidden>
+          <div class="detail-heading">
+            <div>
+              <p class="eyebrow">Client</p>
+              <h3 id="client-form-title">New Client</h3>
+            </div>
+            <div class="form-actions">
+              <button id="save-client" type="submit">Save client</button>
+              <button id="cancel-client-edit" class="secondary-button" type="button" hidden>Cancel</button>
+            </div>
+          </div>
+          <label>
+            <span class="label-text">Child First Name <span class="required-marker" aria-label="required">*</span></span>
+            <input id="client-first-name" name="firstName" autocomplete="given-name" required>
+          </label>
+          <label>
+            <span class="label-text">Child Last Name <span class="required-marker" aria-label="required">*</span></span>
+            <input id="client-last-name" name="lastName" autocomplete="family-name" required>
+          </label>
+          <label>
+            <span class="label-text">Caregiver <span class="required-marker" aria-label="required">*</span></span>
+            <input id="client-parent-name" name="parentName" required>
+          </label>
+          <label>
+            <span class="label-text">Phone <span class="required-marker" aria-label="required">*</span></span>
+            <input id="client-phone" name="phone" autocomplete="tel" required>
+          </label>
+          <label>
+            Email
+            <input id="client-email" name="email" type="email" autocomplete="email">
+          </label>
+          <label>
+            <span class="label-text">Preferred Language <span class="required-marker" aria-label="required">*</span></span>
+            <select id="client-preferred-language" name="preferredLanguage" required>
+              <option value="English">English</option>
+              <option value="Spanish">Spanish</option>
+            </select>
+          </label>
+          <label>
+            Status
+            <select id="client-status" name="status">
+              <option value="Scheduled">Scheduled</option>
+              <option value="Active">Active</option>
+              <option value="Needs Reschedule">Needs Reschedule</option>
+              <option value="Needs Language Support">Needs Language Support</option>
+              <option value="Waiting on Family">Waiting on Family</option>
+              <option value="Graduated">Graduated</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Closed">Closed</option>
+            </select>
+          </label>
+          <label>
+            Preferred Contact
+            <select id="client-preferred-contact-method" name="preferredContactMethod">
+              <option value="">Not sure yet</option>
+              <option value="Text">Text</option>
+              <option value="Call">Call</option>
+              <option value="Email">Email</option>
+            </select>
+          </label>
+          <label>
+            Referral Type
+            <select id="client-referral-type" name="referralType">
+              <option value="">Not set</option>
+              <option value="Internal Clinic Referral">Internal Clinic Referral</option>
+              <option value="External Clinic Referral">External Clinic Referral</option>
+              <option value="Community Org Referral">Community Org Referral</option>
+              <option value="Nutrition Assessment">Nutrition Assessment</option>
+              <option value="Self Referral">Self Referral</option>
+              <option value="Outreach Event Interest">Outreach Event Interest</option>
+              <option value="Hosted Event/Class Interest">Hosted Event/Class Interest</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+          <label>
+            Referral Source
+            <input id="client-referral-source" name="referralSource" autocomplete="off">
+          </label>
+          <label>
+            Date of Birth
+            <input id="client-date-of-birth" name="dateOfBirth" type="date">
+          </label>
+          <label>
+            Gender
+            <select id="client-gender" name="gender">
+              <option value="Unspecified">Unspecified</option>
+              <option value="Female">Female</option>
+              <option value="Male">Male</option>
+              <option value="Non-Binary">Non-Binary</option>
+            </select>
+          </label>
+          <label>
+            YCCO
+            <select id="client-ycco" name="ycco">
+              <option value="">Unknown</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </label>
+          <label>
+            Assessment Score
+            <input id="client-assessment-score" name="assessmentScore" type="number" min="0" step="1">
+          </label>
+          <label>
+            Willingness Score
+            <input id="client-willingness-score" name="willingnessScore" type="number" min="0" step="1">
+          </label>
+          <label>
+            Referral Date
+            <input id="client-referral-date" name="referralDate" type="date">
+          </label>
+          <label>
+            First Contact Date
+            <input id="client-first-contact-date" name="firstContactDate" type="date">
+          </label>
+          <label>
+            Most Recent Contact Date
+            <input id="client-most-recent-contact-date" name="mostRecentContactDate" type="date">
+          </label>
+          <label>
+            First Appointment Date
+            <input id="client-first-appointment-date" name="firstAppointmentDate" type="date">
+          </label>
+          <label>
+            Last Appointment Date
+            <input id="client-last-appointment-date" name="lastAppointmentDate" type="date">
+          </label>
+          <label class="full-field">
+            Street Address
+            <input id="client-address-street" name="addressStreet" autocomplete="street-address">
+          </label>
+          <label>
+            City
+            <input id="client-address-city" name="addressCity" autocomplete="address-level2">
+          </label>
+          <label>
+            State
+            <input id="client-address-state" name="addressState" autocomplete="address-level1">
+          </label>
+          <label>
+            Zip Code
+            <input id="client-address-zip" name="addressZip" autocomplete="postal-code">
+          </label>
+          <div class="checkbox-row full-field">
+            <label>
+              <input id="client-email-opt-out" name="emailOptOut" type="checkbox">
+              Email Opt Out
+            </label>
+            <label>
+              <input id="client-text-opt-out" name="textOptOut" type="checkbox">
+              Text Opt Out
+            </label>
+          </div>
+          <label class="full-field">
+            Notes
+            <textarea id="client-notes" name="notes" rows="5"></textarea>
+          </label>
+        </form>
       </section>
     </div>
     <script src="./app-config.js"></script>

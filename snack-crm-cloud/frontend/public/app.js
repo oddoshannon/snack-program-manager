@@ -9,9 +9,7 @@ import {
 
 const statusEl = document.querySelector("#status");
 const messageEl = document.querySelector("#message");
-const connectionStatusEl = document.querySelector("#connection-status");
 const refreshButton = document.querySelector("#refresh");
-const refreshConnectionButton = document.querySelector("#refresh-connection");
 const signInButton = document.querySelector("#sign-in");
 const signOutButton = document.querySelector("#sign-out");
 const userEl = document.querySelector("#user");
@@ -36,12 +34,19 @@ const referralModal = document.querySelector("#referral-modal");
 const closeReferralModalButton = document.querySelector("#close-referral-modal");
 const referralSourceInput = document.querySelector("#referral-source");
 const referralSourceOptions = document.querySelector("#referral-source-options");
-const refreshClientsButton = document.querySelector("#refresh-clients");
 const clientsList = document.querySelector("#clients-list");
 const clientsStatusEl = document.querySelector("#clients-status");
 const clientSearchInput = document.querySelector("#client-search");
+const clientStatusFilterSelect = document.querySelector("#client-status-filter");
+const sortClientsSelect = document.querySelector("#sort-clients");
+const newClientButton = document.querySelector("#new-client");
+const clientSummary = document.querySelector("#client-summary");
 const clientModal = document.querySelector("#client-modal");
 const clientDetail = document.querySelector("#client-detail");
+const clientForm = document.querySelector("#client-form");
+const clientFormTitle = document.querySelector("#client-form-title");
+const saveClientButton = document.querySelector("#save-client");
+const cancelClientEditButton = document.querySelector("#cancel-client-edit");
 
 const app = initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
@@ -73,14 +78,44 @@ const summaryGroups = [
   { key: "scheduled", label: "Scheduled", statuses: ["Scheduled"] },
   { key: "closed", label: "Closed", statuses: ["Not Interested", "Closed / No Further Outreach"] }
 ];
+const clientStatuses = [
+  "Scheduled",
+  "Active",
+  "Needs Reschedule",
+  "Needs Language Support",
+  "Waiting on Family",
+  "Graduated",
+  "Inactive",
+  "Closed"
+];
+const clientSummaryGroups = [
+  { key: "all", label: "Total", statuses: clientStatuses },
+  { key: "scheduled", label: "Scheduled", statuses: ["Scheduled"] },
+  { key: "active", label: "Active", statuses: ["Active"] },
+  { key: "follow-up", label: "Follow Up", statuses: ["Needs Reschedule", "Needs Language Support", "Waiting on Family"] },
+  { key: "graduated", label: "Graduated", statuses: ["Graduated"] },
+  { key: "closed", label: "Closed", statuses: ["Inactive", "Closed"] }
+];
+const clientStatusGroupColors = {
+  Scheduled: "scheduled",
+  Active: "new",
+  "Needs Reschedule": "follow-up",
+  "Needs Language Support": "follow-up",
+  "Waiting on Family": "follow-up",
+  Graduated: "new",
+  Inactive: "closed",
+  Closed: "closed"
+};
 
 let currentUser = null;
 let editingReferralId = null;
 let selectedReferralId = null;
 let selectedClientId = null;
+let editingClientId = null;
 let loadedReferrals = [];
 let loadedClients = [];
 let summaryFilter = "all";
+let clientSummaryFilter = "all";
 let activeModule = "referrals";
 
 async function authedFetch(path, options = {}) {
@@ -100,15 +135,12 @@ async function loadMessage() {
   if (!currentUser) {
     statusEl.textContent = "Sign in to load the database message.";
     messageEl.textContent = "";
-    connectionStatusEl.textContent = "";
     return;
   }
 
   statusEl.textContent = "Checking the SNACK CRM API...";
   messageEl.textContent = "";
-  connectionStatusEl.textContent = "Checking connection...";
   refreshButton.disabled = true;
-  refreshConnectionButton.disabled = true;
 
   try {
     const response = await authedFetch("/api/message");
@@ -120,15 +152,12 @@ async function loadMessage() {
     const data = await response.json();
     messageEl.textContent = data.text;
     statusEl.textContent = `Loaded from ${data.source}.`;
-    connectionStatusEl.textContent = "Connected to Firestore";
   } catch (error) {
     statusEl.textContent = "Could not load the message yet.";
     messageEl.textContent = "Check that the backend is running, then try again.";
-    connectionStatusEl.textContent = "API connection needs attention";
     console.error(error);
   } finally {
     refreshButton.disabled = false;
-    refreshConnectionButton.disabled = false;
   }
 }
 
@@ -285,7 +314,18 @@ function getSelectedClient() {
 }
 
 function clientMatchesSearch(client) {
+  const statusFilter = clientStatusFilterSelect.value;
   const query = clientSearchInput.value.trim().toLowerCase();
+  const group = clientSummaryGroups.find((item) => item.key === clientSummaryFilter);
+  const status = client.status || "Scheduled";
+
+  if (group && group.key !== "all" && !group.statuses.includes(status)) {
+    return false;
+  }
+
+  if (statusFilter !== "all" && status !== statusFilter) {
+    return false;
+  }
 
   if (!query) {
     return true;
@@ -340,6 +380,26 @@ function statusSortIndex(referral) {
   return index === -1 ? order.length : index;
 }
 
+function clientStatusGroupKey(status = "Scheduled") {
+  return clientStatusGroupColors[status] || "scheduled";
+}
+
+function clientStatusSortIndex(client) {
+  const status = client.status || "Scheduled";
+  const order = [
+    "Scheduled",
+    "Active",
+    "Needs Reschedule",
+    "Needs Language Support",
+    "Waiting on Family",
+    "Graduated",
+    "Inactive",
+    "Closed"
+  ];
+  const index = order.indexOf(status);
+  return index === -1 ? order.length : index;
+}
+
 function sortReferrals(referrals) {
   const sortMode = sortReferralsSelect.value;
   const sorted = [...referrals];
@@ -364,6 +424,35 @@ function sortReferrals(referrals) {
     statusSortIndex(first) - statusSortIndex(second) ||
     dateValue(first.mostRecentContactDate) - dateValue(second.mostRecentContactDate) ||
     compareNames(first, second)
+  );
+}
+
+function sortClients(clients) {
+  const sortMode = sortClientsSelect.value;
+  const sorted = [...clients];
+
+  if (sortMode === "last-appointment") {
+    return sorted.sort((first, second) =>
+      dateValue(first.lastAppointmentDate) - dateValue(second.lastAppointmentDate) ||
+      clientName(first).localeCompare(clientName(second))
+    );
+  }
+
+  if (sortMode === "newest-client") {
+    return sorted.sort((first, second) =>
+      dateTimeValue(second.createdAt, -1) - dateTimeValue(first.createdAt, -1) ||
+      clientName(first).localeCompare(clientName(second))
+    );
+  }
+
+  if (sortMode === "name") {
+    return sorted.sort((first, second) => clientName(first).localeCompare(clientName(second)));
+  }
+
+  return sorted.sort((first, second) =>
+    clientStatusSortIndex(first) - clientStatusSortIndex(second) ||
+    dateValue(first.lastAppointmentDate) - dateValue(second.lastAppointmentDate) ||
+    clientName(first).localeCompare(clientName(second))
   );
 }
 
@@ -430,12 +519,20 @@ function closeClientModal() {
   clientModal.hidden = true;
   document.body.classList.remove("modal-open");
   selectedClientId = null;
+  editingClientId = null;
+  clientForm.reset();
+  clientForm.hidden = true;
+  clientDetail.hidden = false;
   renderClients();
   setClientsLoadedStatus();
 }
 
 function setSelectedClient(clientId) {
   selectedClientId = clientId;
+  editingClientId = null;
+  clientForm.reset();
+  clientForm.hidden = true;
+  clientDetail.hidden = false;
   openClientModal();
   renderClients();
   renderClientDetail();
@@ -449,11 +546,25 @@ function statusBadge(status = "New") {
   return badge;
 }
 
+function clientStatusBadge(status = "Scheduled") {
+  const badge = document.createElement("span");
+  badge.className = `status-badge status-${cssToken(status)} status-group-${clientStatusGroupKey(status)}`;
+  badge.textContent = status;
+  return badge;
+}
+
 function applyStatusSelectColor(select, status) {
   for (const key of ["new", "contacted", "follow-up", "scheduled", "closed"]) {
     select.classList.remove(`status-group-${key}`);
   }
   select.classList.add("status-select", `status-group-${statusGroupKey(status)}`);
+}
+
+function applyClientStatusSelectColor(select, status) {
+  for (const key of ["new", "contacted", "follow-up", "scheduled", "closed"]) {
+    select.classList.remove(`status-group-${key}`);
+  }
+  select.classList.add("status-select", `status-group-${clientStatusGroupKey(status)}`);
 }
 
 function renderReferrals() {
@@ -527,11 +638,7 @@ function renderReferrals() {
 
 function renderClients() {
   clientsList.innerHTML = "";
-  const clients = loadedClients
-    .filter(clientMatchesSearch)
-    .sort((first, second) =>
-      dateValue(first.lastAppointmentDate) - dateValue(second.lastAppointmentDate) || clientName(first).localeCompare(clientName(second))
-    );
+  const clients = sortClients(loadedClients.filter(clientMatchesSearch));
 
   if (selectedClientId && !clients.some((client) => client.id === selectedClientId)) {
     selectedClientId = null;
@@ -560,7 +667,7 @@ function renderClients() {
     const statusCell = document.createElement("span");
     statusCell.className = "table-cell";
     statusCell.setAttribute("role", "cell");
-    statusCell.append(statusBadge(client.status || "Scheduled"));
+    statusCell.append(clientStatusBadge(client.status || "Scheduled"));
 
     const lastAppointmentCell = document.createElement("span");
     lastAppointmentCell.className = "table-cell muted-cell";
@@ -596,6 +703,45 @@ function renderClients() {
     row.addEventListener("click", () => setSelectedClient(client.id));
     clientsList.append(row);
   }
+}
+
+function renderClientSummary() {
+  clientSummary.innerHTML = "";
+
+  for (const group of clientSummaryGroups) {
+    const count = loadedClients.filter((client) => group.statuses.includes(client.status || "Scheduled")).length;
+    const item = document.createElement("button");
+    item.className = "summary-item";
+    item.type = "button";
+
+    if (clientSummaryFilter === group.key) {
+      item.classList.add("active");
+    }
+
+    const countEl = document.createElement("strong");
+    countEl.textContent = count;
+
+    const labelEl = document.createElement("span");
+    labelEl.textContent = group.label;
+
+    item.append(countEl, labelEl);
+    item.addEventListener("click", () => {
+      clientSummaryFilter = group.key === "all" || clientSummaryFilter === group.key ? "all" : group.key;
+      clientStatusFilterSelect.value = "all";
+      renderClientSummary();
+      renderClients();
+    });
+    clientSummary.append(item);
+  }
+}
+
+function clearClientFilters() {
+  clientSearchInput.value = "";
+  clientStatusFilterSelect.value = "all";
+  clientSummaryFilter = "all";
+  selectedClientId = null;
+  renderClientSummary();
+  renderClients();
 }
 
 function renderReferralSummary() {
@@ -641,7 +787,7 @@ function renderReferralDetail() {
 
   if (!loadedReferrals.length) {
     referralDetail.append(
-      emptyDetail("Create the first referral to start building the workspace.", "New referral", startNewReferral)
+      emptyDetail("Create the first referral to start building the workspace.", "New Referral", startNewReferral)
     );
     return;
   }
@@ -776,11 +922,22 @@ function renderReferralDetail() {
 }
 
 function renderClientDetail() {
+  if (!clientForm.hidden) {
+    clientDetail.hidden = true;
+    return;
+  }
+
+  clientDetail.hidden = false;
   clientDetail.innerHTML = "";
   const client = getSelectedClient();
 
+  if (!loadedClients.length) {
+    clientDetail.append(emptyDetail("Create the first client or convert a scheduled referral.", "New Client", startNewClient));
+    return;
+  }
+
   if (!client) {
-    clientDetail.append(emptyDetail("Select a client from the list.", null, null));
+    clientDetail.append(emptyDetail("No client matches the current list view.", "Clear filters", clearClientFilters));
     return;
   }
 
@@ -797,12 +954,24 @@ function renderClientDetail() {
 
   const actions = document.createElement("div");
   actions.className = "detail-actions";
+  const editButton = document.createElement("button");
+  editButton.className = "secondary-button";
+  editButton.type = "button";
+  editButton.textContent = "Edit";
+  editButton.addEventListener("click", () => startEditingClient(client));
+
+  const deleteButton = document.createElement("button");
+  deleteButton.className = "danger-button";
+  deleteButton.type = "button";
+  deleteButton.textContent = "Delete";
+  deleteButton.addEventListener("click", () => deleteClient(client));
+
   const closeButton = document.createElement("button");
   closeButton.className = "secondary-button";
   closeButton.type = "button";
   closeButton.textContent = "Close";
   closeButton.addEventListener("click", closeClientModal);
-  actions.append(closeButton);
+  actions.append(editButton, deleteButton, closeButton);
   heading.append(titleWrap, actions);
 
   const infoGrid = document.createElement("div");
@@ -960,6 +1129,7 @@ async function loadClients() {
 
     const data = await response.json();
     loadedClients = data.clients;
+    renderClientSummary();
     renderClients();
     if (!clientModal.hidden && selectedClientId) {
       renderClientDetail();
@@ -1084,6 +1254,155 @@ function stopEditingReferral() {
   referralDetail.hidden = false;
   syncModalCloseButton();
   renderReferralDetail();
+}
+
+function setClientFormValues(client = {}) {
+  clientForm.elements.firstName.value = client.firstName || "";
+  clientForm.elements.lastName.value = client.lastName || "";
+  clientForm.elements.parentName.value = client.parentName || "";
+  clientForm.elements.phone.value = client.phone || "";
+  clientForm.elements.email.value = client.email || "";
+  clientForm.elements.preferredLanguage.value = client.preferredLanguage || "English";
+  clientForm.elements.status.value = client.status || "Scheduled";
+  clientForm.elements.preferredContactMethod.value = client.preferredContactMethod || "";
+  clientForm.elements.referralType.value = client.referralType || "";
+  clientForm.elements.referralSource.value = client.referralSource || "";
+  clientForm.elements.dateOfBirth.value = client.dateOfBirth || "";
+  clientForm.elements.gender.value = client.gender || "Unspecified";
+  clientForm.elements.ycco.value = client.ycco || "";
+  clientForm.elements.assessmentScore.value = client.assessmentScore ?? "";
+  clientForm.elements.willingnessScore.value = client.willingnessScore ?? "";
+  clientForm.elements.referralDate.value = client.referralDate || "";
+  clientForm.elements.firstContactDate.value = client.firstContactDate || "";
+  clientForm.elements.mostRecentContactDate.value = client.mostRecentContactDate || "";
+  clientForm.elements.firstAppointmentDate.value = client.firstAppointmentDate || "";
+  clientForm.elements.lastAppointmentDate.value = client.lastAppointmentDate || "";
+  clientForm.elements.addressStreet.value = client.addressStreet || "";
+  clientForm.elements.addressCity.value = client.addressCity || "";
+  clientForm.elements.addressState.value = client.addressState || "";
+  clientForm.elements.addressZip.value = client.addressZip || "";
+  clientForm.elements.emailOptOut.checked = Boolean(client.emailOptOut);
+  clientForm.elements.textOptOut.checked = Boolean(client.textOptOut);
+  clientForm.elements.notes.value = client.notes || "";
+}
+
+async function saveClient(event) {
+  event.preventDefault();
+
+  if (!currentUser) {
+    clientsStatusEl.textContent = "Sign in before saving a client.";
+    return;
+  }
+
+  const formData = new FormData(clientForm);
+  const client = Object.fromEntries(formData.entries());
+  client.emailOptOut = clientForm.elements.emailOptOut.checked;
+  client.textOptOut = clientForm.elements.textOptOut.checked;
+  const isEditing = Boolean(editingClientId);
+
+  clientsStatusEl.textContent = isEditing ? "Updating client..." : "Saving client...";
+  saveClientButton.disabled = true;
+
+  try {
+    const path = isEditing ? `/api/clients/${encodeURIComponent(editingClientId)}` : "/api/clients";
+    const response = await authedFetch(path, {
+      method: isEditing ? "PATCH" : "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(client)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    selectedClientId = data.client?.id || editingClientId;
+    editingClientId = null;
+    clientForm.reset();
+    clientsStatusEl.textContent = isEditing ? "Client updated." : "Client saved.";
+    await loadClients();
+    clientForm.hidden = true;
+    clientDetail.hidden = false;
+    renderClientDetail();
+  } catch (error) {
+    clientsStatusEl.textContent = error.message || "Could not save client yet.";
+    console.error(error);
+  } finally {
+    saveClientButton.disabled = false;
+  }
+}
+
+function startNewClient() {
+  editingClientId = null;
+  selectedClientId = null;
+  clientForm.reset();
+  setClientFormValues({ status: "Scheduled", preferredLanguage: "English", gender: "Unspecified" });
+  clientFormTitle.textContent = "New Client";
+  saveClientButton.textContent = "Save client";
+  cancelClientEditButton.hidden = false;
+  clientForm.hidden = false;
+  clientDetail.hidden = true;
+  openClientModal();
+  clientsStatusEl.textContent = "Creating a new client.";
+}
+
+function startEditingClient(client) {
+  editingClientId = client.id;
+  selectedClientId = client.id;
+  setClientFormValues(client);
+  clientFormTitle.textContent = `Edit ${clientName(client)}`;
+  saveClientButton.textContent = "Update client";
+  cancelClientEditButton.hidden = false;
+  clientForm.hidden = false;
+  clientDetail.hidden = true;
+  openClientModal();
+  clientsStatusEl.textContent = `Editing ${clientName(client)}.`;
+}
+
+function stopEditingClient() {
+  editingClientId = null;
+  clientFormTitle.textContent = "New Client";
+  saveClientButton.textContent = "Save client";
+  cancelClientEditButton.hidden = true;
+  clientForm.hidden = true;
+  clientDetail.hidden = false;
+  renderClientDetail();
+}
+
+async function deleteClient(client) {
+  const name = clientName(client);
+  const confirmed = window.confirm(`Delete client ${name}?`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  clientsStatusEl.textContent = "Deleting client...";
+
+  try {
+    const response = await authedFetch(`/api/clients/${encodeURIComponent(client.id)}`, {
+      method: "DELETE"
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    if (selectedClientId === client.id) {
+      selectedClientId = null;
+    }
+
+    await loadClients();
+    closeClientModal();
+    clientsStatusEl.textContent = "Client deleted.";
+  } catch (error) {
+    clientsStatusEl.textContent = error.message || "Could not delete client yet.";
+    console.error(error);
+  }
 }
 
 async function deleteReferral(referral) {
@@ -1230,12 +1549,12 @@ onAuthStateChanged(auth, (user) => {
   } else {
     messageEl.textContent = "";
     statusEl.textContent = "Sign in to load the database message.";
-    connectionStatusEl.textContent = "";
     referralsStatusEl.textContent = "";
     clientsStatusEl.textContent = "";
     referralsList.innerHTML = "";
     clientsList.innerHTML = "";
     referralSummary.innerHTML = "";
+    clientSummary.innerHTML = "";
     referralDetail.innerHTML = "";
     clientDetail.innerHTML = "";
     selectedReferralId = null;
@@ -1251,12 +1570,12 @@ onAuthStateChanged(auth, (user) => {
 signInButton.addEventListener("click", signIn);
 signOutButton.addEventListener("click", signOutUser);
 refreshButton.addEventListener("click", loadMessage);
-refreshConnectionButton.addEventListener("click", loadMessage);
-refreshClientsButton.addEventListener("click", loadClients);
 navReferralsButton.addEventListener("click", () => setActiveModule("referrals"));
 navClientsButton.addEventListener("click", () => setActiveModule("clients"));
 newReferralButton.addEventListener("click", startNewReferral);
+newClientButton.addEventListener("click", startNewClient);
 referralForm.addEventListener("submit", saveReferral);
+clientForm.addEventListener("submit", saveClient);
 referralSourceInput.addEventListener("focus", renderReferralSourceOptions);
 referralSourceInput.addEventListener("input", renderReferralSourceOptions);
 referralSearchInput.addEventListener("input", () => {
@@ -1269,7 +1588,16 @@ statusFilterSelect.addEventListener("change", () => {
   renderReferrals();
 });
 sortReferralsSelect.addEventListener("change", renderReferrals);
-clientSearchInput.addEventListener("input", renderClients);
+clientSearchInput.addEventListener("input", () => {
+  renderClientSummary();
+  renderClients();
+});
+clientStatusFilterSelect.addEventListener("change", () => {
+  clientSummaryFilter = "all";
+  renderClientSummary();
+  renderClients();
+});
+sortClientsSelect.addEventListener("change", renderClients);
 cancelEditButton.addEventListener("click", () => {
   referralForm.reset();
   if (selectedReferralId) {
@@ -1278,6 +1606,15 @@ cancelEditButton.addEventListener("click", () => {
     return;
   }
   closeReferralModal();
+});
+cancelClientEditButton.addEventListener("click", () => {
+  clientForm.reset();
+  if (selectedClientId) {
+    stopEditingClient();
+    setClientsLoadedStatus();
+    return;
+  }
+  closeClientModal();
 });
 closeReferralModalButton.addEventListener("click", closeReferralModal);
 referralModal.addEventListener("click", (event) => {
