@@ -320,7 +320,7 @@ h4 {
 
 .filters {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(250px, 0.72fr);
+  grid-template-columns: minmax(180px, 1fr) minmax(250px, 0.82fr) minmax(180px, 0.58fr);
   gap: 12px;
   align-items: end;
 }

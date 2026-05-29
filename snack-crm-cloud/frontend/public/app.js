@@ -26,6 +26,7 @@ const referralsList = document.querySelector("#referrals-list");
 const referralsStatusEl = document.querySelector("#referrals-status");
 const referralSearchInput = document.querySelector("#referral-search");
 const statusFilterSelect = document.querySelector("#status-filter");
+const sortReferralsSelect = document.querySelector("#sort-referrals");
 const referralSummary = document.querySelector("#referral-summary");
 const referralDetail = document.querySelector("#referral-detail");
 const referralModal = document.querySelector("#referral-modal");
@@ -195,7 +196,7 @@ function cssToken(value) {
 }
 
 function setReferralsLoadedStatus() {
-  referralsStatusEl.textContent = `${loadedReferrals.length} referral${loadedReferrals.length === 1 ? "" : "s"} loaded.`;
+  referralsStatusEl.textContent = "";
 }
 
 function knownReferralSources() {
@@ -259,6 +260,62 @@ function getSelectedReferral() {
   return loadedReferrals.find((referral) => referral.id === selectedReferralId) || null;
 }
 
+function dateValue(value, emptyPlacement = 1) {
+  if (!value) {
+    return emptyPlacement * Number.MAX_SAFE_INTEGER;
+  }
+
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? emptyPlacement * Number.MAX_SAFE_INTEGER : date.getTime();
+}
+
+function dateTimeValue(value, emptyPlacement = 1) {
+  if (!value) {
+    return emptyPlacement * Number.MAX_SAFE_INTEGER;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? emptyPlacement * Number.MAX_SAFE_INTEGER : date.getTime();
+}
+
+function compareNames(firstReferral, secondReferral) {
+  return referralName(firstReferral).localeCompare(referralName(secondReferral));
+}
+
+function statusSortIndex(referral) {
+  const key = statusGroupKey(referral.status);
+  const order = ["new", "contacted", "follow-up", "scheduled", "closed"];
+  const index = order.indexOf(key);
+  return index === -1 ? order.length : index;
+}
+
+function sortReferrals(referrals) {
+  const sortMode = sortReferralsSelect.value;
+  const sorted = [...referrals];
+
+  if (sortMode === "recent-contact") {
+    return sorted.sort((first, second) =>
+      dateValue(first.mostRecentContactDate) - dateValue(second.mostRecentContactDate) || compareNames(first, second)
+    );
+  }
+
+  if (sortMode === "newest-referral") {
+    return sorted.sort((first, second) =>
+      dateTimeValue(second.createdAt, -1) - dateTimeValue(first.createdAt, -1) || compareNames(first, second)
+    );
+  }
+
+  if (sortMode === "name") {
+    return sorted.sort(compareNames);
+  }
+
+  return sorted.sort((first, second) =>
+    statusSortIndex(first) - statusSortIndex(second) ||
+    dateValue(first.mostRecentContactDate) - dateValue(second.mostRecentContactDate) ||
+    compareNames(first, second)
+  );
+}
+
 function setSelectedReferral(referralId) {
   selectedReferralId = referralId;
   referralForm.reset();
@@ -311,7 +368,7 @@ function applyStatusSelectColor(select, status) {
 
 function renderReferrals() {
   referralsList.innerHTML = "";
-  const referrals = loadedReferrals.filter(referralMatchesFilters);
+  const referrals = sortReferrals(loadedReferrals.filter(referralMatchesFilters));
 
   if (selectedReferralId && !referrals.some((referral) => referral.id === selectedReferralId)) {
     selectedReferralId = null;
@@ -908,6 +965,7 @@ statusFilterSelect.addEventListener("change", () => {
   renderReferralSummary();
   renderReferrals();
 });
+sortReferralsSelect.addEventListener("change", renderReferrals);
 cancelEditButton.addEventListener("click", () => {
   referralForm.reset();
   if (selectedReferralId) {
