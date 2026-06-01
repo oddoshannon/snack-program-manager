@@ -29,6 +29,7 @@ const referralsStatusEl = document.querySelector("#referrals-status");
 const referralSearchInput = document.querySelector("#referral-search");
 const statusFilterSelect = document.querySelector("#status-filter");
 const sortReferralsSelect = document.querySelector("#sort-referrals");
+const referralColumnOptions = document.querySelector("#referral-column-options");
 const referralSummary = document.querySelector("#referral-summary");
 const referralDetail = document.querySelector("#referral-detail");
 const referralModal = document.querySelector("#referral-modal");
@@ -41,6 +42,7 @@ const clientsStatusEl = document.querySelector("#clients-status");
 const clientSearchInput = document.querySelector("#client-search");
 const clientStatusFilterSelect = document.querySelector("#client-status-filter");
 const sortClientsSelect = document.querySelector("#sort-clients");
+const clientColumnOptions = document.querySelector("#client-column-options");
 const newClientButton = document.querySelector("#new-client");
 const clientSummary = document.querySelector("#client-summary");
 const clientModal = document.querySelector("#client-modal");
@@ -136,6 +138,10 @@ const tableHeads = {
 const tableLists = {
   referrals: referralsList,
   clients: clientsList
+};
+const columnOptionContainers = {
+  referrals: referralColumnOptions,
+  clients: clientColumnOptions
 };
 
 let currentUser = null;
@@ -280,7 +286,8 @@ function defaultColumnState(moduleName) {
   const columns = tableColumns[moduleName];
   return {
     order: columns.map((column) => column.key),
-    widths: Object.fromEntries(columns.map((column) => [column.key, column.width]))
+    widths: Object.fromEntries(columns.map((column) => [column.key, column.width])),
+    visible: Object.fromEntries(columns.map((column) => [column.key, true]))
   };
 }
 
@@ -293,14 +300,25 @@ function columnState(moduleName) {
     const savedOrder = Array.isArray(saved?.order) ? saved.order.filter((key) => validKeys.has(key)) : [];
     const order = [...savedOrder, ...defaults.order.filter((key) => !savedOrder.includes(key))];
     const widths = { ...defaults.widths };
+    const visible = { ...defaults.visible };
 
     for (const [key, value] of Object.entries(saved?.widths || {})) {
       if (validKeys.has(key) && Number.isFinite(Number(value))) {
-        widths[key] = Math.max(88, Math.min(520, Number(value)));
+        widths[key] = Math.max(70, Math.min(360, Number(value)));
       }
     }
 
-    return { order, widths };
+    for (const [key, value] of Object.entries(saved?.visible || {})) {
+      if (validKeys.has(key)) {
+        visible[key] = Boolean(value);
+      }
+    }
+
+    if (!Object.values(visible).some(Boolean)) {
+      return defaults;
+    }
+
+    return { order, widths, visible };
   } catch (_error) {
     return defaults;
   }
@@ -315,16 +333,23 @@ function orderedColumns(moduleName) {
   return columnState(moduleName).order.map((key) => columnsByKey[key]).filter(Boolean);
 }
 
+function visibleColumns(moduleName) {
+  const state = columnState(moduleName);
+  return orderedColumns(moduleName).filter((column) => state.visible[column.key] !== false);
+}
+
 function gridTemplateFor(moduleName) {
   const state = columnState(moduleName);
-  return orderedColumns(moduleName).map((column) => `${state.widths[column.key] || column.width}px`).join(" ");
+  return visibleColumns(moduleName)
+    .map((column) => {
+      const width = state.widths[column.key] || column.width;
+      return `minmax(72px, ${width}fr)`;
+    })
+    .join(" ");
 }
 
 function minTableWidth(moduleName) {
-  const state = columnState(moduleName);
-  const columns = orderedColumns(moduleName);
-  const columnWidth = columns.reduce((total, column) => total + (state.widths[column.key] || column.width), 0);
-  return `${columnWidth + (columns.length - 1) * 12 + 40}px`;
+  return "100%";
 }
 
 function renderCell(column, record) {
@@ -357,8 +382,9 @@ function renderTableHead(moduleName) {
   head.innerHTML = "";
   head.style.gridTemplateColumns = gridTemplateFor(moduleName);
   head.style.minWidth = minTableWidth(moduleName);
+  renderColumnOptions(moduleName);
 
-  for (const column of orderedColumns(moduleName)) {
+  for (const column of visibleColumns(moduleName)) {
     const cell = document.createElement("span");
     cell.className = "table-heading-cell";
     cell.setAttribute("role", "columnheader");
@@ -404,7 +430,7 @@ function renderTableHead(moduleName) {
       const startWidth = state.widths[column.key] || column.width;
 
       const resize = (moveEvent) => {
-        const nextWidth = Math.max(88, Math.min(520, startWidth + moveEvent.clientX - startX));
+        const nextWidth = Math.max(70, Math.min(360, startWidth + moveEvent.clientX - startX));
         const nextState = columnState(moduleName);
         nextState.widths[column.key] = nextWidth;
         saveColumnState(moduleName, nextState);
@@ -420,6 +446,41 @@ function renderTableHead(moduleName) {
       document.addEventListener("mouseup", stopResize);
     });
     head.append(cell);
+  }
+}
+
+function renderColumnOptions(moduleName) {
+  const container = columnOptionContainers[moduleName];
+
+  if (!container) {
+    return;
+  }
+
+  const state = columnState(moduleName);
+  container.innerHTML = "";
+
+  for (const column of tableColumns[moduleName]) {
+    const label = document.createElement("label");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = state.visible[column.key] !== false;
+
+    checkbox.addEventListener("change", () => {
+      const nextState = columnState(moduleName);
+      const visibleCount = Object.entries(nextState.visible).filter(([key, value]) => key === column.key ? checkbox.checked : value !== false).length;
+
+      if (!visibleCount) {
+        checkbox.checked = true;
+        return;
+      }
+
+      nextState.visible[column.key] = checkbox.checked;
+      saveColumnState(moduleName, nextState);
+      renderModuleTable(moduleName);
+    });
+
+    label.append(checkbox, document.createTextNode(column.label));
+    container.append(label);
   }
 }
 
@@ -763,7 +824,7 @@ function renderReferrals() {
   referralsList.innerHTML = "";
   renderTableHead("referrals");
   const referrals = sortReferrals(loadedReferrals.filter(referralMatchesFilters));
-  const columns = orderedColumns("referrals");
+  const columns = visibleColumns("referrals");
   const gridTemplate = gridTemplateFor("referrals");
   const rowMinWidth = minTableWidth("referrals");
 
@@ -803,7 +864,7 @@ function renderClients() {
   clientsList.innerHTML = "";
   renderTableHead("clients");
   const clients = sortClients(loadedClients.filter(clientMatchesSearch));
-  const columns = orderedColumns("clients");
+  const columns = visibleColumns("clients");
   const gridTemplate = gridTemplateFor("clients");
   const rowMinWidth = minTableWidth("clients");
 
@@ -1045,7 +1106,7 @@ function renderReferralDetail() {
   trackingTitle.className = "section-title";
   trackingTitle.textContent = "Data Tracking";
 
-  referralDetail.append(heading, statusLabel, infoGrid, trackingTitle, trackingGrid, notes);
+  referralDetail.append(heading, statusLabel, infoGrid, trackingTitle, trackingGrid, renderSiblingsSection(referral, "referrals"), notes);
 
   if (normalizeStatus(referral.status) === "Scheduled" && !referral.convertedClientId) {
     const convertButton = document.createElement("button");
@@ -1189,16 +1250,20 @@ function renderClientDetail() {
   notesText.textContent = client.notes || "-";
   notes.append(notesTitle, notesText);
 
-  clientDetail.append(heading, statusLabel, infoGrid, trackingTitle, trackingGrid, renderSiblingsSection(client), notes);
+  clientDetail.append(heading, statusLabel, infoGrid, trackingTitle, trackingGrid, renderSiblingsSection(client, "clients"), notes);
 }
 
-function renderSiblingsSection(client) {
-  const siblingIds = Array.isArray(client.siblingIds) ? client.siblingIds : [];
-  const siblings = siblingIds.map((id) => loadedClients.find((item) => item.id === id)).filter(Boolean);
-  const linkedIds = new Set([client.id, ...siblingIds]);
-  const candidates = loadedClients
+function renderSiblingsSection(record, moduleName) {
+  const records = moduleName === "clients" ? loadedClients : loadedReferrals;
+  const getName = moduleName === "clients" ? clientName : referralName;
+  const selectRecord = moduleName === "clients" ? setSelectedClient : setSelectedReferral;
+  const label = moduleName === "clients" ? "clients" : "referrals";
+  const siblingIds = Array.isArray(record.siblingIds) ? record.siblingIds : [];
+  const siblings = siblingIds.map((id) => records.find((item) => item.id === id)).filter(Boolean);
+  const linkedIds = new Set([record.id, ...siblingIds]);
+  const candidates = records
     .filter((item) => !linkedIds.has(item.id))
-    .sort((first, second) => clientName(first).localeCompare(clientName(second)));
+    .sort((first, second) => getName(first).localeCompare(getName(second)));
 
   const section = document.createElement("section");
   section.className = "siblings-panel";
@@ -1226,14 +1291,14 @@ function renderSiblingsSection(client) {
     const openButton = document.createElement("button");
     openButton.className = "link-button";
     openButton.type = "button";
-    openButton.textContent = clientName(sibling);
-    openButton.addEventListener("click", () => setSelectedClient(sibling.id));
+    openButton.textContent = getName(sibling);
+    openButton.addEventListener("click", () => selectRecord(sibling.id));
 
     const removeButton = document.createElement("button");
     removeButton.className = "secondary-button compact-button";
     removeButton.type = "button";
     removeButton.textContent = "Remove";
-    removeButton.addEventListener("click", () => removeSibling(client.id, sibling.id));
+    removeButton.addEventListener("click", () => removeSibling(moduleName, record.id, sibling.id));
 
     item.append(openButton, removeButton);
     list.append(item);
@@ -1247,13 +1312,13 @@ function renderSiblingsSection(client) {
 
   const placeholder = document.createElement("option");
   placeholder.value = "";
-  placeholder.textContent = candidates.length ? "Add sibling" : "No clients available";
+  placeholder.textContent = candidates.length ? "Add sibling" : `No ${label} available`;
   select.append(placeholder);
 
   for (const candidate of candidates) {
     const option = document.createElement("option");
     option.value = candidate.id;
-    option.textContent = clientName(candidate);
+    option.textContent = getName(candidate);
     select.append(option);
   }
 
@@ -1267,7 +1332,7 @@ function renderSiblingsSection(client) {
     event.preventDefault();
 
     if (select.value) {
-      addSibling(client.id, select.value);
+      addSibling(moduleName, record.id, select.value);
     }
   });
 
@@ -1745,11 +1810,12 @@ async function updateClientStatus(client, status) {
   }
 }
 
-async function addSibling(clientId, siblingId) {
-  clientsStatusEl.textContent = "Linking siblings...";
+async function addSibling(moduleName, recordId, siblingId) {
+  const statusElement = moduleName === "clients" ? clientsStatusEl : referralsStatusEl;
+  statusElement.textContent = "Linking siblings...";
 
   try {
-    const response = await authedFetch(`/api/clients/${encodeURIComponent(clientId)}/siblings`, {
+    const response = await authedFetch(`/api/${moduleName}/${encodeURIComponent(recordId)}/siblings`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -1762,22 +1828,30 @@ async function addSibling(clientId, siblingId) {
       throw new Error(errorData.error || `API returned ${response.status}`);
     }
 
-    selectedClientId = clientId;
-    clientsStatusEl.textContent = "Sibling linked.";
-    await loadClients();
-    renderClientDetail();
+    statusElement.textContent = "Sibling linked.";
+
+    if (moduleName === "clients") {
+      selectedClientId = recordId;
+      await loadClients();
+      renderClientDetail();
+    } else {
+      selectedReferralId = recordId;
+      await loadReferrals();
+      renderReferralDetail();
+    }
   } catch (error) {
-    clientsStatusEl.textContent = error.message || "Could not link siblings yet.";
+    statusElement.textContent = error.message || "Could not link siblings yet.";
     console.error(error);
   }
 }
 
-async function removeSibling(clientId, siblingId) {
-  clientsStatusEl.textContent = "Removing sibling link...";
+async function removeSibling(moduleName, recordId, siblingId) {
+  const statusElement = moduleName === "clients" ? clientsStatusEl : referralsStatusEl;
+  statusElement.textContent = "Removing sibling link...";
 
   try {
     const response = await authedFetch(
-      `/api/clients/${encodeURIComponent(clientId)}/siblings/${encodeURIComponent(siblingId)}`,
+      `/api/${moduleName}/${encodeURIComponent(recordId)}/siblings/${encodeURIComponent(siblingId)}`,
       {
         method: "DELETE"
       }
@@ -1788,12 +1862,19 @@ async function removeSibling(clientId, siblingId) {
       throw new Error(errorData.error || `API returned ${response.status}`);
     }
 
-    selectedClientId = clientId;
-    clientsStatusEl.textContent = "Sibling link removed.";
-    await loadClients();
-    renderClientDetail();
+    statusElement.textContent = "Sibling link removed.";
+
+    if (moduleName === "clients") {
+      selectedClientId = recordId;
+      await loadClients();
+      renderClientDetail();
+    } else {
+      selectedReferralId = recordId;
+      await loadReferrals();
+      renderReferralDetail();
+    }
   } catch (error) {
-    clientsStatusEl.textContent = error.message || "Could not remove sibling link yet.";
+    statusElement.textContent = error.message || "Could not remove sibling link yet.";
     console.error(error);
   }
 }

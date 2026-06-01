@@ -171,6 +171,7 @@ function toReferral(snapshot) {
     willingnessScore: data.willingnessScore,
     status: normalizeStatus(data.status),
     notes: data.notes,
+    siblingIds: Array.isArray(data.siblingIds) ? data.siblingIds : [],
     convertedClientId: data.convertedClientId,
     convertedAt: data.convertedAt,
     createdAt: data.createdAt,
@@ -727,7 +728,114 @@ app.delete("/api/referrals/:referralId", requireAuth, async (request, response, 
       return;
     }
 
+    const siblingIds = Array.isArray(snapshot.data().siblingIds) ? snapshot.data().siblingIds : [];
+    await Promise.all(
+      siblingIds.map((siblingId) =>
+        referrals.doc(siblingId).update({
+          siblingIds: FieldValue.arrayRemove(referralId),
+          updatedAt: new Date().toISOString(),
+          updatedBy: request.user.email
+        })
+      )
+    );
     await docRef.delete();
+
+    response.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/referrals/:referralId/siblings", requireAuth, async (request, response, next) => {
+  try {
+    const referralId = cleanString(request.params.referralId);
+    const siblingId = cleanString(request.body.siblingId);
+
+    if (!referralId || !siblingId) {
+      response.status(400).json({
+        error: "Referral ID and sibling ID are required."
+      });
+      return;
+    }
+
+    if (referralId === siblingId) {
+      response.status(400).json({
+        error: "A referral cannot be linked as their own sibling."
+      });
+      return;
+    }
+
+    const referralRef = referrals.doc(referralId);
+    const siblingRef = referrals.doc(siblingId);
+    const [referralSnapshot, siblingSnapshot] = await Promise.all([referralRef.get(), siblingRef.get()]);
+
+    if (!referralSnapshot.exists || !siblingSnapshot.exists) {
+      response.status(404).json({
+        error: "Referral or sibling was not found."
+      });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    await Promise.all([
+      referralRef.update({
+        siblingIds: FieldValue.arrayUnion(siblingId),
+        updatedAt: now,
+        updatedBy: request.user.email
+      }),
+      siblingRef.update({
+        siblingIds: FieldValue.arrayUnion(referralId),
+        updatedAt: now,
+        updatedBy: request.user.email
+      })
+    ]);
+
+    const updated = await referralRef.get();
+
+    response.json({
+      referral: toReferral(updated)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/referrals/:referralId/siblings/:siblingId", requireAuth, async (request, response, next) => {
+  try {
+    const referralId = cleanString(request.params.referralId);
+    const siblingId = cleanString(request.params.siblingId);
+
+    if (!referralId || !siblingId) {
+      response.status(400).json({
+        error: "Referral ID and sibling ID are required."
+      });
+      return;
+    }
+
+    const referralRef = referrals.doc(referralId);
+    const siblingRef = referrals.doc(siblingId);
+    const [referralSnapshot, siblingSnapshot] = await Promise.all([referralRef.get(), siblingRef.get()]);
+
+    if (!referralSnapshot.exists || !siblingSnapshot.exists) {
+      response.status(404).json({
+        error: "Referral or sibling was not found."
+      });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    await Promise.all([
+      referralRef.update({
+        siblingIds: FieldValue.arrayRemove(siblingId),
+        updatedAt: now,
+        updatedBy: request.user.email
+      }),
+      siblingRef.update({
+        siblingIds: FieldValue.arrayRemove(referralId),
+        updatedAt: now,
+        updatedBy: request.user.email
+      })
+    ]);
 
     response.status(204).send();
   } catch (error) {
@@ -904,6 +1012,12 @@ app.post("/api/referrals/:referralId/convert", requireAuth, async (request, resp
       return;
     }
 
+    const siblingIds = Array.isArray(referral.siblingIds) ? referral.siblingIds : [];
+    const siblingSnapshots = await Promise.all(siblingIds.map((siblingId) => referrals.doc(siblingId).get()));
+    const convertedSiblingClientIds = siblingSnapshots
+      .filter((siblingSnapshot) => siblingSnapshot.exists)
+      .map((siblingSnapshot) => toReferral(siblingSnapshot).convertedClientId)
+      .filter(Boolean);
     const now = new Date().toISOString();
     const clientRef = await clients.add({
       firstName: referral.firstName || "",
@@ -932,6 +1046,7 @@ app.post("/api/referrals/:referralId/convert", requireAuth, async (request, resp
       assessmentScore: referral.assessmentScore ?? null,
       willingnessScore: referral.willingnessScore ?? null,
       sourceReferralId: referralId,
+      siblingIds: convertedSiblingClientIds,
       convertedAt: now,
       status: "Scheduled",
       notes: referral.notes || "",
@@ -947,6 +1062,16 @@ app.post("/api/referrals/:referralId/convert", requireAuth, async (request, resp
       updatedAt: now,
       updatedBy: request.user.email
     });
+
+    await Promise.all(
+      convertedSiblingClientIds.map((siblingClientId) =>
+        clients.doc(siblingClientId).update({
+          siblingIds: FieldValue.arrayUnion(clientRef.id),
+          updatedAt: now,
+          updatedBy: request.user.email
+        })
+      )
+    );
 
     const clientSnapshot = await clientRef.get();
     const updatedReferralSnapshot = await referralRef.get();
