@@ -211,6 +211,7 @@ function toClient(snapshot) {
     willingnessScore: data.willingnessScore,
     status: data.status,
     notes: data.notes,
+    convertedAt: data.convertedAt,
     createdAt: data.createdAt,
     updatedAt: data.updatedAt
   };
@@ -823,6 +824,7 @@ app.post("/api/referrals/:referralId/convert", requireAuth, async (request, resp
       assessmentScore: referral.assessmentScore ?? null,
       willingnessScore: referral.willingnessScore ?? null,
       sourceReferralId: referralId,
+      convertedAt: now,
       status: "Scheduled",
       notes: referral.notes || "",
       createdAt: now,

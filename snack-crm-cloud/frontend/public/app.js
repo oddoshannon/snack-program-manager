@@ -669,6 +669,11 @@ function renderClients() {
     statusCell.setAttribute("role", "cell");
     statusCell.append(clientStatusBadge(client.status || "Scheduled"));
 
+    const recentContactCell = document.createElement("span");
+    recentContactCell.className = "table-cell muted-cell";
+    recentContactCell.setAttribute("role", "cell");
+    recentContactCell.textContent = formatListDate(client.mostRecentContactDate);
+
     const lastAppointmentCell = document.createElement("span");
     lastAppointmentCell.className = "table-cell muted-cell";
     lastAppointmentCell.setAttribute("role", "cell");
@@ -694,12 +699,7 @@ function renderClients() {
     caregiverCell.setAttribute("role", "cell");
     caregiverCell.textContent = client.parentName || "";
 
-    const emailCell = document.createElement("span");
-    emailCell.className = "table-cell muted-cell";
-    emailCell.setAttribute("role", "cell");
-    emailCell.textContent = client.email || "";
-
-    row.append(statusCell, lastAppointmentCell, nameCell, phoneCell, languageCell, caregiverCell, emailCell);
+    row.append(statusCell, recentContactCell, lastAppointmentCell, nameCell, phoneCell, languageCell, caregiverCell);
     row.addEventListener("click", () => setSelectedClient(client.id));
     clientsList.append(row);
   }
@@ -866,12 +866,12 @@ function renderReferralDetail() {
   addDetailField(leftColumn, "Email", displayValue(referral.email));
   addDetailField(leftColumn, "Mobile", displayValue(formatPhone(referral.phone)));
   addDetailField(leftColumn, "Preferred Language", displayValue(referral.preferredLanguage));
+  addDetailField(leftColumn, "Referral Type", displayValue(referral.referralType));
   addDetailField(leftColumn, "Referral Source", displayValue(referral.referralSource));
   addDetailField(leftColumn, "YCCO", referral.ycco === "Yes" ? "✓" : "-");
 
   addDetailField(rightColumn, "Assessment Score", displayValue(referral.assessmentScore));
   addDetailField(rightColumn, "Willingness Score", displayValue(referral.willingnessScore));
-  addDetailField(rightColumn, "Referral Type", displayValue(referral.referralType));
   addDetailField(rightColumn, "Preferred Contact", displayValue(referral.preferredContactMethod));
   addDetailField(rightColumn, "Email Opt Out", displayBoolean(referral.emailOptOut));
   addDetailField(rightColumn, "Text Opt Out", displayBoolean(referral.textOptOut));
@@ -974,6 +974,29 @@ function renderClientDetail() {
   actions.append(editButton, deleteButton, closeButton);
   heading.append(titleWrap, actions);
 
+  const statusLabel = document.createElement("label");
+  statusLabel.className = "status-field";
+  statusLabel.textContent = "Status";
+
+  const statusSelect = document.createElement("select");
+  statusSelect.dataset.clientId = client.id;
+
+  for (const status of clientStatuses) {
+    const option = document.createElement("option");
+    option.value = status;
+    option.textContent = status;
+    option.className = `status-group-${clientStatusGroupKey(status)}`;
+    statusSelect.append(option);
+  }
+
+  statusSelect.value = client.status || "Scheduled";
+  applyClientStatusSelectColor(statusSelect, statusSelect.value);
+  statusSelect.addEventListener("change", () => {
+    applyClientStatusSelectColor(statusSelect, statusSelect.value);
+    updateClientStatus(client, statusSelect.value);
+  });
+  statusLabel.append(statusSelect);
+
   const infoGrid = document.createElement("div");
   infoGrid.className = "detail-grid";
   const leftColumn = document.createElement("dl");
@@ -988,13 +1011,12 @@ function renderClientDetail() {
   addDetailField(leftColumn, "Email", displayValue(client.email));
   addDetailField(leftColumn, "Mobile", displayValue(formatPhone(client.phone)));
   addDetailField(leftColumn, "Preferred Language", displayValue(client.preferredLanguage));
+  addDetailField(leftColumn, "Referral Type", displayValue(client.referralType));
   addDetailField(leftColumn, "Referral Source", displayValue(client.referralSource));
   addDetailField(leftColumn, "YCCO", client.ycco === "Yes" ? "✓" : "-");
 
-  addDetailField(rightColumn, "Status", displayValue(client.status));
   addDetailField(rightColumn, "Assessment Score", displayValue(client.assessmentScore));
   addDetailField(rightColumn, "Willingness Score", displayValue(client.willingnessScore));
-  addDetailField(rightColumn, "Referral Type", displayValue(client.referralType));
   addDetailField(rightColumn, "Preferred Contact", displayValue(client.preferredContactMethod));
   addDetailField(rightColumn, "Email Opt Out", displayBoolean(client.emailOptOut));
   addDetailField(rightColumn, "Text Opt Out", displayBoolean(client.textOptOut));
@@ -1017,6 +1039,9 @@ function renderClientDetail() {
   addDetailField(trackingLeftColumn, "Referral Date", formatDateOnly(client.referralDate));
   addDetailField(trackingLeftColumn, "First Contact Date", formatDateOnly(client.firstContactDate));
   addDetailField(trackingLeftColumn, "Most Recent Contact Date", formatDateOnly(client.mostRecentContactDate));
+  const convertedDate = client.convertedAt || (client.sourceReferralId ? client.createdAt : "");
+  addDetailField(trackingRightColumn, "Converted Date", formatDateOnly(convertedDate.slice(0, 10)));
+  addDetailField(trackingRightColumn, "Referral Source", displayValue(client.referralSource));
   addDetailField(trackingRightColumn, "First Appointment Date", formatDateOnly(client.firstAppointmentDate));
   addDetailField(trackingRightColumn, "Last Appointment Date", formatDateOnly(client.lastAppointmentDate));
   trackingGrid.append(trackingLeftColumn, trackingRightColumn);
@@ -1029,7 +1054,7 @@ function renderClientDetail() {
   notesText.textContent = client.notes || "-";
   notes.append(notesTitle, notesText);
 
-  clientDetail.append(heading, infoGrid, trackingTitle, trackingGrid, notes);
+  clientDetail.append(heading, statusLabel, infoGrid, trackingTitle, trackingGrid, notes);
 }
 
 function emptyDetail(text, actionLabel, action) {
@@ -1472,6 +1497,33 @@ async function updateReferralStatus(referral, status) {
     referralsStatusEl.textContent = error.message || "Could not update referral status yet.";
     console.error(error);
     await loadReferrals();
+  }
+}
+
+async function updateClientStatus(client, status) {
+  clientsStatusEl.textContent = "Updating client status...";
+
+  try {
+    const response = await authedFetch(`/api/clients/${encodeURIComponent(client.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ status })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    selectedClientId = client.id;
+    clientsStatusEl.textContent = "Client status updated.";
+    await loadClients();
+  } catch (error) {
+    clientsStatusEl.textContent = error.message || "Could not update client status yet.";
+    console.error(error);
+    await loadClients();
   }
 }
 
