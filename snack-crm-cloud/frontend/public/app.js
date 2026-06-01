@@ -876,7 +876,6 @@ function renderReferralDetail() {
   addDetailField(rightColumn, "Email Opt Out", displayBoolean(referral.emailOptOut));
   addDetailField(rightColumn, "Text Opt Out", displayBoolean(referral.textOptOut));
   addDetailField(rightColumn, "Address", formatAddress(referral));
-  addDetailField(rightColumn, "Created", formatDate(referral.createdAt));
 
   if (referral.convertedClientId) {
     addDetailField(rightColumn, "Conversion", "✓");
@@ -892,8 +891,10 @@ function renderReferralDetail() {
   trackingRightColumn.className = "detail-column";
 
   addDetailField(trackingLeftColumn, "Referral Date", formatDateOnly(referral.referralDate));
+  addDetailField(trackingLeftColumn, "Created Date", formatDateOnly((referral.createdAt || "").slice(0, 10)));
   addDetailField(trackingLeftColumn, "First Contact Date", formatDateOnly(referral.firstContactDate));
   addDetailField(trackingLeftColumn, "Most Recent Contact Date", formatDateOnly(referral.mostRecentContactDate));
+  addDetailField(trackingRightColumn, "Referral Type", displayValue(referral.referralType));
   addDetailField(trackingRightColumn, "First Appointment Date", formatDateOnly(referral.firstAppointmentDate));
   addDetailField(trackingRightColumn, "Last Appointment Date", formatDateOnly(referral.lastAppointmentDate));
   trackingGrid.append(trackingLeftColumn, trackingRightColumn);
@@ -1021,7 +1022,6 @@ function renderClientDetail() {
   addDetailField(rightColumn, "Email Opt Out", displayBoolean(client.emailOptOut));
   addDetailField(rightColumn, "Text Opt Out", displayBoolean(client.textOptOut));
   addDetailField(rightColumn, "Address", formatAddress(client));
-  addDetailField(rightColumn, "Created", formatDate(client.createdAt));
 
   infoGrid.append(leftColumn, rightColumn);
 
