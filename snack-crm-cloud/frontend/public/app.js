@@ -760,6 +760,9 @@ function renderDashboard() {
   const clientFollowUps = loadedClients.filter((client) =>
     ["Needs Language Support", "Waiting on Family"].includes(client.status || "Scheduled")
   );
+  const clientFollowUpActions = loadedClients.filter((client) =>
+    ["Needs Reschedule", "Needs Language Support", "Waiting on Family"].includes(client.status || "Scheduled")
+  );
   const clientsWithoutNextAppointment = loadedClients.filter((client) =>
     ["Active", "Needs Reschedule", "Waiting on Family", "Needs Language Support"].includes(client.status || "Scheduled") &&
     !hasFutureAppointment(client)
@@ -794,7 +797,7 @@ function renderDashboard() {
       date: referral.mostRecentContactDate || referral.referralDate || "",
       action: () => setSelectedReferral(referral.id)
     })),
-    ...clientFollowUps.map((client) => ({
+    ...clientFollowUpActions.map((client) => ({
       type: "Client",
       title: clientName(client),
       detail: client.status,
