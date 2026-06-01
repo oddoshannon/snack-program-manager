@@ -297,7 +297,7 @@ h4 {
 }
 
 .dashboard-summary-grid {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .dashboard-summary-item {
@@ -319,10 +319,6 @@ h4 {
   box-shadow: var(--shadow);
 }
 
-.dashboard-card-wide {
-  grid-column: 1 / -1;
-}
-
 .dashboard-card h3 {
   margin: 0 0 14px;
 }
@@ -330,10 +326,6 @@ h4 {
 .dashboard-list {
   display: grid;
   gap: 8px;
-}
-
-.compact-dashboard-list {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .dashboard-list-item {
@@ -926,8 +918,7 @@ dd {
   }
 
   .dashboard-summary-grid,
-  .dashboard-grid,
-  .compact-dashboard-list {
+  .dashboard-grid {
     grid-template-columns: 1fr;
   }
 

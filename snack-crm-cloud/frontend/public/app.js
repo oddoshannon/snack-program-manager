@@ -22,8 +22,8 @@ const navReferralsButton = document.querySelector("#nav-referrals");
 const navClientsButton = document.querySelector("#nav-clients");
 const dashboardSummary = document.querySelector("#dashboard-summary");
 const dashboardFollowups = document.querySelector("#dashboard-followups");
+const dashboardNewReferrals = document.querySelector("#dashboard-new-referrals");
 const dashboardScheduled = document.querySelector("#dashboard-scheduled");
-const dashboardRecent = document.querySelector("#dashboard-recent");
 const referralForm = document.querySelector("#referral-form");
 const formTitle = document.querySelector("#form-title");
 const saveReferralButton = document.querySelector("#save-referral");
@@ -83,8 +83,11 @@ const statuses = [
 const summaryGroups = [
   { key: "all", label: "Total", statuses },
   { key: "new", label: "New", statuses: ["New"] },
-  { key: "contacted", label: "Contacted", statuses: ["Texted", "Left Voicemail", "Emailed"] },
-  { key: "follow-up", label: "Follow Up", statuses: ["Requested Call Back", "Caregiver Will Call Back"] },
+  {
+    key: "follow-up",
+    label: "Follow Up",
+    statuses: ["Texted", "Left Voicemail", "Emailed", "Requested Call Back", "Caregiver Will Call Back"]
+  },
   { key: "scheduled", label: "Scheduled", statuses: ["Scheduled"] },
   { key: "closed", label: "Closed", statuses: ["Not Interested", "Closed / No Further Outreach"] }
 ];
@@ -101,15 +104,15 @@ const clientStatuses = [
 const clientSummaryGroups = [
   { key: "all", label: "Total", statuses: clientStatuses },
   { key: "scheduled", label: "Scheduled", statuses: ["Scheduled"] },
-  { key: "active", label: "Active", statuses: ["Active"] },
-  { key: "follow-up", label: "Follow Up", statuses: ["Needs Reschedule", "Needs Language Support", "Waiting on Family"] },
+  { key: "active", label: "Active", statuses: ["Active", "Needs Reschedule"] },
+  { key: "follow-up", label: "Follow Up", statuses: ["Needs Language Support", "Waiting on Family"] },
   { key: "graduated", label: "Graduated", statuses: ["Graduated"] },
   { key: "closed", label: "Closed", statuses: ["Inactive", "Closed"] }
 ];
 const clientStatusGroupColors = {
   Scheduled: "scheduled",
   Active: "new",
-  "Needs Reschedule": "follow-up",
+  "Needs Reschedule": "new",
   "Needs Language Support": "follow-up",
   "Waiting on Family": "follow-up",
   Graduated: "new",
@@ -507,10 +510,6 @@ function setClientsLoadedStatus() {
   clientsStatusEl.textContent = "";
 }
 
-function countByStatuses(records, statusesToCount, getStatus) {
-  return records.filter((record) => statusesToCount.includes(getStatus(record))).length;
-}
-
 function percentage(numerator, denominator) {
   if (!denominator) {
     return "0%";
@@ -646,7 +645,7 @@ function compareNames(firstReferral, secondReferral) {
 
 function statusSortIndex(referral) {
   const key = statusGroupKey(referral.status);
-  const order = ["new", "contacted", "follow-up", "scheduled", "closed"];
+  const order = ["new", "follow-up", "scheduled", "closed"];
   const index = order.indexOf(key);
   return index === -1 ? order.length : index;
 }
@@ -730,31 +729,30 @@ function sortClients(clients) {
 function renderDashboard() {
   dashboardSummary.innerHTML = "";
   dashboardFollowups.innerHTML = "";
+  dashboardNewReferrals.innerHTML = "";
   dashboardScheduled.innerHTML = "";
-  dashboardRecent.innerHTML = "";
 
+  const newReferrals = loadedReferrals.filter((referral) => normalizeStatus(referral.status) === "New");
   const referralFollowUps = loadedReferrals.filter((referral) =>
-    ["Requested Call Back", "Caregiver Will Call Back"].includes(normalizeStatus(referral.status))
-  );
-  const contactedReferrals = countByStatuses(
-    loadedReferrals,
-    ["Texted", "Left Voicemail", "Emailed"],
-    (referral) => normalizeStatus(referral.status)
+    ["Texted", "Left Voicemail", "Emailed", "Requested Call Back", "Caregiver Will Call Back"].includes(
+      normalizeStatus(referral.status)
+    )
   );
   const scheduledClients = loadedClients.filter((client) => (client.status || "Scheduled") === "Scheduled");
-  const activeClients = loadedClients.filter((client) => (client.status || "Scheduled") === "Active");
+  const activeClients = loadedClients.filter((client) =>
+    ["Active", "Needs Reschedule"].includes(client.status || "Scheduled")
+  );
   const clientFollowUps = loadedClients.filter((client) =>
-    ["Needs Reschedule", "Needs Language Support", "Waiting on Family"].includes(client.status || "Scheduled")
+    ["Needs Language Support", "Waiting on Family"].includes(client.status || "Scheduled")
   );
   const convertedClients = loadedClients.filter((client) => client.sourceReferralId);
   const conversionDenominator = loadedReferrals.length + convertedClients.length;
 
   const metrics = [
-    { label: "Active Referrals", value: loadedReferrals.length },
-    { label: "Contacted", value: contactedReferrals },
+    { label: "Total Referrals", value: loadedReferrals.length },
+    { label: "Active Clients", value: activeClients.length },
     { label: "Follow Up", value: referralFollowUps.length + clientFollowUps.length },
     { label: "Scheduled", value: scheduledClients.length },
-    { label: "Active Clients", value: activeClients.length },
     { label: "Conversion Rate", value: percentage(convertedClients.length, conversionDenominator) }
   ];
 
@@ -788,6 +786,18 @@ function renderDashboard() {
 
   renderDashboardList(dashboardFollowups, followupItems.slice(0, 6), "No follow-ups waiting.");
 
+  const newReferralItems = newReferrals
+    .map((referral) => ({
+      type: "Referral",
+      title: referralName(referral),
+      detail: referral.referralSource ? `Source: ${referral.referralSource}` : displayValue(referral.referralType),
+      date: referral.referralDate || referral.createdAt || "",
+      action: () => setSelectedReferral(referral.id)
+    }))
+    .sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
+
+  renderDashboardList(dashboardNewReferrals, newReferralItems.slice(0, 6), "No new referrals waiting.");
+
   const scheduledItems = scheduledClients
     .map((client) => ({
       type: "Client",
@@ -799,25 +809,6 @@ function renderDashboard() {
     .sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
 
   renderDashboardList(dashboardScheduled, scheduledItems.slice(0, 6), "No clients currently scheduled.");
-
-  const recentItems = [
-    ...loadedReferrals.map((referral) => ({
-      type: "Referral",
-      title: referralName(referral),
-      detail: normalizeStatus(referral.status),
-      date: referral.updatedAt || referral.createdAt || "",
-      action: () => setSelectedReferral(referral.id)
-    })),
-    ...loadedClients.map((client) => ({
-      type: "Client",
-      title: clientName(client),
-      detail: client.status || "Scheduled",
-      date: client.updatedAt || client.createdAt || "",
-      action: () => setSelectedClient(client.id)
-    }))
-  ].sort((first, second) => dateTimeValue(second.date, -1) - dateTimeValue(first.date, -1));
-
-  renderDashboardList(dashboardRecent, recentItems.slice(0, 8), "No recent activity yet.");
 }
 
 function renderDashboardList(container, items, emptyText) {
@@ -2114,8 +2105,8 @@ onAuthStateChanged(auth, (user) => {
     clientsList.innerHTML = "";
     dashboardSummary.innerHTML = "";
     dashboardFollowups.innerHTML = "";
+    dashboardNewReferrals.innerHTML = "";
     dashboardScheduled.innerHTML = "";
-    dashboardRecent.innerHTML = "";
     referralSummary.innerHTML = "";
     clientSummary.innerHTML = "";
     referralDetail.innerHTML = "";

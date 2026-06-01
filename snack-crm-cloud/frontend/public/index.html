@@ -49,6 +49,11 @@
           <section id="dashboard-summary" class="summary-grid dashboard-summary-grid" aria-label="CRM summary"></section>
 
           <div class="dashboard-grid">
+            <section class="dashboard-card" aria-labelledby="dashboard-new-referrals-title">
+              <h3 id="dashboard-new-referrals-title">New Referrals to Contact</h3>
+              <div id="dashboard-new-referrals" class="dashboard-list"></div>
+            </section>
+
             <section class="dashboard-card" aria-labelledby="dashboard-followups-title">
               <h3 id="dashboard-followups-title">Needs Follow Up</h3>
               <div id="dashboard-followups" class="dashboard-list"></div>
@@ -57,11 +62,6 @@
             <section class="dashboard-card" aria-labelledby="dashboard-scheduled-title">
               <h3 id="dashboard-scheduled-title">Scheduled</h3>
               <div id="dashboard-scheduled" class="dashboard-list"></div>
-            </section>
-
-            <section class="dashboard-card dashboard-card-wide" aria-labelledby="dashboard-recent-title">
-              <h3 id="dashboard-recent-title">Recent Activity</h3>
-              <div id="dashboard-recent" class="dashboard-list compact-dashboard-list"></div>
             </section>
           </div>
         </section>
