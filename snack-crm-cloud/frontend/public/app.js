@@ -23,6 +23,7 @@ const formTitle = document.querySelector("#form-title");
 const saveReferralButton = document.querySelector("#save-referral");
 const cancelEditButton = document.querySelector("#cancel-edit");
 const newReferralButton = document.querySelector("#new-referral");
+const referralsTableHead = document.querySelector("#referrals-table-head");
 const referralsList = document.querySelector("#referrals-list");
 const referralsStatusEl = document.querySelector("#referrals-status");
 const referralSearchInput = document.querySelector("#referral-search");
@@ -35,6 +36,7 @@ const closeReferralModalButton = document.querySelector("#close-referral-modal")
 const referralSourceInput = document.querySelector("#referral-source");
 const referralSourceOptions = document.querySelector("#referral-source-options");
 const clientsList = document.querySelector("#clients-list");
+const clientsTableHead = document.querySelector("#clients-table-head");
 const clientsStatusEl = document.querySelector("#clients-status");
 const clientSearchInput = document.querySelector("#client-search");
 const clientStatusFilterSelect = document.querySelector("#client-status-filter");
@@ -105,6 +107,35 @@ const clientStatusGroupColors = {
   Graduated: "new",
   Inactive: "closed",
   Closed: "closed"
+};
+const tableColumns = {
+  referrals: [
+    { key: "status", label: "Status", width: 150, render: (referral) => statusBadge(referral.status) },
+    { key: "recentContact", label: "Recent Contact", width: 150, render: (referral) => formatListDate(referral.mostRecentContactDate), muted: true },
+    { key: "name", label: "Name", width: 190, render: referralName, strong: true },
+    { key: "phone", label: "Phone", width: 150, render: (referral) => formatPhone(referral.phone), muted: true },
+    { key: "language", label: "Language", width: 130, render: (referral) => referral.preferredLanguage || "" },
+    { key: "caregiver", label: "Caregiver", width: 180, render: (referral) => referral.parentName || "", muted: true },
+    { key: "email", label: "Email", width: 230, render: (referral) => referral.email || "", muted: true }
+  ],
+  clients: [
+    { key: "status", label: "Status", width: 150, render: (client) => clientStatusBadge(client.status || "Scheduled") },
+    { key: "recentContact", label: "Recent Contact", width: 150, render: (client) => formatListDate(client.mostRecentContactDate), muted: true },
+    { key: "lastAppointment", label: "Last Appointment", width: 160, render: (client) => formatListDate(client.lastAppointmentDate), muted: true },
+    { key: "name", label: "Client Name", width: 190, render: clientName, strong: true },
+    { key: "phone", label: "Phone", width: 150, render: (client) => formatPhone(client.phone), muted: true },
+    { key: "language", label: "Language", width: 130, render: (client) => client.preferredLanguage || "" },
+    { key: "caregiver", label: "Caregiver", width: 180, render: (client) => client.parentName || "", muted: true },
+    { key: "email", label: "Email", width: 230, render: (client) => client.email || "", muted: true }
+  ]
+};
+const tableHeads = {
+  referrals: referralsTableHead,
+  clients: clientsTableHead
+};
+const tableLists = {
+  referrals: referralsList,
+  clients: clientsList
 };
 
 let currentUser = null;
@@ -238,6 +269,167 @@ function cssToken(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+function tablePreferenceKey(moduleName) {
+  const userKey = currentUser?.email || "local";
+  return `snack-crm:${userKey}:${moduleName}:columns`;
+}
+
+function defaultColumnState(moduleName) {
+  const columns = tableColumns[moduleName];
+  return {
+    order: columns.map((column) => column.key),
+    widths: Object.fromEntries(columns.map((column) => [column.key, column.width]))
+  };
+}
+
+function columnState(moduleName) {
+  const defaults = defaultColumnState(moduleName);
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(tablePreferenceKey(moduleName)) || "null");
+    const validKeys = new Set(defaults.order);
+    const savedOrder = Array.isArray(saved?.order) ? saved.order.filter((key) => validKeys.has(key)) : [];
+    const order = [...savedOrder, ...defaults.order.filter((key) => !savedOrder.includes(key))];
+    const widths = { ...defaults.widths };
+
+    for (const [key, value] of Object.entries(saved?.widths || {})) {
+      if (validKeys.has(key) && Number.isFinite(Number(value))) {
+        widths[key] = Math.max(88, Math.min(520, Number(value)));
+      }
+    }
+
+    return { order, widths };
+  } catch (_error) {
+    return defaults;
+  }
+}
+
+function saveColumnState(moduleName, state) {
+  localStorage.setItem(tablePreferenceKey(moduleName), JSON.stringify(state));
+}
+
+function orderedColumns(moduleName) {
+  const columnsByKey = Object.fromEntries(tableColumns[moduleName].map((column) => [column.key, column]));
+  return columnState(moduleName).order.map((key) => columnsByKey[key]).filter(Boolean);
+}
+
+function gridTemplateFor(moduleName) {
+  const state = columnState(moduleName);
+  return orderedColumns(moduleName).map((column) => `${state.widths[column.key] || column.width}px`).join(" ");
+}
+
+function minTableWidth(moduleName) {
+  const state = columnState(moduleName);
+  const columns = orderedColumns(moduleName);
+  const columnWidth = columns.reduce((total, column) => total + (state.widths[column.key] || column.width), 0);
+  return `${columnWidth + (columns.length - 1) * 12 + 40}px`;
+}
+
+function renderCell(column, record) {
+  const cell = document.createElement("span");
+  cell.className = "table-cell";
+  cell.setAttribute("role", "cell");
+
+  if (column.muted) {
+    cell.classList.add("muted-cell");
+  }
+
+  if (column.strong) {
+    cell.classList.add("referral-name-cell");
+  }
+
+  const content = column.render(record);
+
+  if (content instanceof Node) {
+    cell.append(content);
+  } else {
+    cell.textContent = content;
+  }
+
+  return cell;
+}
+
+function renderTableHead(moduleName) {
+  const head = tableHeads[moduleName];
+  const state = columnState(moduleName);
+  head.innerHTML = "";
+  head.style.gridTemplateColumns = gridTemplateFor(moduleName);
+  head.style.minWidth = minTableWidth(moduleName);
+
+  for (const column of orderedColumns(moduleName)) {
+    const cell = document.createElement("span");
+    cell.className = "table-heading-cell";
+    cell.setAttribute("role", "columnheader");
+    cell.draggable = true;
+    cell.dataset.columnKey = column.key;
+
+    const label = document.createElement("span");
+    label.textContent = column.label;
+
+    const handle = document.createElement("span");
+    handle.className = "column-resize-handle";
+    handle.setAttribute("aria-hidden", "true");
+
+    cell.append(label, handle);
+    cell.addEventListener("dragstart", (event) => {
+      event.dataTransfer.setData("text/plain", column.key);
+      event.dataTransfer.effectAllowed = "move";
+    });
+    cell.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+    });
+    cell.addEventListener("drop", (event) => {
+      event.preventDefault();
+      const movedKey = event.dataTransfer.getData("text/plain");
+      const targetKey = column.key;
+
+      if (!movedKey || movedKey === targetKey) {
+        return;
+      }
+
+      const nextOrder = state.order.filter((key) => key !== movedKey);
+      const targetIndex = nextOrder.indexOf(targetKey);
+      nextOrder.splice(targetIndex, 0, movedKey);
+      saveColumnState(moduleName, { ...state, order: nextOrder });
+      renderModuleTable(moduleName);
+    });
+    handle.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const startX = event.clientX;
+      const startWidth = state.widths[column.key] || column.width;
+
+      const resize = (moveEvent) => {
+        const nextWidth = Math.max(88, Math.min(520, startWidth + moveEvent.clientX - startX));
+        const nextState = columnState(moduleName);
+        nextState.widths[column.key] = nextWidth;
+        saveColumnState(moduleName, nextState);
+        renderModuleTable(moduleName);
+      };
+
+      const stopResize = () => {
+        document.removeEventListener("mousemove", resize);
+        document.removeEventListener("mouseup", stopResize);
+      };
+
+      document.addEventListener("mousemove", resize);
+      document.addEventListener("mouseup", stopResize);
+    });
+    head.append(cell);
+  }
+}
+
+function renderModuleTable(moduleName) {
+  if (moduleName === "referrals") {
+    renderReferrals();
+    return;
+  }
+
+  renderClients();
 }
 
 function setReferralsLoadedStatus() {
@@ -569,7 +761,11 @@ function applyClientStatusSelectColor(select, status) {
 
 function renderReferrals() {
   referralsList.innerHTML = "";
+  renderTableHead("referrals");
   const referrals = sortReferrals(loadedReferrals.filter(referralMatchesFilters));
+  const columns = orderedColumns("referrals");
+  const gridTemplate = gridTemplateFor("referrals");
+  const rowMinWidth = minTableWidth("referrals");
 
   if (selectedReferralId && !referrals.some((referral) => referral.id === selectedReferralId)) {
     selectedReferralId = null;
@@ -589,48 +785,15 @@ function renderReferrals() {
     row.type = "button";
     row.setAttribute("role", "row");
     row.setAttribute("aria-label", `Open ${referralName(referral)}`);
+    row.style.gridTemplateColumns = gridTemplate;
+    row.style.minWidth = rowMinWidth;
 
     if (referral.id === selectedReferralId) {
       row.classList.add("selected");
       row.setAttribute("aria-current", "true");
     }
 
-    const nameCell = document.createElement("span");
-    nameCell.className = "table-cell referral-name-cell";
-    nameCell.setAttribute("role", "cell");
-    nameCell.textContent = referralName(referral);
-
-    const statusCell = document.createElement("span");
-    statusCell.className = "table-cell";
-    statusCell.setAttribute("role", "cell");
-    statusCell.append(statusBadge(referral.status));
-
-    const recentContactCell = document.createElement("span");
-    recentContactCell.className = "table-cell muted-cell";
-    recentContactCell.setAttribute("role", "cell");
-    recentContactCell.textContent = formatListDate(referral.mostRecentContactDate);
-
-    const phoneCell = document.createElement("span");
-    phoneCell.className = "table-cell muted-cell";
-    phoneCell.setAttribute("role", "cell");
-    phoneCell.textContent = formatPhone(referral.phone);
-
-    const languageCell = document.createElement("span");
-    languageCell.className = "table-cell";
-    languageCell.setAttribute("role", "cell");
-    languageCell.textContent = referral.preferredLanguage || "";
-
-    const parentCell = document.createElement("span");
-    parentCell.className = "table-cell muted-cell";
-    parentCell.setAttribute("role", "cell");
-    parentCell.textContent = referral.parentName || "";
-
-    const emailCell = document.createElement("span");
-    emailCell.className = "table-cell muted-cell";
-    emailCell.setAttribute("role", "cell");
-    emailCell.textContent = referral.email || "";
-
-    row.append(statusCell, recentContactCell, nameCell, phoneCell, languageCell, parentCell, emailCell);
+    row.append(...columns.map((column) => renderCell(column, referral)));
     row.addEventListener("click", () => setSelectedReferral(referral.id));
     referralsList.append(row);
   }
@@ -638,7 +801,11 @@ function renderReferrals() {
 
 function renderClients() {
   clientsList.innerHTML = "";
+  renderTableHead("clients");
   const clients = sortClients(loadedClients.filter(clientMatchesSearch));
+  const columns = orderedColumns("clients");
+  const gridTemplate = gridTemplateFor("clients");
+  const rowMinWidth = minTableWidth("clients");
 
   if (selectedClientId && !clients.some((client) => client.id === selectedClientId)) {
     selectedClientId = null;
@@ -658,48 +825,15 @@ function renderClients() {
     row.type = "button";
     row.setAttribute("role", "row");
     row.setAttribute("aria-label", `Open ${clientName(client)}`);
+    row.style.gridTemplateColumns = gridTemplate;
+    row.style.minWidth = rowMinWidth;
 
     if (client.id === selectedClientId) {
       row.classList.add("selected");
       row.setAttribute("aria-current", "true");
     }
 
-    const statusCell = document.createElement("span");
-    statusCell.className = "table-cell";
-    statusCell.setAttribute("role", "cell");
-    statusCell.append(clientStatusBadge(client.status || "Scheduled"));
-
-    const recentContactCell = document.createElement("span");
-    recentContactCell.className = "table-cell muted-cell";
-    recentContactCell.setAttribute("role", "cell");
-    recentContactCell.textContent = formatListDate(client.mostRecentContactDate);
-
-    const lastAppointmentCell = document.createElement("span");
-    lastAppointmentCell.className = "table-cell muted-cell";
-    lastAppointmentCell.setAttribute("role", "cell");
-    lastAppointmentCell.textContent = formatListDate(client.lastAppointmentDate);
-
-    const nameCell = document.createElement("span");
-    nameCell.className = "table-cell referral-name-cell";
-    nameCell.setAttribute("role", "cell");
-    nameCell.textContent = clientName(client);
-
-    const phoneCell = document.createElement("span");
-    phoneCell.className = "table-cell muted-cell";
-    phoneCell.setAttribute("role", "cell");
-    phoneCell.textContent = formatPhone(client.phone);
-
-    const languageCell = document.createElement("span");
-    languageCell.className = "table-cell";
-    languageCell.setAttribute("role", "cell");
-    languageCell.textContent = client.preferredLanguage || "";
-
-    const caregiverCell = document.createElement("span");
-    caregiverCell.className = "table-cell muted-cell";
-    caregiverCell.setAttribute("role", "cell");
-    caregiverCell.textContent = client.parentName || "";
-
-    row.append(statusCell, recentContactCell, lastAppointmentCell, nameCell, phoneCell, languageCell, caregiverCell);
+    row.append(...columns.map((column) => renderCell(column, client)));
     row.addEventListener("click", () => setSelectedClient(client.id));
     clientsList.append(row);
   }
@@ -1055,7 +1189,90 @@ function renderClientDetail() {
   notesText.textContent = client.notes || "-";
   notes.append(notesTitle, notesText);
 
-  clientDetail.append(heading, statusLabel, infoGrid, trackingTitle, trackingGrid, notes);
+  clientDetail.append(heading, statusLabel, infoGrid, trackingTitle, trackingGrid, renderSiblingsSection(client), notes);
+}
+
+function renderSiblingsSection(client) {
+  const siblingIds = Array.isArray(client.siblingIds) ? client.siblingIds : [];
+  const siblings = siblingIds.map((id) => loadedClients.find((item) => item.id === id)).filter(Boolean);
+  const linkedIds = new Set([client.id, ...siblingIds]);
+  const candidates = loadedClients
+    .filter((item) => !linkedIds.has(item.id))
+    .sort((first, second) => clientName(first).localeCompare(clientName(second)));
+
+  const section = document.createElement("section");
+  section.className = "siblings-panel";
+
+  const header = document.createElement("div");
+  header.className = "siblings-header";
+  const title = document.createElement("h4");
+  title.textContent = "Siblings";
+  header.append(title);
+
+  const list = document.createElement("div");
+  list.className = "sibling-list";
+
+  if (!siblings.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-inline";
+    empty.textContent = "-";
+    list.append(empty);
+  }
+
+  for (const sibling of siblings) {
+    const item = document.createElement("div");
+    item.className = "sibling-item";
+
+    const openButton = document.createElement("button");
+    openButton.className = "link-button";
+    openButton.type = "button";
+    openButton.textContent = clientName(sibling);
+    openButton.addEventListener("click", () => setSelectedClient(sibling.id));
+
+    const removeButton = document.createElement("button");
+    removeButton.className = "secondary-button compact-button";
+    removeButton.type = "button";
+    removeButton.textContent = "Remove";
+    removeButton.addEventListener("click", () => removeSibling(client.id, sibling.id));
+
+    item.append(openButton, removeButton);
+    list.append(item);
+  }
+
+  const form = document.createElement("form");
+  form.className = "sibling-form";
+
+  const select = document.createElement("select");
+  select.setAttribute("aria-label", "Add sibling");
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = candidates.length ? "Add sibling" : "No clients available";
+  select.append(placeholder);
+
+  for (const candidate of candidates) {
+    const option = document.createElement("option");
+    option.value = candidate.id;
+    option.textContent = clientName(candidate);
+    select.append(option);
+  }
+
+  const addButton = document.createElement("button");
+  addButton.type = "submit";
+  addButton.textContent = "Add";
+  addButton.disabled = !candidates.length;
+
+  form.append(select, addButton);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    if (select.value) {
+      addSibling(client.id, select.value);
+    }
+  });
+
+  section.append(header, list, form);
+  return section;
 }
 
 function emptyDetail(text, actionLabel, action) {
@@ -1525,6 +1742,59 @@ async function updateClientStatus(client, status) {
     clientsStatusEl.textContent = error.message || "Could not update client status yet.";
     console.error(error);
     await loadClients();
+  }
+}
+
+async function addSibling(clientId, siblingId) {
+  clientsStatusEl.textContent = "Linking siblings...";
+
+  try {
+    const response = await authedFetch(`/api/clients/${encodeURIComponent(clientId)}/siblings`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ siblingId })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    selectedClientId = clientId;
+    clientsStatusEl.textContent = "Sibling linked.";
+    await loadClients();
+    renderClientDetail();
+  } catch (error) {
+    clientsStatusEl.textContent = error.message || "Could not link siblings yet.";
+    console.error(error);
+  }
+}
+
+async function removeSibling(clientId, siblingId) {
+  clientsStatusEl.textContent = "Removing sibling link...";
+
+  try {
+    const response = await authedFetch(
+      `/api/clients/${encodeURIComponent(clientId)}/siblings/${encodeURIComponent(siblingId)}`,
+      {
+        method: "DELETE"
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    selectedClientId = clientId;
+    clientsStatusEl.textContent = "Sibling link removed.";
+    await loadClients();
+    renderClientDetail();
+  } catch (error) {
+    clientsStatusEl.textContent = error.message || "Could not remove sibling link yet.";
+    console.error(error);
   }
 }
 

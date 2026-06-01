@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { Firestore } from "@google-cloud/firestore";
+import { FieldValue, Firestore } from "@google-cloud/firestore";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
 const port = Number(process.env.PORT || 8080);
@@ -211,6 +211,7 @@ function toClient(snapshot) {
     willingnessScore: data.willingnessScore,
     status: data.status,
     notes: data.notes,
+    siblingIds: Array.isArray(data.siblingIds) ? data.siblingIds : [],
     convertedAt: data.convertedAt,
     createdAt: data.createdAt,
     updatedAt: data.updatedAt
@@ -505,7 +506,114 @@ app.delete("/api/clients/:clientId", requireAuth, async (request, response, next
       return;
     }
 
+    const siblingIds = Array.isArray(snapshot.data().siblingIds) ? snapshot.data().siblingIds : [];
+    await Promise.all(
+      siblingIds.map((siblingId) =>
+        clients.doc(siblingId).update({
+          siblingIds: FieldValue.arrayRemove(clientId),
+          updatedAt: new Date().toISOString(),
+          updatedBy: request.user.email
+        })
+      )
+    );
     await docRef.delete();
+    response.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/clients/:clientId/siblings", requireAuth, async (request, response, next) => {
+  try {
+    const clientId = cleanString(request.params.clientId);
+    const siblingId = cleanString(request.body.siblingId);
+
+    if (!clientId || !siblingId) {
+      response.status(400).json({
+        error: "Client ID and sibling ID are required."
+      });
+      return;
+    }
+
+    if (clientId === siblingId) {
+      response.status(400).json({
+        error: "A client cannot be linked as their own sibling."
+      });
+      return;
+    }
+
+    const clientRef = clients.doc(clientId);
+    const siblingRef = clients.doc(siblingId);
+    const [clientSnapshot, siblingSnapshot] = await Promise.all([clientRef.get(), siblingRef.get()]);
+
+    if (!clientSnapshot.exists || !siblingSnapshot.exists) {
+      response.status(404).json({
+        error: "Client or sibling was not found."
+      });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    await Promise.all([
+      clientRef.update({
+        siblingIds: FieldValue.arrayUnion(siblingId),
+        updatedAt: now,
+        updatedBy: request.user.email
+      }),
+      siblingRef.update({
+        siblingIds: FieldValue.arrayUnion(clientId),
+        updatedAt: now,
+        updatedBy: request.user.email
+      })
+    ]);
+
+    const updated = await clientRef.get();
+
+    response.json({
+      client: toClient(updated)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/clients/:clientId/siblings/:siblingId", requireAuth, async (request, response, next) => {
+  try {
+    const clientId = cleanString(request.params.clientId);
+    const siblingId = cleanString(request.params.siblingId);
+
+    if (!clientId || !siblingId) {
+      response.status(400).json({
+        error: "Client ID and sibling ID are required."
+      });
+      return;
+    }
+
+    const clientRef = clients.doc(clientId);
+    const siblingRef = clients.doc(siblingId);
+    const [clientSnapshot, siblingSnapshot] = await Promise.all([clientRef.get(), siblingRef.get()]);
+
+    if (!clientSnapshot.exists || !siblingSnapshot.exists) {
+      response.status(404).json({
+        error: "Client or sibling was not found."
+      });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    await Promise.all([
+      clientRef.update({
+        siblingIds: FieldValue.arrayRemove(siblingId),
+        updatedAt: now,
+        updatedBy: request.user.email
+      }),
+      siblingRef.update({
+        siblingIds: FieldValue.arrayRemove(clientId),
+        updatedAt: now,
+        updatedBy: request.user.email
+      })
+    ]);
+
     response.status(204).send();
   } catch (error) {
     next(error);

@@ -410,6 +410,43 @@ textarea {
   text-transform: uppercase;
 }
 
+.table-heading-cell {
+  position: relative;
+  min-width: 0;
+  padding-right: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: grab;
+}
+
+.table-heading-cell:active {
+  cursor: grabbing;
+}
+
+.column-resize-handle {
+  position: absolute;
+  top: -12px;
+  right: -6px;
+  width: 12px;
+  height: calc(100% + 24px);
+  cursor: col-resize;
+}
+
+.column-resize-handle::after {
+  position: absolute;
+  top: 11px;
+  right: 5px;
+  width: 1px;
+  height: calc(100% - 22px);
+  background: transparent;
+  content: "";
+}
+
+.table-heading-cell:hover .column-resize-handle::after {
+  background: var(--line);
+}
+
 .referrals-list {
   display: grid;
 }
@@ -568,6 +605,64 @@ dd {
   border-width: 1px 0 0;
   padding: 18px 0 0;
   background: transparent;
+}
+
+.siblings-panel {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+
+.siblings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sibling-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sibling-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px;
+  background: #fbfcfb;
+}
+
+.link-button {
+  min-height: 32px;
+  padding: 0 10px;
+  background: transparent;
+  color: var(--accent-dark);
+}
+
+.link-button:hover {
+  background: var(--accent-soft);
+}
+
+.compact-button {
+  min-height: 32px;
+  padding: 0 10px;
+}
+
+.sibling-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.empty-inline {
+  margin: 0;
+  color: var(--muted);
 }
 
 .referral-form {
