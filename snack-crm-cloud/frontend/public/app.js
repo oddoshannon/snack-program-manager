@@ -1037,11 +1037,12 @@ function renderClientDetail() {
   trackingRightColumn.className = "detail-column";
 
   addDetailField(trackingLeftColumn, "Referral Date", formatDateOnly(client.referralDate));
+  addDetailField(trackingLeftColumn, "Created Date", formatDateOnly((client.createdAt || "").slice(0, 10)));
   addDetailField(trackingLeftColumn, "First Contact Date", formatDateOnly(client.firstContactDate));
   addDetailField(trackingLeftColumn, "Most Recent Contact Date", formatDateOnly(client.mostRecentContactDate));
   const convertedDate = client.convertedAt || (client.sourceReferralId ? client.createdAt : "");
   addDetailField(trackingRightColumn, "Converted Date", formatDateOnly(convertedDate.slice(0, 10)));
-  addDetailField(trackingRightColumn, "Referral Source", displayValue(client.referralSource));
+  addDetailField(trackingRightColumn, "Referral Type", displayValue(client.referralType));
   addDetailField(trackingRightColumn, "First Appointment Date", formatDateOnly(client.firstAppointmentDate));
   addDetailField(trackingRightColumn, "Last Appointment Date", formatDateOnly(client.lastAppointmentDate));
   trackingGrid.append(trackingLeftColumn, trackingRightColumn);
