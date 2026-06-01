@@ -17,7 +17,8 @@
           </div>
         </div>
         <nav class="primary-nav" aria-label="Primary">
-          <button id="nav-referrals" class="nav-item active" type="button" aria-current="page">Referrals</button>
+          <button id="nav-dashboard" class="nav-item active" type="button" aria-current="page">Dashboard</button>
+          <button id="nav-referrals" class="nav-item" type="button">Referrals</button>
           <button id="nav-clients" class="nav-item" type="button">Clients</button>
         </nav>
         <div class="sidebar-footer">
@@ -35,6 +36,34 @@
           <p id="message" class="message" aria-live="polite"></p>
           <p id="status" class="status" aria-live="polite">Sign in to load the database message.</p>
           <button id="refresh" class="secondary-button" type="button" disabled>Refresh connection</button>
+        </section>
+
+        <section id="dashboard-panel" class="referrals-panel dashboard-panel" aria-labelledby="dashboard-title" hidden>
+          <header class="workspace-header">
+            <div>
+              <p class="eyebrow">CRM</p>
+              <h2 id="dashboard-title">Dashboard</h2>
+            </div>
+          </header>
+
+          <section id="dashboard-summary" class="summary-grid dashboard-summary-grid" aria-label="CRM summary"></section>
+
+          <div class="dashboard-grid">
+            <section class="dashboard-card" aria-labelledby="dashboard-followups-title">
+              <h3 id="dashboard-followups-title">Needs Follow Up</h3>
+              <div id="dashboard-followups" class="dashboard-list"></div>
+            </section>
+
+            <section class="dashboard-card" aria-labelledby="dashboard-scheduled-title">
+              <h3 id="dashboard-scheduled-title">Scheduled</h3>
+              <div id="dashboard-scheduled" class="dashboard-list"></div>
+            </section>
+
+            <section class="dashboard-card dashboard-card-wide" aria-labelledby="dashboard-recent-title">
+              <h3 id="dashboard-recent-title">Recent Activity</h3>
+              <div id="dashboard-recent" class="dashboard-list compact-dashboard-list"></div>
+            </section>
+          </div>
         </section>
 
         <section id="referrals-panel" class="referrals-panel" aria-labelledby="referrals-title" hidden>

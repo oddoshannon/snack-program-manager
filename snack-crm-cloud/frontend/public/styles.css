@@ -296,6 +296,92 @@ h4 {
   text-transform: capitalize;
 }
 
+.dashboard-summary-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.dashboard-summary-item {
+  cursor: default;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dashboard-card {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.dashboard-card-wide {
+  grid-column: 1 / -1;
+}
+
+.dashboard-card h3 {
+  margin: 0 0 14px;
+}
+
+.dashboard-list {
+  display: grid;
+  gap: 8px;
+}
+
+.compact-dashboard-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-list-item {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  background: #ffffff;
+  color: var(--ink);
+  text-align: left;
+}
+
+.dashboard-list-item:hover {
+  border-color: #a9cbbf;
+  background: var(--accent-soft);
+}
+
+.dashboard-list-item > span:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.dashboard-list-item strong,
+.dashboard-list-item span span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-list-item span span,
+.dashboard-item-meta {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.dashboard-item-meta {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-weight: 800;
+}
+
 .referrals-layout {
   min-height: 0;
   display: block;
@@ -837,6 +923,12 @@ dd {
 
   .primary-nav {
     display: none;
+  }
+
+  .dashboard-summary-grid,
+  .dashboard-grid,
+  .compact-dashboard-list {
+    grid-template-columns: 1fr;
   }
 
   .sidebar-footer {

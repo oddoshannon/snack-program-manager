@@ -14,10 +14,16 @@ const signInButton = document.querySelector("#sign-in");
 const signOutButton = document.querySelector("#sign-out");
 const userEl = document.querySelector("#user");
 const signedOutPanel = document.querySelector("#signed-out-panel");
+const dashboardPanel = document.querySelector("#dashboard-panel");
 const referralsPanel = document.querySelector("#referrals-panel");
 const clientsPanel = document.querySelector("#clients-panel");
+const navDashboardButton = document.querySelector("#nav-dashboard");
 const navReferralsButton = document.querySelector("#nav-referrals");
 const navClientsButton = document.querySelector("#nav-clients");
+const dashboardSummary = document.querySelector("#dashboard-summary");
+const dashboardFollowups = document.querySelector("#dashboard-followups");
+const dashboardScheduled = document.querySelector("#dashboard-scheduled");
+const dashboardRecent = document.querySelector("#dashboard-recent");
 const referralForm = document.querySelector("#referral-form");
 const formTitle = document.querySelector("#form-title");
 const saveReferralButton = document.querySelector("#save-referral");
@@ -153,7 +159,7 @@ let loadedReferrals = [];
 let loadedClients = [];
 let summaryFilter = "all";
 let clientSummaryFilter = "all";
-let activeModule = "referrals";
+let activeModule = "dashboard";
 
 async function authedFetch(path, options = {}) {
   const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL;
@@ -501,6 +507,18 @@ function setClientsLoadedStatus() {
   clientsStatusEl.textContent = "";
 }
 
+function countByStatuses(records, statusesToCount, getStatus) {
+  return records.filter((record) => statusesToCount.includes(getStatus(record))).length;
+}
+
+function percentage(numerator, denominator) {
+  if (!denominator) {
+    return "0%";
+  }
+
+  return `${Math.round((numerator / denominator) * 100)}%`;
+}
+
 function knownReferralSources() {
   return [...new Set(loadedReferrals.map((referral) => referral.referralSource).filter(Boolean))]
     .sort((first, second) => first.localeCompare(second));
@@ -709,6 +727,132 @@ function sortClients(clients) {
   );
 }
 
+function renderDashboard() {
+  dashboardSummary.innerHTML = "";
+  dashboardFollowups.innerHTML = "";
+  dashboardScheduled.innerHTML = "";
+  dashboardRecent.innerHTML = "";
+
+  const referralFollowUps = loadedReferrals.filter((referral) =>
+    ["Requested Call Back", "Caregiver Will Call Back"].includes(normalizeStatus(referral.status))
+  );
+  const contactedReferrals = countByStatuses(
+    loadedReferrals,
+    ["Texted", "Left Voicemail", "Emailed"],
+    (referral) => normalizeStatus(referral.status)
+  );
+  const scheduledClients = loadedClients.filter((client) => (client.status || "Scheduled") === "Scheduled");
+  const activeClients = loadedClients.filter((client) => (client.status || "Scheduled") === "Active");
+  const clientFollowUps = loadedClients.filter((client) =>
+    ["Needs Reschedule", "Needs Language Support", "Waiting on Family"].includes(client.status || "Scheduled")
+  );
+  const convertedClients = loadedClients.filter((client) => client.sourceReferralId);
+  const conversionDenominator = loadedReferrals.length + convertedClients.length;
+
+  const metrics = [
+    { label: "Active Referrals", value: loadedReferrals.length },
+    { label: "Contacted", value: contactedReferrals },
+    { label: "Follow Up", value: referralFollowUps.length + clientFollowUps.length },
+    { label: "Scheduled", value: scheduledClients.length },
+    { label: "Active Clients", value: activeClients.length },
+    { label: "Conversion Rate", value: percentage(convertedClients.length, conversionDenominator) }
+  ];
+
+  for (const metric of metrics) {
+    const item = document.createElement("div");
+    item.className = "summary-item dashboard-summary-item";
+    const value = document.createElement("strong");
+    value.textContent = metric.value;
+    const label = document.createElement("span");
+    label.textContent = metric.label;
+    item.append(value, label);
+    dashboardSummary.append(item);
+  }
+
+  const followupItems = [
+    ...referralFollowUps.map((referral) => ({
+      type: "Referral",
+      title: referralName(referral),
+      detail: normalizeStatus(referral.status),
+      date: referral.mostRecentContactDate || referral.referralDate || "",
+      action: () => setSelectedReferral(referral.id)
+    })),
+    ...clientFollowUps.map((client) => ({
+      type: "Client",
+      title: clientName(client),
+      detail: client.status,
+      date: client.mostRecentContactDate || client.lastAppointmentDate || "",
+      action: () => setSelectedClient(client.id)
+    }))
+  ].sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
+
+  renderDashboardList(dashboardFollowups, followupItems.slice(0, 6), "No follow-ups waiting.");
+
+  const scheduledItems = scheduledClients
+    .map((client) => ({
+      type: "Client",
+      title: clientName(client),
+      detail: client.firstAppointmentDate ? `First appt ${formatDateOnly(client.firstAppointmentDate)}` : "Scheduled",
+      date: client.firstAppointmentDate || client.createdAt || "",
+      action: () => setSelectedClient(client.id)
+    }))
+    .sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
+
+  renderDashboardList(dashboardScheduled, scheduledItems.slice(0, 6), "No clients currently scheduled.");
+
+  const recentItems = [
+    ...loadedReferrals.map((referral) => ({
+      type: "Referral",
+      title: referralName(referral),
+      detail: normalizeStatus(referral.status),
+      date: referral.updatedAt || referral.createdAt || "",
+      action: () => setSelectedReferral(referral.id)
+    })),
+    ...loadedClients.map((client) => ({
+      type: "Client",
+      title: clientName(client),
+      detail: client.status || "Scheduled",
+      date: client.updatedAt || client.createdAt || "",
+      action: () => setSelectedClient(client.id)
+    }))
+  ].sort((first, second) => dateTimeValue(second.date, -1) - dateTimeValue(first.date, -1));
+
+  renderDashboardList(dashboardRecent, recentItems.slice(0, 8), "No recent activity yet.");
+}
+
+function renderDashboardList(container, items, emptyText) {
+  container.innerHTML = "";
+
+  if (!items.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-inline";
+    empty.textContent = emptyText;
+    container.append(empty);
+    return;
+  }
+
+  for (const item of items) {
+    const button = document.createElement("button");
+    button.className = "dashboard-list-item";
+    button.type = "button";
+    button.addEventListener("click", item.action);
+
+    const content = document.createElement("span");
+    const title = document.createElement("strong");
+    title.textContent = item.title;
+    const detail = document.createElement("span");
+    detail.textContent = item.detail;
+    content.append(title, detail);
+
+    const meta = document.createElement("span");
+    meta.className = "dashboard-item-meta";
+    meta.textContent = item.type;
+
+    button.append(content, meta);
+    container.append(button);
+  }
+}
+
 function setSelectedReferral(referralId) {
   selectedReferralId = referralId;
   referralForm.reset();
@@ -746,15 +890,24 @@ function closeReferralModal() {
 
 function setActiveModule(moduleName) {
   activeModule = moduleName;
+  const showDashboard = moduleName === "dashboard";
   const showReferrals = moduleName === "referrals";
+  const showClients = moduleName === "clients";
+  dashboardPanel.hidden = !showDashboard;
   referralsPanel.hidden = !showReferrals;
-  clientsPanel.hidden = showReferrals;
+  clientsPanel.hidden = !showClients;
+  navDashboardButton.classList.toggle("active", showDashboard);
   navReferralsButton.classList.toggle("active", showReferrals);
-  navClientsButton.classList.toggle("active", !showReferrals);
+  navClientsButton.classList.toggle("active", showClients);
+  navDashboardButton.setAttribute("aria-current", showDashboard ? "page" : "false");
   navReferralsButton.setAttribute("aria-current", showReferrals ? "page" : "false");
-  navClientsButton.setAttribute("aria-current", showReferrals ? "false" : "page");
+  navClientsButton.setAttribute("aria-current", showClients ? "page" : "false");
 
-  if (!showReferrals) {
+  if (showDashboard) {
+    closeReferralModal();
+    closeClientModal();
+    renderDashboard();
+  } else if (showClients) {
     closeReferralModal();
     renderClients();
   } else {
@@ -1406,6 +1559,7 @@ async function loadReferrals() {
     loadedReferrals = data.referrals.filter((referral) => !referral.convertedClientId);
     renderReferralSummary();
     renderReferrals();
+    renderDashboard();
     renderReferralSourceOptions();
     if (!referralModal.hidden && selectedReferralId) {
       renderReferralDetail();
@@ -1438,6 +1592,7 @@ async function loadClients() {
     loadedClients = data.clients;
     renderClientSummary();
     renderClients();
+    renderDashboard();
     if (!clientModal.hidden && selectedClientId) {
       renderClientDetail();
     }
@@ -1940,7 +2095,8 @@ onAuthStateChanged(auth, (user) => {
   signOutButton.hidden = !signedIn;
   refreshButton.disabled = !signedIn;
   signedOutPanel.hidden = signedIn;
-  referralsPanel.hidden = !signedIn;
+  dashboardPanel.hidden = !signedIn;
+  referralsPanel.hidden = true;
   clientsPanel.hidden = true;
   userEl.textContent = signedIn ? `Signed in as ${user.email}` : "Please sign in with your SNACK Google account.";
 
@@ -1956,6 +2112,10 @@ onAuthStateChanged(auth, (user) => {
     clientsStatusEl.textContent = "";
     referralsList.innerHTML = "";
     clientsList.innerHTML = "";
+    dashboardSummary.innerHTML = "";
+    dashboardFollowups.innerHTML = "";
+    dashboardScheduled.innerHTML = "";
+    dashboardRecent.innerHTML = "";
     referralSummary.innerHTML = "";
     clientSummary.innerHTML = "";
     referralDetail.innerHTML = "";
@@ -1973,6 +2133,7 @@ onAuthStateChanged(auth, (user) => {
 signInButton.addEventListener("click", signIn);
 signOutButton.addEventListener("click", signOutUser);
 refreshButton.addEventListener("click", loadMessage);
+navDashboardButton.addEventListener("click", () => setActiveModule("dashboard"));
 navReferralsButton.addEventListener("click", () => setActiveModule("referrals"));
 navClientsButton.addEventListener("click", () => setActiveModule("clients"));
 newReferralButton.addEventListener("click", startNewReferral);
@@ -2028,5 +2189,12 @@ referralModal.addEventListener("click", (event) => {
 clientModal.addEventListener("click", (event) => {
   if (event.target === clientModal) {
     closeClientModal();
+  }
+});
+document.addEventListener("click", (event) => {
+  for (const menu of document.querySelectorAll(".columns-menu[open]")) {
+    if (!menu.contains(event.target)) {
+      menu.open = false;
+    }
   }
 });
