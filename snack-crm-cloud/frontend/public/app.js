@@ -24,6 +24,8 @@ const dashboardSummary = document.querySelector("#dashboard-summary");
 const dashboardFollowups = document.querySelector("#dashboard-followups");
 const dashboardNewReferrals = document.querySelector("#dashboard-new-referrals");
 const dashboardScheduled = document.querySelector("#dashboard-scheduled");
+const dashboardNoNext = document.querySelector("#dashboard-no-next");
+const dashboardOldestFollowups = document.querySelector("#dashboard-oldest-followups");
 const referralForm = document.querySelector("#referral-form");
 const formTitle = document.querySelector("#form-title");
 const saveReferralButton = document.querySelector("#save-referral");
@@ -518,6 +520,17 @@ function percentage(numerator, denominator) {
   return `${Math.round((numerator / denominator) * 100)}%`;
 }
 
+function todayDateString() {
+  const date = new Date();
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return offsetDate.toISOString().slice(0, 10);
+}
+
+function hasFutureAppointment(client) {
+  const today = todayDateString();
+  return [client.firstAppointmentDate, client.lastAppointmentDate].some((value) => value && value >= today);
+}
+
 function knownReferralSources() {
   return [...new Set(loadedReferrals.map((referral) => referral.referralSource).filter(Boolean))]
     .sort((first, second) => first.localeCompare(second));
@@ -731,6 +744,8 @@ function renderDashboard() {
   dashboardFollowups.innerHTML = "";
   dashboardNewReferrals.innerHTML = "";
   dashboardScheduled.innerHTML = "";
+  dashboardNoNext.innerHTML = "";
+  dashboardOldestFollowups.innerHTML = "";
 
   const newReferrals = loadedReferrals.filter((referral) => normalizeStatus(referral.status) === "New");
   const referralFollowUps = loadedReferrals.filter((referral) =>
@@ -744,6 +759,10 @@ function renderDashboard() {
   );
   const clientFollowUps = loadedClients.filter((client) =>
     ["Needs Language Support", "Waiting on Family"].includes(client.status || "Scheduled")
+  );
+  const clientsWithoutNextAppointment = loadedClients.filter((client) =>
+    ["Active", "Needs Reschedule", "Waiting on Family", "Needs Language Support"].includes(client.status || "Scheduled") &&
+    !hasFutureAppointment(client)
   );
   const convertedClients = loadedClients.filter((client) => client.sourceReferralId);
   const conversionDenominator = loadedReferrals.length + convertedClients.length;
@@ -809,6 +828,20 @@ function renderDashboard() {
     .sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
 
   renderDashboardList(dashboardScheduled, scheduledItems.slice(0, 6), "No clients currently scheduled.");
+
+  const noNextItems = clientsWithoutNextAppointment
+    .map((client) => ({
+      type: "Client",
+      title: clientName(client),
+      detail: client.lastAppointmentDate ? `Last appt ${formatDateOnly(client.lastAppointmentDate)}` : client.status || "Active",
+      date: client.lastAppointmentDate || client.firstAppointmentDate || client.createdAt || "",
+      action: () => setSelectedClient(client.id)
+    }))
+    .sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
+
+  renderDashboardList(dashboardNoNext, noNextItems.slice(0, 6), "No active clients missing an appointment.");
+
+  renderDashboardList(dashboardOldestFollowups, followupItems.slice(0, 6), "No follow-ups waiting.");
 }
 
 function renderDashboardList(container, items, emptyText) {
@@ -2107,6 +2140,8 @@ onAuthStateChanged(auth, (user) => {
     dashboardFollowups.innerHTML = "";
     dashboardNewReferrals.innerHTML = "";
     dashboardScheduled.innerHTML = "";
+    dashboardNoNext.innerHTML = "";
+    dashboardOldestFollowups.innerHTML = "";
     referralSummary.innerHTML = "";
     clientSummary.innerHTML = "";
     referralDetail.innerHTML = "";
