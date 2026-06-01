@@ -1000,7 +1000,6 @@ function renderClientDetail() {
   addDetailField(rightColumn, "Text Opt Out", displayBoolean(client.textOptOut));
   addDetailField(rightColumn, "Address", formatAddress(client));
   addDetailField(rightColumn, "Created", formatDate(client.createdAt));
-  addDetailField(rightColumn, "Source Referral", displayValue(client.sourceReferralId));
 
   infoGrid.append(leftColumn, rightColumn);
 
