@@ -134,6 +134,23 @@ const cancelOutreachContactEditButton = document.querySelector("#cancel-outreach
 const app = initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
+
+window.addEventListener("error", (event) => {
+  if (statusEl) {
+    statusEl.textContent = `App startup error: ${event.message}`;
+  }
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+  if (statusEl) {
+    statusEl.textContent = `App startup error: ${event.reason?.message || event.reason || "Unknown error"}`;
+  }
+});
+
+signInButton.addEventListener("click", signIn);
+signOutButton.addEventListener("click", signOutUser);
+refreshButton.addEventListener("click", loadMessage);
+
 const legacyStatusMap = {
   new: "New",
   contacted: "Texted",
@@ -5315,9 +5332,6 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-signInButton.addEventListener("click", signIn);
-signOutButton.addEventListener("click", signOutUser);
-refreshButton.addEventListener("click", loadMessage);
 navDailyWorkflowButton.addEventListener("click", () => setActiveModule("daily-workflow"));
 navCrmButton.addEventListener("click", () => setActiveModule("crm"));
 navOutreachButton.addEventListener("click", () => setActiveModule("outreach"));
