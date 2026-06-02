@@ -137,7 +137,7 @@ const clientSummaryGroups = [
   { key: "all", label: "Total", statuses: clientStatuses },
   { key: "scheduled", label: "Scheduled", statuses: ["Scheduled"] },
   { key: "active", label: "Active", statuses: ["Active", "Needs Reschedule"] },
-  { key: "follow-up", label: "Follow Up", statuses: ["Needs Reschedule", "Needs Language Support", "Waiting on Family"] },
+  { key: "follow-up", label: "Follow Up", statuses: ["Needs Reschedule", "Needs Language Support"] },
   { key: "graduated", label: "Graduated", statuses: ["Graduated"] },
   { key: "closed", label: "Closed", statuses: ["Inactive", "Closed"] }
 ];
@@ -158,7 +158,7 @@ const clientStatusGroupColors = {
   Active: "new",
   "Needs Reschedule": "new",
   "Needs Language Support": "follow-up",
-  "Waiting on Family": "follow-up",
+  "Waiting on Family": "contacted",
   Graduated: "new",
   Inactive: "closed",
   Closed: "closed"
@@ -176,7 +176,7 @@ const tableColumns = {
   clients: [
     { key: "status", label: "Status", width: 150, render: (client) => clientStatusBadge(client.status || "Scheduled") },
     { key: "recentContact", label: "Recent Contact", width: 150, render: (client) => formatListDate(client.mostRecentContactDate), muted: true },
-    { key: "lastAppointment", label: "Last Appointment", width: 160, render: (client) => formatListDate(client.lastAppointmentDate), muted: true },
+    { key: "lastAppointment", label: "Graduation Date", width: 160, render: (client) => formatListDate(client.lastAppointmentDate), muted: true },
     { key: "name", label: "Client Name", width: 190, render: clientName, strong: true },
     { key: "phone", label: "Phone", width: 150, render: (client) => formatPhone(client.phone), muted: true },
     { key: "language", label: "Language", width: 130, render: (client) => client.preferredLanguage || "" },
@@ -198,7 +198,7 @@ const clientCsvFieldMappings = [
   { key: "firstContactDate", label: "First Contact Date", source: "First Contact Date" },
   { key: "mostRecentContactDate", label: "Most Recent Contact Date", source: "Most Recent Contact Date" },
   { key: "firstAppointmentDate", label: "First Appointment Date", source: "First Appt Date" },
-  { key: "lastAppointmentDate", label: "Last Appointment Date", source: "Last Appt Date" },
+  { key: "lastAppointmentDate", label: "Graduation Date", source: "Last Appt Date" },
   { key: "assessmentScore", label: "Assessment Score", source: "Assessment Score" },
   { key: "willingnessScore", label: "Willingness Score", source: "Willingness Score" },
   { key: "gender", label: "Gender", source: "Gender" },
@@ -226,7 +226,7 @@ const referralCsvFieldMappings = [
   { key: "firstContactDate", label: "First Contact Date", source: "First Contact Date" },
   { key: "mostRecentContactDate", label: "Most Recent Contact Date", source: "Most Recent Contact Date" },
   { key: "firstAppointmentDate", label: "First Appointment Date", source: "First Appt Date" },
-  { key: "lastAppointmentDate", label: "Last Appointment Date", source: "Last Appt Date" },
+  { key: "lastAppointmentDate", label: "Graduation Date", source: "Last Appt Date" },
   { key: "assessmentScore", label: "Assessment Score", source: "Assessment Score" },
   { key: "willingnessScore", label: "Willingness Score", source: "Willingness Score" },
   { key: "gender", label: "Gender", source: "Gender" },
@@ -679,7 +679,7 @@ function todayDateString() {
 
 function hasFutureAppointment(client) {
   const today = todayDateString();
-  return [client.firstAppointmentDate, client.lastAppointmentDate].some((value) => value && value >= today);
+  return [client.firstAppointmentDate].some((value) => value && value >= today);
 }
 
 function knownReferralSources() {
@@ -888,9 +888,9 @@ function clientStatusGroupKey(status = "Scheduled") {
 function clientStatusSortIndex(client) {
   const status = client.status || "Scheduled";
   const order = [
+    "Needs Reschedule",
     "Scheduled",
     "Active",
-    "Needs Reschedule",
     "Needs Language Support",
     "Waiting on Family",
     "Graduated",
@@ -975,7 +975,7 @@ function renderDashboard() {
     ["Active", "Needs Reschedule"].includes(client.status || "Scheduled")
   );
   const clientFollowUps = loadedClients.filter((client) =>
-    ["Needs Reschedule", "Needs Language Support", "Waiting on Family"].includes(client.status || "Scheduled")
+    ["Needs Reschedule", "Needs Language Support"].includes(client.status || "Scheduled")
   );
   const clientsWithoutNextAppointment = loadedClients.filter((client) =>
     ["Active", "Needs Reschedule", "Waiting on Family", "Needs Language Support"].includes(client.status || "Scheduled") &&
@@ -1020,7 +1020,7 @@ function renderDashboard() {
     }))
   ].sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
 
-  renderDashboardList(dashboardFollowups, followupItems.slice(0, 6), "No follow-ups waiting.");
+  renderDashboardList(dashboardFollowups, followupItems, "No follow-ups waiting.");
 
   const newReferralItems = newReferrals
     .map((referral) => ({
@@ -1032,7 +1032,7 @@ function renderDashboard() {
     }))
     .sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
 
-  renderDashboardList(dashboardNewReferrals, newReferralItems.slice(0, 6), "No new referrals waiting.");
+  renderDashboardList(dashboardNewReferrals, newReferralItems, "No new referrals waiting.");
 
   const scheduledItems = scheduledClients
     .map((client) => ({
@@ -1044,23 +1044,32 @@ function renderDashboard() {
     }))
     .sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
 
-  renderDashboardList(dashboardScheduled, scheduledItems.slice(0, 6), "No clients currently scheduled.");
+  renderDashboardList(dashboardScheduled, scheduledItems, "No clients currently scheduled.");
 
   const noNextItems = clientsWithoutNextAppointment
     .map((client) => ({
       type: "Client",
       title: clientName(client),
-      detail: client.lastAppointmentDate ? `Last appt ${formatDateOnly(client.lastAppointmentDate)}` : client.status || "Active",
-      date: client.lastAppointmentDate || client.firstAppointmentDate || client.createdAt || "",
+      detail: client.status || "Active",
+      date: client.mostRecentContactDate || client.firstContactDate || client.referralDate || client.createdAt || "",
       action: () => setSelectedClient(client.id)
     }))
     .sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
 
-  renderDashboardList(dashboardNoNext, noNextItems.slice(0, 6), "No active clients missing an appointment.");
+  renderDashboardList(dashboardNoNext, noNextItems, "No active clients missing an appointment.");
 }
 
 function renderDashboardList(container, items, emptyText) {
   container.innerHTML = "";
+  const heading = container.closest(".dashboard-card")?.querySelector("h3");
+
+  if (heading) {
+    heading.querySelector(".dashboard-section-count")?.remove();
+    const count = document.createElement("span");
+    count.className = "dashboard-section-count";
+    count.textContent = String(items.length);
+    heading.append(count);
+  }
 
   if (!items.length) {
     const empty = document.createElement("p");
@@ -1660,7 +1669,8 @@ function renderReferralDetail() {
   addInlineDateField(trackingLeftColumn, "Most Recent Contact Date", referral.mostRecentContactDate, referral, "referrals", "mostRecentContactDate");
   addDetailField(trackingRightColumn, "Referral Type", displayValue(referral.referralType));
   addInlineDateField(trackingRightColumn, "First Appointment Date", referral.firstAppointmentDate, referral, "referrals", "firstAppointmentDate");
-  addInlineDateField(trackingRightColumn, "Last Appointment Date", referral.lastAppointmentDate, referral, "referrals", "lastAppointmentDate");
+  addInlineDateField(trackingRightColumn, "Graduation Date", referral.lastAppointmentDate, referral, "referrals", "lastAppointmentDate");
+  addDetailField(trackingRightColumn, "Most Recent Appointment", displayValue(referral.mostRecentAppointmentDate));
   trackingGrid.append(trackingLeftColumn, trackingRightColumn);
 
   const notes = document.createElement("section");
@@ -1817,7 +1827,8 @@ function renderClientDetail() {
   addDetailField(trackingRightColumn, "Converted Date", formatDateOnly(convertedDate.slice(0, 10)));
   addDetailField(trackingRightColumn, "Referral Type", displayValue(client.referralType));
   addInlineDateField(trackingRightColumn, "First Appointment Date", client.firstAppointmentDate, client, "clients", "firstAppointmentDate");
-  addInlineDateField(trackingRightColumn, "Last Appointment Date", client.lastAppointmentDate, client, "clients", "lastAppointmentDate");
+  addInlineDateField(trackingRightColumn, "Graduation Date", client.lastAppointmentDate, client, "clients", "lastAppointmentDate");
+  addDetailField(trackingRightColumn, "Most Recent Appointment", displayValue(client.mostRecentAppointmentDate));
   trackingGrid.append(trackingLeftColumn, trackingRightColumn);
 
   const notes = document.createElement("section");
@@ -3493,6 +3504,7 @@ function startEditingReferral(referral) {
   referralForm.elements.phone.value = referral.phone || "";
   referralForm.elements.email.value = referral.email || "";
   referralForm.elements.preferredLanguage.value = referral.preferredLanguage || "English";
+  referralForm.elements.status.value = normalizeStatus(referral.status);
   referralForm.elements.preferredContactMethod.value = referral.preferredContactMethod || "";
   referralForm.elements.referralType.value = referral.referralType || "Internal Clinic Referral";
   referralForm.elements.referralSource.value = referral.referralSource || "";

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SNACK CRM</title>
-    <link rel="stylesheet" href="./styles.css?v=20260602-network-import">
+    <link rel="stylesheet" href="./styles.css?v=20260602-polish-queue">
   </head>
   <body>
     <div class="app-shell">
@@ -191,7 +191,7 @@
                     Sort
                     <select id="sort-clients">
                       <option value="status">Status</option>
-                      <option value="last-appointment">Last Appointment</option>
+                      <option value="last-appointment">Graduation Date</option>
                       <option value="newest-client">Newest Client</option>
                       <option value="name">Name</option>
                     </select>
@@ -206,7 +206,7 @@
                 <div id="clients-table-head" class="table-head client-table-head" role="row">
                   <span role="columnheader">Status</span>
                   <span role="columnheader">Recent Contact</span>
-                  <span role="columnheader">Last Appointment</span>
+                  <span role="columnheader">Graduation Date</span>
                   <span role="columnheader">Client Name</span>
                   <span role="columnheader">Phone</span>
                   <span role="columnheader">Language</span>
@@ -275,6 +275,20 @@
                     <button id="cancel-edit" class="secondary-button" type="button" hidden>Cancel</button>
                   </div>
                 </div>
+                <label>
+                  Status
+                  <select id="referral-status" name="status">
+                    <option value="New">New</option>
+                    <option value="Texted">Texted</option>
+                    <option value="Left Voicemail">Left Voicemail</option>
+                    <option value="Emailed">Emailed</option>
+                    <option value="Requested Call Back">Requested Call Back</option>
+                    <option value="Caregiver Will Call Back">Caregiver Will Call Back</option>
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="Not Interested">Not Interested</option>
+                    <option value="Closed / No Further Outreach">Closed / No Further Outreach</option>
+                  </select>
+                </label>
                 <label>
                   <span class="label-text">Child First Name <span class="required-marker" aria-label="required">*</span></span>
                   <input id="first-name" name="firstName" autocomplete="given-name" required>
@@ -375,7 +389,7 @@
                   <input id="first-appointment-date" name="firstAppointmentDate" type="date">
                 </label>
                 <label>
-                  Last Appointment Date
+                  Graduation Date
                   <input id="last-appointment-date" name="lastAppointmentDate" type="date">
                 </label>
                 <label class="full-field">
@@ -539,7 +553,7 @@
             <input id="client-first-appointment-date" name="firstAppointmentDate" type="date">
           </label>
           <label>
-            Last Appointment Date
+            Graduation Date
             <input id="client-last-appointment-date" name="lastAppointmentDate" type="date">
           </label>
           <label class="full-field">
@@ -681,6 +695,6 @@
       </section>
     </div>
     <script src="./app-config.js"></script>
-    <script type="module" src="./app.js?v=20260602-network-import"></script>
+    <script type="module" src="./app.js?v=20260602-polish-queue"></script>
   </body>
 </html>
