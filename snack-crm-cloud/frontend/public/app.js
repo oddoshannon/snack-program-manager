@@ -25,7 +25,6 @@ const dashboardFollowups = document.querySelector("#dashboard-followups");
 const dashboardNewReferrals = document.querySelector("#dashboard-new-referrals");
 const dashboardScheduled = document.querySelector("#dashboard-scheduled");
 const dashboardNoNext = document.querySelector("#dashboard-no-next");
-const dashboardOldestFollowups = document.querySelector("#dashboard-oldest-followups");
 const referralForm = document.querySelector("#referral-form");
 const formTitle = document.querySelector("#form-title");
 const saveReferralButton = document.querySelector("#save-referral");
@@ -745,7 +744,6 @@ function renderDashboard() {
   dashboardNewReferrals.innerHTML = "";
   dashboardScheduled.innerHTML = "";
   dashboardNoNext.innerHTML = "";
-  dashboardOldestFollowups.innerHTML = "";
 
   const newReferrals = loadedReferrals.filter((referral) => normalizeStatus(referral.status) === "New");
   const referralFollowUps = loadedReferrals.filter((referral) =>
@@ -840,8 +838,6 @@ function renderDashboard() {
     .sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
 
   renderDashboardList(dashboardNoNext, noNextItems.slice(0, 6), "No active clients missing an appointment.");
-
-  renderDashboardList(dashboardOldestFollowups, followupItems.slice(0, 6), "No follow-ups waiting.");
 }
 
 function renderDashboardList(container, items, emptyText) {
@@ -2141,7 +2137,6 @@ onAuthStateChanged(auth, (user) => {
     dashboardNewReferrals.innerHTML = "";
     dashboardScheduled.innerHTML = "";
     dashboardNoNext.innerHTML = "";
-    dashboardOldestFollowups.innerHTML = "";
     referralSummary.innerHTML = "";
     clientSummary.innerHTML = "";
     referralDetail.innerHTML = "";
