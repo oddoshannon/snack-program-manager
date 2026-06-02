@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SNACK CRM</title>
-    <link rel="stylesheet" href="./styles.css?v=20260602-email-household">
+    <link rel="stylesheet" href="./styles.css?v=20260602-referral-import">
   </head>
   <body>
     <div class="app-shell">
@@ -79,6 +79,8 @@
               <h2 id="referrals-title">Referrals</h2>
             </div>
             <div class="header-actions">
+              <button id="import-referrals" class="secondary-button" type="button">Import CSV</button>
+              <input id="referral-csv-input" type="file" accept=".csv,text/csv" hidden>
               <button id="new-referral" type="button">New Referral</button>
             </div>
           </header>
@@ -590,6 +592,24 @@
       </section>
     </div>
 
+    <div id="referral-import-modal" class="modal-backdrop" hidden>
+      <section class="modal-card import-modal-card" role="dialog" aria-modal="true" aria-label="Referral import preview">
+        <div class="detail-heading">
+          <div>
+            <p class="eyebrow">Referral Import</p>
+            <h3>CSV Preview</h3>
+          </div>
+          <div class="form-actions">
+            <button id="confirm-referral-import" type="button" hidden>Import Referrals</button>
+            <button id="close-referral-import" class="secondary-button" type="button">Close</button>
+          </div>
+        </div>
+        <div id="referral-import-detail" class="import-preview-detail">
+          <p class="empty-state">Choose a Zoho referral or assessment CSV to preview it here.</p>
+        </div>
+      </section>
+    </div>
+
     <div id="network-modal" class="modal-backdrop" hidden>
       <section class="modal-card" role="dialog" aria-modal="true" aria-label="Referral network profile">
         <div id="network-detail" class="referral-detail"></div>
@@ -641,6 +661,6 @@
       </section>
     </div>
     <script src="./app-config.js"></script>
-    <script type="module" src="./app.js?v=20260602-email-household"></script>
+    <script type="module" src="./app.js?v=20260602-referral-import"></script>
   </body>
 </html>

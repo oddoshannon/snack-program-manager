@@ -346,7 +346,7 @@ app.get("/api/message", requireAuth, async (_request, response, next) => {
 
 app.get("/api/referrals", requireAuth, async (_request, response, next) => {
   try {
-    const snapshot = await referrals.orderBy("createdAt", "desc").limit(25).get();
+    const snapshot = await referrals.orderBy("createdAt", "desc").limit(200).get();
 
     response.json({
       referrals: snapshot.docs.map(toReferral)
@@ -971,6 +971,86 @@ app.post("/api/referrals", requireAuth, async (request, response, next) => {
 
     response.status(201).json({
       referral: toReferral(created)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/referrals/import", requireAuth, async (request, response, next) => {
+  try {
+    const referralRows = Array.isArray(request.body.referrals) ? request.body.referrals : [];
+
+    if (!referralRows.length) {
+      response.status(400).json({
+        error: "No referrals were provided for import."
+      });
+      return;
+    }
+
+    if (referralRows.length > 450) {
+      response.status(400).json({
+        error: "Import is limited to 450 referrals at a time."
+      });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const batch = firestore.batch();
+    const skipped = [];
+    let importedCount = 0;
+
+    referralRows.forEach((row, index) => {
+      const payload = cleanPersonPayload(row);
+      const status = normalizeStatus(row.status);
+      const rowNumber = Number(row.rowNumber) || index + 1;
+
+      if (!hasRequiredPersonFields(payload) || !payload.referralType) {
+        skipped.push({
+          rowNumber,
+          reason: "Missing required fields."
+        });
+        return;
+      }
+
+      if (!allowedReferralStatuses.has(status)) {
+        skipped.push({
+          rowNumber,
+          reason: "Referral status is not valid."
+        });
+        return;
+      }
+
+      if (!allowedReferralTypes.has(payload.referralType)) {
+        skipped.push({
+          rowNumber,
+          reason: "Referral type is not valid."
+        });
+        return;
+      }
+
+      const docRef = referrals.doc();
+      batch.set(docRef, {
+        ...payload,
+        status,
+        referralDate: payload.referralDate || now.slice(0, 10),
+        zohoRecordId: cleanString(row.zohoRecordId),
+        importedFrom: cleanString(row.importSource) || "Zoho CSV",
+        importedAt: now,
+        createdAt: now,
+        updatedAt: now,
+        createdBy: request.user.email
+      });
+      importedCount += 1;
+    });
+
+    if (importedCount > 0) {
+      await batch.commit();
+    }
+
+    response.status(201).json({
+      importedCount,
+      skipped
     });
   } catch (error) {
     next(error);

@@ -39,12 +39,18 @@ const referralSearchInput = document.querySelector("#referral-search");
 const statusFilterSelect = document.querySelector("#status-filter");
 const sortReferralsSelect = document.querySelector("#sort-referrals");
 const referralColumnOptions = document.querySelector("#referral-column-options");
+const importReferralsButton = document.querySelector("#import-referrals");
+const referralCsvInput = document.querySelector("#referral-csv-input");
 const referralSummary = document.querySelector("#referral-summary");
 const referralDetail = document.querySelector("#referral-detail");
 const referralModal = document.querySelector("#referral-modal");
 const closeReferralModalButton = document.querySelector("#close-referral-modal");
 const referralSourceInput = document.querySelector("#referral-source");
 const referralSourceOptions = document.querySelector("#referral-source-options");
+const referralImportModal = document.querySelector("#referral-import-modal");
+const referralImportDetail = document.querySelector("#referral-import-detail");
+const closeReferralImportButton = document.querySelector("#close-referral-import");
+const confirmReferralImportButton = document.querySelector("#confirm-referral-import");
 const clientsList = document.querySelector("#clients-list");
 const clientsTableHead = document.querySelector("#clients-table-head");
 const clientsStatusEl = document.querySelector("#clients-status");
@@ -199,6 +205,34 @@ const clientCsvFieldMappings = [
   { key: "notes", label: "Notes", source: "Note" },
   { key: "zohoRecordId", label: "Zoho Record ID", source: "Record Id" }
 ];
+const referralCsvFieldMappings = [
+  { key: "firstName", label: "Child First Name", source: "First Name", required: true },
+  { key: "lastName", label: "Child Last Name", source: "Last Name", required: true },
+  { key: "parentName", label: "Caregiver", source: "Parent Name", required: true },
+  { key: "phone", label: "Phone", source: "Mobile / Home Phone / Phone", required: true },
+  { key: "email", label: "Email", source: "Email" },
+  { key: "dateOfBirth", label: "Date of Birth", source: "Date of Birth" },
+  { key: "preferredLanguage", label: "Preferred Language", source: "Preferred Language", required: true },
+  { key: "status", label: "Status", source: "Referral Status / Contacted? / Status" },
+  { key: "referralType", label: "Referral Type", source: "Referral CSV or Assessment CSV", required: true },
+  { key: "referralSource", label: "Referral Source", source: "Referring Provider" },
+  { key: "referralDate", label: "Referral Date", source: "Referral Date" },
+  { key: "firstContactDate", label: "First Contact Date", source: "First Contact Date" },
+  { key: "mostRecentContactDate", label: "Most Recent Contact Date", source: "Most Recent Contact Date" },
+  { key: "firstAppointmentDate", label: "First Appointment Date", source: "First Appt Date" },
+  { key: "lastAppointmentDate", label: "Last Appointment Date", source: "Last Appt Date" },
+  { key: "assessmentScore", label: "Assessment Score", source: "Assessment Score" },
+  { key: "willingnessScore", label: "Willingness Score", source: "Willingness Score" },
+  { key: "gender", label: "Gender", source: "Gender" },
+  { key: "ycco", label: "YCCO", source: "YCCO" },
+  { key: "emailOptOut", label: "Email Opt Out", source: "Email Opt Out" },
+  { key: "addressStreet", label: "Street Address", source: "Street" },
+  { key: "addressCity", label: "City", source: "City" },
+  { key: "addressState", label: "State", source: "State" },
+  { key: "addressZip", label: "Zip Code", source: "Zip Code" },
+  { key: "notes", label: "Notes", source: "Note" },
+  { key: "zohoRecordId", label: "Zoho Record ID", source: "Record Id" }
+];
 const tableHeads = {
   referrals: referralsTableHead,
   clients: clientsTableHead
@@ -223,6 +257,7 @@ let loadedReferrals = [];
 let loadedClients = [];
 let loadedNetworkEntries = [];
 let latestClientImportAnalysis = null;
+let latestReferralImportAnalysis = null;
 const expandedNetworkEntryIds = new Set();
 let summaryFilter = "all";
 let clientSummaryFilter = "all";
@@ -2217,6 +2252,10 @@ function normalizeZohoClientStatus(status) {
   return zohoClientStatusMap[status] || status || "";
 }
 
+function normalizeZohoReferralStatus(status) {
+  return legacyStatusMap[status] || status || "New";
+}
+
 function mapZohoClientRow(row) {
   const phone = csvValue(row, "Mobile") || csvValue(row, "Home Phone");
   return {
@@ -2246,6 +2285,54 @@ function mapZohoClientRow(row) {
     notes: csvValue(row, "Note"),
     zohoRecordId: csvValue(row, "Record Id"),
     rawStatus: csvValue(row, "Status")
+  };
+}
+
+function isAssessmentCsv(columns) {
+  return columns.includes("Assessment Score") && columns.includes("Contacted?") && !columns.includes("Referral Status");
+}
+
+function mapZohoReferralRow(row, sourceType) {
+  const isAssessment = sourceType === "assessment";
+  const phone = csvValue(row, "Mobile") || csvValue(row, "Home Phone") || csvValue(row, "Phone");
+  const rawStatus = isAssessment ? csvValue(row, "Status") : csvValue(row, "Referral Status");
+  const contacted = /^true|yes|1$/i.test(csvValue(row, "Contacted?"));
+  const status = isAssessment
+    ? (rawStatus === "Not Interested" ? "Not Interested" : (contacted ? "Texted" : "New"))
+    : normalizeZohoReferralStatus(rawStatus);
+  const notes = [csvValue(row, "Note"), isAssessment && rawStatus ? `Assessment source status: ${rawStatus}` : ""]
+    .filter(Boolean)
+    .join("\n");
+
+  return {
+    firstName: csvValue(row, "First Name"),
+    lastName: csvValue(row, "Last Name"),
+    parentName: csvValue(row, "Parent Name"),
+    phone,
+    email: csvValue(row, "Email"),
+    dateOfBirth: normalizeCsvDate(csvValue(row, "Date of Birth")),
+    preferredLanguage: csvValue(row, "Preferred Language"),
+    status,
+    referralType: isAssessment ? "Nutrition Assessment" : "Internal Clinic Referral",
+    referralSource: csvValue(row, "Referring Provider"),
+    referralDate: normalizeCsvDate(csvValue(row, "Referral Date")),
+    firstContactDate: normalizeCsvDate(csvValue(row, "First Contact Date")),
+    mostRecentContactDate: normalizeCsvDate(csvValue(row, "Most Recent Contact Date")),
+    firstAppointmentDate: normalizeCsvDate(csvValue(row, "First Appt Date")),
+    lastAppointmentDate: normalizeCsvDate(csvValue(row, "Last Appt Date")),
+    assessmentScore: csvValue(row, "Assessment Score"),
+    willingnessScore: csvValue(row, "Willingness Score"),
+    gender: csvValue(row, "Gender") || "Unspecified",
+    ycco: csvValue(row, "YCCO"),
+    emailOptOut: /^true|yes|1$/i.test(csvValue(row, "Email Opt Out")),
+    addressStreet: csvValue(row, "Street"),
+    addressCity: csvValue(row, "City"),
+    addressState: csvValue(row, "State"),
+    addressZip: csvValue(row, "Zip Code"),
+    notes,
+    zohoRecordId: csvValue(row, "Record Id"),
+    importSource: isAssessment ? "Zoho Assessment CSV" : "Zoho Referral CSV",
+    rawStatus
   };
 }
 
@@ -2391,6 +2478,127 @@ function analyzeClientImport(rows, columns) {
   };
 }
 
+function analyzeReferralImport(rows, columns) {
+  const sourceType = isAssessmentCsv(columns) ? "assessment" : "referral";
+  const mappedReferrals = rows.map((row) => mapZohoReferralRow(row, sourceType));
+  const missingRequired = [];
+  const duplicateWarnings = [];
+  const householdWarnings = [];
+  const existingDuplicateKeys = new Map();
+  const existingEmailKeys = new Map();
+  const existingPhoneKeys = new Map();
+  const csvDuplicateKeys = new Map();
+  const csvEmailKeys = new Map();
+  const csvPhoneKeys = new Map();
+  const seenDuplicateWarnings = new Set();
+  const seenHouseholdWarnings = new Set();
+  const requiredMappings = referralCsvFieldMappings.filter((mapping) => mapping.required);
+
+  for (const record of [...loadedReferrals, ...loadedClients]) {
+    const keys = clientIdentityKeys(record);
+    const existingName = record.id && loadedClients.some((client) => client.id === record.id) ? clientName(record) : referralName(record);
+
+    if (keys.email && !existingEmailKeys.has(keys.email)) {
+      existingEmailKeys.set(keys.email, existingName);
+    }
+
+    if (keys.nameDob && !existingDuplicateKeys.has(`name-dob:${keys.nameDob}`)) {
+      existingDuplicateKeys.set(`name-dob:${keys.nameDob}`, existingName);
+    }
+
+    if (keys.phone && !existingPhoneKeys.has(keys.phone)) {
+      existingPhoneKeys.set(keys.phone, existingName);
+    }
+  }
+
+  mappedReferrals.forEach((referral, index) => {
+    const rowNumber = index + 2;
+    const missing = requiredMappings
+      .filter((mapping) => !referral[mapping.key])
+      .map((mapping) => mapping.label);
+
+    if (missing.length) {
+      missingRequired.push({
+        rowNumber,
+        name: referralName(referral),
+        missing
+      });
+    }
+
+    const keys = clientIdentityKeys(referral);
+    if (keys.nameDob) {
+      const key = `name-dob:${keys.nameDob}`;
+      if (existingDuplicateKeys.has(key)) {
+        addImportWarning(duplicateWarnings, seenDuplicateWarnings, {
+          rowNumber,
+          name: referralName(referral),
+          reason: `Possible duplicate of existing record ${existingDuplicateKeys.get(key)} (same name and date of birth)`
+        });
+      }
+
+      if (csvDuplicateKeys.has(key)) {
+        addImportWarning(duplicateWarnings, seenDuplicateWarnings, {
+          rowNumber,
+          name: referralName(referral),
+          reason: `Possible duplicate of CSV row ${csvDuplicateKeys.get(key)} (same name and date of birth)`
+        });
+      } else {
+        csvDuplicateKeys.set(key, rowNumber);
+      }
+    }
+
+    if (keys.email) {
+      if (existingEmailKeys.has(keys.email)) {
+        addImportWarning(householdWarnings, seenHouseholdWarnings, {
+          rowNumber,
+          name: referralName(referral),
+          reason: `Shares email with existing record ${existingEmailKeys.get(keys.email)}`
+        });
+      }
+
+      if (csvEmailKeys.has(keys.email)) {
+        addImportWarning(householdWarnings, seenHouseholdWarnings, {
+          rowNumber,
+          name: referralName(referral),
+          reason: `Shares email with CSV row ${csvEmailKeys.get(keys.email)}`
+        });
+      } else {
+        csvEmailKeys.set(keys.email, rowNumber);
+      }
+    }
+
+    if (keys.phone) {
+      if (existingPhoneKeys.has(keys.phone)) {
+        addImportWarning(householdWarnings, seenHouseholdWarnings, {
+          rowNumber,
+          name: referralName(referral),
+          reason: `Shares phone with existing record ${existingPhoneKeys.get(keys.phone)}`
+        });
+      }
+
+      if (csvPhoneKeys.has(keys.phone)) {
+        addImportWarning(householdWarnings, seenHouseholdWarnings, {
+          rowNumber,
+          name: referralName(referral),
+          reason: `Shares phone with CSV row ${csvPhoneKeys.get(keys.phone)}`
+        });
+      } else {
+        csvPhoneKeys.set(keys.phone, rowNumber);
+      }
+    }
+  });
+
+  return {
+    columns,
+    rows,
+    sourceType,
+    mappedReferrals,
+    missingRequired,
+    duplicateWarnings,
+    householdWarnings
+  };
+}
+
 function appendImportSection(parent, titleText) {
   const section = document.createElement("section");
   section.className = "import-preview-section";
@@ -2518,6 +2726,105 @@ function renderClientImportPreview(analysis, fileName) {
   previewSection.append(previewTable);
 }
 
+function renderReferralImportPreview(analysis, fileName) {
+  referralImportDetail.innerHTML = "";
+  const missingRowNumbers = new Set(analysis.missingRequired.map((warning) => warning.rowNumber));
+  const importableReferrals = analysis.mappedReferrals.filter((_, index) => !missingRowNumbers.has(index + 2));
+  confirmReferralImportButton.hidden = false;
+  confirmReferralImportButton.disabled = !importableReferrals.length;
+  confirmReferralImportButton.textContent = `Import ${importableReferrals.length} Referrals`;
+
+  const summary = document.createElement("div");
+  summary.className = "import-summary-grid";
+  for (const [label, value] of [
+    ["File", fileName],
+    ["Import type", analysis.sourceType === "assessment" ? "Assessments as referrals" : "Referrals"],
+    ["Total rows found", analysis.rows.length],
+    ["Ready to import", importableReferrals.length],
+    ["Columns detected", analysis.columns.length],
+    ["Missing required rows", analysis.missingRequired.length],
+    ["Duplicate warnings", analysis.duplicateWarnings.length],
+    ["Shared contact warnings", analysis.householdWarnings.length]
+  ]) {
+    const item = document.createElement("div");
+    item.className = "summary-item import-summary-item";
+    const valueEl = document.createElement("strong");
+    valueEl.textContent = value;
+    const labelEl = document.createElement("span");
+    labelEl.textContent = label;
+    item.append(valueEl, labelEl);
+    summary.append(item);
+  }
+  referralImportDetail.append(summary);
+
+  const columnsSection = appendImportSection(referralImportDetail, "Columns Detected");
+  appendSimpleList(columnsSection, analysis.columns, "No columns detected.");
+
+  const mappingSection = appendImportSection(referralImportDetail, "Field Mapping Summary");
+  const mappingGrid = document.createElement("div");
+  mappingGrid.className = "import-mapping-grid";
+  for (const header of ["CRM Field", "Zoho Column", "Requirement"]) {
+    const cell = document.createElement("strong");
+    cell.textContent = header;
+    mappingGrid.append(cell);
+  }
+  for (const mapping of referralCsvFieldMappings) {
+    const appField = document.createElement("span");
+    appField.textContent = mapping.label;
+    const sourceField = document.createElement("span");
+    sourceField.textContent = mapping.source;
+    const requirement = document.createElement("span");
+    requirement.textContent = mapping.required ? "Required" : "Optional";
+    mappingGrid.append(appField, sourceField, requirement);
+  }
+  mappingSection.append(mappingGrid);
+
+  const missingSection = appendImportSection(referralImportDetail, "Rows With Missing Required Values");
+  appendSimpleList(
+    missingSection,
+    analysis.missingRequired.map((warning) => `Row ${warning.rowNumber}: ${warning.name} missing ${warning.missing.join(", ")}`),
+    "No missing required values found."
+  );
+
+  const duplicateSection = appendImportSection(referralImportDetail, "Duplicate Warnings");
+  appendSimpleList(
+    duplicateSection,
+    analysis.duplicateWarnings.map((warning) => `Row ${warning.rowNumber}: ${warning.name} - ${warning.reason}`),
+    "No duplicate warnings found."
+  );
+
+  const householdSection = appendImportSection(referralImportDetail, "Shared Contact / Household Warnings");
+  appendSimpleList(
+    householdSection,
+    analysis.householdWarnings.map((warning) => `Row ${warning.rowNumber}: ${warning.name} - ${warning.reason}`),
+    "No shared contact warnings found."
+  );
+
+  const previewSection = appendImportSection(referralImportDetail, "Preview of First 10 Referrals");
+  const previewTable = document.createElement("div");
+  previewTable.className = "import-preview-table";
+  for (const header of ["Name", "Status", "Type", "Phone", "Caregiver", "Language"]) {
+    const cell = document.createElement("strong");
+    cell.textContent = header;
+    previewTable.append(cell);
+  }
+  for (const referral of analysis.mappedReferrals.slice(0, 10)) {
+    for (const value of [
+      referralName(referral),
+      displayValue(referral.status),
+      displayValue(referral.referralType),
+      displayValue(formatPhone(referral.phone)),
+      displayValue(referral.parentName),
+      displayValue(referral.preferredLanguage)
+    ]) {
+      const cell = document.createElement("span");
+      cell.textContent = value;
+      previewTable.append(cell);
+    }
+  }
+  previewSection.append(previewTable);
+}
+
 function openClientImportModal() {
   clientImportModal.hidden = false;
   document.body.classList.add("modal-open");
@@ -2528,11 +2835,31 @@ function closeClientImportModal() {
   document.body.classList.remove("modal-open");
 }
 
+function openReferralImportModal() {
+  referralImportModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeReferralImportModal() {
+  referralImportModal.hidden = true;
+  document.body.classList.remove("modal-open");
+}
+
 function importableClientsFromAnalysis(analysis) {
   const missingRowNumbers = new Set(analysis.missingRequired.map((warning) => warning.rowNumber));
   return analysis.mappedClients
     .map((client, index) => ({
       ...client,
+      rowNumber: index + 2
+    }))
+    .filter((_, index) => !missingRowNumbers.has(index + 2));
+}
+
+function importableReferralsFromAnalysis(analysis) {
+  const missingRowNumbers = new Set(analysis.missingRequired.map((warning) => warning.rowNumber));
+  return analysis.mappedReferrals
+    .map((referral, index) => ({
+      ...referral,
       rowNumber: index + 2
     }))
     .filter((_, index) => !missingRowNumbers.has(index + 2));
@@ -2629,6 +2956,100 @@ async function previewClientCsv(file) {
     console.error(error);
   } finally {
     clientCsvInput.value = "";
+  }
+}
+
+async function importPreviewedReferrals() {
+  if (!latestReferralImportAnalysis) {
+    referralsStatusEl.textContent = "Preview a CSV before importing referrals.";
+    return;
+  }
+
+  const referralsToImport = importableReferralsFromAnalysis(latestReferralImportAnalysis);
+
+  if (!referralsToImport.length) {
+    referralsStatusEl.textContent = "No valid referral rows are ready to import.";
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Import ${referralsToImport.length} referrals now? ` +
+    `${latestReferralImportAnalysis.duplicateWarnings.length} duplicate warning(s) and ` +
+    `${latestReferralImportAnalysis.householdWarnings.length} shared contact warning(s) will not block the import.`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  confirmReferralImportButton.disabled = true;
+  referralsStatusEl.textContent = "Importing referrals...";
+
+  try {
+    const response = await authedFetch("/api/referrals/import", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ referrals: referralsToImport })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    const result = await response.json();
+    referralsStatusEl.textContent = `Imported ${result.importedCount} referrals${result.skipped?.length ? `; skipped ${result.skipped.length}` : ""}.`;
+    latestReferralImportAnalysis = null;
+    confirmReferralImportButton.hidden = true;
+    await loadReferrals();
+    closeReferralImportModal();
+  } catch (error) {
+    referralsStatusEl.textContent = error.message || "Could not import referrals yet.";
+    console.error(error);
+  } finally {
+    confirmReferralImportButton.disabled = false;
+  }
+}
+
+async function previewReferralCsv(file) {
+  if (!file) {
+    return;
+  }
+
+  referralsStatusEl.textContent = `Previewing ${file.name}...`;
+
+  try {
+    const text = await file.text();
+    const parsed = parseCsv(text);
+
+    if (parsed.length < 2) {
+      throw new Error("The CSV does not contain any referral rows.");
+    }
+
+    const columns = parsed[0].map((column) => column.trim());
+    const rows = parsed.slice(1).map((values) =>
+      Object.fromEntries(columns.map((column, index) => [column, values[index] || ""]))
+    );
+    const analysis = analyzeReferralImport(rows, columns);
+    latestReferralImportAnalysis = analysis;
+    renderReferralImportPreview(analysis, file.name);
+    openReferralImportModal();
+    referralsStatusEl.textContent = "Referral import preview ready.";
+  } catch (error) {
+    latestReferralImportAnalysis = null;
+    confirmReferralImportButton.hidden = true;
+    referralsStatusEl.textContent = error.message || "Could not preview this CSV.";
+    referralImportDetail.innerHTML = "";
+    const message = document.createElement("p");
+    message.className = "empty-state";
+    message.textContent = error.message || "Could not preview this CSV.";
+    referralImportDetail.append(message);
+    openReferralImportModal();
+    console.error(error);
+  } finally {
+    referralCsvInput.value = "";
   }
 }
 
@@ -3510,6 +3931,7 @@ onAuthStateChanged(auth, (user) => {
     loadedNetworkEntries = [];
     referralForm.reset();
     closeReferralModal();
+    closeReferralImportModal();
     closeClientModal();
     closeNetworkModal();
   }
@@ -3524,6 +3946,9 @@ navClientsButton.addEventListener("click", () => setActiveModule("clients"));
 navReferralNetworkButton.addEventListener("click", () => setActiveModule("referral-network"));
 newReferralButton.addEventListener("click", startNewReferral);
 newClientButton.addEventListener("click", startNewClient);
+importReferralsButton.addEventListener("click", () => referralCsvInput.click());
+referralCsvInput.addEventListener("change", () => previewReferralCsv(referralCsvInput.files?.[0]));
+confirmReferralImportButton.addEventListener("click", importPreviewedReferrals);
 importClientsButton.addEventListener("click", () => clientCsvInput.click());
 clientCsvInput.addEventListener("change", () => previewClientCsv(clientCsvInput.files?.[0]));
 confirmClientImportButton.addEventListener("click", importPreviewedClients);
@@ -3584,6 +4009,7 @@ cancelNetworkEditButton.addEventListener("click", () => {
   closeNetworkModal();
 });
 closeReferralModalButton.addEventListener("click", closeReferralModal);
+closeReferralImportButton.addEventListener("click", closeReferralImportModal);
 closeClientImportButton.addEventListener("click", closeClientImportModal);
 referralModal.addEventListener("click", (event) => {
   if (event.target === referralModal) {
@@ -3598,6 +4024,11 @@ clientModal.addEventListener("click", (event) => {
 clientImportModal.addEventListener("click", (event) => {
   if (event.target === clientImportModal) {
     closeClientImportModal();
+  }
+});
+referralImportModal.addEventListener("click", (event) => {
+  if (event.target === referralImportModal) {
+    closeReferralImportModal();
   }
 });
 networkModal.addEventListener("click", (event) => {
