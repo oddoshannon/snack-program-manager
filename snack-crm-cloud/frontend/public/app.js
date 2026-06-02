@@ -60,6 +60,7 @@ const clientForm = document.querySelector("#client-form");
 const clientFormTitle = document.querySelector("#client-form-title");
 const saveClientButton = document.querySelector("#save-client");
 const cancelClientEditButton = document.querySelector("#cancel-client-edit");
+const clientReferralSourceInput = document.querySelector("#client-referral-source");
 const networkList = document.querySelector("#network-list");
 const networkStatusEl = document.querySelector("#network-status");
 const networkSearchInput = document.querySelector("#network-search");
@@ -568,6 +569,7 @@ function knownReferralSources() {
   return [
     ...new Set([
       ...loadedReferrals.map((referral) => referral.referralSource).filter(Boolean),
+      ...loadedClients.map((client) => client.referralSource).filter(Boolean),
       ...loadedNetworkEntries.map((entry) => entry.name).filter(Boolean),
       ...loadedNetworkEntries.flatMap((entry) => (entry.providers || []).map((provider) => provider.name)).filter(Boolean)
     ])
@@ -575,8 +577,9 @@ function knownReferralSources() {
     .sort((first, second) => first.localeCompare(second));
 }
 
-function renderReferralSourceOptions() {
-  const query = referralSourceInput.value.trim().toLowerCase();
+function renderReferralSourceOptions(event) {
+  const input = event?.target || referralSourceInput;
+  const query = input.value.trim().toLowerCase();
   const sources = knownReferralSources()
     .filter((source) => !query || source.toLowerCase().includes(query))
     .slice(0, 10);
@@ -2908,6 +2911,8 @@ clientForm.addEventListener("submit", saveClient);
 networkForm.addEventListener("submit", saveNetworkEntry);
 referralSourceInput.addEventListener("focus", renderReferralSourceOptions);
 referralSourceInput.addEventListener("input", renderReferralSourceOptions);
+clientReferralSourceInput.addEventListener("focus", renderReferralSourceOptions);
+clientReferralSourceInput.addEventListener("input", renderReferralSourceOptions);
 referralSearchInput.addEventListener("input", () => {
   renderReferralSummary();
   renderReferrals();
