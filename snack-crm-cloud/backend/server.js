@@ -358,7 +358,7 @@ app.get("/api/referrals", requireAuth, async (_request, response, next) => {
 
 app.get("/api/clients", requireAuth, async (_request, response, next) => {
   try {
-    const snapshot = await clients.orderBy("createdAt", "desc").limit(50).get();
+    const snapshot = await clients.orderBy("createdAt", "desc").limit(150).get();
 
     response.json({
       clients: snapshot.docs.map(toClient)
