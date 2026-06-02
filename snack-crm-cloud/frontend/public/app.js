@@ -52,6 +52,8 @@ const clientSearchInput = document.querySelector("#client-search");
 const clientStatusFilterSelect = document.querySelector("#client-status-filter");
 const sortClientsSelect = document.querySelector("#sort-clients");
 const clientColumnOptions = document.querySelector("#client-column-options");
+const importClientsButton = document.querySelector("#import-clients");
+const clientCsvInput = document.querySelector("#client-csv-input");
 const newClientButton = document.querySelector("#new-client");
 const clientSummary = document.querySelector("#client-summary");
 const clientModal = document.querySelector("#client-modal");
@@ -61,6 +63,9 @@ const clientFormTitle = document.querySelector("#client-form-title");
 const saveClientButton = document.querySelector("#save-client");
 const cancelClientEditButton = document.querySelector("#cancel-client-edit");
 const clientReferralSourceInput = document.querySelector("#client-referral-source");
+const clientImportModal = document.querySelector("#client-import-modal");
+const clientImportDetail = document.querySelector("#client-import-detail");
+const closeClientImportButton = document.querySelector("#close-client-import");
 const networkList = document.querySelector("#network-list");
 const networkStatusEl = document.querySelector("#network-status");
 const networkSearchInput = document.querySelector("#network-search");
@@ -123,6 +128,18 @@ const clientSummaryGroups = [
   { key: "graduated", label: "Graduated", statuses: ["Graduated"] },
   { key: "closed", label: "Closed", statuses: ["Inactive", "Closed"] }
 ];
+const zohoClientStatusMap = {
+  "Appts in Progress": "Active",
+  Graduated: "Graduated",
+  Inactive: "Inactive",
+  Interpreter: "Needs Language Support",
+  "On the Way Out": "Inactive",
+  "Parent Will Call When Ready": "Waiting on Family",
+  "Priority Reschedule": "Needs Reschedule",
+  Reschedule: "Needs Reschedule",
+  Scheduled: "Scheduled",
+  Sunrise: "Waiting on Family"
+};
 const clientStatusGroupColors = {
   Scheduled: "scheduled",
   Active: "new",
@@ -154,6 +171,33 @@ const tableColumns = {
     { key: "email", label: "Email", width: 230, render: (client) => client.email || "", muted: true }
   ]
 };
+const clientCsvFieldMappings = [
+  { key: "firstName", label: "Child First Name", source: "First Name", required: true },
+  { key: "lastName", label: "Child Last Name", source: "Last Name", required: true },
+  { key: "parentName", label: "Caregiver", source: "Parent Name", required: true },
+  { key: "phone", label: "Phone", source: "Mobile / Home Phone", required: true },
+  { key: "email", label: "Email", source: "Email" },
+  { key: "dateOfBirth", label: "Date of Birth", source: "Date of Birth" },
+  { key: "preferredLanguage", label: "Preferred Language", source: "Preferred Language", required: true },
+  { key: "status", label: "Status", source: "Status" },
+  { key: "referralSource", label: "Referral Source", source: "Referring Provider" },
+  { key: "referralDate", label: "Referral Date", source: "Referral Date" },
+  { key: "firstContactDate", label: "First Contact Date", source: "First Contact Date" },
+  { key: "mostRecentContactDate", label: "Most Recent Contact Date", source: "Most Recent Contact Date" },
+  { key: "firstAppointmentDate", label: "First Appointment Date", source: "First Appt Date" },
+  { key: "lastAppointmentDate", label: "Last Appointment Date", source: "Last Appt Date" },
+  { key: "assessmentScore", label: "Assessment Score", source: "Assessment Score" },
+  { key: "willingnessScore", label: "Willingness Score", source: "Willingness Score" },
+  { key: "gender", label: "Gender", source: "Gender" },
+  { key: "ycco", label: "YCCO", source: "YCCO" },
+  { key: "emailOptOut", label: "Email Opt Out", source: "Email Opt Out" },
+  { key: "addressStreet", label: "Street Address", source: "Mailing Street" },
+  { key: "addressCity", label: "City", source: "Mailing City" },
+  { key: "addressState", label: "State", source: "Mailing State" },
+  { key: "addressZip", label: "Zip Code", source: "Mailing Zip" },
+  { key: "notes", label: "Notes", source: "Note" },
+  { key: "zohoRecordId", label: "Zoho Record ID", source: "Record Id" }
+];
 const tableHeads = {
   referrals: referralsTableHead,
   clients: clientsTableHead
@@ -264,6 +308,29 @@ function formatListDate(value) {
   return value ? formatDateOnly(value) : "";
 }
 
+function normalizeCsvDate(value) {
+  const raw = String(value || "").trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return raw;
+  }
+
+  const match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+
+  if (!match) {
+    return "";
+  }
+
+  const year = match[3].length === 2 ? `20${match[3]}` : match[3];
+  const month = match[1].padStart(2, "0");
+  const day = match[2].padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function formatShortDate(value) {
   if (!value) {
     return "";
@@ -292,6 +359,11 @@ function formatPhone(value) {
   }
 
   return `(${normalized.slice(0, 3)}) ${normalized.slice(3, 6)}-${normalized.slice(6)}`;
+}
+
+function normalizePhoneKey(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
 }
 
 function displayValue(value) {
@@ -2092,6 +2164,318 @@ function addInlineDateField(container, label, value, record, moduleName, fieldNa
   container.append(group);
 }
 
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const nextChar = text[index + 1];
+
+    if (char === "\"") {
+      if (inQuotes && nextChar === "\"") {
+        cell += "\"";
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      row.push(cell);
+      cell = "";
+    } else if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && nextChar === "\n") {
+        index += 1;
+      }
+      row.push(cell);
+      if (row.some((value) => value.trim() !== "")) {
+        rows.push(row);
+      }
+      row = [];
+      cell = "";
+    } else {
+      cell += char;
+    }
+  }
+
+  row.push(cell);
+  if (row.some((value) => value.trim() !== "")) {
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+function csvValue(row, columnName) {
+  return String(row[columnName] || "").trim();
+}
+
+function normalizeZohoClientStatus(status) {
+  return zohoClientStatusMap[status] || status || "";
+}
+
+function mapZohoClientRow(row) {
+  const phone = csvValue(row, "Mobile") || csvValue(row, "Home Phone");
+  return {
+    firstName: csvValue(row, "First Name"),
+    lastName: csvValue(row, "Last Name"),
+    parentName: csvValue(row, "Parent Name"),
+    phone,
+    email: csvValue(row, "Email"),
+    dateOfBirth: normalizeCsvDate(csvValue(row, "Date of Birth")),
+    preferredLanguage: csvValue(row, "Preferred Language"),
+    status: normalizeZohoClientStatus(csvValue(row, "Status")),
+    referralSource: csvValue(row, "Referring Provider"),
+    referralDate: normalizeCsvDate(csvValue(row, "Referral Date")),
+    firstContactDate: normalizeCsvDate(csvValue(row, "First Contact Date")),
+    mostRecentContactDate: normalizeCsvDate(csvValue(row, "Most Recent Contact Date")),
+    firstAppointmentDate: normalizeCsvDate(csvValue(row, "First Appt Date")),
+    lastAppointmentDate: normalizeCsvDate(csvValue(row, "Last Appt Date")),
+    assessmentScore: csvValue(row, "Assessment Score"),
+    willingnessScore: csvValue(row, "Willingness Score"),
+    gender: csvValue(row, "Gender") || "Unspecified",
+    ycco: csvValue(row, "YCCO"),
+    emailOptOut: /^true|yes|1$/i.test(csvValue(row, "Email Opt Out")),
+    addressStreet: csvValue(row, "Mailing Street"),
+    addressCity: csvValue(row, "Mailing City"),
+    addressState: csvValue(row, "Mailing State"),
+    addressZip: csvValue(row, "Mailing Zip"),
+    notes: csvValue(row, "Note"),
+    zohoRecordId: csvValue(row, "Record Id"),
+    rawStatus: csvValue(row, "Status")
+  };
+}
+
+function clientDuplicateKeys(client) {
+  return [
+    client.email ? `email:${client.email.toLowerCase()}` : "",
+    normalizePhoneKey(client.phone).length >= 7 ? `phone:${normalizePhoneKey(client.phone)}` : "",
+    client.firstName && client.lastName && client.dateOfBirth
+      ? `name-dob:${client.firstName.toLowerCase()}|${client.lastName.toLowerCase()}|${client.dateOfBirth}`
+      : ""
+  ].filter(Boolean);
+}
+
+function analyzeClientImport(rows, columns) {
+  const mappedClients = rows.map(mapZohoClientRow);
+  const missingRequired = [];
+  const duplicateWarnings = [];
+  const existingKeys = new Map();
+  const csvKeys = new Map();
+  const requiredMappings = clientCsvFieldMappings.filter((mapping) => mapping.required);
+
+  for (const client of loadedClients) {
+    for (const key of clientDuplicateKeys(client)) {
+      if (!existingKeys.has(key)) {
+        existingKeys.set(key, clientName(client));
+      }
+    }
+  }
+
+  mappedClients.forEach((client, index) => {
+    const missing = requiredMappings
+      .filter((mapping) => !client[mapping.key])
+      .map((mapping) => mapping.label);
+
+    if (missing.length) {
+      missingRequired.push({
+        rowNumber: index + 2,
+        name: clientName(client),
+        missing
+      });
+    }
+
+    for (const key of clientDuplicateKeys(client)) {
+      if (existingKeys.has(key)) {
+        duplicateWarnings.push({
+          rowNumber: index + 2,
+          name: clientName(client),
+          reason: `Possible match with existing client ${existingKeys.get(key)}`
+        });
+      }
+
+      if (csvKeys.has(key)) {
+        duplicateWarnings.push({
+          rowNumber: index + 2,
+          name: clientName(client),
+          reason: `Possible duplicate of CSV row ${csvKeys.get(key)}`
+        });
+      } else {
+        csvKeys.set(key, index + 2);
+      }
+    }
+  });
+
+  return {
+    columns,
+    rows,
+    mappedClients,
+    missingRequired,
+    duplicateWarnings
+  };
+}
+
+function appendImportSection(parent, titleText) {
+  const section = document.createElement("section");
+  section.className = "import-preview-section";
+  const title = document.createElement("h4");
+  title.textContent = titleText;
+  section.append(title);
+  parent.append(section);
+  return section;
+}
+
+function appendSimpleList(parent, items, emptyText) {
+  if (!items.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = emptyText;
+    parent.append(empty);
+    return;
+  }
+
+  const list = document.createElement("ul");
+  list.className = "import-warning-list";
+  for (const item of items) {
+    const row = document.createElement("li");
+    row.textContent = item;
+    list.append(row);
+  }
+  parent.append(list);
+}
+
+function renderClientImportPreview(analysis, fileName) {
+  clientImportDetail.innerHTML = "";
+
+  const summary = document.createElement("div");
+  summary.className = "import-summary-grid";
+  for (const [label, value] of [
+    ["File", fileName],
+    ["Total rows found", analysis.rows.length],
+    ["Columns detected", analysis.columns.length],
+    ["Missing required rows", analysis.missingRequired.length],
+    ["Duplicate warnings", analysis.duplicateWarnings.length]
+  ]) {
+    const item = document.createElement("div");
+    item.className = "summary-item import-summary-item";
+    const valueEl = document.createElement("strong");
+    valueEl.textContent = value;
+    const labelEl = document.createElement("span");
+    labelEl.textContent = label;
+    item.append(valueEl, labelEl);
+    summary.append(item);
+  }
+  clientImportDetail.append(summary);
+
+  const columnsSection = appendImportSection(clientImportDetail, "Columns Detected");
+  appendSimpleList(columnsSection, analysis.columns, "No columns detected.");
+
+  const mappingSection = appendImportSection(clientImportDetail, "Field Mapping Summary");
+  const mappingGrid = document.createElement("div");
+  mappingGrid.className = "import-mapping-grid";
+  for (const header of ["CRM Field", "Zoho Column", "Requirement"]) {
+    const cell = document.createElement("strong");
+    cell.textContent = header;
+    mappingGrid.append(cell);
+  }
+  for (const mapping of clientCsvFieldMappings) {
+    const appField = document.createElement("span");
+    appField.textContent = mapping.label;
+    const sourceField = document.createElement("span");
+    sourceField.textContent = mapping.source;
+    const requirement = document.createElement("span");
+    requirement.textContent = mapping.required ? "Required" : "Optional";
+    mappingGrid.append(appField, sourceField, requirement);
+  }
+  mappingSection.append(mappingGrid);
+
+  const missingSection = appendImportSection(clientImportDetail, "Rows With Missing Required Values");
+  appendSimpleList(
+    missingSection,
+    analysis.missingRequired.map((warning) => `Row ${warning.rowNumber}: ${warning.name} missing ${warning.missing.join(", ")}`),
+    "No missing required values found."
+  );
+
+  const duplicateSection = appendImportSection(clientImportDetail, "Duplicate Warnings");
+  appendSimpleList(
+    duplicateSection,
+    analysis.duplicateWarnings.map((warning) => `Row ${warning.rowNumber}: ${warning.name} - ${warning.reason}`),
+    "No duplicate warnings found."
+  );
+
+  const previewSection = appendImportSection(clientImportDetail, "Preview of First 10 Clients");
+  const previewTable = document.createElement("div");
+  previewTable.className = "import-preview-table";
+  for (const header of ["Name", "Status", "Phone", "Caregiver", "Language", "Referral Source"]) {
+    const cell = document.createElement("strong");
+    cell.textContent = header;
+    previewTable.append(cell);
+  }
+  for (const client of analysis.mappedClients.slice(0, 10)) {
+    for (const value of [
+      clientName(client),
+      displayValue(client.status),
+      displayValue(formatPhone(client.phone)),
+      displayValue(client.parentName),
+      displayValue(client.preferredLanguage),
+      displayValue(client.referralSource)
+    ]) {
+      const cell = document.createElement("span");
+      cell.textContent = value;
+      previewTable.append(cell);
+    }
+  }
+  previewSection.append(previewTable);
+}
+
+function openClientImportModal() {
+  clientImportModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeClientImportModal() {
+  clientImportModal.hidden = true;
+  document.body.classList.remove("modal-open");
+}
+
+async function previewClientCsv(file) {
+  if (!file) {
+    return;
+  }
+
+  clientsStatusEl.textContent = `Previewing ${file.name}...`;
+
+  try {
+    const text = await file.text();
+    const parsed = parseCsv(text);
+
+    if (parsed.length < 2) {
+      throw new Error("The CSV does not contain any client rows.");
+    }
+
+    const columns = parsed[0].map((column) => column.trim());
+    const rows = parsed.slice(1).map((values) =>
+      Object.fromEntries(columns.map((column, index) => [column, values[index] || ""]))
+    );
+    const analysis = analyzeClientImport(rows, columns);
+    renderClientImportPreview(analysis, file.name);
+    openClientImportModal();
+    clientsStatusEl.textContent = "Client import preview ready.";
+  } catch (error) {
+    clientsStatusEl.textContent = error.message || "Could not preview this CSV.";
+    clientImportDetail.innerHTML = "";
+    const message = document.createElement("p");
+    message.className = "empty-state";
+    message.textContent = error.message || "Could not preview this CSV.";
+    clientImportDetail.append(message);
+    openClientImportModal();
+    console.error(error);
+  } finally {
+    clientCsvInput.value = "";
+  }
+}
+
 async function loadReferrals() {
   if (!currentUser) {
     referralsStatusEl.textContent = "";
@@ -2984,6 +3368,8 @@ navClientsButton.addEventListener("click", () => setActiveModule("clients"));
 navReferralNetworkButton.addEventListener("click", () => setActiveModule("referral-network"));
 newReferralButton.addEventListener("click", startNewReferral);
 newClientButton.addEventListener("click", startNewClient);
+importClientsButton.addEventListener("click", () => clientCsvInput.click());
+clientCsvInput.addEventListener("change", () => previewClientCsv(clientCsvInput.files?.[0]));
 newNetworkEntryButton.addEventListener("click", startNewNetworkEntry);
 referralForm.addEventListener("submit", saveReferral);
 clientForm.addEventListener("submit", saveClient);
@@ -3041,6 +3427,7 @@ cancelNetworkEditButton.addEventListener("click", () => {
   closeNetworkModal();
 });
 closeReferralModalButton.addEventListener("click", closeReferralModal);
+closeClientImportButton.addEventListener("click", closeClientImportModal);
 referralModal.addEventListener("click", (event) => {
   if (event.target === referralModal) {
     closeReferralModal();
@@ -3049,6 +3436,11 @@ referralModal.addEventListener("click", (event) => {
 clientModal.addEventListener("click", (event) => {
   if (event.target === clientModal) {
     closeClientModal();
+  }
+});
+clientImportModal.addEventListener("click", (event) => {
+  if (event.target === clientImportModal) {
+    closeClientImportModal();
   }
 });
 networkModal.addEventListener("click", (event) => {

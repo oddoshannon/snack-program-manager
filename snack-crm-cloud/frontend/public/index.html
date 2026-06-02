@@ -151,6 +151,8 @@
               <h2 id="clients-title">Clients</h2>
             </div>
             <div class="header-actions">
+              <button id="import-clients" class="secondary-button" type="button">Import CSV</button>
+              <input id="client-csv-input" type="file" accept=".csv,text/csv" hidden>
               <button id="new-client" type="button">New Client</button>
             </div>
           </header>
@@ -567,6 +569,23 @@
             <textarea id="client-notes" name="notes" rows="5"></textarea>
           </label>
         </form>
+      </section>
+    </div>
+
+    <div id="client-import-modal" class="modal-backdrop" hidden>
+      <section class="modal-card import-modal-card" role="dialog" aria-modal="true" aria-label="Client import preview">
+        <div class="detail-heading">
+          <div>
+            <p class="eyebrow">Client Import</p>
+            <h3>CSV Preview</h3>
+          </div>
+          <div class="form-actions">
+            <button id="close-client-import" class="secondary-button" type="button">Close</button>
+          </div>
+        </div>
+        <div id="client-import-detail" class="import-preview-detail">
+          <p class="empty-state">Choose a Zoho CSV from the Clients page to preview it here.</p>
+        </div>
       </section>
     </div>
 

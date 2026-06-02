@@ -1201,6 +1201,94 @@ dd {
   box-shadow: 0 28px 70px rgba(23, 33, 38, 0.25);
 }
 
+.import-modal-card {
+  width: min(1180px, calc(100vw - 48px));
+}
+
+.import-preview-detail {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.import-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.import-summary-item {
+  min-height: 64px;
+}
+
+.import-summary-item strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import-preview-section {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.import-preview-section h4 {
+  margin-bottom: 0;
+}
+
+.import-warning-list {
+  max-height: 180px;
+  margin: 0;
+  padding-left: 20px;
+  overflow: auto;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.import-mapping-grid,
+.import-preview-table {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.import-mapping-grid {
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(100px, 0.5fr);
+}
+
+.import-preview-table {
+  grid-template-columns:
+    minmax(160px, 1fr)
+    minmax(130px, 0.8fr)
+    minmax(130px, 0.8fr)
+    minmax(150px, 0.9fr)
+    minmax(120px, 0.7fr)
+    minmax(180px, 1.1fr);
+}
+
+.import-mapping-grid > *,
+.import-preview-table > * {
+  min-width: 0;
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  padding: 10px 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import-mapping-grid > strong,
+.import-preview-table > strong {
+  background: #fbfcfb;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
 .icon-button {
   position: static;
   min-height: 42px;
