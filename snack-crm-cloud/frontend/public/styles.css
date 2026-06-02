@@ -907,12 +907,15 @@ dd {
 .referral-form {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: 56px;
+  row-gap: 12px;
 }
 
 .referral-form > label {
+  grid-column: var(--field-column, auto);
   grid-template-columns: minmax(150px, 0.92fr) minmax(0, 1fr);
   gap: 22px;
   align-items: center;
+  order: var(--field-order, 50);
 }
 
 .referral-form > label > .label-text,
@@ -937,8 +940,163 @@ dd {
 }
 
 .referral-form > .full-field {
+  --field-column: 1 / -1;
   grid-template-columns: 1fr;
   text-align: left;
+}
+
+.referral-form > label:has(#first-name),
+.referral-form > label:has(#client-first-name) {
+  --field-column: 1;
+  --field-order: 10;
+}
+
+.referral-form > label:has(#last-name),
+.referral-form > label:has(#client-last-name) {
+  --field-column: 1;
+  --field-order: 11;
+}
+
+.referral-form > label:has(#date-of-birth),
+.referral-form > label:has(#client-date-of-birth) {
+  --field-column: 1;
+  --field-order: 12;
+}
+
+.referral-form > label:has(#gender),
+.referral-form > label:has(#client-gender) {
+  --field-column: 1;
+  --field-order: 13;
+}
+
+.referral-form > label:has(#parent-name),
+.referral-form > label:has(#client-parent-name) {
+  --field-column: 1;
+  --field-order: 14;
+}
+
+.referral-form > label:has(#email),
+.referral-form > label:has(#client-email) {
+  --field-column: 1;
+  --field-order: 15;
+}
+
+.referral-form > label:has(#phone),
+.referral-form > label:has(#client-phone) {
+  --field-column: 1;
+  --field-order: 16;
+}
+
+.referral-form > label:has(#preferred-language),
+.referral-form > label:has(#client-preferred-language) {
+  --field-column: 1;
+  --field-order: 17;
+}
+
+.referral-form > label:has(#referral-type),
+.referral-form > label:has(#client-referral-type) {
+  --field-column: 1;
+  --field-order: 18;
+}
+
+.referral-form > label:has(#referral-source),
+.referral-form > label:has(#client-referral-source) {
+  --field-column: 1;
+  --field-order: 19;
+}
+
+.referral-form > label:has(#ycco),
+.referral-form > label:has(#client-ycco) {
+  --field-column: 1;
+  --field-order: 20;
+}
+
+.referral-form > label:has(#assessment-score),
+.referral-form > label:has(#client-assessment-score) {
+  --field-column: 2;
+  --field-order: 10;
+}
+
+.referral-form > label:has(#willingness-score),
+.referral-form > label:has(#client-willingness-score) {
+  --field-column: 2;
+  --field-order: 11;
+}
+
+.referral-form > label:has(#client-status) {
+  --field-column: 2;
+  --field-order: 12;
+}
+
+.referral-form > label:has(#preferred-contact-method),
+.referral-form > label:has(#client-preferred-contact-method) {
+  --field-column: 2;
+  --field-order: 13;
+}
+
+.referral-form > .checkbox-row {
+  --field-column: 1 / -1;
+  order: 14;
+}
+
+.referral-form > label:has(#referral-date),
+.referral-form > label:has(#client-referral-date) {
+  --field-column: 1;
+  --field-order: 30;
+}
+
+.referral-form > label:has(#first-contact-date),
+.referral-form > label:has(#client-first-contact-date) {
+  --field-column: 1;
+  --field-order: 31;
+}
+
+.referral-form > label:has(#most-recent-contact-date),
+.referral-form > label:has(#client-most-recent-contact-date) {
+  --field-column: 1;
+  --field-order: 32;
+}
+
+.referral-form > label:has(#first-appointment-date),
+.referral-form > label:has(#client-first-appointment-date) {
+  --field-column: 2;
+  --field-order: 30;
+}
+
+.referral-form > label:has(#last-appointment-date),
+.referral-form > label:has(#client-last-appointment-date) {
+  --field-column: 2;
+  --field-order: 31;
+}
+
+.referral-form > label:has(#address-street),
+.referral-form > label:has(#client-address-street) {
+  --field-column: 1 / -1;
+  --field-order: 40;
+}
+
+.referral-form > label:has(#address-city),
+.referral-form > label:has(#client-address-city) {
+  --field-column: 1;
+  --field-order: 41;
+}
+
+.referral-form > label:has(#address-state),
+.referral-form > label:has(#client-address-state) {
+  --field-column: 2;
+  --field-order: 41;
+}
+
+.referral-form > label:has(#address-zip),
+.referral-form > label:has(#client-address-zip) {
+  --field-column: 1;
+  --field-order: 42;
+}
+
+.referral-form > label:has(#notes),
+.referral-form > label:has(#client-notes) {
+  --field-column: 1 / -1;
+  --field-order: 50;
 }
 
 .inline-date-input {
