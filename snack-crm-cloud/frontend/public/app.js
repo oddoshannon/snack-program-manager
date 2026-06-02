@@ -1,10 +1,9 @@
-import { getApps, initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import {
   GoogleAuthProvider,
   getAuth,
-  getRedirectResult,
   onAuthStateChanged,
-  signInWithRedirect,
+  signInWithPopup,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 
@@ -132,31 +131,12 @@ const outreachContactEventSelect = document.querySelector("#outreach-contact-eve
 const saveOutreachContactButton = document.querySelector("#save-outreach-contact");
 const cancelOutreachContactEditButton = document.querySelector("#cancel-outreach-contact-edit");
 
-const app = getApps()[0] || initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
+const app = initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
-const signInAttemptKey = "snack-program-manager-sign-in-attempt";
-provider.setCustomParameters({ prompt: "select_account" });
-
-if (localStorage.getItem(signInAttemptKey)) {
-  statusEl.textContent = "Checking Google sign-in result...";
-}
-
-window.addEventListener("error", (event) => {
-  if (statusEl) {
-    statusEl.textContent = `App startup error: ${event.message}`;
-  }
-});
-
-window.addEventListener("unhandledrejection", (event) => {
-  if (statusEl) {
-    statusEl.textContent = `App startup error: ${event.reason?.message || event.reason || "Unknown error"}`;
-  }
-});
 
 signOutButton.addEventListener("click", signOutUser);
 refreshButton.addEventListener("click", loadMessage);
-window.SNACK_MAIN_SIGNIN_READY = true;
 
 const legacyStatusMap = {
   new: "New",
@@ -5244,11 +5224,9 @@ async function convertReferralToClient(referral) {
 
 async function signIn() {
   try {
-    localStorage.setItem(signInAttemptKey, "1");
     statusEl.textContent = "Opening Google sign-in...";
-    await signInWithRedirect(auth, provider);
+    await signInWithPopup(auth, provider);
   } catch (error) {
-    localStorage.removeItem(signInAttemptKey);
     statusEl.textContent = "Sign-in did not finish.";
     messageEl.textContent = "Check that Google sign-in is enabled in Firebase Authentication.";
     console.error(error);
@@ -5257,7 +5235,6 @@ async function signIn() {
 
 async function signOutUser() {
   try {
-    localStorage.removeItem(signInAttemptKey);
     await signOut(auth);
   } catch (error) {
     statusEl.textContent = "Could not sign out yet.";
@@ -5265,32 +5242,9 @@ async function signOutUser() {
   }
 }
 
-async function checkRedirectSignInResult() {
-  if (!localStorage.getItem(signInAttemptKey)) {
-    return;
-  }
+window.snackSignIn = signIn;
 
-  try {
-    const result = await getRedirectResult(auth);
-
-    if (result?.user) {
-      localStorage.removeItem(signInAttemptKey);
-      statusEl.textContent = `Signed in as ${result.user.email}.`;
-      return;
-    }
-
-    if (!auth.currentUser) {
-      statusEl.textContent = "Google sign-in returned without an account. Try again, or send me this line.";
-    }
-  } catch (error) {
-    localStorage.removeItem(signInAttemptKey);
-    statusEl.textContent = `Google sign-in error: ${error.code || error.message}`;
-    messageEl.textContent = error.message || "Google sign-in did not finish.";
-    console.error(error);
-  }
-}
-
-function handleAuthState(user) {
+onAuthStateChanged(auth, (user) => {
   currentUser = user;
   const signedIn = Boolean(user);
 
@@ -5308,7 +5262,6 @@ function handleAuthState(user) {
   userEl.textContent = signedIn ? `Signed in as ${user.email}` : "Please sign in with your SNACK Google account.";
 
   if (signedIn) {
-    localStorage.removeItem(signInAttemptKey);
     setActiveModule(activeModule);
     loadMessage();
     loadReferrals();
@@ -5318,9 +5271,7 @@ function handleAuthState(user) {
     loadOutreachContacts();
   } else {
     messageEl.textContent = "";
-    if (!localStorage.getItem(signInAttemptKey)) {
-      statusEl.textContent = "Sign in to load the database message.";
-    }
+    statusEl.textContent = "Sign in to load the database message.";
     referralsStatusEl.textContent = "";
     clientsStatusEl.textContent = "";
     networkStatusEl.textContent = "";
@@ -5368,14 +5319,7 @@ function handleAuthState(user) {
     closeOutreachModal();
     closeOutreachContactModal();
   }
-}
-
-async function initializeAuthState() {
-  await checkRedirectSignInResult();
-  onAuthStateChanged(auth, handleAuthState);
-}
-
-initializeAuthState();
+});
 
 navDailyWorkflowButton.addEventListener("click", () => setActiveModule("daily-workflow"));
 navCrmButton.addEventListener("click", () => setActiveModule("crm"));
