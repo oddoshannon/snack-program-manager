@@ -835,10 +835,40 @@ dd {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.referral-form > label {
+  grid-template-columns: minmax(150px, 0.92fr) minmax(0, 1fr);
+  gap: 22px;
+  align-items: center;
+}
+
+.referral-form > label > .label-text,
+.referral-form > label {
+  text-align: right;
+}
+
+.referral-form > label > input,
+.referral-form > label > select,
+.referral-form > label > textarea {
+  text-align: left;
+}
+
 .referral-form .detail-heading,
 .full-field,
 .form-actions {
   grid-column: 1 / -1;
+}
+
+.referral-form > .full-field {
+  grid-template-columns: 1fr;
+  text-align: left;
+}
+
+.inline-date-input {
+  width: 145px;
+  min-height: 30px;
+  padding: 4px 8px;
+  color: var(--ink);
+  font-size: 0.88rem;
 }
 
 .form-actions button {

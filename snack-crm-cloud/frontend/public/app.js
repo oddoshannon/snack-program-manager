@@ -1386,7 +1386,7 @@ function renderReferralDetail() {
   rightColumn.className = "detail-column";
 
   addDetailField(leftColumn, "Client Name", referralName(referral));
-  addDetailField(leftColumn, "Date of Birth", formatDateOnly(referral.dateOfBirth));
+  addInlineDateField(leftColumn, "Date of Birth", referral.dateOfBirth, referral, "referrals", "dateOfBirth");
   addDetailField(leftColumn, "Gender", displayValue(referral.gender));
   addDetailField(leftColumn, "Caregiver", displayValue(referral.parentName));
   addDetailField(leftColumn, "Email", displayValue(referral.email));
@@ -1416,13 +1416,13 @@ function renderReferralDetail() {
   const trackingRightColumn = document.createElement("dl");
   trackingRightColumn.className = "detail-column";
 
-  addDetailField(trackingLeftColumn, "Referral Date", formatDateOnly(referral.referralDate));
+  addInlineDateField(trackingLeftColumn, "Referral Date", referral.referralDate, referral, "referrals", "referralDate");
   addDetailField(trackingLeftColumn, "Created Date", formatDateOnly((referral.createdAt || "").slice(0, 10)));
-  addDetailField(trackingLeftColumn, "First Contact Date", formatDateOnly(referral.firstContactDate));
-  addDetailField(trackingLeftColumn, "Most Recent Contact Date", formatDateOnly(referral.mostRecentContactDate));
+  addInlineDateField(trackingLeftColumn, "First Contact Date", referral.firstContactDate, referral, "referrals", "firstContactDate");
+  addInlineDateField(trackingLeftColumn, "Most Recent Contact Date", referral.mostRecentContactDate, referral, "referrals", "mostRecentContactDate");
   addDetailField(trackingRightColumn, "Referral Type", displayValue(referral.referralType));
-  addDetailField(trackingRightColumn, "First Appointment Date", formatDateOnly(referral.firstAppointmentDate));
-  addDetailField(trackingRightColumn, "Last Appointment Date", formatDateOnly(referral.lastAppointmentDate));
+  addInlineDateField(trackingRightColumn, "First Appointment Date", referral.firstAppointmentDate, referral, "referrals", "firstAppointmentDate");
+  addInlineDateField(trackingRightColumn, "Last Appointment Date", referral.lastAppointmentDate, referral, "referrals", "lastAppointmentDate");
   trackingGrid.append(trackingLeftColumn, trackingRightColumn);
 
   const notes = document.createElement("section");
@@ -1532,7 +1532,7 @@ function renderClientDetail() {
   rightColumn.className = "detail-column";
 
   addDetailField(leftColumn, "Client Name", clientName(client));
-  addDetailField(leftColumn, "Date of Birth", formatDateOnly(client.dateOfBirth));
+  addInlineDateField(leftColumn, "Date of Birth", client.dateOfBirth, client, "clients", "dateOfBirth");
   addDetailField(leftColumn, "Gender", displayValue(client.gender));
   addDetailField(leftColumn, "Caregiver", displayValue(client.parentName));
   addDetailField(leftColumn, "Email", displayValue(client.email));
@@ -1562,15 +1562,15 @@ function renderClientDetail() {
   const trackingRightColumn = document.createElement("dl");
   trackingRightColumn.className = "detail-column";
 
-  addDetailField(trackingLeftColumn, "Referral Date", formatDateOnly(client.referralDate));
+  addInlineDateField(trackingLeftColumn, "Referral Date", client.referralDate, client, "clients", "referralDate");
   addDetailField(trackingLeftColumn, "Created Date", formatDateOnly((client.createdAt || "").slice(0, 10)));
-  addDetailField(trackingLeftColumn, "First Contact Date", formatDateOnly(client.firstContactDate));
-  addDetailField(trackingLeftColumn, "Most Recent Contact Date", formatDateOnly(client.mostRecentContactDate));
+  addInlineDateField(trackingLeftColumn, "First Contact Date", client.firstContactDate, client, "clients", "firstContactDate");
+  addInlineDateField(trackingLeftColumn, "Most Recent Contact Date", client.mostRecentContactDate, client, "clients", "mostRecentContactDate");
   const convertedDate = client.convertedAt || (client.sourceReferralId ? client.createdAt : "");
   addDetailField(trackingRightColumn, "Converted Date", formatDateOnly(convertedDate.slice(0, 10)));
   addDetailField(trackingRightColumn, "Referral Type", displayValue(client.referralType));
-  addDetailField(trackingRightColumn, "First Appointment Date", formatDateOnly(client.firstAppointmentDate));
-  addDetailField(trackingRightColumn, "Last Appointment Date", formatDateOnly(client.lastAppointmentDate));
+  addInlineDateField(trackingRightColumn, "First Appointment Date", client.firstAppointmentDate, client, "clients", "firstAppointmentDate");
+  addInlineDateField(trackingRightColumn, "Last Appointment Date", client.lastAppointmentDate, client, "clients", "lastAppointmentDate");
   trackingGrid.append(trackingLeftColumn, trackingRightColumn);
 
   const notes = document.createElement("section");
@@ -1792,6 +1792,22 @@ function addDetailField(container, label, value) {
   term.textContent = label;
   const description = document.createElement("dd");
   description.textContent = value;
+  group.append(term, description);
+  container.append(group);
+}
+
+function addInlineDateField(container, label, value, record, moduleName, fieldName) {
+  const group = document.createElement("div");
+  const term = document.createElement("dt");
+  term.textContent = label;
+  const description = document.createElement("dd");
+  const input = document.createElement("input");
+  input.className = "inline-date-input";
+  input.type = "date";
+  input.value = value || "";
+  input.setAttribute("aria-label", label);
+  input.addEventListener("change", () => updateInlineDate(record, moduleName, fieldName, input.value));
+  description.append(input);
   group.append(term, description);
   container.append(group);
 }
@@ -2366,6 +2382,48 @@ async function updateClientStatus(client, status) {
     clientsStatusEl.textContent = error.message || "Could not update client status yet.";
     console.error(error);
     await loadClients();
+  }
+}
+
+async function updateInlineDate(record, moduleName, fieldName, value) {
+  const isClient = moduleName === "clients";
+  const statusElement = isClient ? clientsStatusEl : referralsStatusEl;
+  statusElement.textContent = "Updating date...";
+
+  try {
+    const response = await authedFetch(`/api/${moduleName}/${encodeURIComponent(record.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ [fieldName]: value })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    if (isClient) {
+      selectedClientId = record.id;
+      statusElement.textContent = "Client date updated.";
+      await loadClients();
+      return;
+    }
+
+    selectedReferralId = record.id;
+    statusElement.textContent = "Referral date updated.";
+    await loadReferrals();
+  } catch (error) {
+    statusElement.textContent = error.message || "Could not update date yet.";
+    console.error(error);
+
+    if (isClient) {
+      await loadClients();
+      return;
+    }
+
+    await loadReferrals();
   }
 }
 
