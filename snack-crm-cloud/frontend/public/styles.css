@@ -368,9 +368,10 @@ h4 {
 .dashboard-item-meta {
   flex: 0 0 auto;
   border-radius: 999px;
-  padding: 4px 8px;
+  padding: 3px 7px;
   background: var(--accent-soft);
   color: var(--accent-dark);
+  font-size: 0.76rem;
   font-weight: 800;
 }
 
@@ -606,6 +607,16 @@ textarea {
   background: #ffffff;
   color: var(--ink);
   text-align: left;
+}
+
+.network-table-head,
+.network-row {
+  grid-template-columns:
+    minmax(110px, 0.7fr)
+    minmax(190px, 1.25fr)
+    minmax(160px, 1fr)
+    minmax(140px, 0.9fr)
+    minmax(220px, 1.35fr);
 }
 
 .referral-row:hover,

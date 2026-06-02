@@ -17,9 +17,11 @@ const signedOutPanel = document.querySelector("#signed-out-panel");
 const dashboardPanel = document.querySelector("#dashboard-panel");
 const referralsPanel = document.querySelector("#referrals-panel");
 const clientsPanel = document.querySelector("#clients-panel");
+const referralNetworkPanel = document.querySelector("#referral-network-panel");
 const navDashboardButton = document.querySelector("#nav-dashboard");
 const navReferralsButton = document.querySelector("#nav-referrals");
 const navClientsButton = document.querySelector("#nav-clients");
+const navReferralNetworkButton = document.querySelector("#nav-referral-network");
 const dashboardSummary = document.querySelector("#dashboard-summary");
 const dashboardFollowups = document.querySelector("#dashboard-followups");
 const dashboardNewReferrals = document.querySelector("#dashboard-new-referrals");
@@ -58,6 +60,16 @@ const clientForm = document.querySelector("#client-form");
 const clientFormTitle = document.querySelector("#client-form-title");
 const saveClientButton = document.querySelector("#save-client");
 const cancelClientEditButton = document.querySelector("#cancel-client-edit");
+const networkList = document.querySelector("#network-list");
+const networkStatusEl = document.querySelector("#network-status");
+const networkSearchInput = document.querySelector("#network-search");
+const newNetworkEntryButton = document.querySelector("#new-network-entry");
+const networkModal = document.querySelector("#network-modal");
+const networkDetail = document.querySelector("#network-detail");
+const networkForm = document.querySelector("#network-form");
+const networkFormTitle = document.querySelector("#network-form-title");
+const saveNetworkEntryButton = document.querySelector("#save-network-entry");
+const cancelNetworkEditButton = document.querySelector("#cancel-network-edit");
 
 const app = initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
@@ -159,8 +171,11 @@ let editingReferralId = null;
 let selectedReferralId = null;
 let selectedClientId = null;
 let editingClientId = null;
+let selectedNetworkEntryId = null;
+let editingNetworkEntryId = null;
 let loadedReferrals = [];
 let loadedClients = [];
+let loadedNetworkEntries = [];
 let summaryFilter = "all";
 let clientSummaryFilter = "all";
 let activeModule = "dashboard";
@@ -245,6 +260,25 @@ function formatDateOnly(value) {
 
 function formatListDate(value) {
   return value ? formatDateOnly(value) : "";
+}
+
+function formatShortDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  const normalized = String(value).includes("T") ? String(value).slice(0, 10) : value;
+  const date = new Date(`${normalized}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "numeric",
+    day: "numeric",
+    year: "2-digit"
+  }).format(date);
 }
 
 function formatPhone(value) {
@@ -531,7 +565,12 @@ function hasFutureAppointment(client) {
 }
 
 function knownReferralSources() {
-  return [...new Set(loadedReferrals.map((referral) => referral.referralSource).filter(Boolean))]
+  return [
+    ...new Set([
+      ...loadedReferrals.map((referral) => referral.referralSource).filter(Boolean),
+      ...loadedNetworkEntries.map((entry) => entry.name).filter(Boolean)
+    ])
+  ]
     .sort((first, second) => first.localeCompare(second));
 }
 
@@ -625,6 +664,37 @@ function clientMatchesSearch(client) {
     client.referralSource,
     client.status,
     client.notes
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return searchable.includes(query);
+}
+
+function networkEntryName(entry) {
+  return entry.name || "Unnamed network entry";
+}
+
+function getSelectedNetworkEntry() {
+  return loadedNetworkEntries.find((entry) => entry.id === selectedNetworkEntryId) || null;
+}
+
+function networkEntryMatchesSearch(entry) {
+  const query = networkSearchInput.value.trim().toLowerCase();
+
+  if (!query) {
+    return true;
+  }
+
+  const searchable = [
+    entry.name,
+    entry.type,
+    entry.contactName,
+    entry.phone,
+    entry.email,
+    entry.website,
+    entry.notes
   ]
     .filter(Boolean)
     .join(" ")
@@ -866,7 +936,8 @@ function renderDashboardList(container, items, emptyText) {
 
     const meta = document.createElement("span");
     meta.className = "dashboard-item-meta";
-    meta.textContent = item.type;
+    const shortDate = formatShortDate(item.date);
+    meta.textContent = [shortDate, item.type].filter(Boolean).join(" · ");
 
     button.append(content, meta);
     container.append(button);
@@ -913,25 +984,36 @@ function setActiveModule(moduleName) {
   const showDashboard = moduleName === "dashboard";
   const showReferrals = moduleName === "referrals";
   const showClients = moduleName === "clients";
+  const showReferralNetwork = moduleName === "referral-network";
   dashboardPanel.hidden = !showDashboard;
   referralsPanel.hidden = !showReferrals;
   clientsPanel.hidden = !showClients;
+  referralNetworkPanel.hidden = !showReferralNetwork;
   navDashboardButton.classList.toggle("active", showDashboard);
   navReferralsButton.classList.toggle("active", showReferrals);
   navClientsButton.classList.toggle("active", showClients);
+  navReferralNetworkButton.classList.toggle("active", showReferralNetwork);
   navDashboardButton.setAttribute("aria-current", showDashboard ? "page" : "false");
   navReferralsButton.setAttribute("aria-current", showReferrals ? "page" : "false");
   navClientsButton.setAttribute("aria-current", showClients ? "page" : "false");
+  navReferralNetworkButton.setAttribute("aria-current", showReferralNetwork ? "page" : "false");
 
   if (showDashboard) {
     closeReferralModal();
     closeClientModal();
+    closeNetworkModal();
     renderDashboard();
   } else if (showClients) {
     closeReferralModal();
+    closeNetworkModal();
     renderClients();
+  } else if (showReferralNetwork) {
+    closeReferralModal();
+    closeClientModal();
+    renderReferralNetwork();
   } else {
     closeClientModal();
+    closeNetworkModal();
     renderReferrals();
   }
 }
@@ -962,6 +1044,33 @@ function setSelectedClient(clientId) {
   openClientModal();
   renderClients();
   renderClientDetail();
+}
+
+function openNetworkModal() {
+  networkModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeNetworkModal() {
+  networkModal.hidden = true;
+  document.body.classList.remove("modal-open");
+  selectedNetworkEntryId = null;
+  editingNetworkEntryId = null;
+  networkForm.reset();
+  networkForm.hidden = true;
+  networkDetail.hidden = false;
+  renderReferralNetwork();
+}
+
+function setSelectedNetworkEntry(entryId) {
+  selectedNetworkEntryId = entryId;
+  editingNetworkEntryId = null;
+  networkForm.reset();
+  networkForm.hidden = true;
+  networkDetail.hidden = false;
+  openNetworkModal();
+  renderReferralNetwork();
+  renderNetworkDetail();
 }
 
 function statusBadge(status = "New") {
@@ -1070,6 +1179,55 @@ function renderClients() {
     row.append(...columns.map((column) => renderCell(column, client)));
     row.addEventListener("click", () => setSelectedClient(client.id));
     clientsList.append(row);
+  }
+}
+
+function renderReferralNetwork() {
+  networkList.innerHTML = "";
+  const entries = loadedNetworkEntries
+    .filter(networkEntryMatchesSearch)
+    .sort((first, second) => networkEntryName(first).localeCompare(networkEntryName(second)));
+
+  if (selectedNetworkEntryId && !entries.some((entry) => entry.id === selectedNetworkEntryId)) {
+    selectedNetworkEntryId = null;
+  }
+
+  if (!entries.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = loadedNetworkEntries.length ? "No network entries match the current search." : "No referral network entries yet.";
+    networkList.append(empty);
+    return;
+  }
+
+  for (const entry of entries) {
+    const row = document.createElement("button");
+    row.className = "referral-row network-row";
+    row.type = "button";
+    row.setAttribute("role", "row");
+    row.setAttribute("aria-label", `Open ${networkEntryName(entry)}`);
+
+    if (entry.id === selectedNetworkEntryId) {
+      row.classList.add("selected");
+      row.setAttribute("aria-current", "true");
+    }
+
+    for (const value of [
+      entry.type || "",
+      networkEntryName(entry),
+      entry.contactName || "",
+      formatPhone(entry.phone),
+      entry.email || ""
+    ]) {
+      const cell = document.createElement("span");
+      cell.className = "table-cell";
+      cell.setAttribute("role", "cell");
+      cell.textContent = value;
+      row.append(cell);
+    }
+
+    row.addEventListener("click", () => setSelectedNetworkEntry(entry.id));
+    networkList.append(row);
   }
 }
 
@@ -1426,6 +1584,86 @@ function renderClientDetail() {
   clientDetail.append(heading, statusLabel, infoGrid, trackingTitle, trackingGrid, renderSiblingsSection(client, "clients"), notes);
 }
 
+function renderNetworkDetail() {
+  if (!networkForm.hidden) {
+    networkDetail.hidden = true;
+    return;
+  }
+
+  networkDetail.hidden = false;
+  networkDetail.innerHTML = "";
+  const entry = getSelectedNetworkEntry();
+
+  if (!loadedNetworkEntries.length) {
+    networkDetail.append(emptyDetail("Create the first referral network entry.", "New Network Entry", startNewNetworkEntry));
+    return;
+  }
+
+  if (!entry) {
+    networkDetail.append(emptyDetail("No network entry matches the current list view.", null, null));
+    return;
+  }
+
+  const heading = document.createElement("div");
+  heading.className = "detail-heading";
+
+  const titleWrap = document.createElement("div");
+  const eyebrow = document.createElement("p");
+  eyebrow.className = "eyebrow";
+  eyebrow.textContent = "Referral Network";
+  const title = document.createElement("h3");
+  title.textContent = networkEntryName(entry);
+  titleWrap.append(eyebrow, title);
+
+  const actions = document.createElement("div");
+  actions.className = "detail-actions";
+  const editButton = document.createElement("button");
+  editButton.className = "secondary-button";
+  editButton.type = "button";
+  editButton.textContent = "Edit";
+  editButton.addEventListener("click", () => startEditingNetworkEntry(entry));
+
+  const deleteButton = document.createElement("button");
+  deleteButton.className = "danger-button";
+  deleteButton.type = "button";
+  deleteButton.textContent = "Delete";
+  deleteButton.addEventListener("click", () => deleteNetworkEntry(entry));
+
+  const closeButton = document.createElement("button");
+  closeButton.className = "secondary-button";
+  closeButton.type = "button";
+  closeButton.textContent = "Close";
+  closeButton.addEventListener("click", closeNetworkModal);
+  actions.append(editButton, deleteButton, closeButton);
+  heading.append(titleWrap, actions);
+
+  const infoGrid = document.createElement("div");
+  infoGrid.className = "detail-grid";
+  const leftColumn = document.createElement("dl");
+  leftColumn.className = "detail-column";
+  const rightColumn = document.createElement("dl");
+  rightColumn.className = "detail-column";
+
+  addDetailField(leftColumn, "Name", networkEntryName(entry));
+  addDetailField(leftColumn, "Type", displayValue(entry.type));
+  addDetailField(leftColumn, "Contact Name", displayValue(entry.contactName));
+  addDetailField(leftColumn, "Phone", displayValue(formatPhone(entry.phone)));
+  addDetailField(rightColumn, "Email", displayValue(entry.email));
+  addDetailField(rightColumn, "Website", displayValue(entry.website));
+  addDetailField(rightColumn, "Created Date", formatDateOnly((entry.createdAt || "").slice(0, 10)));
+  infoGrid.append(leftColumn, rightColumn);
+
+  const notes = document.createElement("section");
+  notes.className = "notes-panel";
+  const notesTitle = document.createElement("h4");
+  notesTitle.textContent = "Notes";
+  const notesText = document.createElement("p");
+  notesText.textContent = entry.notes || "-";
+  notes.append(notesTitle, notesText);
+
+  networkDetail.append(heading, infoGrid, notes);
+}
+
 function renderSiblingsSection(record, moduleName) {
   const records = moduleName === "clients" ? loadedClients : loadedReferrals;
   const getName = moduleName === "clients" ? clientName : referralName;
@@ -1623,6 +1861,37 @@ async function loadClients() {
   }
 }
 
+async function loadReferralNetwork() {
+  if (!currentUser) {
+    networkStatusEl.textContent = "";
+    networkList.innerHTML = "";
+    networkDetail.innerHTML = "";
+    return;
+  }
+
+  networkStatusEl.textContent = "Loading referral network...";
+
+  try {
+    const response = await authedFetch("/api/referral-network");
+
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    loadedNetworkEntries = data.entries;
+    renderReferralNetwork();
+    renderReferralSourceOptions();
+    if (!networkModal.hidden && selectedNetworkEntryId) {
+      renderNetworkDetail();
+    }
+    networkStatusEl.textContent = "";
+  } catch (error) {
+    networkStatusEl.textContent = "Could not load referral network yet.";
+    console.error(error);
+  }
+}
+
 async function saveReferral(event) {
   event.preventDefault();
 
@@ -1814,6 +2083,121 @@ async function saveClient(event) {
     console.error(error);
   } finally {
     saveClientButton.disabled = false;
+  }
+}
+
+async function saveNetworkEntry(event) {
+  event.preventDefault();
+
+  if (!currentUser) {
+    networkStatusEl.textContent = "Sign in before saving a network entry.";
+    return;
+  }
+
+  const formData = new FormData(networkForm);
+  const entry = Object.fromEntries(formData.entries());
+  const isEditing = Boolean(editingNetworkEntryId);
+
+  networkStatusEl.textContent = isEditing ? "Updating network entry..." : "Saving network entry...";
+  saveNetworkEntryButton.disabled = true;
+
+  try {
+    const path = isEditing ? `/api/referral-network/${encodeURIComponent(editingNetworkEntryId)}` : "/api/referral-network";
+    const response = await authedFetch(path, {
+      method: isEditing ? "PATCH" : "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(entry)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    selectedNetworkEntryId = data.entry?.id || editingNetworkEntryId;
+    networkForm.reset();
+    networkStatusEl.textContent = isEditing ? "Network entry updated." : "Network entry saved.";
+    await loadReferralNetwork();
+    networkForm.hidden = true;
+    networkDetail.hidden = false;
+    renderNetworkDetail();
+  } catch (error) {
+    networkStatusEl.textContent = error.message || "Could not save network entry yet.";
+    console.error(error);
+  } finally {
+    saveNetworkEntryButton.disabled = false;
+  }
+}
+
+function startNewNetworkEntry() {
+  editingNetworkEntryId = null;
+  selectedNetworkEntryId = null;
+  networkForm.reset();
+  networkFormTitle.textContent = "New Network Entry";
+  saveNetworkEntryButton.textContent = "Save entry";
+  cancelNetworkEditButton.hidden = false;
+  networkForm.hidden = false;
+  networkDetail.hidden = true;
+  openNetworkModal();
+  networkStatusEl.textContent = "Creating a new network entry.";
+}
+
+function startEditingNetworkEntry(entry) {
+  editingNetworkEntryId = entry.id;
+  selectedNetworkEntryId = entry.id;
+  networkForm.elements.name.value = entry.name || "";
+  networkForm.elements.type.value = entry.type || "";
+  networkForm.elements.contactName.value = entry.contactName || "";
+  networkForm.elements.phone.value = entry.phone || "";
+  networkForm.elements.email.value = entry.email || "";
+  networkForm.elements.website.value = entry.website || "";
+  networkForm.elements.notes.value = entry.notes || "";
+  networkFormTitle.textContent = `Edit ${networkEntryName(entry)}`;
+  saveNetworkEntryButton.textContent = "Update entry";
+  cancelNetworkEditButton.hidden = false;
+  networkForm.hidden = false;
+  networkDetail.hidden = true;
+  openNetworkModal();
+  networkStatusEl.textContent = `Editing ${networkEntryName(entry)}.`;
+}
+
+function stopEditingNetworkEntry() {
+  editingNetworkEntryId = null;
+  networkForm.reset();
+  networkForm.hidden = true;
+  networkDetail.hidden = false;
+  renderNetworkDetail();
+}
+
+async function deleteNetworkEntry(entry) {
+  const confirmed = window.confirm(`Delete ${networkEntryName(entry)}? This cannot be undone.`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  networkStatusEl.textContent = "Deleting network entry...";
+
+  try {
+    const response = await authedFetch(`/api/referral-network/${encodeURIComponent(entry.id)}`, {
+      method: "DELETE"
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    selectedNetworkEntryId = null;
+    closeNetworkModal();
+    networkStatusEl.textContent = "Network entry deleted.";
+    await loadReferralNetwork();
+  } catch (error) {
+    networkStatusEl.textContent = error.message || "Could not delete network entry yet.";
+    console.error(error);
   }
 }
 
@@ -2118,6 +2502,7 @@ onAuthStateChanged(auth, (user) => {
   dashboardPanel.hidden = !signedIn;
   referralsPanel.hidden = true;
   clientsPanel.hidden = true;
+  referralNetworkPanel.hidden = true;
   userEl.textContent = signedIn ? `Signed in as ${user.email}` : "Please sign in with your SNACK Google account.";
 
   if (signedIn) {
@@ -2125,13 +2510,16 @@ onAuthStateChanged(auth, (user) => {
     loadMessage();
     loadReferrals();
     loadClients();
+    loadReferralNetwork();
   } else {
     messageEl.textContent = "";
     statusEl.textContent = "Sign in to load the database message.";
     referralsStatusEl.textContent = "";
     clientsStatusEl.textContent = "";
+    networkStatusEl.textContent = "";
     referralsList.innerHTML = "";
     clientsList.innerHTML = "";
+    networkList.innerHTML = "";
     dashboardSummary.innerHTML = "";
     dashboardFollowups.innerHTML = "";
     dashboardNewReferrals.innerHTML = "";
@@ -2141,13 +2529,17 @@ onAuthStateChanged(auth, (user) => {
     clientSummary.innerHTML = "";
     referralDetail.innerHTML = "";
     clientDetail.innerHTML = "";
+    networkDetail.innerHTML = "";
     selectedReferralId = null;
     selectedClientId = null;
+    selectedNetworkEntryId = null;
     loadedReferrals = [];
     loadedClients = [];
+    loadedNetworkEntries = [];
     referralForm.reset();
     closeReferralModal();
     closeClientModal();
+    closeNetworkModal();
   }
 });
 
@@ -2157,10 +2549,13 @@ refreshButton.addEventListener("click", loadMessage);
 navDashboardButton.addEventListener("click", () => setActiveModule("dashboard"));
 navReferralsButton.addEventListener("click", () => setActiveModule("referrals"));
 navClientsButton.addEventListener("click", () => setActiveModule("clients"));
+navReferralNetworkButton.addEventListener("click", () => setActiveModule("referral-network"));
 newReferralButton.addEventListener("click", startNewReferral);
 newClientButton.addEventListener("click", startNewClient);
+newNetworkEntryButton.addEventListener("click", startNewNetworkEntry);
 referralForm.addEventListener("submit", saveReferral);
 clientForm.addEventListener("submit", saveClient);
+networkForm.addEventListener("submit", saveNetworkEntry);
 referralSourceInput.addEventListener("focus", renderReferralSourceOptions);
 referralSourceInput.addEventListener("input", renderReferralSourceOptions);
 referralSearchInput.addEventListener("input", () => {
@@ -2183,6 +2578,7 @@ clientStatusFilterSelect.addEventListener("change", () => {
   renderClients();
 });
 sortClientsSelect.addEventListener("change", renderClients);
+networkSearchInput.addEventListener("input", renderReferralNetwork);
 cancelEditButton.addEventListener("click", () => {
   referralForm.reset();
   if (selectedReferralId) {
@@ -2201,6 +2597,15 @@ cancelClientEditButton.addEventListener("click", () => {
   }
   closeClientModal();
 });
+cancelNetworkEditButton.addEventListener("click", () => {
+  networkForm.reset();
+  if (selectedNetworkEntryId) {
+    stopEditingNetworkEntry();
+    networkStatusEl.textContent = "";
+    return;
+  }
+  closeNetworkModal();
+});
 closeReferralModalButton.addEventListener("click", closeReferralModal);
 referralModal.addEventListener("click", (event) => {
   if (event.target === referralModal) {
@@ -2210,6 +2615,11 @@ referralModal.addEventListener("click", (event) => {
 clientModal.addEventListener("click", (event) => {
   if (event.target === clientModal) {
     closeClientModal();
+  }
+});
+networkModal.addEventListener("click", (event) => {
+  if (event.target === networkModal) {
+    closeNetworkModal();
   }
 });
 document.addEventListener("click", (event) => {

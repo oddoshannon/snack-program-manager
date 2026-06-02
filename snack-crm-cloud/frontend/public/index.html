@@ -20,6 +20,7 @@
           <button id="nav-dashboard" class="nav-item active" type="button" aria-current="page">Dashboard</button>
           <button id="nav-referrals" class="nav-item" type="button">Referrals</button>
           <button id="nav-clients" class="nav-item" type="button">Clients</button>
+          <button id="nav-referral-network" class="nav-item" type="button">Referral Network</button>
         </nav>
         <div class="sidebar-footer">
           <p id="user" class="user">Please sign in with your SNACK Google account.</p>
@@ -209,6 +210,45 @@
                   <span role="columnheader">Email</span>
                 </div>
                 <div id="clients-list" class="referrals-list" role="rowgroup"></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="referral-network-panel" class="referrals-panel" aria-labelledby="referral-network-title" hidden>
+          <header class="workspace-header">
+            <div>
+              <p class="eyebrow">CRM</p>
+              <h2 id="referral-network-title">Referral Network</h2>
+            </div>
+            <div class="header-actions">
+              <button id="new-network-entry" type="button">New Network Entry</button>
+            </div>
+          </header>
+
+          <div class="referrals-layout">
+            <section class="list-panel" aria-label="Referral network list">
+              <div class="list-toolbar">
+                <div>
+                  <h3>Referral Network</h3>
+                  <p id="network-status" class="status" aria-live="polite"></p>
+                </div>
+                <div class="filters network-filters">
+                  <label>
+                    Search
+                    <input id="network-search" type="search" autocomplete="off">
+                  </label>
+                </div>
+              </div>
+              <div class="referrals-table" role="table" aria-label="Referral Network">
+                <div class="table-head network-table-head" role="row">
+                  <span role="columnheader">Type</span>
+                  <span role="columnheader">Name</span>
+                  <span role="columnheader">Contact</span>
+                  <span role="columnheader">Phone</span>
+                  <span role="columnheader">Email</span>
+                </div>
+                <div id="network-list" class="referrals-list" role="rowgroup"></div>
               </div>
             </section>
           </div>
@@ -527,6 +567,59 @@
           <label class="full-field">
             Notes
             <textarea id="client-notes" name="notes" rows="5"></textarea>
+          </label>
+        </form>
+      </section>
+    </div>
+
+    <div id="network-modal" class="modal-backdrop" hidden>
+      <section class="modal-card" role="dialog" aria-modal="true" aria-label="Referral network profile">
+        <div id="network-detail" class="referral-detail"></div>
+        <form id="network-form" class="referral-form" hidden>
+          <div class="detail-heading">
+            <div>
+              <p class="eyebrow">Referral Network</p>
+              <h3 id="network-form-title">New Network Entry</h3>
+            </div>
+            <div class="form-actions">
+              <button id="save-network-entry" type="submit">Save entry</button>
+              <button id="cancel-network-edit" class="secondary-button" type="button" hidden>Cancel</button>
+            </div>
+          </div>
+          <label>
+            <span class="label-text">Name <span class="required-marker" aria-label="required">*</span></span>
+            <input id="network-name" name="name" required>
+          </label>
+          <label>
+            Type
+            <select id="network-type" name="type">
+              <option value="">Not set</option>
+              <option value="Clinic">Clinic</option>
+              <option value="Provider">Provider</option>
+              <option value="Community Org">Community Org</option>
+              <option value="Event/Class">Event/Class</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+          <label>
+            Contact Name
+            <input id="network-contact-name" name="contactName">
+          </label>
+          <label>
+            Phone
+            <input id="network-phone" name="phone" autocomplete="tel">
+          </label>
+          <label>
+            Email
+            <input id="network-email" name="email" type="email" autocomplete="email">
+          </label>
+          <label>
+            Website
+            <input id="network-website" name="website">
+          </label>
+          <label class="full-field">
+            Notes
+            <textarea id="network-notes" name="notes" rows="5"></textarea>
           </label>
         </form>
       </section>

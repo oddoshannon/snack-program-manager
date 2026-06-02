@@ -52,6 +52,7 @@ const firestore = projectId ? new Firestore({ projectId }) : new Firestore();
 const messages = firestore.collection("messages");
 const referrals = firestore.collection("referrals");
 const clients = firestore.collection("clients");
+const referralNetwork = firestore.collection("referralNetwork");
 const firebaseJwtKeys = createRemoteJWKSet(
   new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
 );
@@ -219,6 +220,23 @@ function toClient(snapshot) {
   };
 }
 
+function toReferralNetworkEntry(snapshot) {
+  const data = snapshot.data();
+
+  return {
+    id: snapshot.id,
+    name: data.name,
+    type: data.type,
+    contactName: data.contactName,
+    phone: data.phone,
+    email: data.email,
+    website: data.website,
+    notes: data.notes,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt
+  };
+}
+
 function cleanPersonPayload(body) {
   return {
     firstName: cleanString(body.firstName),
@@ -246,6 +264,18 @@ function cleanPersonPayload(body) {
     ycco: cleanString(body.ycco),
     assessmentScore: cleanOptionalNumber(body.assessmentScore),
     willingnessScore: cleanOptionalNumber(body.willingnessScore),
+    notes: cleanString(body.notes)
+  };
+}
+
+function cleanReferralNetworkPayload(body) {
+  return {
+    name: cleanString(body.name),
+    type: cleanString(body.type),
+    contactName: cleanString(body.contactName),
+    phone: cleanString(body.phone),
+    email: cleanString(body.email),
+    website: cleanString(body.website),
     notes: cleanString(body.notes)
   };
 }
@@ -303,6 +333,125 @@ app.get("/api/clients", requireAuth, async (_request, response, next) => {
     response.json({
       clients: snapshot.docs.map(toClient)
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/referral-network", requireAuth, async (_request, response, next) => {
+  try {
+    const snapshot = await referralNetwork.orderBy("name").limit(100).get();
+
+    response.json({
+      entries: snapshot.docs.map(toReferralNetworkEntry)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/referral-network", requireAuth, async (request, response, next) => {
+  try {
+    const payload = cleanReferralNetworkPayload(request.body);
+    const now = new Date().toISOString();
+
+    if (!payload.name) {
+      response.status(400).json({
+        error: "Referral network name is required."
+      });
+      return;
+    }
+
+    const docRef = await referralNetwork.add({
+      ...payload,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: request.user.email
+    });
+    const created = await docRef.get();
+
+    response.status(201).json({
+      entry: toReferralNetworkEntry(created)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/referral-network/:entryId", requireAuth, async (request, response, next) => {
+  try {
+    const entryId = cleanString(request.params.entryId);
+
+    if (!entryId) {
+      response.status(400).json({
+        error: "Referral network entry ID is required."
+      });
+      return;
+    }
+
+    const docRef = referralNetwork.doc(entryId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Referral network entry was not found."
+      });
+      return;
+    }
+
+    const updates = {
+      updatedAt: new Date().toISOString(),
+      updatedBy: request.user.email
+    };
+
+    for (const field of ["name", "type", "contactName", "phone", "email", "website", "notes"]) {
+      if (Object.hasOwn(request.body, field)) {
+        updates[field] = cleanString(request.body[field]);
+      }
+    }
+
+    if (Object.hasOwn(updates, "name") && !updates.name) {
+      response.status(400).json({
+        error: "Referral network name is required."
+      });
+      return;
+    }
+
+    await docRef.update(updates);
+    const updated = await docRef.get();
+
+    response.json({
+      entry: toReferralNetworkEntry(updated)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/referral-network/:entryId", requireAuth, async (request, response, next) => {
+  try {
+    const entryId = cleanString(request.params.entryId);
+
+    if (!entryId) {
+      response.status(400).json({
+        error: "Referral network entry ID is required."
+      });
+      return;
+    }
+
+    const docRef = referralNetwork.doc(entryId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Referral network entry was not found."
+      });
+      return;
+    }
+
+    await docRef.delete();
+
+    response.status(204).send();
   } catch (error) {
     next(error);
   }
