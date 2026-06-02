@@ -629,11 +629,9 @@ textarea {
 .network-table-head,
 .network-row {
   grid-template-columns:
-    minmax(110px, 0.7fr)
     minmax(190px, 1.25fr)
     minmax(160px, 1fr)
-    minmax(140px, 0.9fr)
-    minmax(220px, 1.35fr);
+    minmax(140px, 0.9fr);
 }
 
 .network-section-heading {
@@ -908,6 +906,7 @@ dd {
 
 .referral-form {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 56px;
 }
 
 .referral-form > label {
@@ -919,6 +918,10 @@ dd {
 .referral-form > label > .label-text,
 .referral-form > label {
   text-align: right;
+}
+
+.referral-form > label > .label-text {
+  justify-content: flex-end;
 }
 
 .referral-form > label > input,

@@ -242,11 +242,9 @@
               </div>
               <div class="referrals-table" role="table" aria-label="Referral Network">
                 <div class="table-head network-table-head" role="row">
-                  <span role="columnheader">Referral Type</span>
                   <span role="columnheader">Organization</span>
                   <span role="columnheader">Providers</span>
                   <span role="columnheader">Phone</span>
-                  <span role="columnheader">Email</span>
                 </div>
                 <div id="network-list" class="referrals-list" role="rowgroup"></div>
               </div>
@@ -487,7 +485,7 @@
           </label>
           <label>
             Referral Source
-            <input id="client-referral-source" name="referralSource" autocomplete="off">
+            <input id="client-referral-source" name="referralSource" list="referral-source-options" autocomplete="off">
           </label>
           <label>
             Date of Birth

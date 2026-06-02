@@ -1256,11 +1256,9 @@ function renderReferralNetwork() {
     }
 
     for (const value of [
-      entry.type || "",
       networkEntryName(entry),
       `${(entry.providers || []).length} provider${(entry.providers || []).length === 1 ? "" : "s"}`,
-      formatPhone(entry.phone),
-      entry.email || ""
+      formatPhone(entry.phone)
     ]) {
       const cell = document.createElement("span");
       cell.className = "table-cell";
