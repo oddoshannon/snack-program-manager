@@ -1,4 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { getApps, initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import {
   GoogleAuthProvider,
   getAuth,
@@ -131,7 +131,7 @@ const outreachContactEventSelect = document.querySelector("#outreach-contact-eve
 const saveOutreachContactButton = document.querySelector("#save-outreach-contact");
 const cancelOutreachContactEditButton = document.querySelector("#cancel-outreach-contact-edit");
 
-const app = initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
+const app = getApps()[0] || initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
@@ -150,6 +150,7 @@ window.addEventListener("unhandledrejection", (event) => {
 signInButton.addEventListener("click", signIn);
 signOutButton.addEventListener("click", signOutUser);
 refreshButton.addEventListener("click", loadMessage);
+window.SNACK_MAIN_SIGNIN_READY = true;
 
 const legacyStatusMap = {
   new: "New",

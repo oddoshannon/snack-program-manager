@@ -978,6 +978,32 @@
       </section>
     </div>
     <script src="./app-config.js"></script>
-    <script type="module" src="./app.js?v=20260602-signin-hotfix"></script>
+    <script type="module">
+      import { getApps, initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+      import {
+        GoogleAuthProvider,
+        getAuth,
+        signInWithPopup
+      } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+
+      const signInButton = document.querySelector("#sign-in");
+      const status = document.querySelector("#status");
+
+      signInButton?.addEventListener("click", async () => {
+        if (window.SNACK_MAIN_SIGNIN_READY) {
+          return;
+        }
+
+        try {
+          status.textContent = "Opening Google sign-in...";
+          const app = getApps()[0] || initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
+          await signInWithPopup(getAuth(app), new GoogleAuthProvider());
+        } catch (error) {
+          status.textContent = error?.message || "Sign-in did not finish.";
+          console.error(error);
+        }
+      });
+    </script>
+    <script type="module" src="./app.js?v=20260602-signin-fallback"></script>
   </body>
 </html>
