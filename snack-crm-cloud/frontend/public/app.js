@@ -107,7 +107,7 @@ const clientSummaryGroups = [
   { key: "all", label: "Total", statuses: clientStatuses },
   { key: "scheduled", label: "Scheduled", statuses: ["Scheduled"] },
   { key: "active", label: "Active", statuses: ["Active", "Needs Reschedule"] },
-  { key: "follow-up", label: "Follow Up", statuses: ["Needs Language Support", "Waiting on Family"] },
+  { key: "follow-up", label: "Follow Up", statuses: ["Needs Reschedule", "Needs Language Support", "Waiting on Family"] },
   { key: "graduated", label: "Graduated", statuses: ["Graduated"] },
   { key: "closed", label: "Closed", statuses: ["Inactive", "Closed"] }
 ];
@@ -758,9 +758,6 @@ function renderDashboard() {
     ["Active", "Needs Reschedule"].includes(client.status || "Scheduled")
   );
   const clientFollowUps = loadedClients.filter((client) =>
-    ["Needs Language Support", "Waiting on Family"].includes(client.status || "Scheduled")
-  );
-  const clientFollowUpActions = loadedClients.filter((client) =>
     ["Needs Reschedule", "Needs Language Support", "Waiting on Family"].includes(client.status || "Scheduled")
   );
   const clientsWithoutNextAppointment = loadedClients.filter((client) =>
@@ -797,7 +794,7 @@ function renderDashboard() {
       date: referral.mostRecentContactDate || referral.referralDate || "",
       action: () => setSelectedReferral(referral.id)
     })),
-    ...clientFollowUpActions.map((client) => ({
+    ...clientFollowUps.map((client) => ({
       type: "Client",
       title: clientName(client),
       detail: client.status,
