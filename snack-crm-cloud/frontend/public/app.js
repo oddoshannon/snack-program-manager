@@ -2276,8 +2276,10 @@ function analyzeClientImport(rows, columns) {
   const duplicateWarnings = [];
   const householdWarnings = [];
   const existingDuplicateKeys = new Map();
+  const existingEmailKeys = new Map();
   const existingPhoneKeys = new Map();
   const csvDuplicateKeys = new Map();
+  const csvEmailKeys = new Map();
   const csvPhoneKeys = new Map();
   const seenDuplicateWarnings = new Set();
   const seenHouseholdWarnings = new Set();
@@ -2286,8 +2288,8 @@ function analyzeClientImport(rows, columns) {
   for (const client of loadedClients) {
     const keys = clientIdentityKeys(client);
 
-    if (keys.email && !existingDuplicateKeys.has(`email:${keys.email}`)) {
-      existingDuplicateKeys.set(`email:${keys.email}`, clientName(client));
+    if (keys.email && !existingEmailKeys.has(keys.email)) {
+      existingEmailKeys.set(keys.email, clientName(client));
     }
 
     if (keys.nameDob && !existingDuplicateKeys.has(`name-dob:${keys.nameDob}`)) {
@@ -2315,7 +2317,6 @@ function analyzeClientImport(rows, columns) {
 
     const keys = clientIdentityKeys(client);
     const duplicateKeys = [
-      keys.email ? { key: `email:${keys.email}`, label: "same email" } : null,
       keys.nameDob ? { key: `name-dob:${keys.nameDob}`, label: "same name and date of birth" } : null
     ].filter(Boolean);
 
@@ -2336,6 +2337,26 @@ function analyzeClientImport(rows, columns) {
         });
       } else {
         csvDuplicateKeys.set(key, rowNumber);
+      }
+    }
+
+    if (keys.email) {
+      if (existingEmailKeys.has(keys.email)) {
+        addImportWarning(householdWarnings, seenHouseholdWarnings, {
+          rowNumber,
+          name: clientName(client),
+          reason: `Shares email with existing client ${existingEmailKeys.get(keys.email)}`
+        });
+      }
+
+      if (csvEmailKeys.has(keys.email)) {
+        addImportWarning(householdWarnings, seenHouseholdWarnings, {
+          rowNumber,
+          name: clientName(client),
+          reason: `Shares email with CSV row ${csvEmailKeys.get(keys.email)}`
+        });
+      } else {
+        csvEmailKeys.set(keys.email, rowNumber);
       }
     }
 
@@ -2416,7 +2437,7 @@ function renderClientImportPreview(analysis, fileName) {
     ["Columns detected", analysis.columns.length],
     ["Missing required rows", analysis.missingRequired.length],
     ["Duplicate warnings", analysis.duplicateWarnings.length],
-    ["Shared phone warnings", analysis.householdWarnings.length]
+    ["Shared contact warnings", analysis.householdWarnings.length]
   ]) {
     const item = document.createElement("div");
     item.className = "summary-item import-summary-item";
@@ -2465,11 +2486,11 @@ function renderClientImportPreview(analysis, fileName) {
     "No duplicate warnings found."
   );
 
-  const householdSection = appendImportSection(clientImportDetail, "Shared Phone / Household Warnings");
+  const householdSection = appendImportSection(clientImportDetail, "Shared Contact / Household Warnings");
   appendSimpleList(
     householdSection,
     analysis.householdWarnings.map((warning) => `Row ${warning.rowNumber}: ${warning.name} - ${warning.reason}`),
-    "No shared phone warnings found."
+    "No shared contact warnings found."
   );
 
   const previewSection = appendImportSection(clientImportDetail, "Preview of First 10 Clients");
@@ -2533,7 +2554,7 @@ async function importPreviewedClients() {
   const confirmed = window.confirm(
     `Import ${clientsToImport.length} clients now? ` +
     `${latestClientImportAnalysis.duplicateWarnings.length} duplicate warning(s) and ` +
-    `${latestClientImportAnalysis.householdWarnings.length} shared phone warning(s) will not block the import.`
+    `${latestClientImportAnalysis.householdWarnings.length} shared contact warning(s) will not block the import.`
   );
 
   if (!confirmed) {
