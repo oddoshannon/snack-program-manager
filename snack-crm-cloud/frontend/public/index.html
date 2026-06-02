@@ -22,6 +22,7 @@
           <button id="nav-clients" class="nav-item" type="button">Clients</button>
           <button id="nav-referral-network" class="nav-item" type="button">Referral Network</button>
           <button id="nav-outreach" class="nav-item" type="button">Outreach</button>
+          <button id="nav-scheduling" class="nav-item" type="button">Scheduling</button>
         </nav>
         <div class="sidebar-footer">
           <p id="user" class="user">Please sign in with your SNACK Google account.</p>
@@ -339,6 +340,67 @@
                   <span role="columnheader">Phone</span>
                 </div>
                 <div id="outreach-contact-list" class="referrals-list" role="rowgroup"></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="scheduling-panel" class="referrals-panel" aria-labelledby="scheduling-title" hidden>
+          <header class="workspace-header">
+            <div>
+              <p class="eyebrow">Scheduling</p>
+              <h2 id="scheduling-title">Appointments</h2>
+            </div>
+            <div class="header-actions">
+              <button id="new-appointment" type="button">New Appointment</button>
+            </div>
+          </header>
+
+          <section id="appointment-summary" class="summary-grid" aria-label="Appointment summary"></section>
+
+          <div class="referrals-layout">
+            <section class="list-panel" aria-label="Appointment list">
+              <div class="list-toolbar">
+                <div>
+                  <h3>Appointments</h3>
+                  <p id="appointments-status" class="status" aria-live="polite"></p>
+                </div>
+                <div class="filters appointment-filters">
+                  <label>
+                    Search
+                    <input id="appointment-search" type="search" autocomplete="off">
+                  </label>
+                  <label>
+                    Date
+                    <select id="appointment-date-filter">
+                      <option value="today">Today</option>
+                      <option value="upcoming">Upcoming</option>
+                      <option value="past">Past</option>
+                      <option value="all">All dates</option>
+                    </select>
+                  </label>
+                  <label>
+                    Status
+                    <select id="appointment-status-filter">
+                      <option value="all">All statuses</option>
+                      <option value="Scheduled">Scheduled</option>
+                      <option value="Completed">Completed</option>
+                      <option value="No-show">No-show</option>
+                      <option value="Rescheduled">Rescheduled</option>
+                      <option value="Canceled">Canceled</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <div class="table-head appointment-table-head" role="row">
+                  <span role="columnheader">Date/Time</span>
+                  <span role="columnheader">Client</span>
+                  <span role="columnheader">Status</span>
+                  <span role="columnheader">Lesson</span>
+                  <span role="columnheader">Staff</span>
+                </div>
+                <div id="appointments-list" class="referrals-list" role="rowgroup"></div>
               </div>
             </section>
           </div>
@@ -936,7 +998,63 @@
         </form>
       </section>
     </div>
+
+    <div id="appointment-modal" class="modal-backdrop" hidden>
+      <section class="modal-card" role="dialog" aria-modal="true" aria-label="Appointment profile">
+        <form id="appointment-form" class="referral-form">
+          <div class="detail-heading">
+            <div>
+              <p class="eyebrow">Scheduling</p>
+              <h3 id="appointment-form-title">New Appointment</h3>
+            </div>
+            <div class="form-actions">
+              <button id="delete-appointment" class="danger-button" type="button" hidden>Delete</button>
+              <button id="save-appointment" type="submit">Save appointment</button>
+              <button id="cancel-appointment-edit" class="secondary-button" type="button">Cancel</button>
+            </div>
+          </div>
+          <label>
+            <span class="label-text">Client <span class="required-marker" aria-label="required">*</span></span>
+            <select id="appointment-client-id" name="clientId" required></select>
+          </label>
+          <label>
+            <span class="label-text">Date <span class="required-marker" aria-label="required">*</span></span>
+            <input id="appointment-date" name="appointmentDate" type="date" required>
+          </label>
+          <label>
+            Time
+            <input id="appointment-time" name="appointmentTime" type="time">
+          </label>
+          <label>
+            Status
+            <select id="appointment-status" name="status">
+              <option value="Scheduled">Scheduled</option>
+              <option value="Completed">Completed</option>
+              <option value="No-show">No-show</option>
+              <option value="Rescheduled">Rescheduled</option>
+              <option value="Canceled">Canceled</option>
+            </select>
+          </label>
+          <label>
+            Lesson
+            <input id="appointment-lesson" name="lesson">
+          </label>
+          <label>
+            Staff Member
+            <input id="appointment-staff-member" name="staffMember">
+          </label>
+          <label class="full-field">
+            Goal
+            <input id="appointment-goal" name="goal">
+          </label>
+          <label class="full-field">
+            Notes
+            <textarea id="appointment-notes" name="notes" rows="5"></textarea>
+          </label>
+        </form>
+      </section>
+    </div>
     <script src="./app-config.js"></script>
-    <script type="module" src="./app.js?v=20260602-outreach-module"></script>
+    <script type="module" src="./app.js?v=20260602-scheduling-foundation"></script>
   </body>
 </html>

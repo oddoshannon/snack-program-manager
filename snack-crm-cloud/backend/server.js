@@ -40,6 +40,7 @@ const allowedClientStatuses = new Set([
   "Inactive",
   "Closed"
 ]);
+const allowedAppointmentStatuses = new Set(["Scheduled", "Completed", "No-show", "Rescheduled", "Canceled"]);
 const legacyStatusMap = {
   new: "New",
   contacted: "Texted",
@@ -56,6 +57,7 @@ const clients = firestore.collection("clients");
 const referralNetwork = firestore.collection("referralNetwork");
 const outreachEvents = firestore.collection("outreachEvents");
 const outreachContacts = firestore.collection("outreachContacts");
+const appointments = firestore.collection("appointments");
 const firebaseJwtKeys = createRemoteJWKSet(
   new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
 );
@@ -292,6 +294,25 @@ function toOutreachContact(snapshot) {
   };
 }
 
+function toAppointment(snapshot) {
+  const data = snapshot.data();
+
+  return {
+    id: snapshot.id,
+    clientId: data.clientId,
+    clientName: data.clientName,
+    appointmentDate: data.appointmentDate,
+    appointmentTime: data.appointmentTime,
+    status: data.status,
+    lesson: data.lesson,
+    goal: data.goal,
+    staffMember: data.staffMember,
+    notes: data.notes,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt
+  };
+}
+
 function cleanNetworkProvider(provider) {
   const id = cleanString(provider?.id) || crypto.randomUUID();
   return {
@@ -391,6 +412,25 @@ function cleanOutreachContactPayload(body) {
   };
 }
 
+function normalizeAppointmentStatus(status) {
+  const cleaned = cleanString(status) || "Scheduled";
+  return allowedAppointmentStatuses.has(cleaned) ? cleaned : "Scheduled";
+}
+
+function cleanAppointmentPayload(body) {
+  return {
+    clientId: cleanString(body.clientId),
+    clientName: cleanString(body.clientName),
+    appointmentDate: cleanString(body.appointmentDate),
+    appointmentTime: cleanString(body.appointmentTime),
+    status: normalizeAppointmentStatus(body.status),
+    lesson: cleanString(body.lesson),
+    goal: cleanString(body.goal),
+    staffMember: cleanString(body.staffMember),
+    notes: cleanString(body.notes)
+  };
+}
+
 function normalizedLookupKey(value) {
   return cleanString(value).toLowerCase();
 }
@@ -451,6 +491,130 @@ app.get("/api/clients", requireAuth, async (_request, response, next) => {
 
     response.json({
       clients: snapshot.docs.map(toClient)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/appointments", requireAuth, async (_request, response, next) => {
+  try {
+    const snapshot = await appointments.orderBy("appointmentDate", "desc").limit(500).get();
+
+    response.json({
+      appointments: snapshot.docs.map(toAppointment)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/appointments", requireAuth, async (request, response, next) => {
+  try {
+    const payload = cleanAppointmentPayload(request.body);
+    const now = new Date().toISOString();
+
+    if (!payload.clientId || !payload.appointmentDate) {
+      response.status(400).json({
+        error: "Client and appointment date are required."
+      });
+      return;
+    }
+
+    if (!payload.clientName) {
+      const clientSnapshot = await clients.doc(payload.clientId).get();
+      if (clientSnapshot.exists) {
+        const client = toClient(clientSnapshot);
+        payload.clientName = `${client.firstName || ""} ${client.lastName || ""}`.trim();
+      }
+    }
+
+    const docRef = await appointments.add({
+      ...payload,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: request.user.email
+    });
+    const created = await docRef.get();
+
+    response.status(201).json({
+      appointment: toAppointment(created)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/appointments/:appointmentId", requireAuth, async (request, response, next) => {
+  try {
+    const appointmentId = cleanString(request.params.appointmentId);
+
+    if (!appointmentId) {
+      response.status(400).json({
+        error: "Appointment ID is required."
+      });
+      return;
+    }
+
+    const docRef = appointments.doc(appointmentId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Appointment was not found."
+      });
+      return;
+    }
+
+    const payload = cleanAppointmentPayload(request.body);
+
+    if (!payload.clientId || !payload.appointmentDate) {
+      response.status(400).json({
+        error: "Client and appointment date are required."
+      });
+      return;
+    }
+
+    await docRef.update({
+      ...payload,
+      updatedAt: new Date().toISOString(),
+      updatedBy: request.user.email
+    });
+    const updated = await docRef.get();
+
+    response.json({
+      appointment: toAppointment(updated)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/appointments/:appointmentId", requireAuth, async (request, response, next) => {
+  try {
+    const appointmentId = cleanString(request.params.appointmentId);
+
+    if (!appointmentId) {
+      response.status(400).json({
+        error: "Appointment ID is required."
+      });
+      return;
+    }
+
+    const docRef = appointments.doc(appointmentId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Appointment was not found."
+      });
+      return;
+    }
+
+    await docRef.delete();
+
+    response.json({
+      ok: true
     });
   } catch (error) {
     next(error);

@@ -19,11 +19,13 @@ const referralsPanel = document.querySelector("#referrals-panel");
 const clientsPanel = document.querySelector("#clients-panel");
 const referralNetworkPanel = document.querySelector("#referral-network-panel");
 const outreachPanel = document.querySelector("#outreach-panel");
+const schedulingPanel = document.querySelector("#scheduling-panel");
 const navDashboardButton = document.querySelector("#nav-dashboard");
 const navReferralsButton = document.querySelector("#nav-referrals");
 const navClientsButton = document.querySelector("#nav-clients");
 const navReferralNetworkButton = document.querySelector("#nav-referral-network");
 const navOutreachButton = document.querySelector("#nav-outreach");
+const navSchedulingButton = document.querySelector("#nav-scheduling");
 const dashboardSummary = document.querySelector("#dashboard-summary");
 const dashboardFollowups = document.querySelector("#dashboard-followups");
 const dashboardNewReferrals = document.querySelector("#dashboard-new-referrals");
@@ -121,6 +123,20 @@ const outreachContactFormTitle = document.querySelector("#outreach-contact-form-
 const outreachContactEventSelect = document.querySelector("#outreach-contact-event-id");
 const saveOutreachContactButton = document.querySelector("#save-outreach-contact");
 const cancelOutreachContactEditButton = document.querySelector("#cancel-outreach-contact-edit");
+const appointmentSummary = document.querySelector("#appointment-summary");
+const appointmentsList = document.querySelector("#appointments-list");
+const appointmentsStatusEl = document.querySelector("#appointments-status");
+const appointmentSearchInput = document.querySelector("#appointment-search");
+const appointmentDateFilterSelect = document.querySelector("#appointment-date-filter");
+const appointmentStatusFilterSelect = document.querySelector("#appointment-status-filter");
+const newAppointmentButton = document.querySelector("#new-appointment");
+const appointmentModal = document.querySelector("#appointment-modal");
+const appointmentForm = document.querySelector("#appointment-form");
+const appointmentFormTitle = document.querySelector("#appointment-form-title");
+const appointmentClientSelect = document.querySelector("#appointment-client-id");
+const saveAppointmentButton = document.querySelector("#save-appointment");
+const deleteAppointmentButton = document.querySelector("#delete-appointment");
+const cancelAppointmentEditButton = document.querySelector("#cancel-appointment-edit");
 
 const app = initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
@@ -165,6 +181,7 @@ const clientStatuses = [
   "Inactive",
   "Closed"
 ];
+const appointmentStatuses = ["Scheduled", "Completed", "No-show", "Rescheduled", "Canceled"];
 const clientSummaryGroups = [
   { key: "all", label: "Total", statuses: clientStatuses },
   { key: "scheduled", label: "Scheduled", statuses: ["Scheduled"] },
@@ -295,11 +312,14 @@ let selectedOutreachEventId = null;
 let editingOutreachEventId = null;
 let selectedOutreachContactId = null;
 let editingOutreachContactId = null;
+let selectedAppointmentId = null;
+let editingAppointmentId = null;
 let loadedReferrals = [];
 let loadedClients = [];
 let loadedNetworkEntries = [];
 let loadedOutreachEvents = [];
 let loadedOutreachContacts = [];
+let loadedAppointments = [];
 let latestClientImportAnalysis = null;
 let latestReferralImportAnalysis = null;
 let latestNetworkImportAnalysis = null;
@@ -360,6 +380,11 @@ function clientName(client) {
   return `${client.firstName || ""} ${client.lastName || ""}`.trim() || "Unnamed client";
 }
 
+function appointmentClientName(appointment) {
+  const client = loadedClients.find((item) => item.id === appointment.clientId);
+  return client ? clientName(client) : appointment.clientName || "Unknown client";
+}
+
 function formatDate(value) {
   if (!value) {
     return "-";
@@ -389,6 +414,11 @@ function formatDateOnly(value) {
 
 function formatListDate(value) {
   return value ? formatDateOnly(value) : "";
+}
+
+function formatAppointmentDateTime(appointment) {
+  const date = formatDateOnly(appointment.appointmentDate);
+  return appointment.appointmentTime ? `${date} ${appointment.appointmentTime}` : date;
 }
 
 function normalizeCsvDate(value) {
@@ -907,6 +937,10 @@ function getSelectedOutreachContact() {
   return loadedOutreachContacts.find((contact) => contact.id === selectedOutreachContactId) || null;
 }
 
+function getSelectedAppointment() {
+  return loadedAppointments.find((appointment) => appointment.id === selectedAppointmentId) || null;
+}
+
 function outreachEventLabel(eventId) {
   const event = loadedOutreachEvents.find((item) => item.id === eventId);
   return event ? outreachEventName(event) : "";
@@ -955,6 +989,49 @@ function outreachContactMatchesSearch(contact) {
     contact.status,
     outreachEventLabel(contact.eventId),
     contact.notes
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return searchable.includes(query);
+}
+
+function appointmentMatchesFilters(appointment) {
+  const today = todayDateString();
+  const dateFilter = appointmentDateFilterSelect.value;
+  const statusFilter = appointmentStatusFilterSelect.value;
+  const query = appointmentSearchInput.value.trim().toLowerCase();
+
+  if (dateFilter === "today" && appointment.appointmentDate !== today) {
+    return false;
+  }
+
+  if (dateFilter === "upcoming" && appointment.appointmentDate < today) {
+    return false;
+  }
+
+  if (dateFilter === "past" && appointment.appointmentDate >= today) {
+    return false;
+  }
+
+  if (statusFilter !== "all" && appointment.status !== statusFilter) {
+    return false;
+  }
+
+  if (!query) {
+    return true;
+  }
+
+  const searchable = [
+    appointmentClientName(appointment),
+    appointment.status,
+    appointment.lesson,
+    appointment.goal,
+    appointment.staffMember,
+    appointment.notes,
+    appointment.appointmentDate,
+    appointment.appointmentTime
   ]
     .filter(Boolean)
     .join(" ")
@@ -1269,47 +1346,62 @@ function setActiveModule(moduleName) {
   const showClients = moduleName === "clients";
   const showReferralNetwork = moduleName === "referral-network";
   const showOutreach = moduleName === "outreach";
+  const showScheduling = moduleName === "scheduling";
   dashboardPanel.hidden = !showDashboard;
   referralsPanel.hidden = !showReferrals;
   clientsPanel.hidden = !showClients;
   referralNetworkPanel.hidden = !showReferralNetwork;
   outreachPanel.hidden = !showOutreach;
+  schedulingPanel.hidden = !showScheduling;
   navDashboardButton.classList.toggle("active", showDashboard);
   navReferralsButton.classList.toggle("active", showReferrals);
   navClientsButton.classList.toggle("active", showClients);
   navReferralNetworkButton.classList.toggle("active", showReferralNetwork);
   navOutreachButton.classList.toggle("active", showOutreach);
+  navSchedulingButton.classList.toggle("active", showScheduling);
   navDashboardButton.setAttribute("aria-current", showDashboard ? "page" : "false");
   navReferralsButton.setAttribute("aria-current", showReferrals ? "page" : "false");
   navClientsButton.setAttribute("aria-current", showClients ? "page" : "false");
   navReferralNetworkButton.setAttribute("aria-current", showReferralNetwork ? "page" : "false");
   navOutreachButton.setAttribute("aria-current", showOutreach ? "page" : "false");
+  navSchedulingButton.setAttribute("aria-current", showScheduling ? "page" : "false");
 
   if (showDashboard) {
     closeReferralModal();
     closeClientModal();
     closeNetworkModal();
     closeOutreachModal();
+    closeAppointmentModal();
     renderDashboard();
   } else if (showClients) {
     closeReferralModal();
     closeNetworkModal();
     closeOutreachModal();
+    closeAppointmentModal();
     renderClients();
   } else if (showReferralNetwork) {
     closeReferralModal();
     closeClientModal();
     closeOutreachModal();
+    closeAppointmentModal();
     renderReferralNetwork();
   } else if (showOutreach) {
     closeReferralModal();
     closeClientModal();
     closeNetworkModal();
+    closeAppointmentModal();
     setOutreachView(activeOutreachView);
+  } else if (showScheduling) {
+    closeReferralModal();
+    closeClientModal();
+    closeNetworkModal();
+    closeOutreachModal();
+    renderAppointments();
   } else {
     closeClientModal();
     closeNetworkModal();
     closeOutreachModal();
+    closeAppointmentModal();
     renderReferrals();
   }
 }
@@ -1424,6 +1516,30 @@ function setSelectedOutreachContact(contactId) {
   renderOutreachContactDetail();
 }
 
+function openAppointmentModal() {
+  appointmentModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeAppointmentModal() {
+  appointmentModal.hidden = true;
+  document.body.classList.remove("modal-open");
+  selectedAppointmentId = null;
+  editingAppointmentId = null;
+  appointmentForm.reset();
+  deleteAppointmentButton.hidden = true;
+  renderAppointments();
+}
+
+function setSelectedAppointment(appointmentId) {
+  selectedAppointmentId = appointmentId;
+  const appointment = getSelectedAppointment();
+  if (!appointment) {
+    return;
+  }
+  startEditingAppointment(appointment);
+}
+
 function setOutreachView(viewName) {
   activeOutreachView = viewName;
   const showDashboard = viewName === "dashboard";
@@ -1458,6 +1574,20 @@ function statusBadge(status = "New") {
 function clientStatusBadge(status = "Scheduled") {
   const badge = document.createElement("span");
   badge.className = `status-badge status-${cssToken(status)} status-group-${clientStatusGroupKey(status)}`;
+  badge.textContent = status;
+  return badge;
+}
+
+function appointmentStatusBadge(status = "Scheduled") {
+  const statusGroups = {
+    Scheduled: "scheduled",
+    Completed: "new",
+    "No-show": "follow-up",
+    Rescheduled: "contacted",
+    Canceled: "closed"
+  };
+  const badge = document.createElement("span");
+  badge.className = `status-badge status-${cssToken(status)} status-group-${statusGroups[status] || "scheduled"}`;
   badge.textContent = status;
   return badge;
 }
@@ -1835,6 +1965,109 @@ function renderOutreachContacts() {
 
     row.addEventListener("click", () => setSelectedOutreachContact(contact.id));
     outreachContactList.append(row);
+  }
+}
+
+function renderAppointmentClientOptions(selectedClientId = "") {
+  appointmentClientSelect.innerHTML = "";
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = loadedClients.length ? "Select client" : "Load or create clients first";
+  appointmentClientSelect.append(placeholder);
+
+  const clients = [...loadedClients].sort((first, second) => clientName(first).localeCompare(clientName(second)));
+  for (const client of clients) {
+    const option = document.createElement("option");
+    option.value = client.id;
+    option.textContent = clientName(client);
+    appointmentClientSelect.append(option);
+  }
+
+  appointmentClientSelect.value = selectedClientId || "";
+}
+
+function renderAppointmentSummary() {
+  appointmentSummary.innerHTML = "";
+  const today = todayDateString();
+  const totals = [
+    { label: "Today", value: loadedAppointments.filter((appointment) => appointment.appointmentDate === today).length },
+    { label: "Upcoming", value: loadedAppointments.filter((appointment) => appointment.appointmentDate >= today).length },
+    { label: "Scheduled", value: loadedAppointments.filter((appointment) => appointment.status === "Scheduled").length },
+    { label: "Completed", value: loadedAppointments.filter((appointment) => appointment.status === "Completed").length },
+    { label: "Needs Review", value: loadedAppointments.filter((appointment) => ["No-show", "Rescheduled", "Canceled"].includes(appointment.status)).length }
+  ];
+
+  for (const total of totals) {
+    const item = document.createElement("div");
+    item.className = "summary-item";
+    const value = document.createElement("strong");
+    value.textContent = total.value;
+    const label = document.createElement("span");
+    label.textContent = total.label;
+    item.append(value, label);
+    appointmentSummary.append(item);
+  }
+}
+
+function renderAppointments() {
+  appointmentsList.innerHTML = "";
+  renderAppointmentSummary();
+  const appointments = loadedAppointments
+    .filter(appointmentMatchesFilters)
+    .sort(
+      (first, second) =>
+        dateValue(first.appointmentDate) - dateValue(second.appointmentDate) ||
+        (first.appointmentTime || "").localeCompare(second.appointmentTime || "") ||
+        appointmentClientName(first).localeCompare(appointmentClientName(second))
+    );
+
+  if (selectedAppointmentId && !appointments.some((appointment) => appointment.id === selectedAppointmentId)) {
+    selectedAppointmentId = null;
+  }
+
+  if (!appointments.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = loadedAppointments.length ? "No appointments match the current filters." : "No appointments yet.";
+    appointmentsList.append(empty);
+    return;
+  }
+
+  for (const appointment of appointments) {
+    const row = document.createElement("button");
+    row.className = "referral-row appointment-row";
+    row.type = "button";
+    row.setAttribute("role", "row");
+    row.setAttribute("aria-label", `Open appointment for ${appointmentClientName(appointment)}`);
+    row.style.gridTemplateColumns = "minmax(150px, 0.85fr) minmax(190px, 1.15fr) minmax(130px, 0.75fr) minmax(180px, 1fr) minmax(140px, 0.8fr)";
+
+    if (appointment.id === selectedAppointmentId) {
+      row.classList.add("selected");
+      row.setAttribute("aria-current", "true");
+    }
+
+    const values = [
+      formatAppointmentDateTime(appointment),
+      appointmentClientName(appointment),
+      appointmentStatusBadge(appointment.status),
+      appointment.lesson || "-",
+      appointment.staffMember || "-"
+    ];
+
+    for (const value of values) {
+      const cell = document.createElement("span");
+      cell.className = "table-cell";
+      cell.setAttribute("role", "cell");
+      if (value instanceof HTMLElement) {
+        cell.append(value);
+      } else {
+        cell.textContent = value;
+      }
+      row.append(cell);
+    }
+
+    row.addEventListener("click", () => setSelectedAppointment(appointment.id));
+    appointmentsList.append(row);
   }
 }
 
@@ -3934,6 +4167,8 @@ async function loadClients() {
     renderClientSummary();
     renderClients();
     renderDashboard();
+    renderAppointmentClientOptions(appointmentClientSelect.value);
+    renderAppointments();
     if (!clientModal.hidden && selectedClientId) {
       renderClientDetail();
     }
@@ -4035,6 +4270,33 @@ async function loadOutreachContacts() {
     outreachContactStatusEl.textContent = "";
   } catch (error) {
     outreachContactStatusEl.textContent = "Could not load outreach contacts yet.";
+    console.error(error);
+  }
+}
+
+async function loadAppointments() {
+  if (!currentUser) {
+    appointmentsStatusEl.textContent = "";
+    appointmentsList.innerHTML = "";
+    appointmentSummary.innerHTML = "";
+    return;
+  }
+
+  appointmentsStatusEl.textContent = "Loading appointments...";
+
+  try {
+    const response = await authedFetch("/api/appointments");
+
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    loadedAppointments = data.appointments;
+    renderAppointments();
+    appointmentsStatusEl.textContent = "";
+  } catch (error) {
+    appointmentsStatusEl.textContent = "Could not load appointments yet.";
     console.error(error);
   }
 }
@@ -4375,6 +4637,53 @@ async function saveOutreachContact(event) {
   }
 }
 
+async function saveAppointment(event) {
+  event.preventDefault();
+
+  if (!currentUser) {
+    appointmentsStatusEl.textContent = "Sign in before saving an appointment.";
+    return;
+  }
+
+  const formData = new FormData(appointmentForm);
+  const appointment = Object.fromEntries(formData.entries());
+  const selectedClient = loadedClients.find((client) => client.id === appointment.clientId);
+  appointment.clientName = selectedClient ? clientName(selectedClient) : "";
+  const isEditing = Boolean(editingAppointmentId);
+
+  appointmentsStatusEl.textContent = isEditing ? "Updating appointment..." : "Saving appointment...";
+  saveAppointmentButton.disabled = true;
+
+  try {
+    const path = isEditing ? `/api/appointments/${encodeURIComponent(editingAppointmentId)}` : "/api/appointments";
+    const response = await authedFetch(path, {
+      method: isEditing ? "PATCH" : "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(appointment)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    selectedAppointmentId = data.appointment?.id || editingAppointmentId;
+    editingAppointmentId = null;
+    appointmentForm.reset();
+    appointmentsStatusEl.textContent = isEditing ? "Appointment updated." : "Appointment saved.";
+    closeAppointmentModal();
+    await loadAppointments();
+  } catch (error) {
+    appointmentsStatusEl.textContent = error.message || "Could not save appointment yet.";
+    console.error(error);
+  } finally {
+    saveAppointmentButton.disabled = false;
+  }
+}
+
 async function saveNetworkProviders(entry, providers) {
   networkStatusEl.textContent = "Updating providers...";
 
@@ -4644,6 +4953,75 @@ async function deleteOutreachContact(contact) {
     await loadOutreachContacts();
   } catch (error) {
     outreachContactStatusEl.textContent = error.message || "Could not delete outreach contact yet.";
+    console.error(error);
+  }
+}
+
+function setAppointmentFormValues(appointment = {}) {
+  renderAppointmentClientOptions(appointment.clientId || "");
+  appointmentForm.elements.clientId.value = appointment.clientId || "";
+  appointmentForm.elements.appointmentDate.value = appointment.appointmentDate || todayDateString();
+  appointmentForm.elements.appointmentTime.value = appointment.appointmentTime || "";
+  appointmentForm.elements.status.value = appointment.status || "Scheduled";
+  appointmentForm.elements.lesson.value = appointment.lesson || "";
+  appointmentForm.elements.goal.value = appointment.goal || "";
+  appointmentForm.elements.staffMember.value = appointment.staffMember || "";
+  appointmentForm.elements.notes.value = appointment.notes || "";
+}
+
+function startNewAppointment() {
+  editingAppointmentId = null;
+  selectedAppointmentId = null;
+  appointmentForm.reset();
+  setAppointmentFormValues({ status: "Scheduled" });
+  appointmentFormTitle.textContent = "New Appointment";
+  saveAppointmentButton.textContent = "Save appointment";
+  deleteAppointmentButton.hidden = true;
+  openAppointmentModal();
+  appointmentsStatusEl.textContent = "Creating a new appointment.";
+}
+
+function startEditingAppointment(appointment) {
+  editingAppointmentId = appointment.id;
+  selectedAppointmentId = appointment.id;
+  setAppointmentFormValues(appointment);
+  appointmentFormTitle.textContent = `Edit ${appointmentClientName(appointment)}`;
+  saveAppointmentButton.textContent = "Update appointment";
+  deleteAppointmentButton.hidden = false;
+  openAppointmentModal();
+  appointmentsStatusEl.textContent = `Editing appointment for ${appointmentClientName(appointment)}.`;
+}
+
+async function deleteAppointment() {
+  const appointment = getSelectedAppointment();
+
+  if (!appointment) {
+    return;
+  }
+
+  const confirmed = window.confirm(`Delete appointment for ${appointmentClientName(appointment)}? This cannot be undone.`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  appointmentsStatusEl.textContent = "Deleting appointment...";
+
+  try {
+    const response = await authedFetch(`/api/appointments/${encodeURIComponent(appointment.id)}`, {
+      method: "DELETE"
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    closeAppointmentModal();
+    appointmentsStatusEl.textContent = "Appointment deleted.";
+    await loadAppointments();
+  } catch (error) {
+    appointmentsStatusEl.textContent = error.message || "Could not delete appointment yet.";
     console.error(error);
   }
 }
@@ -5044,6 +5422,7 @@ onAuthStateChanged(auth, (user) => {
   clientsPanel.hidden = true;
   referralNetworkPanel.hidden = true;
   outreachPanel.hidden = true;
+  schedulingPanel.hidden = true;
   userEl.textContent = signedIn ? `Signed in as ${user.email}` : "Please sign in with your SNACK Google account.";
 
   if (signedIn) {
@@ -5054,6 +5433,7 @@ onAuthStateChanged(auth, (user) => {
     loadReferralNetwork();
     loadOutreachEvents();
     loadOutreachContacts();
+    loadAppointments();
   } else {
     messageEl.textContent = "";
     statusEl.textContent = "Sign in to load the database message.";
@@ -5062,11 +5442,13 @@ onAuthStateChanged(auth, (user) => {
     networkStatusEl.textContent = "";
     outreachStatusEl.textContent = "";
     outreachContactStatusEl.textContent = "";
+    appointmentsStatusEl.textContent = "";
     referralsList.innerHTML = "";
     clientsList.innerHTML = "";
     networkList.innerHTML = "";
     outreachList.innerHTML = "";
     outreachContactList.innerHTML = "";
+    appointmentsList.innerHTML = "";
     dashboardSummary.innerHTML = "";
     dashboardFollowups.innerHTML = "";
     dashboardNewReferrals.innerHTML = "";
@@ -5080,17 +5462,21 @@ onAuthStateChanged(auth, (user) => {
     outreachDetail.innerHTML = "";
     outreachContactDetail.innerHTML = "";
     outreachSummary.innerHTML = "";
+    appointmentSummary.innerHTML = "";
     selectedReferralId = null;
     selectedClientId = null;
     selectedNetworkEntryId = null;
     selectedOutreachEventId = null;
     selectedOutreachContactId = null;
+    selectedAppointmentId = null;
     loadedReferrals = [];
     loadedClients = [];
     loadedNetworkEntries = [];
     loadedOutreachEvents = [];
     loadedOutreachContacts = [];
+    loadedAppointments = [];
     referralForm.reset();
+    appointmentForm.reset();
     closeReferralModal();
     closeReferralImportModal();
     closeClientModal();
@@ -5098,6 +5484,7 @@ onAuthStateChanged(auth, (user) => {
     closeNetworkModal();
     closeOutreachModal();
     closeOutreachContactModal();
+    closeAppointmentModal();
   }
 });
 
@@ -5109,6 +5496,7 @@ navReferralsButton.addEventListener("click", () => setActiveModule("referrals"))
 navClientsButton.addEventListener("click", () => setActiveModule("clients"));
 navReferralNetworkButton.addEventListener("click", () => setActiveModule("referral-network"));
 navOutreachButton.addEventListener("click", () => setActiveModule("outreach"));
+navSchedulingButton.addEventListener("click", () => setActiveModule("scheduling"));
 outreachTabDashboardButton.addEventListener("click", () => setOutreachView("dashboard"));
 outreachTabEventsButton.addEventListener("click", () => setOutreachView("events"));
 outreachTabContactsButton.addEventListener("click", () => setOutreachView("contacts"));
@@ -5126,11 +5514,13 @@ confirmNetworkImportButton.addEventListener("click", importPreviewedNetworkEntri
 newNetworkEntryButton.addEventListener("click", startNewNetworkEntry);
 newOutreachEventButton.addEventListener("click", startNewOutreachEvent);
 newOutreachContactButton.addEventListener("click", startNewOutreachContact);
+newAppointmentButton.addEventListener("click", startNewAppointment);
 referralForm.addEventListener("submit", saveReferral);
 clientForm.addEventListener("submit", saveClient);
 networkForm.addEventListener("submit", saveNetworkEntry);
 outreachForm.addEventListener("submit", saveOutreachEvent);
 outreachContactForm.addEventListener("submit", saveOutreachContact);
+appointmentForm.addEventListener("submit", saveAppointment);
 referralSourceInput.addEventListener("focus", renderReferralSourceOptions);
 referralSourceInput.addEventListener("input", renderReferralSourceOptions);
 clientReferralSourceInput.addEventListener("focus", renderReferralSourceOptions);
@@ -5158,6 +5548,9 @@ sortClientsSelect.addEventListener("change", renderClients);
 networkSearchInput.addEventListener("input", renderReferralNetwork);
 outreachSearchInput.addEventListener("input", renderOutreachEvents);
 outreachContactSearchInput.addEventListener("input", renderOutreachContacts);
+appointmentSearchInput.addEventListener("input", renderAppointments);
+appointmentDateFilterSelect.addEventListener("change", renderAppointments);
+appointmentStatusFilterSelect.addEventListener("change", renderAppointments);
 cancelEditButton.addEventListener("click", () => {
   referralForm.reset();
   if (selectedReferralId) {
@@ -5203,6 +5596,8 @@ cancelOutreachContactEditButton.addEventListener("click", () => {
   }
   closeOutreachContactModal();
 });
+cancelAppointmentEditButton.addEventListener("click", closeAppointmentModal);
+deleteAppointmentButton.addEventListener("click", deleteAppointment);
 closeReferralModalButton.addEventListener("click", closeReferralModal);
 closeReferralImportButton.addEventListener("click", closeReferralImportModal);
 closeClientImportButton.addEventListener("click", closeClientImportModal);
@@ -5245,6 +5640,11 @@ outreachModal.addEventListener("click", (event) => {
 outreachContactModal.addEventListener("click", (event) => {
   if (event.target === outreachContactModal) {
     closeOutreachContactModal();
+  }
+});
+appointmentModal.addEventListener("click", (event) => {
+  if (event.target === appointmentModal) {
+    closeAppointmentModal();
   }
 });
 document.addEventListener("click", (event) => {
