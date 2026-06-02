@@ -3,7 +3,7 @@ import {
   GoogleAuthProvider,
   getAuth,
   onAuthStateChanged,
-  signInWithPopup,
+  signInWithRedirect,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 
@@ -5238,7 +5238,7 @@ async function convertReferralToClient(referral) {
 async function signIn() {
   try {
     statusEl.textContent = "Opening Google sign-in...";
-    await signInWithPopup(auth, provider);
+    await signInWithRedirect(auth, provider);
   } catch (error) {
     statusEl.textContent = "Sign-in did not finish.";
     messageEl.textContent = "Check that Google sign-in is enabled in Firebase Authentication.";
