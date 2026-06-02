@@ -177,6 +177,7 @@ let editingNetworkEntryId = null;
 let loadedReferrals = [];
 let loadedClients = [];
 let loadedNetworkEntries = [];
+const expandedNetworkEntryIds = new Set();
 let summaryFilter = "all";
 let clientSummaryFilter = "all";
 let activeModule = "dashboard";
@@ -1262,15 +1263,49 @@ function renderReferralNetwork() {
     row.type = "button";
     row.setAttribute("role", "row");
     row.setAttribute("aria-label", `Open ${networkEntryName(entry)}`);
+    row.style.gridTemplateColumns = "minmax(190px, 1.25fr) minmax(160px, 1fr) minmax(140px, 0.9fr)";
 
     if (entry.id === selectedNetworkEntryId) {
       row.classList.add("selected");
       row.setAttribute("aria-current", "true");
     }
 
+    const providers = entry.providers || [];
+    const isExpanded = expandedNetworkEntryIds.has(entry.id);
+    const nameCell = document.createElement("span");
+    nameCell.className = "table-cell network-name-cell";
+    nameCell.setAttribute("role", "cell");
+
+    const expandButton = document.createElement("span");
+    expandButton.className = "network-expand-button";
+    expandButton.setAttribute("role", "button");
+    expandButton.setAttribute("tabindex", "0");
+    expandButton.setAttribute("aria-expanded", String(isExpanded));
+    expandButton.setAttribute("aria-label", `${isExpanded ? "Collapse" : "Expand"} ${networkEntryName(entry)} providers`);
+    expandButton.textContent = isExpanded ? "-" : "+";
+    expandButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (isExpanded) {
+        expandedNetworkEntryIds.delete(entry.id);
+      } else {
+        expandedNetworkEntryIds.add(entry.id);
+      }
+      renderReferralNetwork();
+    });
+    expandButton.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        expandButton.click();
+      }
+    });
+
+    const nameText = document.createElement("span");
+    nameText.className = "network-name-text";
+    nameText.textContent = networkEntryName(entry);
+    nameCell.append(expandButton, nameText);
+
     for (const value of [
-      networkEntryName(entry),
-      `${(entry.providers || []).length} provider${(entry.providers || []).length === 1 ? "" : "s"}`,
+      `${providers.length} provider${providers.length === 1 ? "" : "s"}`,
       formatPhone(entry.phone)
     ]) {
       const cell = document.createElement("span");
@@ -1280,8 +1315,41 @@ function renderReferralNetwork() {
       row.append(cell);
     }
 
+    row.prepend(nameCell);
     row.addEventListener("click", () => setSelectedNetworkEntry(entry.id));
     networkList.append(row);
+
+    if (isExpanded) {
+      if (!providers.length) {
+        const emptyProviderRow = document.createElement("div");
+        emptyProviderRow.className = "network-provider-inline-row";
+        emptyProviderRow.textContent = "No providers added yet.";
+        networkList.append(emptyProviderRow);
+      }
+
+      for (const provider of providers) {
+        const providerRow = document.createElement("button");
+        providerRow.className = "network-provider-inline-row";
+        providerRow.type = "button";
+        providerRow.setAttribute("role", "row");
+        providerRow.setAttribute("aria-label", `Open ${networkEntryName(entry)} provider list`);
+        providerRow.addEventListener("click", () => setSelectedNetworkEntry(entry.id));
+
+        for (const value of [
+          networkProviderName(provider),
+          "Provider",
+          formatPhone(provider.phone)
+        ]) {
+          const cell = document.createElement("span");
+          cell.className = "table-cell";
+          cell.setAttribute("role", "cell");
+          cell.textContent = value;
+          providerRow.append(cell);
+        }
+
+        networkList.append(providerRow);
+      }
+    }
   }
 }
 

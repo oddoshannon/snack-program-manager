@@ -644,6 +644,64 @@ textarea {
   text-transform: uppercase;
 }
 
+.network-name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.network-name-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.network-expand-button {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid #9dcbbc;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.network-expand-button:hover,
+.network-expand-button:focus-visible {
+  border-color: var(--accent);
+  background: #d5ebe3;
+  outline: none;
+}
+
+.network-provider-inline-row {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns:
+    minmax(190px, 1.25fr)
+    minmax(160px, 1fr)
+    minmax(140px, 0.9fr);
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  border-radius: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 20px 10px 54px;
+  background: #fbfcfb;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.network-provider-inline-row:hover {
+  background: #f4f8f5;
+}
+
 .referral-row:hover,
 .referral-row.selected {
   background: #f7faf8;
