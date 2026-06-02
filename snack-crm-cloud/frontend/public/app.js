@@ -680,6 +680,16 @@ function networkEntryName(entry) {
   return entry.name || "Unnamed network entry";
 }
 
+function normalizeNetworkType(type) {
+  const typeMap = {
+    "Internal Clinic Referral": "Internal Clinic",
+    "External Clinic Referral": "External Clinic",
+    "Community Org Referral": "Community Org"
+  };
+
+  return typeMap[type] || type || "";
+}
+
 function networkProviderName(provider) {
   return provider.name || "Unnamed provider";
 }
@@ -1219,7 +1229,7 @@ function renderReferralNetwork() {
     .filter(networkEntryMatchesSearch)
     .sort(
       (first, second) =>
-        displayValue(first.type).localeCompare(displayValue(second.type)) ||
+        displayValue(normalizeNetworkType(first.type)).localeCompare(displayValue(normalizeNetworkType(second.type))) ||
         networkEntryName(first).localeCompare(networkEntryName(second))
     );
 
@@ -1238,7 +1248,7 @@ function renderReferralNetwork() {
   let currentType = "";
 
   for (const entry of entries) {
-    const entryType = entry.type || "Not set";
+    const entryType = normalizeNetworkType(entry.type) || "Not set";
     if (entryType !== currentType) {
       currentType = entryType;
       const section = document.createElement("div");
@@ -1707,7 +1717,7 @@ function renderNetworkDetail() {
   rightColumn.className = "detail-column";
 
   addDetailField(leftColumn, "Organization", networkEntryName(entry));
-  addDetailField(leftColumn, "Referral Type", displayValue(entry.type));
+  addDetailField(leftColumn, "Referral Type", displayValue(normalizeNetworkType(entry.type)));
   addDetailField(leftColumn, "Main Contact", displayValue(entry.contactName));
   addDetailField(leftColumn, "Phone", displayValue(formatPhone(entry.phone)));
   addDetailField(rightColumn, "Email", displayValue(entry.email));
@@ -2314,6 +2324,7 @@ async function saveNetworkEntry(event) {
 
   const formData = new FormData(networkForm);
   const entry = Object.fromEntries(formData.entries());
+  entry.type = normalizeNetworkType(entry.type);
   const isEditing = Boolean(editingNetworkEntryId);
 
   networkStatusEl.textContent = isEditing ? "Updating network entry..." : "Saving network entry...";
@@ -2409,7 +2420,7 @@ function startEditingNetworkEntry(entry) {
   editingNetworkEntryId = entry.id;
   selectedNetworkEntryId = entry.id;
   networkForm.elements.name.value = entry.name || "";
-  networkForm.elements.type.value = entry.type || "";
+  networkForm.elements.type.value = normalizeNetworkType(entry.type);
   networkForm.elements.contactName.value = entry.contactName || "";
   networkForm.elements.phone.value = entry.phone || "";
   networkForm.elements.email.value = entry.email || "";
