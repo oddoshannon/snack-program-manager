@@ -66,6 +66,7 @@ const clientReferralSourceInput = document.querySelector("#client-referral-sourc
 const clientImportModal = document.querySelector("#client-import-modal");
 const clientImportDetail = document.querySelector("#client-import-detail");
 const closeClientImportButton = document.querySelector("#close-client-import");
+const confirmClientImportButton = document.querySelector("#confirm-client-import");
 const networkList = document.querySelector("#network-list");
 const networkStatusEl = document.querySelector("#network-status");
 const networkSearchInput = document.querySelector("#network-search");
@@ -221,6 +222,7 @@ let editingNetworkEntryId = null;
 let loadedReferrals = [];
 let loadedClients = [];
 let loadedNetworkEntries = [];
+let latestClientImportAnalysis = null;
 const expandedNetworkEntryIds = new Set();
 let summaryFilter = "all";
 let clientSummaryFilter = "all";
@@ -2247,62 +2249,113 @@ function mapZohoClientRow(row) {
   };
 }
 
-function clientDuplicateKeys(client) {
-  return [
-    client.email ? `email:${client.email.toLowerCase()}` : "",
-    normalizePhoneKey(client.phone).length >= 7 ? `phone:${normalizePhoneKey(client.phone)}` : "",
-    client.firstName && client.lastName && client.dateOfBirth
-      ? `name-dob:${client.firstName.toLowerCase()}|${client.lastName.toLowerCase()}|${client.dateOfBirth}`
+function clientIdentityKeys(client) {
+  return {
+    email: client.email ? client.email.toLowerCase() : "",
+    phone: normalizePhoneKey(client.phone).length >= 7 ? normalizePhoneKey(client.phone) : "",
+    nameDob: client.firstName && client.lastName && client.dateOfBirth
+      ? `${client.firstName.toLowerCase()}|${client.lastName.toLowerCase()}|${client.dateOfBirth}`
       : ""
-  ].filter(Boolean);
+  };
+}
+
+function addImportWarning(warnings, seenWarnings, warning) {
+  const key = `${warning.rowNumber}|${warning.name}|${warning.reason}`;
+
+  if (seenWarnings.has(key)) {
+    return;
+  }
+
+  seenWarnings.add(key);
+  warnings.push(warning);
 }
 
 function analyzeClientImport(rows, columns) {
   const mappedClients = rows.map(mapZohoClientRow);
   const missingRequired = [];
   const duplicateWarnings = [];
-  const existingKeys = new Map();
-  const csvKeys = new Map();
+  const householdWarnings = [];
+  const existingDuplicateKeys = new Map();
+  const existingPhoneKeys = new Map();
+  const csvDuplicateKeys = new Map();
+  const csvPhoneKeys = new Map();
+  const seenDuplicateWarnings = new Set();
+  const seenHouseholdWarnings = new Set();
   const requiredMappings = clientCsvFieldMappings.filter((mapping) => mapping.required);
 
   for (const client of loadedClients) {
-    for (const key of clientDuplicateKeys(client)) {
-      if (!existingKeys.has(key)) {
-        existingKeys.set(key, clientName(client));
-      }
+    const keys = clientIdentityKeys(client);
+
+    if (keys.email && !existingDuplicateKeys.has(`email:${keys.email}`)) {
+      existingDuplicateKeys.set(`email:${keys.email}`, clientName(client));
+    }
+
+    if (keys.nameDob && !existingDuplicateKeys.has(`name-dob:${keys.nameDob}`)) {
+      existingDuplicateKeys.set(`name-dob:${keys.nameDob}`, clientName(client));
+    }
+
+    if (keys.phone && !existingPhoneKeys.has(keys.phone)) {
+      existingPhoneKeys.set(keys.phone, clientName(client));
     }
   }
 
   mappedClients.forEach((client, index) => {
+    const rowNumber = index + 2;
     const missing = requiredMappings
       .filter((mapping) => !client[mapping.key])
       .map((mapping) => mapping.label);
 
     if (missing.length) {
       missingRequired.push({
-        rowNumber: index + 2,
+        rowNumber,
         name: clientName(client),
         missing
       });
     }
 
-    for (const key of clientDuplicateKeys(client)) {
-      if (existingKeys.has(key)) {
-        duplicateWarnings.push({
-          rowNumber: index + 2,
+    const keys = clientIdentityKeys(client);
+    const duplicateKeys = [
+      keys.email ? { key: `email:${keys.email}`, label: "same email" } : null,
+      keys.nameDob ? { key: `name-dob:${keys.nameDob}`, label: "same name and date of birth" } : null
+    ].filter(Boolean);
+
+    for (const { key, label } of duplicateKeys) {
+      if (existingDuplicateKeys.has(key)) {
+        addImportWarning(duplicateWarnings, seenDuplicateWarnings, {
+          rowNumber,
           name: clientName(client),
-          reason: `Possible match with existing client ${existingKeys.get(key)}`
+          reason: `Possible duplicate of existing client ${existingDuplicateKeys.get(key)} (${label})`
         });
       }
 
-      if (csvKeys.has(key)) {
-        duplicateWarnings.push({
-          rowNumber: index + 2,
+      if (csvDuplicateKeys.has(key)) {
+        addImportWarning(duplicateWarnings, seenDuplicateWarnings, {
+          rowNumber,
           name: clientName(client),
-          reason: `Possible duplicate of CSV row ${csvKeys.get(key)}`
+          reason: `Possible duplicate of CSV row ${csvDuplicateKeys.get(key)} (${label})`
         });
       } else {
-        csvKeys.set(key, index + 2);
+        csvDuplicateKeys.set(key, rowNumber);
+      }
+    }
+
+    if (keys.phone) {
+      if (existingPhoneKeys.has(keys.phone)) {
+        addImportWarning(householdWarnings, seenHouseholdWarnings, {
+          rowNumber,
+          name: clientName(client),
+          reason: `Shares phone with existing client ${existingPhoneKeys.get(keys.phone)}`
+        });
+      }
+
+      if (csvPhoneKeys.has(keys.phone)) {
+        addImportWarning(householdWarnings, seenHouseholdWarnings, {
+          rowNumber,
+          name: clientName(client),
+          reason: `Shares phone with CSV row ${csvPhoneKeys.get(keys.phone)}`
+        });
+      } else {
+        csvPhoneKeys.set(keys.phone, rowNumber);
       }
     }
   });
@@ -2312,7 +2365,8 @@ function analyzeClientImport(rows, columns) {
     rows,
     mappedClients,
     missingRequired,
-    duplicateWarnings
+    duplicateWarnings,
+    householdWarnings
   };
 }
 
@@ -2347,15 +2401,22 @@ function appendSimpleList(parent, items, emptyText) {
 
 function renderClientImportPreview(analysis, fileName) {
   clientImportDetail.innerHTML = "";
+  const missingRowNumbers = new Set(analysis.missingRequired.map((warning) => warning.rowNumber));
+  const importableClients = analysis.mappedClients.filter((_, index) => !missingRowNumbers.has(index + 2));
+  confirmClientImportButton.hidden = false;
+  confirmClientImportButton.disabled = !importableClients.length;
+  confirmClientImportButton.textContent = `Import ${importableClients.length} Clients`;
 
   const summary = document.createElement("div");
   summary.className = "import-summary-grid";
   for (const [label, value] of [
     ["File", fileName],
     ["Total rows found", analysis.rows.length],
+    ["Ready to import", importableClients.length],
     ["Columns detected", analysis.columns.length],
     ["Missing required rows", analysis.missingRequired.length],
-    ["Duplicate warnings", analysis.duplicateWarnings.length]
+    ["Duplicate warnings", analysis.duplicateWarnings.length],
+    ["Shared phone warnings", analysis.householdWarnings.length]
   ]) {
     const item = document.createElement("div");
     item.className = "summary-item import-summary-item";
@@ -2404,6 +2465,13 @@ function renderClientImportPreview(analysis, fileName) {
     "No duplicate warnings found."
   );
 
+  const householdSection = appendImportSection(clientImportDetail, "Shared Phone / Household Warnings");
+  appendSimpleList(
+    householdSection,
+    analysis.householdWarnings.map((warning) => `Row ${warning.rowNumber}: ${warning.name} - ${warning.reason}`),
+    "No shared phone warnings found."
+  );
+
   const previewSection = appendImportSection(clientImportDetail, "Preview of First 10 Clients");
   const previewTable = document.createElement("div");
   previewTable.className = "import-preview-table";
@@ -2439,6 +2507,70 @@ function closeClientImportModal() {
   document.body.classList.remove("modal-open");
 }
 
+function importableClientsFromAnalysis(analysis) {
+  const missingRowNumbers = new Set(analysis.missingRequired.map((warning) => warning.rowNumber));
+  return analysis.mappedClients
+    .map((client, index) => ({
+      ...client,
+      rowNumber: index + 2
+    }))
+    .filter((_, index) => !missingRowNumbers.has(index + 2));
+}
+
+async function importPreviewedClients() {
+  if (!latestClientImportAnalysis) {
+    clientsStatusEl.textContent = "Preview a CSV before importing clients.";
+    return;
+  }
+
+  const clientsToImport = importableClientsFromAnalysis(latestClientImportAnalysis);
+
+  if (!clientsToImport.length) {
+    clientsStatusEl.textContent = "No valid client rows are ready to import.";
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Import ${clientsToImport.length} clients now? ` +
+    `${latestClientImportAnalysis.duplicateWarnings.length} duplicate warning(s) and ` +
+    `${latestClientImportAnalysis.householdWarnings.length} shared phone warning(s) will not block the import.`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  confirmClientImportButton.disabled = true;
+  clientsStatusEl.textContent = "Importing clients...";
+
+  try {
+    const response = await authedFetch("/api/clients/import", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ clients: clientsToImport })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    const result = await response.json();
+    clientsStatusEl.textContent = `Imported ${result.importedCount} clients${result.skipped?.length ? `; skipped ${result.skipped.length}` : ""}.`;
+    latestClientImportAnalysis = null;
+    confirmClientImportButton.hidden = true;
+    await loadClients();
+    closeClientImportModal();
+  } catch (error) {
+    clientsStatusEl.textContent = error.message || "Could not import clients yet.";
+    console.error(error);
+  } finally {
+    confirmClientImportButton.disabled = false;
+  }
+}
+
 async function previewClientCsv(file) {
   if (!file) {
     return;
@@ -2459,10 +2591,13 @@ async function previewClientCsv(file) {
       Object.fromEntries(columns.map((column, index) => [column, values[index] || ""]))
     );
     const analysis = analyzeClientImport(rows, columns);
+    latestClientImportAnalysis = analysis;
     renderClientImportPreview(analysis, file.name);
     openClientImportModal();
     clientsStatusEl.textContent = "Client import preview ready.";
   } catch (error) {
+    latestClientImportAnalysis = null;
+    confirmClientImportButton.hidden = true;
     clientsStatusEl.textContent = error.message || "Could not preview this CSV.";
     clientImportDetail.innerHTML = "";
     const message = document.createElement("p");
@@ -3370,6 +3505,7 @@ newReferralButton.addEventListener("click", startNewReferral);
 newClientButton.addEventListener("click", startNewClient);
 importClientsButton.addEventListener("click", () => clientCsvInput.click());
 clientCsvInput.addEventListener("change", () => previewClientCsv(clientCsvInput.files?.[0]));
+confirmClientImportButton.addEventListener("click", importPreviewedClients);
 newNetworkEntryButton.addEventListener("click", startNewNetworkEntry);
 referralForm.addEventListener("submit", saveReferral);
 clientForm.addEventListener("submit", saveClient);

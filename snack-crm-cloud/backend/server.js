@@ -317,6 +317,10 @@ function validateRequiredPersonFields(payload, response) {
   return true;
 }
 
+function hasRequiredPersonFields(payload) {
+  return Boolean(payload.firstName && payload.lastName && payload.parentName && payload.phone && payload.preferredLanguage);
+}
+
 app.get("/health", (_request, response) => {
   response.json({
     ok: true,
@@ -524,6 +528,85 @@ app.post("/api/clients", requireAuth, async (request, response, next) => {
 
     response.status(201).json({
       client: toClient(created)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/clients/import", requireAuth, async (request, response, next) => {
+  try {
+    const clientRows = Array.isArray(request.body.clients) ? request.body.clients : [];
+
+    if (!clientRows.length) {
+      response.status(400).json({
+        error: "No clients were provided for import."
+      });
+      return;
+    }
+
+    if (clientRows.length > 450) {
+      response.status(400).json({
+        error: "Import is limited to 450 clients at a time."
+      });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const batch = firestore.batch();
+    const skipped = [];
+    let importedCount = 0;
+
+    clientRows.forEach((row, index) => {
+      const payload = cleanPersonPayload(row);
+      const status = cleanString(row.status) || "Scheduled";
+      const rowNumber = Number(row.rowNumber) || index + 1;
+
+      if (!hasRequiredPersonFields(payload)) {
+        skipped.push({
+          rowNumber,
+          reason: "Missing required fields."
+        });
+        return;
+      }
+
+      if (status && !allowedClientStatuses.has(status)) {
+        skipped.push({
+          rowNumber,
+          reason: "Client status is not valid."
+        });
+        return;
+      }
+
+      if (payload.referralType && !allowedReferralTypes.has(payload.referralType)) {
+        skipped.push({
+          rowNumber,
+          reason: "Referral type is not valid."
+        });
+        return;
+      }
+
+      const docRef = clients.doc();
+      batch.set(docRef, {
+        ...payload,
+        status,
+        zohoRecordId: cleanString(row.zohoRecordId),
+        importedFrom: "Zoho CSV",
+        importedAt: now,
+        createdAt: now,
+        updatedAt: now,
+        createdBy: request.user.email
+      });
+      importedCount += 1;
+    });
+
+    if (importedCount > 0) {
+      await batch.commit();
+    }
+
+    response.status(201).json({
+      importedCount,
+      skipped
     });
   } catch (error) {
     next(error);
