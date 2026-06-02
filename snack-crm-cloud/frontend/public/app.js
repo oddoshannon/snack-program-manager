@@ -76,6 +76,8 @@ const confirmClientImportButton = document.querySelector("#confirm-client-import
 const networkList = document.querySelector("#network-list");
 const networkStatusEl = document.querySelector("#network-status");
 const networkSearchInput = document.querySelector("#network-search");
+const importNetworkButton = document.querySelector("#import-network");
+const networkCsvInput = document.querySelector("#network-csv-input");
 const newNetworkEntryButton = document.querySelector("#new-network-entry");
 const networkModal = document.querySelector("#network-modal");
 const networkDetail = document.querySelector("#network-detail");
@@ -83,6 +85,10 @@ const networkForm = document.querySelector("#network-form");
 const networkFormTitle = document.querySelector("#network-form-title");
 const saveNetworkEntryButton = document.querySelector("#save-network-entry");
 const cancelNetworkEditButton = document.querySelector("#cancel-network-edit");
+const networkImportModal = document.querySelector("#network-import-modal");
+const networkImportDetail = document.querySelector("#network-import-detail");
+const closeNetworkImportButton = document.querySelector("#close-network-import");
+const confirmNetworkImportButton = document.querySelector("#confirm-network-import");
 
 const app = initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
@@ -258,6 +264,7 @@ let loadedClients = [];
 let loadedNetworkEntries = [];
 let latestClientImportAnalysis = null;
 let latestReferralImportAnalysis = null;
+let latestNetworkImportAnalysis = null;
 const expandedNetworkEntryIds = new Set();
 let summaryFilter = "all";
 let clientSummaryFilter = "all";
@@ -2336,6 +2343,97 @@ function mapZohoReferralRow(row, sourceType) {
   };
 }
 
+function normalizeImportedNetworkName(name) {
+  const cleaned = String(name || "").trim();
+  const lower = cleaned.toLowerCase();
+
+  if (lower === "pmc") {
+    return "Physicians' Medical Center";
+  }
+
+  if (lower === "virginia garcia") {
+    return "Virginia Garcia";
+  }
+
+  if (lower === "sunrise") {
+    return "Sunrise Family Clinic";
+  }
+
+  return cleaned;
+}
+
+function inferNetworkType(name) {
+  const lower = String(name || "").toLowerCase();
+
+  if (lower.includes("ycco") || lower.includes("self referral")) {
+    return "Community Org";
+  }
+
+  if (lower.includes("pmc") || lower.includes("physicians") || lower.includes("sunrise") || lower.includes("virginia garcia")) {
+    return "Internal Clinic";
+  }
+
+  return "External Clinic";
+}
+
+function mapProviderImportRows(rows) {
+  const groups = new Map();
+  const missingRequired = [];
+
+  rows.forEach((row, index) => {
+    const rowNumber = index + 2;
+    const providerName = csvValue(row, "Provider Name");
+    const rawOrganization = csvValue(row, "Referring Organization") || csvValue(row, "Tag") || providerName;
+    const organizationName = normalizeImportedNetworkName(rawOrganization);
+
+    if (!organizationName) {
+      missingRequired.push({
+        rowNumber,
+        name: providerName || "Unnamed provider",
+        missing: ["Organization"]
+      });
+      return;
+    }
+
+    if (!groups.has(organizationName)) {
+      groups.set(organizationName, {
+        name: organizationName,
+        type: inferNetworkType(rawOrganization || organizationName),
+        contactName: "",
+        phone: csvValue(row, "Phone"),
+        email: "",
+        website: "",
+        notes: "",
+        providers: []
+      });
+    }
+
+    const group = groups.get(organizationName);
+    if (!group.phone && csvValue(row, "Phone")) {
+      group.phone = csvValue(row, "Phone");
+    }
+
+    if (!group.website && csvValue(row, "Website")) {
+      group.website = csvValue(row, "Website");
+    }
+
+    if (providerName) {
+      group.providers.push({
+        name: providerName,
+        phone: csvValue(row, "Phone"),
+        email: csvValue(row, "Email"),
+        website: csvValue(row, "Website"),
+        notes: csvValue(row, "Tag")
+      });
+    }
+  });
+
+  return {
+    entries: [...groups.values()],
+    missingRequired
+  };
+}
+
 function clientIdentityKeys(client) {
   return {
     email: client.email ? client.email.toLowerCase() : "",
@@ -2599,6 +2697,16 @@ function analyzeReferralImport(rows, columns) {
   };
 }
 
+function analyzeNetworkImport(rows, columns) {
+  const mapped = mapProviderImportRows(rows);
+  return {
+    columns,
+    rows,
+    entries: mapped.entries,
+    missingRequired: mapped.missingRequired
+  };
+}
+
 function appendImportSection(parent, titleText) {
   const section = document.createElement("section");
   section.className = "import-preview-section";
@@ -2825,6 +2933,68 @@ function renderReferralImportPreview(analysis, fileName) {
   previewSection.append(previewTable);
 }
 
+function renderNetworkImportPreview(analysis, fileName) {
+  networkImportDetail.innerHTML = "";
+  confirmNetworkImportButton.hidden = false;
+  confirmNetworkImportButton.disabled = !analysis.entries.length;
+  confirmNetworkImportButton.textContent = `Import ${analysis.entries.length} Organizations`;
+  const providerCount = analysis.entries.reduce((total, entry) => total + entry.providers.length, 0);
+
+  const summary = document.createElement("div");
+  summary.className = "import-summary-grid";
+  for (const [label, value] of [
+    ["File", fileName],
+    ["Total rows found", analysis.rows.length],
+    ["Organizations ready", analysis.entries.length],
+    ["Providers ready", providerCount],
+    ["Columns detected", analysis.columns.length],
+    ["Missing required rows", analysis.missingRequired.length]
+  ]) {
+    const item = document.createElement("div");
+    item.className = "summary-item import-summary-item";
+    const valueEl = document.createElement("strong");
+    valueEl.textContent = value;
+    const labelEl = document.createElement("span");
+    labelEl.textContent = label;
+    item.append(valueEl, labelEl);
+    summary.append(item);
+  }
+  networkImportDetail.append(summary);
+
+  const columnsSection = appendImportSection(networkImportDetail, "Columns Detected");
+  appendSimpleList(columnsSection, analysis.columns, "No columns detected.");
+
+  const missingSection = appendImportSection(networkImportDetail, "Rows With Missing Required Values");
+  appendSimpleList(
+    missingSection,
+    analysis.missingRequired.map((warning) => `Row ${warning.rowNumber}: ${warning.name} missing ${warning.missing.join(", ")}`),
+    "No missing required values found."
+  );
+
+  const previewSection = appendImportSection(networkImportDetail, "Preview of Organizations");
+  const previewTable = document.createElement("div");
+  previewTable.className = "import-preview-table";
+  for (const header of ["Organization", "Type", "Providers", "Phone", "Website"]) {
+    const cell = document.createElement("strong");
+    cell.textContent = header;
+    previewTable.append(cell);
+  }
+  for (const entry of analysis.entries.slice(0, 10)) {
+    for (const value of [
+      networkEntryName(entry),
+      displayValue(entry.type),
+      `${entry.providers.length}`,
+      displayValue(formatPhone(entry.phone)),
+      displayValue(entry.website)
+    ]) {
+      const cell = document.createElement("span");
+      cell.textContent = value;
+      previewTable.append(cell);
+    }
+  }
+  previewSection.append(previewTable);
+}
+
 function openClientImportModal() {
   clientImportModal.hidden = false;
   document.body.classList.add("modal-open");
@@ -2842,6 +3012,16 @@ function openReferralImportModal() {
 
 function closeReferralImportModal() {
   referralImportModal.hidden = true;
+  document.body.classList.remove("modal-open");
+}
+
+function openNetworkImportModal() {
+  networkImportModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeNetworkImportModal() {
+  networkImportModal.hidden = true;
   document.body.classList.remove("modal-open");
 }
 
@@ -3050,6 +3230,97 @@ async function previewReferralCsv(file) {
     console.error(error);
   } finally {
     referralCsvInput.value = "";
+  }
+}
+
+async function importPreviewedNetworkEntries() {
+  if (!latestNetworkImportAnalysis) {
+    networkStatusEl.textContent = "Preview a CSV before importing providers.";
+    return;
+  }
+
+  if (!latestNetworkImportAnalysis.entries.length) {
+    networkStatusEl.textContent = "No valid provider rows are ready to import.";
+    return;
+  }
+
+  const providerCount = latestNetworkImportAnalysis.entries.reduce((total, entry) => total + entry.providers.length, 0);
+  const confirmed = window.confirm(
+    `Import ${latestNetworkImportAnalysis.entries.length} organizations and ${providerCount} providers now? Existing organizations with the same name will be updated.`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  confirmNetworkImportButton.disabled = true;
+  networkStatusEl.textContent = "Importing providers...";
+
+  try {
+    const response = await authedFetch("/api/referral-network/import", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ entries: latestNetworkImportAnalysis.entries })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    const result = await response.json();
+    networkStatusEl.textContent = `Imported ${result.createdCount} organizations, updated ${result.updatedCount}, and added ${result.providerCount} providers.`;
+    latestNetworkImportAnalysis = null;
+    confirmNetworkImportButton.hidden = true;
+    await loadReferralNetwork();
+    closeNetworkImportModal();
+  } catch (error) {
+    networkStatusEl.textContent = error.message || "Could not import providers yet.";
+    console.error(error);
+  } finally {
+    confirmNetworkImportButton.disabled = false;
+  }
+}
+
+async function previewNetworkCsv(file) {
+  if (!file) {
+    return;
+  }
+
+  networkStatusEl.textContent = `Previewing ${file.name}...`;
+
+  try {
+    const text = await file.text();
+    const parsed = parseCsv(text);
+
+    if (parsed.length < 2) {
+      throw new Error("The CSV does not contain any provider rows.");
+    }
+
+    const columns = parsed[0].map((column) => column.trim());
+    const rows = parsed.slice(1).map((values) =>
+      Object.fromEntries(columns.map((column, index) => [column, values[index] || ""]))
+    );
+    const analysis = analyzeNetworkImport(rows, columns);
+    latestNetworkImportAnalysis = analysis;
+    renderNetworkImportPreview(analysis, file.name);
+    openNetworkImportModal();
+    networkStatusEl.textContent = "Provider import preview ready.";
+  } catch (error) {
+    latestNetworkImportAnalysis = null;
+    confirmNetworkImportButton.hidden = true;
+    networkStatusEl.textContent = error.message || "Could not preview this CSV.";
+    networkImportDetail.innerHTML = "";
+    const message = document.createElement("p");
+    message.className = "empty-state";
+    message.textContent = error.message || "Could not preview this CSV.";
+    networkImportDetail.append(message);
+    openNetworkImportModal();
+    console.error(error);
+  } finally {
+    networkCsvInput.value = "";
   }
 }
 
@@ -3933,6 +4204,7 @@ onAuthStateChanged(auth, (user) => {
     closeReferralModal();
     closeReferralImportModal();
     closeClientModal();
+    closeNetworkImportModal();
     closeNetworkModal();
   }
 });
@@ -3952,6 +4224,9 @@ confirmReferralImportButton.addEventListener("click", importPreviewedReferrals);
 importClientsButton.addEventListener("click", () => clientCsvInput.click());
 clientCsvInput.addEventListener("change", () => previewClientCsv(clientCsvInput.files?.[0]));
 confirmClientImportButton.addEventListener("click", importPreviewedClients);
+importNetworkButton.addEventListener("click", () => networkCsvInput.click());
+networkCsvInput.addEventListener("change", () => previewNetworkCsv(networkCsvInput.files?.[0]));
+confirmNetworkImportButton.addEventListener("click", importPreviewedNetworkEntries);
 newNetworkEntryButton.addEventListener("click", startNewNetworkEntry);
 referralForm.addEventListener("submit", saveReferral);
 clientForm.addEventListener("submit", saveClient);
@@ -4011,6 +4286,7 @@ cancelNetworkEditButton.addEventListener("click", () => {
 closeReferralModalButton.addEventListener("click", closeReferralModal);
 closeReferralImportButton.addEventListener("click", closeReferralImportModal);
 closeClientImportButton.addEventListener("click", closeClientImportModal);
+closeNetworkImportButton.addEventListener("click", closeNetworkImportModal);
 referralModal.addEventListener("click", (event) => {
   if (event.target === referralModal) {
     closeReferralModal();
@@ -4029,6 +4305,11 @@ clientImportModal.addEventListener("click", (event) => {
 referralImportModal.addEventListener("click", (event) => {
   if (event.target === referralImportModal) {
     closeReferralImportModal();
+  }
+});
+networkImportModal.addEventListener("click", (event) => {
+  if (event.target === networkImportModal) {
+    closeNetworkImportModal();
   }
 });
 networkModal.addEventListener("click", (event) => {
