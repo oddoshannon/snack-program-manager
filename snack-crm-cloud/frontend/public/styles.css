@@ -312,6 +312,35 @@ h4 {
   gap: 16px;
 }
 
+.module-tabs {
+  display: inline-flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px;
+  background: #ffffff;
+}
+
+.module-tab {
+  min-height: 34px;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.module-tab:hover,
+.module-tab.active {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.outreach-view {
+  display: grid;
+  gap: 16px;
+}
+
 .dashboard-card {
   min-width: 0;
   border: 1px solid var(--line);
@@ -662,6 +691,15 @@ textarea {
     minmax(120px, 0.8fr)
     minmax(170px, 1fr)
     minmax(90px, 0.6fr);
+}
+
+.outreach-contact-table-head,
+.outreach-contact-row {
+  grid-template-columns:
+    minmax(200px, 1.25fr)
+    minmax(180px, 1fr)
+    minmax(130px, 0.75fr)
+    minmax(140px, 0.8fr);
 }
 
 .network-section-heading {

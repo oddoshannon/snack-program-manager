@@ -266,13 +266,32 @@
               <h2 id="outreach-title">Outreach</h2>
             </div>
             <div class="header-actions">
+              <button id="new-outreach-contact" class="secondary-button" type="button">New Contact</button>
               <button id="new-outreach-event" type="button">New Event</button>
             </div>
           </header>
 
-          <section id="outreach-summary" class="summary-grid" aria-label="Outreach summary"></section>
+          <div class="module-tabs" role="tablist" aria-label="Outreach views">
+            <button id="outreach-tab-dashboard" class="module-tab active" type="button" role="tab" aria-selected="true">Dashboard</button>
+            <button id="outreach-tab-events" class="module-tab" type="button" role="tab" aria-selected="false">Events / Classes</button>
+            <button id="outreach-tab-contacts" class="module-tab" type="button" role="tab" aria-selected="false">Interest Contacts</button>
+          </div>
 
-          <div class="referrals-layout">
+          <section id="outreach-dashboard-view" class="outreach-view">
+            <section id="outreach-summary" class="summary-grid" aria-label="Outreach summary"></section>
+            <div class="dashboard-grid">
+              <section class="dashboard-card" aria-labelledby="outreach-upcoming-title">
+                <h3 id="outreach-upcoming-title">Upcoming Events</h3>
+                <div id="outreach-upcoming-list" class="dashboard-list"></div>
+              </section>
+              <section class="dashboard-card" aria-labelledby="outreach-contact-followup-title">
+                <h3 id="outreach-contact-followup-title">Contacts To Follow Up</h3>
+                <div id="outreach-contact-followup-list" class="dashboard-list"></div>
+              </section>
+            </div>
+          </section>
+
+          <div id="outreach-events-view" class="referrals-layout outreach-view" hidden>
             <section class="list-panel" aria-label="Outreach event list">
               <div class="list-toolbar">
                 <div>
@@ -294,6 +313,32 @@
                   <span role="columnheader">Referrals</span>
                 </div>
                 <div id="outreach-list" class="referrals-list" role="rowgroup"></div>
+              </div>
+            </section>
+          </div>
+
+          <div id="outreach-contacts-view" class="referrals-layout outreach-view" hidden>
+            <section class="list-panel" aria-label="Outreach interest contact list">
+              <div class="list-toolbar">
+                <div>
+                  <h3>Interest Contacts</h3>
+                  <p id="outreach-contact-status" class="status" aria-live="polite"></p>
+                </div>
+                <div class="filters network-filters">
+                  <label>
+                    Search
+                    <input id="outreach-contact-search" type="search" autocomplete="off">
+                  </label>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <div class="table-head outreach-contact-table-head" role="row">
+                  <span role="columnheader">Contact</span>
+                  <span role="columnheader">Event/Class</span>
+                  <span role="columnheader">Status</span>
+                  <span role="columnheader">Phone</span>
+                </div>
+                <div id="outreach-contact-list" class="referrals-list" role="rowgroup"></div>
               </div>
             </section>
           </div>
@@ -819,7 +864,79 @@
         </form>
       </section>
     </div>
+
+    <div id="outreach-contact-modal" class="modal-backdrop" hidden>
+      <section class="modal-card" role="dialog" aria-modal="true" aria-label="Outreach interest contact profile">
+        <div id="outreach-contact-detail" class="referral-detail"></div>
+        <form id="outreach-contact-form" class="referral-form" hidden>
+          <div class="detail-heading">
+            <div>
+              <p class="eyebrow">Outreach Contact</p>
+              <h3 id="outreach-contact-form-title">New Contact</h3>
+            </div>
+            <div class="form-actions">
+              <button id="save-outreach-contact" type="submit">Save contact</button>
+              <button id="cancel-outreach-contact-edit" class="secondary-button" type="button" hidden>Cancel</button>
+            </div>
+          </div>
+          <label>
+            Event/Class
+            <select id="outreach-contact-event-id" name="eventId">
+              <option value="">Not linked</option>
+            </select>
+          </label>
+          <label>
+            Status
+            <select id="outreach-contact-status-field" name="status">
+              <option value="New">New</option>
+              <option value="Follow Up">Follow Up</option>
+              <option value="Interested">Interested</option>
+              <option value="Converted to Referral">Converted to Referral</option>
+              <option value="Not Interested">Not Interested</option>
+            </select>
+          </label>
+          <label>
+            Contact Name
+            <input id="outreach-contact-name" name="contactName">
+          </label>
+          <label>
+            Child Name
+            <input id="outreach-contact-child-name" name="childName">
+          </label>
+          <label>
+            Phone
+            <input id="outreach-contact-phone" name="phone" autocomplete="tel">
+          </label>
+          <label>
+            Email
+            <input id="outreach-contact-email" name="email" type="email" autocomplete="email">
+          </label>
+          <label>
+            Preferred Language
+            <select id="outreach-contact-preferred-language" name="preferredLanguage">
+              <option value="">Unknown</option>
+              <option value="English">English</option>
+              <option value="Spanish">Spanish</option>
+            </select>
+          </label>
+          <label>
+            Interest Type
+            <select id="outreach-contact-interest-type" name="interestType">
+              <option value="">Not set</option>
+              <option value="Program Information">Program Information</option>
+              <option value="Potential Referral">Potential Referral</option>
+              <option value="Hosted Class">Hosted Class</option>
+              <option value="Hosted Event">Hosted Event</option>
+            </select>
+          </label>
+          <label class="full-field">
+            Notes
+            <textarea id="outreach-contact-notes" name="notes" rows="5"></textarea>
+          </label>
+        </form>
+      </section>
+    </div>
     <script src="./app-config.js"></script>
-    <script type="module" src="./app.js?v=20260602-outreach-start"></script>
+    <script type="module" src="./app.js?v=20260602-outreach-module"></script>
   </body>
 </html>

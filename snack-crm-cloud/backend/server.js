@@ -55,6 +55,7 @@ const referrals = firestore.collection("referrals");
 const clients = firestore.collection("clients");
 const referralNetwork = firestore.collection("referralNetwork");
 const outreachEvents = firestore.collection("outreachEvents");
+const outreachContacts = firestore.collection("outreachContacts");
 const firebaseJwtKeys = createRemoteJWKSet(
   new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
 );
@@ -271,6 +272,26 @@ function toOutreachEvent(snapshot) {
   };
 }
 
+function toOutreachContact(snapshot) {
+  const data = snapshot.data();
+
+  return {
+    id: snapshot.id,
+    eventId: data.eventId,
+    contactName: data.contactName,
+    childName: data.childName,
+    phone: data.phone,
+    email: data.email,
+    preferredLanguage: data.preferredLanguage,
+    interestType: data.interestType,
+    status: data.status,
+    referralId: data.referralId,
+    notes: data.notes,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt
+  };
+}
+
 function cleanNetworkProvider(provider) {
   const id = cleanString(provider?.id) || crypto.randomUUID();
   return {
@@ -351,6 +372,21 @@ function cleanOutreachEventPayload(body) {
     referralsCount: cleanOptionalInteger(body.referralsCount),
     interestListCount: cleanOptionalInteger(body.interestListCount),
     participantListCount: cleanOptionalInteger(body.participantListCount),
+    notes: cleanString(body.notes)
+  };
+}
+
+function cleanOutreachContactPayload(body) {
+  return {
+    eventId: cleanString(body.eventId),
+    contactName: cleanString(body.contactName),
+    childName: cleanString(body.childName),
+    phone: cleanString(body.phone),
+    email: cleanString(body.email),
+    preferredLanguage: cleanString(body.preferredLanguage),
+    interestType: cleanString(body.interestType),
+    status: cleanString(body.status) || "New",
+    referralId: cleanString(body.referralId),
     notes: cleanString(body.notes)
   };
 }
@@ -758,6 +794,127 @@ app.delete("/api/outreach-events/:eventId", requireAuth, async (request, respons
     if (!snapshot.exists) {
       response.status(404).json({
         error: "Outreach event was not found."
+      });
+      return;
+    }
+
+    await docRef.delete();
+
+    response.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/outreach-contacts", requireAuth, async (_request, response, next) => {
+  try {
+    const snapshot = await outreachContacts.orderBy("createdAt", "desc").limit(500).get();
+
+    response.json({
+      contacts: snapshot.docs.map(toOutreachContact)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/outreach-contacts", requireAuth, async (request, response, next) => {
+  try {
+    const payload = cleanOutreachContactPayload(request.body);
+    const now = new Date().toISOString();
+
+    if (!payload.contactName && !payload.childName) {
+      response.status(400).json({
+        error: "Contact name or child name is required."
+      });
+      return;
+    }
+
+    if (!payload.phone && !payload.email) {
+      response.status(400).json({
+        error: "Phone or email is required."
+      });
+      return;
+    }
+
+    const docRef = await outreachContacts.add({
+      ...payload,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: request.user.email
+    });
+    const created = await docRef.get();
+
+    response.status(201).json({
+      contact: toOutreachContact(created)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/outreach-contacts/:contactId", requireAuth, async (request, response, next) => {
+  try {
+    const contactId = cleanString(request.params.contactId);
+
+    if (!contactId) {
+      response.status(400).json({
+        error: "Outreach contact ID is required."
+      });
+      return;
+    }
+
+    const docRef = outreachContacts.doc(contactId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Outreach contact was not found."
+      });
+      return;
+    }
+
+    const payload = cleanOutreachContactPayload(request.body);
+
+    if (Object.hasOwn(request.body, "contactName") && !payload.contactName && !payload.childName) {
+      response.status(400).json({
+        error: "Contact name or child name is required."
+      });
+      return;
+    }
+
+    await docRef.update({
+      ...payload,
+      updatedAt: new Date().toISOString(),
+      updatedBy: request.user.email
+    });
+    const updated = await docRef.get();
+
+    response.json({
+      contact: toOutreachContact(updated)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/outreach-contacts/:contactId", requireAuth, async (request, response, next) => {
+  try {
+    const contactId = cleanString(request.params.contactId);
+
+    if (!contactId) {
+      response.status(400).json({
+        error: "Outreach contact ID is required."
+      });
+      return;
+    }
+
+    const docRef = outreachContacts.doc(contactId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Outreach contact was not found."
       });
       return;
     }
