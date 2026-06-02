@@ -18,10 +18,12 @@ const dashboardPanel = document.querySelector("#dashboard-panel");
 const referralsPanel = document.querySelector("#referrals-panel");
 const clientsPanel = document.querySelector("#clients-panel");
 const referralNetworkPanel = document.querySelector("#referral-network-panel");
+const outreachPanel = document.querySelector("#outreach-panel");
 const navDashboardButton = document.querySelector("#nav-dashboard");
 const navReferralsButton = document.querySelector("#nav-referrals");
 const navClientsButton = document.querySelector("#nav-clients");
 const navReferralNetworkButton = document.querySelector("#nav-referral-network");
+const navOutreachButton = document.querySelector("#nav-outreach");
 const dashboardSummary = document.querySelector("#dashboard-summary");
 const dashboardFollowups = document.querySelector("#dashboard-followups");
 const dashboardNewReferrals = document.querySelector("#dashboard-new-referrals");
@@ -89,6 +91,17 @@ const networkImportModal = document.querySelector("#network-import-modal");
 const networkImportDetail = document.querySelector("#network-import-detail");
 const closeNetworkImportButton = document.querySelector("#close-network-import");
 const confirmNetworkImportButton = document.querySelector("#confirm-network-import");
+const outreachList = document.querySelector("#outreach-list");
+const outreachSummary = document.querySelector("#outreach-summary");
+const outreachStatusEl = document.querySelector("#outreach-status");
+const outreachSearchInput = document.querySelector("#outreach-search");
+const newOutreachEventButton = document.querySelector("#new-outreach-event");
+const outreachModal = document.querySelector("#outreach-modal");
+const outreachDetail = document.querySelector("#outreach-detail");
+const outreachForm = document.querySelector("#outreach-form");
+const outreachFormTitle = document.querySelector("#outreach-form-title");
+const saveOutreachEventButton = document.querySelector("#save-outreach-event");
+const cancelOutreachEditButton = document.querySelector("#cancel-outreach-edit");
 
 const app = initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
@@ -259,9 +272,12 @@ let selectedClientId = null;
 let editingClientId = null;
 let selectedNetworkEntryId = null;
 let editingNetworkEntryId = null;
+let selectedOutreachEventId = null;
+let editingOutreachEventId = null;
 let loadedReferrals = [];
 let loadedClients = [];
 let loadedNetworkEntries = [];
+let loadedOutreachEvents = [];
 let latestClientImportAnalysis = null;
 let latestReferralImportAnalysis = null;
 let latestNetworkImportAnalysis = null;
@@ -852,6 +868,45 @@ function networkEntryMatchesSearch(entry) {
   return searchable.includes(query);
 }
 
+function outreachEventName(event) {
+  return event.name || "Unnamed outreach event";
+}
+
+function getSelectedOutreachEvent() {
+  return loadedOutreachEvents.find((event) => event.id === selectedOutreachEventId) || null;
+}
+
+function outreachEventMatchesSearch(event) {
+  const query = outreachSearchInput.value.trim().toLowerCase();
+
+  if (!query) {
+    return true;
+  }
+
+  const searchable = [
+    event.name,
+    event.type,
+    event.eventDate,
+    event.repeatPattern,
+    event.location,
+    event.contactName,
+    event.contactRole,
+    event.phone,
+    event.email,
+    event.notes
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return searchable.includes(query);
+}
+
+function numberValue(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
 function dateValue(value, emptyPlacement = 1) {
   if (!value) {
     return emptyPlacement * Number.MAX_SAFE_INTEGER;
@@ -1152,35 +1207,48 @@ function setActiveModule(moduleName) {
   const showReferrals = moduleName === "referrals";
   const showClients = moduleName === "clients";
   const showReferralNetwork = moduleName === "referral-network";
+  const showOutreach = moduleName === "outreach";
   dashboardPanel.hidden = !showDashboard;
   referralsPanel.hidden = !showReferrals;
   clientsPanel.hidden = !showClients;
   referralNetworkPanel.hidden = !showReferralNetwork;
+  outreachPanel.hidden = !showOutreach;
   navDashboardButton.classList.toggle("active", showDashboard);
   navReferralsButton.classList.toggle("active", showReferrals);
   navClientsButton.classList.toggle("active", showClients);
   navReferralNetworkButton.classList.toggle("active", showReferralNetwork);
+  navOutreachButton.classList.toggle("active", showOutreach);
   navDashboardButton.setAttribute("aria-current", showDashboard ? "page" : "false");
   navReferralsButton.setAttribute("aria-current", showReferrals ? "page" : "false");
   navClientsButton.setAttribute("aria-current", showClients ? "page" : "false");
   navReferralNetworkButton.setAttribute("aria-current", showReferralNetwork ? "page" : "false");
+  navOutreachButton.setAttribute("aria-current", showOutreach ? "page" : "false");
 
   if (showDashboard) {
     closeReferralModal();
     closeClientModal();
     closeNetworkModal();
+    closeOutreachModal();
     renderDashboard();
   } else if (showClients) {
     closeReferralModal();
     closeNetworkModal();
+    closeOutreachModal();
     renderClients();
   } else if (showReferralNetwork) {
     closeReferralModal();
     closeClientModal();
+    closeOutreachModal();
     renderReferralNetwork();
+  } else if (showOutreach) {
+    closeReferralModal();
+    closeClientModal();
+    closeNetworkModal();
+    renderOutreachEvents();
   } else {
     closeClientModal();
     closeNetworkModal();
+    closeOutreachModal();
     renderReferrals();
   }
 }
@@ -1238,6 +1306,33 @@ function setSelectedNetworkEntry(entryId) {
   openNetworkModal();
   renderReferralNetwork();
   renderNetworkDetail();
+}
+
+function openOutreachModal() {
+  outreachModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeOutreachModal() {
+  outreachModal.hidden = true;
+  document.body.classList.remove("modal-open");
+  selectedOutreachEventId = null;
+  editingOutreachEventId = null;
+  outreachForm.reset();
+  outreachForm.hidden = true;
+  outreachDetail.hidden = false;
+  renderOutreachEvents();
+}
+
+function setSelectedOutreachEvent(eventId) {
+  selectedOutreachEventId = eventId;
+  editingOutreachEventId = null;
+  outreachForm.reset();
+  outreachForm.hidden = true;
+  outreachDetail.hidden = false;
+  openOutreachModal();
+  renderOutreachEvents();
+  renderOutreachDetail();
 }
 
 function statusBadge(status = "New") {
@@ -1475,6 +1570,80 @@ function renderReferralNetwork() {
         networkList.append(providerRow);
       }
     }
+  }
+}
+
+function renderOutreachSummary() {
+  outreachSummary.innerHTML = "";
+
+  const totals = [
+    { label: "Events", value: loadedOutreachEvents.length },
+    { label: "Interactions", value: loadedOutreachEvents.reduce((sum, event) => sum + numberValue(event.interactionsCount), 0) },
+    { label: "Referrals", value: loadedOutreachEvents.reduce((sum, event) => sum + numberValue(event.referralsCount), 0) },
+    { label: "Interest List", value: loadedOutreachEvents.reduce((sum, event) => sum + numberValue(event.interestListCount), 0) },
+    { label: "Participants", value: loadedOutreachEvents.reduce((sum, event) => sum + numberValue(event.participantListCount), 0) }
+  ];
+
+  for (const total of totals) {
+    const item = document.createElement("div");
+    item.className = "summary-item";
+    const value = document.createElement("strong");
+    value.textContent = total.value;
+    const label = document.createElement("span");
+    label.textContent = total.label;
+    item.append(value, label);
+    outreachSummary.append(item);
+  }
+}
+
+function renderOutreachEvents() {
+  outreachList.innerHTML = "";
+  renderOutreachSummary();
+
+  const events = loadedOutreachEvents
+    .filter(outreachEventMatchesSearch)
+    .sort((first, second) => dateValue(second.eventDate, -1) - dateValue(first.eventDate, -1) || outreachEventName(first).localeCompare(outreachEventName(second)));
+
+  if (selectedOutreachEventId && !events.some((event) => event.id === selectedOutreachEventId)) {
+    selectedOutreachEventId = null;
+  }
+
+  if (!events.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = loadedOutreachEvents.length ? "No outreach events match the current search." : "No outreach events tracked yet.";
+    outreachList.append(empty);
+    return;
+  }
+
+  for (const event of events) {
+    const row = document.createElement("button");
+    row.className = "referral-row outreach-row";
+    row.type = "button";
+    row.setAttribute("role", "row");
+    row.setAttribute("aria-label", `Open ${outreachEventName(event)}`);
+    row.style.gridTemplateColumns = "minmax(220px, 1.4fr) minmax(120px, 0.8fr) minmax(170px, 1fr) minmax(90px, 0.6fr)";
+
+    if (event.id === selectedOutreachEventId) {
+      row.classList.add("selected");
+      row.setAttribute("aria-current", "true");
+    }
+
+    for (const value of [
+      outreachEventName(event),
+      formatListDate(event.eventDate),
+      event.contactName || "-",
+      String(numberValue(event.referralsCount))
+    ]) {
+      const cell = document.createElement("span");
+      cell.className = "table-cell";
+      cell.setAttribute("role", "cell");
+      cell.textContent = value;
+      row.append(cell);
+    }
+
+    row.addEventListener("click", () => setSelectedOutreachEvent(event.id));
+    outreachList.append(row);
   }
 }
 
@@ -1994,6 +2163,91 @@ function renderNetworkProvidersSection(entry) {
   section.append(form);
 
   return section;
+}
+
+function renderOutreachDetail() {
+  if (!outreachForm.hidden) {
+    outreachDetail.hidden = true;
+    return;
+  }
+
+  outreachDetail.hidden = false;
+  outreachDetail.innerHTML = "";
+  const event = getSelectedOutreachEvent();
+
+  if (!loadedOutreachEvents.length) {
+    outreachDetail.append(emptyDetail("Create the first outreach event or hosted class.", "New Event", startNewOutreachEvent));
+    return;
+  }
+
+  if (!event) {
+    outreachDetail.append(emptyDetail("No outreach event matches the current list view.", null, null));
+    return;
+  }
+
+  const heading = document.createElement("div");
+  heading.className = "detail-heading";
+
+  const titleWrap = document.createElement("div");
+  const eyebrow = document.createElement("p");
+  eyebrow.className = "eyebrow";
+  eyebrow.textContent = event.type || "Outreach";
+  const title = document.createElement("h3");
+  title.textContent = outreachEventName(event);
+  titleWrap.append(eyebrow, title);
+
+  const actions = document.createElement("div");
+  actions.className = "detail-actions";
+  const editButton = document.createElement("button");
+  editButton.className = "secondary-button";
+  editButton.type = "button";
+  editButton.textContent = "Edit";
+  editButton.addEventListener("click", () => startEditingOutreachEvent(event));
+
+  const deleteButton = document.createElement("button");
+  deleteButton.className = "danger-button";
+  deleteButton.type = "button";
+  deleteButton.textContent = "Delete";
+  deleteButton.addEventListener("click", () => deleteOutreachEvent(event));
+
+  const closeButton = document.createElement("button");
+  closeButton.className = "secondary-button";
+  closeButton.type = "button";
+  closeButton.textContent = "Close";
+  closeButton.addEventListener("click", closeOutreachModal);
+  actions.append(editButton, deleteButton, closeButton);
+  heading.append(titleWrap, actions);
+
+  const infoGrid = document.createElement("div");
+  infoGrid.className = "detail-grid";
+  const leftColumn = document.createElement("dl");
+  leftColumn.className = "detail-column";
+  const rightColumn = document.createElement("dl");
+  rightColumn.className = "detail-column";
+
+  addDetailField(leftColumn, "Date", formatDateOnly(event.eventDate));
+  addDetailField(leftColumn, "Repeats", displayValue(event.repeatPattern || "One-time"));
+  addDetailField(leftColumn, "Location", displayValue(event.location));
+  addDetailField(leftColumn, "Event Contact", displayValue(event.contactName));
+  addDetailField(leftColumn, "Contact Role", displayValue(event.contactRole));
+  addDetailField(leftColumn, "Phone", displayValue(formatPhone(event.phone)));
+  addDetailField(leftColumn, "Email", displayValue(event.email));
+  addDetailField(rightColumn, "People Interacted With", numberValue(event.interactionsCount));
+  addDetailField(rightColumn, "Referrals Collected", numberValue(event.referralsCount));
+  addDetailField(rightColumn, "Interest List Count", numberValue(event.interestListCount));
+  addDetailField(rightColumn, "Participant List Count", numberValue(event.participantListCount));
+  addDetailField(rightColumn, "Created Date", formatDateOnly((event.createdAt || "").slice(0, 10)));
+  infoGrid.append(leftColumn, rightColumn);
+
+  const notes = document.createElement("section");
+  notes.className = "notes-panel";
+  const notesTitle = document.createElement("h4");
+  notesTitle.textContent = "Notes";
+  const notesText = document.createElement("p");
+  notesText.textContent = event.notes || "-";
+  notes.append(notesTitle, notesText);
+
+  outreachDetail.append(heading, infoGrid, notes);
 }
 
 function renderSiblingsSection(record, moduleName) {
@@ -3431,6 +3685,37 @@ async function loadReferralNetwork() {
   }
 }
 
+async function loadOutreachEvents() {
+  if (!currentUser) {
+    outreachStatusEl.textContent = "";
+    outreachList.innerHTML = "";
+    outreachDetail.innerHTML = "";
+    outreachSummary.innerHTML = "";
+    return;
+  }
+
+  outreachStatusEl.textContent = "Loading outreach events...";
+
+  try {
+    const response = await authedFetch("/api/outreach-events");
+
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    loadedOutreachEvents = data.events;
+    renderOutreachEvents();
+    if (!outreachModal.hidden && selectedOutreachEventId) {
+      renderOutreachDetail();
+    }
+    outreachStatusEl.textContent = "";
+  } catch (error) {
+    outreachStatusEl.textContent = "Could not load outreach events yet.";
+    console.error(error);
+  }
+}
+
 async function saveReferral(event) {
   event.preventDefault();
 
@@ -3673,6 +3958,53 @@ async function saveNetworkEntry(event) {
   }
 }
 
+async function saveOutreachEvent(event) {
+  event.preventDefault();
+
+  if (!currentUser) {
+    outreachStatusEl.textContent = "Sign in before saving an outreach event.";
+    return;
+  }
+
+  const formData = new FormData(outreachForm);
+  const outreachEvent = Object.fromEntries(formData.entries());
+  const isEditing = Boolean(editingOutreachEventId);
+
+  outreachStatusEl.textContent = isEditing ? "Updating outreach event..." : "Saving outreach event...";
+  saveOutreachEventButton.disabled = true;
+
+  try {
+    const path = isEditing ? `/api/outreach-events/${encodeURIComponent(editingOutreachEventId)}` : "/api/outreach-events";
+    const response = await authedFetch(path, {
+      method: isEditing ? "PATCH" : "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(outreachEvent)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    selectedOutreachEventId = data.event?.id || editingOutreachEventId;
+    editingOutreachEventId = null;
+    outreachForm.reset();
+    outreachStatusEl.textContent = isEditing ? "Outreach event updated." : "Outreach event saved.";
+    await loadOutreachEvents();
+    outreachForm.hidden = true;
+    outreachDetail.hidden = false;
+    renderOutreachDetail();
+  } catch (error) {
+    outreachStatusEl.textContent = error.message || "Could not save outreach event yet.";
+    console.error(error);
+  } finally {
+    saveOutreachEventButton.disabled = false;
+  }
+}
+
 async function saveNetworkProviders(entry, providers) {
   networkStatusEl.textContent = "Updating providers...";
 
@@ -3780,6 +4112,89 @@ async function deleteNetworkEntry(entry) {
     await loadReferralNetwork();
   } catch (error) {
     networkStatusEl.textContent = error.message || "Could not delete network entry yet.";
+    console.error(error);
+  }
+}
+
+function setOutreachFormValues(event = {}) {
+  outreachForm.elements.name.value = event.name || "";
+  outreachForm.elements.type.value = event.type || "Outreach Event";
+  outreachForm.elements.eventDate.value = event.eventDate || "";
+  outreachForm.elements.repeatPattern.value = event.repeatPattern || "";
+  outreachForm.elements.location.value = event.location || "";
+  outreachForm.elements.contactName.value = event.contactName || "";
+  outreachForm.elements.contactRole.value = event.contactRole || "";
+  outreachForm.elements.phone.value = event.phone || "";
+  outreachForm.elements.email.value = event.email || "";
+  outreachForm.elements.interactionsCount.value = event.interactionsCount ?? "";
+  outreachForm.elements.referralsCount.value = event.referralsCount ?? "";
+  outreachForm.elements.interestListCount.value = event.interestListCount ?? "";
+  outreachForm.elements.participantListCount.value = event.participantListCount ?? "";
+  outreachForm.elements.notes.value = event.notes || "";
+}
+
+function startNewOutreachEvent() {
+  editingOutreachEventId = null;
+  selectedOutreachEventId = null;
+  outreachForm.reset();
+  setOutreachFormValues({ type: "Outreach Event" });
+  outreachFormTitle.textContent = "New Event";
+  saveOutreachEventButton.textContent = "Save event";
+  cancelOutreachEditButton.hidden = false;
+  outreachForm.hidden = false;
+  outreachDetail.hidden = true;
+  openOutreachModal();
+  outreachStatusEl.textContent = "Creating a new outreach event.";
+}
+
+function startEditingOutreachEvent(event) {
+  editingOutreachEventId = event.id;
+  selectedOutreachEventId = event.id;
+  setOutreachFormValues(event);
+  outreachFormTitle.textContent = `Edit ${outreachEventName(event)}`;
+  saveOutreachEventButton.textContent = "Update event";
+  cancelOutreachEditButton.hidden = false;
+  outreachForm.hidden = false;
+  outreachDetail.hidden = true;
+  openOutreachModal();
+  outreachStatusEl.textContent = `Editing ${outreachEventName(event)}.`;
+}
+
+function stopEditingOutreachEvent() {
+  editingOutreachEventId = null;
+  outreachFormTitle.textContent = "New Event";
+  saveOutreachEventButton.textContent = "Save event";
+  cancelOutreachEditButton.hidden = true;
+  outreachForm.hidden = true;
+  outreachDetail.hidden = false;
+  renderOutreachDetail();
+}
+
+async function deleteOutreachEvent(event) {
+  const confirmed = window.confirm(`Delete ${outreachEventName(event)}? This cannot be undone.`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  outreachStatusEl.textContent = "Deleting outreach event...";
+
+  try {
+    const response = await authedFetch(`/api/outreach-events/${encodeURIComponent(event.id)}`, {
+      method: "DELETE"
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    selectedOutreachEventId = null;
+    closeOutreachModal();
+    outreachStatusEl.textContent = "Outreach event deleted.";
+    await loadOutreachEvents();
+  } catch (error) {
+    outreachStatusEl.textContent = error.message || "Could not delete outreach event yet.";
     console.error(error);
   }
 }
@@ -4179,6 +4594,7 @@ onAuthStateChanged(auth, (user) => {
   referralsPanel.hidden = true;
   clientsPanel.hidden = true;
   referralNetworkPanel.hidden = true;
+  outreachPanel.hidden = true;
   userEl.textContent = signedIn ? `Signed in as ${user.email}` : "Please sign in with your SNACK Google account.";
 
   if (signedIn) {
@@ -4187,15 +4603,18 @@ onAuthStateChanged(auth, (user) => {
     loadReferrals();
     loadClients();
     loadReferralNetwork();
+    loadOutreachEvents();
   } else {
     messageEl.textContent = "";
     statusEl.textContent = "Sign in to load the database message.";
     referralsStatusEl.textContent = "";
     clientsStatusEl.textContent = "";
     networkStatusEl.textContent = "";
+    outreachStatusEl.textContent = "";
     referralsList.innerHTML = "";
     clientsList.innerHTML = "";
     networkList.innerHTML = "";
+    outreachList.innerHTML = "";
     dashboardSummary.innerHTML = "";
     dashboardFollowups.innerHTML = "";
     dashboardNewReferrals.innerHTML = "";
@@ -4206,18 +4625,23 @@ onAuthStateChanged(auth, (user) => {
     referralDetail.innerHTML = "";
     clientDetail.innerHTML = "";
     networkDetail.innerHTML = "";
+    outreachDetail.innerHTML = "";
+    outreachSummary.innerHTML = "";
     selectedReferralId = null;
     selectedClientId = null;
     selectedNetworkEntryId = null;
+    selectedOutreachEventId = null;
     loadedReferrals = [];
     loadedClients = [];
     loadedNetworkEntries = [];
+    loadedOutreachEvents = [];
     referralForm.reset();
     closeReferralModal();
     closeReferralImportModal();
     closeClientModal();
     closeNetworkImportModal();
     closeNetworkModal();
+    closeOutreachModal();
   }
 });
 
@@ -4228,6 +4652,7 @@ navDashboardButton.addEventListener("click", () => setActiveModule("dashboard"))
 navReferralsButton.addEventListener("click", () => setActiveModule("referrals"));
 navClientsButton.addEventListener("click", () => setActiveModule("clients"));
 navReferralNetworkButton.addEventListener("click", () => setActiveModule("referral-network"));
+navOutreachButton.addEventListener("click", () => setActiveModule("outreach"));
 newReferralButton.addEventListener("click", startNewReferral);
 newClientButton.addEventListener("click", startNewClient);
 importReferralsButton.addEventListener("click", () => referralCsvInput.click());
@@ -4240,9 +4665,11 @@ importNetworkButton.addEventListener("click", () => networkCsvInput.click());
 networkCsvInput.addEventListener("change", () => previewNetworkCsv(networkCsvInput.files?.[0]));
 confirmNetworkImportButton.addEventListener("click", importPreviewedNetworkEntries);
 newNetworkEntryButton.addEventListener("click", startNewNetworkEntry);
+newOutreachEventButton.addEventListener("click", startNewOutreachEvent);
 referralForm.addEventListener("submit", saveReferral);
 clientForm.addEventListener("submit", saveClient);
 networkForm.addEventListener("submit", saveNetworkEntry);
+outreachForm.addEventListener("submit", saveOutreachEvent);
 referralSourceInput.addEventListener("focus", renderReferralSourceOptions);
 referralSourceInput.addEventListener("input", renderReferralSourceOptions);
 clientReferralSourceInput.addEventListener("focus", renderReferralSourceOptions);
@@ -4268,6 +4695,7 @@ clientStatusFilterSelect.addEventListener("change", () => {
 });
 sortClientsSelect.addEventListener("change", renderClients);
 networkSearchInput.addEventListener("input", renderReferralNetwork);
+outreachSearchInput.addEventListener("input", renderOutreachEvents);
 cancelEditButton.addEventListener("click", () => {
   referralForm.reset();
   if (selectedReferralId) {
@@ -4294,6 +4722,15 @@ cancelNetworkEditButton.addEventListener("click", () => {
     return;
   }
   closeNetworkModal();
+});
+cancelOutreachEditButton.addEventListener("click", () => {
+  outreachForm.reset();
+  if (selectedOutreachEventId) {
+    stopEditingOutreachEvent();
+    outreachStatusEl.textContent = "";
+    return;
+  }
+  closeOutreachModal();
 });
 closeReferralModalButton.addEventListener("click", closeReferralModal);
 closeReferralImportButton.addEventListener("click", closeReferralImportModal);
@@ -4327,6 +4764,11 @@ networkImportModal.addEventListener("click", (event) => {
 networkModal.addEventListener("click", (event) => {
   if (event.target === networkModal) {
     closeNetworkModal();
+  }
+});
+outreachModal.addEventListener("click", (event) => {
+  if (event.target === outreachModal) {
+    closeOutreachModal();
   }
 });
 document.addEventListener("click", (event) => {

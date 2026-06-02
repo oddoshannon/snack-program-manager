@@ -21,6 +21,7 @@
           <button id="nav-referrals" class="nav-item" type="button">Referrals</button>
           <button id="nav-clients" class="nav-item" type="button">Clients</button>
           <button id="nav-referral-network" class="nav-item" type="button">Referral Network</button>
+          <button id="nav-outreach" class="nav-item" type="button">Outreach</button>
         </nav>
         <div class="sidebar-footer">
           <p id="user" class="user">Please sign in with your SNACK Google account.</p>
@@ -253,6 +254,46 @@
                   <span role="columnheader">Phone</span>
                 </div>
                 <div id="network-list" class="referrals-list" role="rowgroup"></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="outreach-panel" class="referrals-panel" aria-labelledby="outreach-title" hidden>
+          <header class="workspace-header">
+            <div>
+              <p class="eyebrow">CRM</p>
+              <h2 id="outreach-title">Outreach</h2>
+            </div>
+            <div class="header-actions">
+              <button id="new-outreach-event" type="button">New Event</button>
+            </div>
+          </header>
+
+          <section id="outreach-summary" class="summary-grid" aria-label="Outreach summary"></section>
+
+          <div class="referrals-layout">
+            <section class="list-panel" aria-label="Outreach event list">
+              <div class="list-toolbar">
+                <div>
+                  <h3>Outreach Events</h3>
+                  <p id="outreach-status" class="status" aria-live="polite"></p>
+                </div>
+                <div class="filters network-filters">
+                  <label>
+                    Search
+                    <input id="outreach-search" type="search" autocomplete="off">
+                  </label>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <div class="table-head outreach-table-head" role="row">
+                  <span role="columnheader">Event/Class</span>
+                  <span role="columnheader">Date</span>
+                  <span role="columnheader">Contact</span>
+                  <span role="columnheader">Referrals</span>
+                </div>
+                <div id="outreach-list" class="referrals-list" role="rowgroup"></div>
               </div>
             </section>
           </div>
@@ -694,7 +735,91 @@
         </div>
       </section>
     </div>
+
+    <div id="outreach-modal" class="modal-backdrop" hidden>
+      <section class="modal-card" role="dialog" aria-modal="true" aria-label="Outreach event profile">
+        <div id="outreach-detail" class="referral-detail"></div>
+        <form id="outreach-form" class="referral-form" hidden>
+          <div class="detail-heading">
+            <div>
+              <p class="eyebrow">Outreach</p>
+              <h3 id="outreach-form-title">New Event</h3>
+            </div>
+            <div class="form-actions">
+              <button id="save-outreach-event" type="submit">Save event</button>
+              <button id="cancel-outreach-edit" class="secondary-button" type="button" hidden>Cancel</button>
+            </div>
+          </div>
+          <label>
+            <span class="label-text">Event/Class Name <span class="required-marker" aria-label="required">*</span></span>
+            <input id="outreach-name" name="name" required>
+          </label>
+          <label>
+            Type
+            <select id="outreach-type" name="type">
+              <option value="Outreach Event">Outreach Event</option>
+              <option value="Hosted Class">Hosted Class</option>
+              <option value="Hosted Event">Hosted Event</option>
+            </select>
+          </label>
+          <label>
+            Date
+            <input id="outreach-event-date" name="eventDate" type="date">
+          </label>
+          <label>
+            Repeats
+            <select id="outreach-repeat-pattern" name="repeatPattern">
+              <option value="">One-time</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Monthly">Monthly</option>
+              <option value="Quarterly">Quarterly</option>
+              <option value="Annually">Annually</option>
+            </select>
+          </label>
+          <label>
+            Location
+            <input id="outreach-location" name="location">
+          </label>
+          <label>
+            Event Contact
+            <input id="outreach-contact-name" name="contactName">
+          </label>
+          <label>
+            Contact Role
+            <input id="outreach-contact-role" name="contactRole">
+          </label>
+          <label>
+            Phone
+            <input id="outreach-phone" name="phone" autocomplete="tel">
+          </label>
+          <label>
+            Email
+            <input id="outreach-email" name="email" type="email" autocomplete="email">
+          </label>
+          <label>
+            People Interacted With
+            <input id="outreach-interactions-count" name="interactionsCount" type="number" min="0" step="1">
+          </label>
+          <label>
+            Referrals Collected
+            <input id="outreach-referrals-count" name="referralsCount" type="number" min="0" step="1">
+          </label>
+          <label>
+            Interest List Count
+            <input id="outreach-interest-list-count" name="interestListCount" type="number" min="0" step="1">
+          </label>
+          <label>
+            Participant List Count
+            <input id="outreach-participant-list-count" name="participantListCount" type="number" min="0" step="1">
+          </label>
+          <label class="full-field">
+            Notes
+            <textarea id="outreach-notes" name="notes" rows="5"></textarea>
+          </label>
+        </form>
+      </section>
+    </div>
     <script src="./app-config.js"></script>
-    <script type="module" src="./app.js?v=20260602-polish-queue"></script>
+    <script type="module" src="./app.js?v=20260602-outreach-start"></script>
   </body>
 </html>

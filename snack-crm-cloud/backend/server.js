@@ -54,6 +54,7 @@ const messages = firestore.collection("messages");
 const referrals = firestore.collection("referrals");
 const clients = firestore.collection("clients");
 const referralNetwork = firestore.collection("referralNetwork");
+const outreachEvents = firestore.collection("outreachEvents");
 const firebaseJwtKeys = createRemoteJWKSet(
   new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
 );
@@ -130,6 +131,11 @@ function cleanOptionalNumber(value) {
   }
   const number = Number(cleaned);
   return Number.isNaN(number) ? null : number;
+}
+
+function cleanOptionalInteger(value) {
+  const number = cleanOptionalNumber(value);
+  return number === null ? null : Math.max(0, Math.round(number));
 }
 
 function cleanBoolean(value) {
@@ -241,6 +247,30 @@ function toReferralNetworkEntry(snapshot) {
   };
 }
 
+function toOutreachEvent(snapshot) {
+  const data = snapshot.data();
+
+  return {
+    id: snapshot.id,
+    name: data.name,
+    type: data.type,
+    eventDate: data.eventDate,
+    repeatPattern: data.repeatPattern,
+    location: data.location,
+    contactName: data.contactName,
+    contactRole: data.contactRole,
+    phone: data.phone,
+    email: data.email,
+    interactionsCount: data.interactionsCount,
+    referralsCount: data.referralsCount,
+    interestListCount: data.interestListCount,
+    participantListCount: data.participantListCount,
+    notes: data.notes,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt
+  };
+}
+
 function cleanNetworkProvider(provider) {
   const id = cleanString(provider?.id) || crypto.randomUUID();
   return {
@@ -302,6 +332,25 @@ function cleanReferralNetworkPayload(body) {
     email: cleanString(body.email),
     website: cleanString(body.website),
     providers: Array.isArray(body.providers) ? body.providers.map(cleanNetworkProvider).filter((provider) => provider.name) : [],
+    notes: cleanString(body.notes)
+  };
+}
+
+function cleanOutreachEventPayload(body) {
+  return {
+    name: cleanString(body.name),
+    type: cleanString(body.type) || "Outreach Event",
+    eventDate: cleanString(body.eventDate),
+    repeatPattern: cleanString(body.repeatPattern),
+    location: cleanString(body.location),
+    contactName: cleanString(body.contactName),
+    contactRole: cleanString(body.contactRole),
+    phone: cleanString(body.phone),
+    email: cleanString(body.email),
+    interactionsCount: cleanOptionalInteger(body.interactionsCount),
+    referralsCount: cleanOptionalInteger(body.referralsCount),
+    interestListCount: cleanOptionalInteger(body.interestListCount),
+    participantListCount: cleanOptionalInteger(body.participantListCount),
     notes: cleanString(body.notes)
   };
 }
@@ -595,6 +644,120 @@ app.delete("/api/referral-network/:entryId", requireAuth, async (request, respon
     if (!snapshot.exists) {
       response.status(404).json({
         error: "Referral network entry was not found."
+      });
+      return;
+    }
+
+    await docRef.delete();
+
+    response.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/outreach-events", requireAuth, async (_request, response, next) => {
+  try {
+    const snapshot = await outreachEvents.orderBy("eventDate", "desc").limit(200).get();
+
+    response.json({
+      events: snapshot.docs.map(toOutreachEvent)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/outreach-events", requireAuth, async (request, response, next) => {
+  try {
+    const payload = cleanOutreachEventPayload(request.body);
+    const now = new Date().toISOString();
+
+    if (!payload.name) {
+      response.status(400).json({
+        error: "Outreach event name is required."
+      });
+      return;
+    }
+
+    const docRef = await outreachEvents.add({
+      ...payload,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: request.user.email
+    });
+    const created = await docRef.get();
+
+    response.status(201).json({
+      event: toOutreachEvent(created)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/outreach-events/:eventId", requireAuth, async (request, response, next) => {
+  try {
+    const eventId = cleanString(request.params.eventId);
+
+    if (!eventId) {
+      response.status(400).json({
+        error: "Outreach event ID is required."
+      });
+      return;
+    }
+
+    const docRef = outreachEvents.doc(eventId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Outreach event was not found."
+      });
+      return;
+    }
+
+    const payload = cleanOutreachEventPayload(request.body);
+
+    if (Object.hasOwn(request.body, "name") && !payload.name) {
+      response.status(400).json({
+        error: "Outreach event name is required."
+      });
+      return;
+    }
+
+    await docRef.update({
+      ...payload,
+      updatedAt: new Date().toISOString(),
+      updatedBy: request.user.email
+    });
+    const updated = await docRef.get();
+
+    response.json({
+      event: toOutreachEvent(updated)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/outreach-events/:eventId", requireAuth, async (request, response, next) => {
+  try {
+    const eventId = cleanString(request.params.eventId);
+
+    if (!eventId) {
+      response.status(400).json({
+        error: "Outreach event ID is required."
+      });
+      return;
+    }
+
+    const docRef = outreachEvents.doc(eventId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Outreach event was not found."
       });
       return;
     }

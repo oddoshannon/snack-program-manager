@@ -655,6 +655,15 @@ textarea {
     minmax(140px, 0.9fr);
 }
 
+.outreach-table-head,
+.outreach-row {
+  grid-template-columns:
+    minmax(220px, 1.4fr)
+    minmax(120px, 0.8fr)
+    minmax(170px, 1fr)
+    minmax(90px, 0.6fr);
+}
+
 .network-section-heading {
   padding: 12px 20px 8px;
   border-bottom: 1px solid var(--line);
