@@ -568,7 +568,8 @@ function knownReferralSources() {
   return [
     ...new Set([
       ...loadedReferrals.map((referral) => referral.referralSource).filter(Boolean),
-      ...loadedNetworkEntries.map((entry) => entry.name).filter(Boolean)
+      ...loadedNetworkEntries.map((entry) => entry.name).filter(Boolean),
+      ...loadedNetworkEntries.flatMap((entry) => (entry.providers || []).map((provider) => provider.name)).filter(Boolean)
     ])
   ]
     .sort((first, second) => first.localeCompare(second));
@@ -676,8 +677,25 @@ function networkEntryName(entry) {
   return entry.name || "Unnamed network entry";
 }
 
+function networkProviderName(provider) {
+  return provider.name || "Unnamed provider";
+}
+
 function getSelectedNetworkEntry() {
   return loadedNetworkEntries.find((entry) => entry.id === selectedNetworkEntryId) || null;
+}
+
+function availableProviderLinks(record) {
+  const linked = new Set((record.providerLinks || []).map((link) => `${link.networkId}:${link.providerId}`));
+  return loadedNetworkEntries.flatMap((entry) =>
+    (entry.providers || []).map((provider) => ({
+      networkId: entry.id,
+      providerId: provider.id,
+      organizationName: networkEntryName(entry),
+      providerName: networkProviderName(provider),
+      label: `${networkProviderName(provider)} (${networkEntryName(entry)})`
+    }))
+  ).filter((link) => link.providerId && !linked.has(`${link.networkId}:${link.providerId}`));
 }
 
 function networkEntryMatchesSearch(entry) {
@@ -694,7 +712,8 @@ function networkEntryMatchesSearch(entry) {
     entry.phone,
     entry.email,
     entry.website,
-    entry.notes
+    entry.notes,
+    ...(entry.providers || []).flatMap((provider) => [provider.name, provider.phone, provider.email, provider.website, provider.notes])
   ]
     .filter(Boolean)
     .join(" ")
@@ -935,9 +954,18 @@ function renderDashboardList(container, items, emptyText) {
     content.append(title, detail);
 
     const meta = document.createElement("span");
-    meta.className = "dashboard-item-meta";
+    meta.className = "dashboard-item-meta-wrap";
     const shortDate = formatShortDate(item.date);
-    meta.textContent = [shortDate, item.type].filter(Boolean).join(" · ");
+    if (shortDate) {
+      const date = document.createElement("span");
+      date.className = "dashboard-item-date";
+      date.textContent = shortDate;
+      meta.append(date);
+    }
+    const type = document.createElement("span");
+    type.className = `dashboard-item-type dashboard-item-type-${item.type.toLowerCase()}`;
+    type.textContent = item.type;
+    meta.append(type);
 
     button.append(content, meta);
     container.append(button);
@@ -1186,7 +1214,11 @@ function renderReferralNetwork() {
   networkList.innerHTML = "";
   const entries = loadedNetworkEntries
     .filter(networkEntryMatchesSearch)
-    .sort((first, second) => networkEntryName(first).localeCompare(networkEntryName(second)));
+    .sort(
+      (first, second) =>
+        displayValue(first.type).localeCompare(displayValue(second.type)) ||
+        networkEntryName(first).localeCompare(networkEntryName(second))
+    );
 
   if (selectedNetworkEntryId && !entries.some((entry) => entry.id === selectedNetworkEntryId)) {
     selectedNetworkEntryId = null;
@@ -1200,7 +1232,18 @@ function renderReferralNetwork() {
     return;
   }
 
+  let currentType = "";
+
   for (const entry of entries) {
+    const entryType = entry.type || "Not set";
+    if (entryType !== currentType) {
+      currentType = entryType;
+      const section = document.createElement("div");
+      section.className = "network-section-heading";
+      section.textContent = entryType;
+      networkList.append(section);
+    }
+
     const row = document.createElement("button");
     row.className = "referral-row network-row";
     row.type = "button";
@@ -1215,7 +1258,7 @@ function renderReferralNetwork() {
     for (const value of [
       entry.type || "",
       networkEntryName(entry),
-      entry.contactName || "",
+      `${(entry.providers || []).length} provider${(entry.providers || []).length === 1 ? "" : "s"}`,
       formatPhone(entry.phone),
       entry.email || ""
     ]) {
@@ -1437,7 +1480,16 @@ function renderReferralDetail() {
   trackingTitle.className = "section-title";
   trackingTitle.textContent = "Data Tracking";
 
-  referralDetail.append(heading, statusLabel, infoGrid, trackingTitle, trackingGrid, renderSiblingsSection(referral, "referrals"), notes);
+  referralDetail.append(
+    heading,
+    statusLabel,
+    infoGrid,
+    trackingTitle,
+    trackingGrid,
+    renderSiblingsSection(referral, "referrals"),
+    renderLinkedProvidersSection(referral, "referrals"),
+    notes
+  );
 
   if (normalizeStatus(referral.status) === "Scheduled" && !referral.convertedClientId) {
     const convertButton = document.createElement("button");
@@ -1581,7 +1633,16 @@ function renderClientDetail() {
   notesText.textContent = client.notes || "-";
   notes.append(notesTitle, notesText);
 
-  clientDetail.append(heading, statusLabel, infoGrid, trackingTitle, trackingGrid, renderSiblingsSection(client, "clients"), notes);
+  clientDetail.append(
+    heading,
+    statusLabel,
+    infoGrid,
+    trackingTitle,
+    trackingGrid,
+    renderSiblingsSection(client, "clients"),
+    renderLinkedProvidersSection(client, "clients"),
+    notes
+  );
 }
 
 function renderNetworkDetail() {
@@ -1644,14 +1705,16 @@ function renderNetworkDetail() {
   const rightColumn = document.createElement("dl");
   rightColumn.className = "detail-column";
 
-  addDetailField(leftColumn, "Name", networkEntryName(entry));
-  addDetailField(leftColumn, "Type", displayValue(entry.type));
-  addDetailField(leftColumn, "Contact Name", displayValue(entry.contactName));
+  addDetailField(leftColumn, "Organization", networkEntryName(entry));
+  addDetailField(leftColumn, "Referral Type", displayValue(entry.type));
+  addDetailField(leftColumn, "Main Contact", displayValue(entry.contactName));
   addDetailField(leftColumn, "Phone", displayValue(formatPhone(entry.phone)));
   addDetailField(rightColumn, "Email", displayValue(entry.email));
   addDetailField(rightColumn, "Website", displayValue(entry.website));
   addDetailField(rightColumn, "Created Date", formatDateOnly((entry.createdAt || "").slice(0, 10)));
   infoGrid.append(leftColumn, rightColumn);
+
+  const providersSection = renderNetworkProvidersSection(entry);
 
   const notes = document.createElement("section");
   notes.className = "notes-panel";
@@ -1661,7 +1724,70 @@ function renderNetworkDetail() {
   notesText.textContent = entry.notes || "-";
   notes.append(notesTitle, notesText);
 
-  networkDetail.append(heading, infoGrid, notes);
+  networkDetail.append(heading, infoGrid, providersSection, notes);
+}
+
+function renderNetworkProvidersSection(entry) {
+  const section = document.createElement("section");
+  section.className = "network-providers-panel";
+  const title = document.createElement("h4");
+  title.textContent = "Providers";
+  section.append(title);
+
+  const providers = Array.isArray(entry.providers) ? entry.providers : [];
+
+  if (!providers.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-inline";
+    empty.textContent = "No providers added yet.";
+    section.append(empty);
+  } else {
+    const list = document.createElement("div");
+    list.className = "network-provider-list";
+
+    for (const provider of providers) {
+      const item = document.createElement("div");
+      item.className = "network-provider-item";
+      const details = document.createElement("div");
+      const name = document.createElement("strong");
+      name.textContent = networkProviderName(provider);
+      const contact = document.createElement("span");
+      contact.textContent = [formatPhone(provider.phone), provider.email].filter(Boolean).join(" | ") || "-";
+      details.append(name, contact);
+
+      const remove = document.createElement("button");
+      remove.className = "secondary-button compact-button";
+      remove.type = "button";
+      remove.textContent = "Remove";
+      remove.addEventListener("click", () => removeNetworkProvider(entry, provider.id));
+      item.append(details, remove);
+      list.append(item);
+    }
+
+    section.append(list);
+  }
+
+  const form = document.createElement("form");
+  form.className = "network-provider-form";
+  form.innerHTML = `
+    <label>
+      Provider
+      <input name="name" required>
+    </label>
+    <label>
+      Phone
+      <input name="phone" autocomplete="tel">
+    </label>
+    <label>
+      Email
+      <input name="email" type="email" autocomplete="email">
+    </label>
+    <button type="submit">Add Provider</button>
+  `;
+  form.addEventListener("submit", (event) => addNetworkProvider(event, entry));
+  section.append(form);
+
+  return section;
 }
 
 function renderSiblingsSection(record, moduleName) {
@@ -1748,6 +1874,81 @@ function renderSiblingsSection(record, moduleName) {
   });
 
   section.append(header, list, form);
+  return section;
+}
+
+function renderLinkedProvidersSection(record, moduleName) {
+  const section = document.createElement("section");
+  section.className = "linked-providers-panel";
+
+  const title = document.createElement("h4");
+  title.textContent = "Providers";
+  section.append(title);
+
+  const links = Array.isArray(record.providerLinks) ? record.providerLinks : [];
+
+  if (!links.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-inline";
+    empty.textContent = "No providers linked yet.";
+    section.append(empty);
+  } else {
+    const list = document.createElement("div");
+    list.className = "sibling-list";
+
+    for (const link of links) {
+      const item = document.createElement("div");
+      item.className = "sibling-item";
+      const name = document.createElement("span");
+      name.textContent = `${link.providerName} (${link.organizationName})`;
+      const remove = document.createElement("button");
+      remove.className = "secondary-button compact-button";
+      remove.type = "button";
+      remove.textContent = "Remove";
+      remove.addEventListener("click", () => removeProviderLink(record, moduleName, link));
+      item.append(name, remove);
+      list.append(item);
+    }
+
+    section.append(list);
+  }
+
+  const options = availableProviderLinks(record);
+  const form = document.createElement("form");
+  form.className = "sibling-form";
+  const select = document.createElement("select");
+  select.setAttribute("aria-label", "Add provider");
+
+  if (!options.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = loadedNetworkEntries.length ? "No providers available" : "Add providers in Referral Network first";
+    select.append(option);
+    select.disabled = true;
+  } else {
+    for (const optionLink of options) {
+      const option = document.createElement("option");
+      option.value = `${optionLink.networkId}:${optionLink.providerId}`;
+      option.textContent = optionLink.label;
+      select.append(option);
+    }
+  }
+
+  const add = document.createElement("button");
+  add.type = "submit";
+  add.textContent = "Add";
+  add.disabled = !options.length;
+  form.append(select, add);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const selected = options.find((option) => `${option.networkId}:${option.providerId}` === select.value);
+
+    if (selected) {
+      addProviderLink(record, moduleName, selected);
+    }
+  });
+  section.append(form);
+
   return section;
 }
 
@@ -2148,11 +2349,53 @@ async function saveNetworkEntry(event) {
   }
 }
 
+async function saveNetworkProviders(entry, providers) {
+  networkStatusEl.textContent = "Updating providers...";
+
+  try {
+    const response = await authedFetch(`/api/referral-network/${encodeURIComponent(entry.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ providers })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    selectedNetworkEntryId = entry.id;
+    networkStatusEl.textContent = "Providers updated.";
+    await loadReferralNetwork();
+    renderNetworkDetail();
+  } catch (error) {
+    networkStatusEl.textContent = error.message || "Could not update providers yet.";
+    console.error(error);
+    await loadReferralNetwork();
+  }
+}
+
+function addNetworkProvider(event, entry) {
+  event.preventDefault();
+  const formData = new FormData(event.currentTarget);
+  const provider = Object.fromEntries(formData.entries());
+  const providers = [...(entry.providers || []), provider];
+  event.currentTarget.reset();
+  saveNetworkProviders(entry, providers);
+}
+
+function removeNetworkProvider(entry, providerId) {
+  const providers = (entry.providers || []).filter((provider) => provider.id !== providerId);
+  saveNetworkProviders(entry, providers);
+}
+
 function startNewNetworkEntry() {
   editingNetworkEntryId = null;
   selectedNetworkEntryId = null;
   networkForm.reset();
-  networkFormTitle.textContent = "New Network Entry";
+  networkFormTitle.textContent = "New Organization";
   saveNetworkEntryButton.textContent = "Save entry";
   cancelNetworkEditButton.hidden = false;
   networkForm.hidden = false;
@@ -2425,6 +2668,57 @@ async function updateInlineDate(record, moduleName, fieldName, value) {
 
     await loadReferrals();
   }
+}
+
+async function saveProviderLinks(record, moduleName, providerLinks) {
+  const isClient = moduleName === "clients";
+  const statusElement = isClient ? clientsStatusEl : referralsStatusEl;
+  statusElement.textContent = "Updating providers...";
+
+  try {
+    const response = await authedFetch(`/api/${moduleName}/${encodeURIComponent(record.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ providerLinks })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    if (isClient) {
+      selectedClientId = record.id;
+      statusElement.textContent = "Providers updated.";
+      await loadClients();
+      return;
+    }
+
+    selectedReferralId = record.id;
+    statusElement.textContent = "Providers updated.";
+    await loadReferrals();
+  } catch (error) {
+    statusElement.textContent = error.message || "Could not update providers yet.";
+    console.error(error);
+    if (isClient) {
+      await loadClients();
+      return;
+    }
+    await loadReferrals();
+  }
+}
+
+function addProviderLink(record, moduleName, link) {
+  saveProviderLinks(record, moduleName, [...(record.providerLinks || []), link]);
+}
+
+function removeProviderLink(record, moduleName, link) {
+  const providerLinks = (record.providerLinks || []).filter(
+    (item) => item.networkId !== link.networkId || item.providerId !== link.providerId
+  );
+  saveProviderLinks(record, moduleName, providerLinks);
 }
 
 async function addSibling(moduleName, recordId, siblingId) {

@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import crypto from "node:crypto";
 import { FieldValue, Firestore } from "@google-cloud/firestore";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
@@ -173,6 +174,7 @@ function toReferral(snapshot) {
     status: normalizeStatus(data.status),
     notes: data.notes,
     siblingIds: Array.isArray(data.siblingIds) ? data.siblingIds : [],
+    providerLinks: Array.isArray(data.providerLinks) ? data.providerLinks : [],
     convertedClientId: data.convertedClientId,
     convertedAt: data.convertedAt,
     createdAt: data.createdAt,
@@ -214,6 +216,7 @@ function toClient(snapshot) {
     status: data.status,
     notes: data.notes,
     siblingIds: Array.isArray(data.siblingIds) ? data.siblingIds : [],
+    providerLinks: Array.isArray(data.providerLinks) ? data.providerLinks : [],
     convertedAt: data.convertedAt,
     createdAt: data.createdAt,
     updatedAt: data.updatedAt
@@ -231,9 +234,31 @@ function toReferralNetworkEntry(snapshot) {
     phone: data.phone,
     email: data.email,
     website: data.website,
+    providers: Array.isArray(data.providers) ? data.providers : [],
     notes: data.notes,
     createdAt: data.createdAt,
     updatedAt: data.updatedAt
+  };
+}
+
+function cleanNetworkProvider(provider) {
+  const id = cleanString(provider?.id) || crypto.randomUUID();
+  return {
+    id,
+    name: cleanString(provider?.name),
+    phone: cleanString(provider?.phone),
+    email: cleanString(provider?.email),
+    website: cleanString(provider?.website),
+    notes: cleanString(provider?.notes)
+  };
+}
+
+function cleanProviderLink(link) {
+  return {
+    networkId: cleanString(link?.networkId),
+    providerId: cleanString(link?.providerId),
+    organizationName: cleanString(link?.organizationName),
+    providerName: cleanString(link?.providerName)
   };
 }
 
@@ -276,6 +301,7 @@ function cleanReferralNetworkPayload(body) {
     phone: cleanString(body.phone),
     email: cleanString(body.email),
     website: cleanString(body.website),
+    providers: Array.isArray(body.providers) ? body.providers.map(cleanNetworkProvider).filter((provider) => provider.name) : [],
     notes: cleanString(body.notes)
   };
 }
@@ -408,6 +434,12 @@ app.patch("/api/referral-network/:entryId", requireAuth, async (request, respons
       if (Object.hasOwn(request.body, field)) {
         updates[field] = cleanString(request.body[field]);
       }
+    }
+
+    if (Object.hasOwn(request.body, "providers")) {
+      updates.providers = Array.isArray(request.body.providers)
+        ? request.body.providers.map(cleanNetworkProvider).filter((provider) => provider.name)
+        : [];
     }
 
     if (Object.hasOwn(updates, "name") && !updates.name) {
@@ -580,6 +612,12 @@ app.patch("/api/clients/:clientId", requireAuth, async (request, response, next)
 
     if (Object.hasOwn(request.body, "textOptOut")) {
       updates.textOptOut = cleanBoolean(request.body.textOptOut);
+    }
+
+    if (Object.hasOwn(request.body, "providerLinks")) {
+      updates.providerLinks = Array.isArray(request.body.providerLinks)
+        ? request.body.providerLinks.map(cleanProviderLink).filter((link) => link.networkId && link.providerId)
+        : [];
     }
 
     if (Object.hasOwn(updates, "firstName") && !updates.firstName) {
@@ -1076,6 +1114,12 @@ app.patch("/api/referrals/:referralId", requireAuth, async (request, response, n
       updates.textOptOut = cleanBoolean(request.body.textOptOut);
     }
 
+    if (Object.hasOwn(request.body, "providerLinks")) {
+      updates.providerLinks = Array.isArray(request.body.providerLinks)
+        ? request.body.providerLinks.map(cleanProviderLink).filter((link) => link.networkId && link.providerId)
+        : [];
+    }
+
     if (Object.hasOwn(updates, "firstName") && !updates.firstName) {
       response.status(400).json({
         error: "First name is required."
@@ -1196,6 +1240,7 @@ app.post("/api/referrals/:referralId/convert", requireAuth, async (request, resp
       willingnessScore: referral.willingnessScore ?? null,
       sourceReferralId: referralId,
       siblingIds: convertedSiblingClientIds,
+      providerLinks: referral.providerLinks || [],
       convertedAt: now,
       status: "Scheduled",
       notes: referral.notes || "",

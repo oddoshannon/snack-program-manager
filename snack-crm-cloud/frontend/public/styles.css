@@ -360,19 +360,36 @@ h4 {
 }
 
 .dashboard-list-item span span,
-.dashboard-item-meta {
+.dashboard-item-meta-wrap {
   color: var(--muted);
   font-size: 0.82rem;
 }
 
-.dashboard-item-meta {
+.dashboard-item-meta-wrap {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dashboard-item-date {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.dashboard-item-type {
   border-radius: 999px;
   padding: 3px 7px;
   background: var(--accent-soft);
   color: var(--accent-dark);
   font-size: 0.76rem;
   font-weight: 800;
+}
+
+.dashboard-item-type-client {
+  background: #eff6ff;
+  color: #004aad;
 }
 
 .referrals-layout {
@@ -619,6 +636,16 @@ textarea {
     minmax(220px, 1.35fr);
 }
 
+.network-section-heading {
+  padding: 12px 20px 8px;
+  border-bottom: 1px solid var(--line);
+  background: #fbfcfb;
+  color: var(--accent-dark);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .referral-row:hover,
 .referral-row.selected {
   background: #f7faf8;
@@ -764,11 +791,59 @@ dd {
   background: transparent;
 }
 
-.siblings-panel {
+.siblings-panel,
+.linked-providers-panel {
   display: grid;
   gap: 12px;
   border-top: 1px solid var(--line);
   padding-top: 18px;
+}
+
+.network-providers-panel {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+
+.network-provider-list {
+  display: grid;
+  gap: 8px;
+}
+
+.network-provider-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #fbfcfb;
+}
+
+.network-provider-item div {
+  display: grid;
+  gap: 2px;
+}
+
+.network-provider-item span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.network-provider-form {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(130px, 0.75fr) minmax(190px, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.network-provider-form input,
+.network-provider-form button {
+  min-height: 36px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .siblings-header {
