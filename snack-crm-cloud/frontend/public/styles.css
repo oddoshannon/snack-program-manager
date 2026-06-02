@@ -182,14 +182,6 @@ h4 {
   background: var(--sidebar-soft);
 }
 
-.nav-item.nav-item-disabled,
-.nav-item.nav-item-disabled:hover {
-  cursor: not-allowed;
-  opacity: 0.5;
-  border-color: transparent;
-  background: transparent;
-}
-
 .sidebar-footer {
   display: grid;
   gap: 12px;
@@ -448,12 +440,6 @@ h4 {
 .dashboard-item-type-client {
   background: var(--brand-blue-soft);
   color: var(--brand-blue);
-}
-
-.dashboard-item-type-outreach,
-.dashboard-item-type-event {
-  background: #fff4d7;
-  color: var(--warning);
 }
 
 .referrals-layout {
