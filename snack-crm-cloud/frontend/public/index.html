@@ -17,8 +17,7 @@
           </div>
         </div>
         <nav class="primary-nav" aria-label="Primary">
-          <button id="nav-daily-workflow" class="nav-item active" type="button" aria-current="page">Daily Workflow</button>
-          <button id="nav-dashboard" class="nav-item" type="button" aria-current="false">Dashboard</button>
+          <button id="nav-dashboard" class="nav-item active" type="button" aria-current="page">Dashboard</button>
           <button id="nav-referrals" class="nav-item" type="button">Referrals</button>
           <button id="nav-clients" class="nav-item" type="button">Clients</button>
           <button id="nav-referral-network" class="nav-item" type="button">Referral Network</button>
@@ -35,43 +34,10 @@
         <section id="signed-out-panel" class="signed-out-panel" aria-labelledby="page-title">
           <p class="eyebrow">Protected Program Manager</p>
           <h2 id="page-title">Sign in to manage the program.</h2>
-          <p class="support-text">Use your SNACK Google account to open the daily workflow.</p>
+          <p class="support-text">Use your SNACK Google account to open the dashboard.</p>
           <p id="message" class="message" aria-live="polite"></p>
           <p id="status" class="status" aria-live="polite">Sign in to load the database message.</p>
           <button id="refresh" class="secondary-button" type="button" disabled>Refresh connection</button>
-        </section>
-
-        <section id="daily-workflow-panel" class="referrals-panel dashboard-panel" aria-labelledby="daily-workflow-title" hidden>
-          <header class="workspace-header">
-            <div>
-              <p class="eyebrow">Program Manager</p>
-              <h2 id="daily-workflow-title">Daily Workflow</h2>
-            </div>
-          </header>
-
-          <section id="daily-workflow-summary" class="summary-grid dashboard-summary-grid" aria-label="Daily workflow summary"></section>
-
-          <div class="dashboard-grid">
-            <section class="dashboard-card" aria-labelledby="daily-priority-title">
-              <h3 id="daily-priority-title">Priority Queue</h3>
-              <div id="daily-priority-list" class="dashboard-list"></div>
-            </section>
-
-            <section class="dashboard-card" aria-labelledby="daily-appointments-title">
-              <h3 id="daily-appointments-title">Appointments</h3>
-              <div id="daily-appointments-list" class="dashboard-list"></div>
-            </section>
-
-            <section class="dashboard-card" aria-labelledby="daily-outreach-title">
-              <h3 id="daily-outreach-title">Outreach Follow Up</h3>
-              <div id="daily-outreach-list" class="dashboard-list"></div>
-            </section>
-
-            <section class="dashboard-card" aria-labelledby="daily-data-title">
-              <h3 id="daily-data-title">Data Cleanup</h3>
-              <div id="daily-data-list" class="dashboard-list"></div>
-            </section>
-          </div>
         </section>
 
         <section id="dashboard-panel" class="referrals-panel dashboard-panel" aria-labelledby="dashboard-title" hidden>
@@ -971,6 +937,6 @@
       </section>
     </div>
     <script src="./app-config.js"></script>
-    <script type="module" src="./app.js?v=20260602-daily-workflow"></script>
+    <script type="module" src="./app.js?v=20260602-outreach-module"></script>
   </body>
 </html>
