@@ -147,7 +147,6 @@ window.addEventListener("unhandledrejection", (event) => {
   }
 });
 
-signInButton.addEventListener("click", signIn);
 signOutButton.addEventListener("click", signOutUser);
 refreshButton.addEventListener("click", loadMessage);
 window.SNACK_MAIN_SIGNIN_READY = true;

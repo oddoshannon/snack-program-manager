@@ -26,7 +26,7 @@
         </nav>
         <div class="sidebar-footer">
           <p id="user" class="user">Please sign in with your SNACK Google account.</p>
-          <button id="sign-in" type="button">Sign in with Google</button>
+          <button id="sign-in" type="button" onclick="window.snackSignIn?.()">Sign in with Google</button>
           <button id="sign-out" class="secondary-button" type="button" hidden>Sign out</button>
         </div>
       </aside>
@@ -986,14 +986,9 @@
         signInWithPopup
       } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 
-      const signInButton = document.querySelector("#sign-in");
       const status = document.querySelector("#status");
 
-      signInButton?.addEventListener("click", async () => {
-        if (window.SNACK_MAIN_SIGNIN_READY) {
-          return;
-        }
-
+      window.snackSignIn = async () => {
         try {
           status.textContent = "Opening Google sign-in...";
           const app = getApps()[0] || initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
@@ -1002,8 +997,8 @@
           status.textContent = error?.message || "Sign-in did not finish.";
           console.error(error);
         }
-      });
+      };
     </script>
-    <script type="module" src="./app.js?v=20260602-signin-fallback"></script>
+    <script type="module" src="./app.js?v=20260602-signin-direct"></script>
   </body>
 </html>
