@@ -14,16 +14,23 @@ const signInButton = document.querySelector("#sign-in");
 const signOutButton = document.querySelector("#sign-out");
 const userEl = document.querySelector("#user");
 const signedOutPanel = document.querySelector("#signed-out-panel");
+const dailyWorkflowPanel = document.querySelector("#daily-workflow-panel");
 const dashboardPanel = document.querySelector("#dashboard-panel");
 const referralsPanel = document.querySelector("#referrals-panel");
 const clientsPanel = document.querySelector("#clients-panel");
 const referralNetworkPanel = document.querySelector("#referral-network-panel");
 const outreachPanel = document.querySelector("#outreach-panel");
+const navDailyWorkflowButton = document.querySelector("#nav-daily-workflow");
 const navDashboardButton = document.querySelector("#nav-dashboard");
 const navReferralsButton = document.querySelector("#nav-referrals");
 const navClientsButton = document.querySelector("#nav-clients");
 const navReferralNetworkButton = document.querySelector("#nav-referral-network");
 const navOutreachButton = document.querySelector("#nav-outreach");
+const dailyWorkflowSummary = document.querySelector("#daily-workflow-summary");
+const dailyPriorityList = document.querySelector("#daily-priority-list");
+const dailyAppointmentsList = document.querySelector("#daily-appointments-list");
+const dailyOutreachList = document.querySelector("#daily-outreach-list");
+const dailyDataList = document.querySelector("#daily-data-list");
 const dashboardSummary = document.querySelector("#dashboard-summary");
 const dashboardFollowups = document.querySelector("#dashboard-followups");
 const dashboardNewReferrals = document.querySelector("#dashboard-new-referrals");
@@ -306,7 +313,7 @@ let latestNetworkImportAnalysis = null;
 const expandedNetworkEntryIds = new Set();
 let summaryFilter = "all";
 let clientSummaryFilter = "all";
-let activeModule = "dashboard";
+let activeModule = "daily-workflow";
 let activeOutreachView = "dashboard";
 
 async function authedFetch(path, options = {}) {
@@ -1073,6 +1080,153 @@ function sortClients(clients) {
   );
 }
 
+function todayDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function renderDailyWorkflow() {
+  dailyWorkflowSummary.innerHTML = "";
+  dailyPriorityList.innerHTML = "";
+  dailyAppointmentsList.innerHTML = "";
+  dailyOutreachList.innerHTML = "";
+  dailyDataList.innerHTML = "";
+
+  const today = todayDateString();
+  const newReferrals = loadedReferrals.filter((referral) => normalizeStatus(referral.status) === "New");
+  const referralFollowUps = loadedReferrals.filter((referral) =>
+    ["Texted", "Left Voicemail", "Emailed", "Requested Call Back", "Caregiver Will Call Back"].includes(
+      normalizeStatus(referral.status)
+    )
+  );
+  const clientFollowUps = loadedClients.filter((client) =>
+    ["Needs Reschedule", "Needs Language Support"].includes(client.status || "Scheduled")
+  );
+  const scheduledClients = loadedClients.filter((client) => (client.status || "Scheduled") === "Scheduled");
+  const upcomingOutreachEvents = loadedOutreachEvents.filter((event) => !event.eventDate || event.eventDate >= today);
+  const outreachContactsToFollowUp = loadedOutreachContacts.filter((contact) =>
+    ["New", "Follow Up"].includes(contact.status || "New")
+  );
+  const recordsNeedingCleanup = [
+    ...loadedReferrals
+      .filter((referral) => !referral.parentName || !referral.phone || !referral.preferredLanguage)
+      .map((referral) => ({
+        type: "Referral",
+        title: referralName(referral),
+        detail: [
+          !referral.parentName ? "missing caregiver" : "",
+          !referral.phone ? "missing phone" : "",
+          !referral.preferredLanguage ? "missing language" : ""
+        ]
+          .filter(Boolean)
+          .join(", "),
+        date: referral.createdAt || referral.referralDate || "",
+        action: () => setSelectedReferral(referral.id)
+      })),
+    ...loadedClients
+      .filter((client) => !client.parentName || !client.phone || !client.preferredLanguage)
+      .map((client) => ({
+        type: "Client",
+        title: clientName(client),
+        detail: [
+          !client.parentName ? "missing caregiver" : "",
+          !client.phone ? "missing phone" : "",
+          !client.preferredLanguage ? "missing language" : ""
+        ]
+          .filter(Boolean)
+          .join(", "),
+        date: client.createdAt || client.referralDate || "",
+        action: () => setSelectedClient(client.id)
+      }))
+  ];
+
+  const priorityItems = [
+    ...newReferrals.map((referral) => ({
+      type: "Referral",
+      title: referralName(referral),
+      detail: referral.referralSource ? `New referral from ${referral.referralSource}` : "New referral",
+      date: referral.referralDate || referral.createdAt || "",
+      action: () => setSelectedReferral(referral.id)
+    })),
+    ...clientFollowUps.map((client) => ({
+      type: "Client",
+      title: clientName(client),
+      detail: client.status,
+      date: client.mostRecentContactDate || client.firstContactDate || client.referralDate || "",
+      action: () => setSelectedClient(client.id)
+    })),
+    ...referralFollowUps.map((referral) => ({
+      type: "Referral",
+      title: referralName(referral),
+      detail: normalizeStatus(referral.status),
+      date: referral.mostRecentContactDate || referral.referralDate || "",
+      action: () => setSelectedReferral(referral.id)
+    }))
+  ].sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
+
+  const appointmentItems = scheduledClients
+    .map((client) => ({
+      type: "Client",
+      title: clientName(client),
+      detail: client.firstAppointmentDate ? `First appt ${formatDateOnly(client.firstAppointmentDate)}` : "Scheduled",
+      date: client.firstAppointmentDate || client.createdAt || "",
+      action: () => setSelectedClient(client.id)
+    }))
+    .sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
+
+  const outreachItems = [
+    ...outreachContactsToFollowUp.map((contact) => ({
+      type: "Outreach",
+      title: outreachContactName(contact),
+      detail: outreachEventLabel(contact.eventId) || contact.interestType || displayValue(contact.status),
+      date: contact.createdAt || "",
+      action: () => {
+        setActiveModule("outreach");
+        setOutreachView("contacts");
+        setSelectedOutreachContact(contact.id);
+      }
+    })),
+    ...upcomingOutreachEvents.map((event) => ({
+      type: "Event",
+      title: outreachEventName(event),
+      detail: event.type || "Outreach event",
+      date: event.eventDate || "",
+      action: () => {
+        setActiveModule("outreach");
+        setOutreachView("events");
+        setSelectedOutreachEvent(event.id);
+      }
+    }))
+  ].sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
+
+  const metrics = [
+    { label: "Priority Items", value: priorityItems.length },
+    { label: "Appointments", value: appointmentItems.length },
+    { label: "Outreach Follow Up", value: outreachContactsToFollowUp.length },
+    { label: "Upcoming Events", value: upcomingOutreachEvents.length },
+    { label: "Data Cleanup", value: recordsNeedingCleanup.length }
+  ];
+
+  for (const metric of metrics) {
+    const item = document.createElement("div");
+    item.className = "summary-item dashboard-summary-item";
+    const value = document.createElement("strong");
+    value.textContent = metric.value;
+    const label = document.createElement("span");
+    label.textContent = metric.label;
+    item.append(value, label);
+    dailyWorkflowSummary.append(item);
+  }
+
+  renderDashboardList(dailyPriorityList, priorityItems, "No priority follow-ups waiting.");
+  renderDashboardList(dailyAppointmentsList, appointmentItems, "No scheduled clients waiting.");
+  renderDashboardList(dailyOutreachList, outreachItems, "No outreach follow-ups or upcoming events.");
+  renderDashboardList(dailyDataList, recordsNeedingCleanup, "No missing required values found.");
+}
+
 function renderDashboard() {
   dashboardSummary.innerHTML = "";
   dashboardFollowups.innerHTML = "";
@@ -1264,28 +1418,38 @@ function closeReferralModal() {
 
 function setActiveModule(moduleName) {
   activeModule = moduleName;
+  const showDailyWorkflow = moduleName === "daily-workflow";
   const showDashboard = moduleName === "dashboard";
   const showReferrals = moduleName === "referrals";
   const showClients = moduleName === "clients";
   const showReferralNetwork = moduleName === "referral-network";
   const showOutreach = moduleName === "outreach";
+  dailyWorkflowPanel.hidden = !showDailyWorkflow;
   dashboardPanel.hidden = !showDashboard;
   referralsPanel.hidden = !showReferrals;
   clientsPanel.hidden = !showClients;
   referralNetworkPanel.hidden = !showReferralNetwork;
   outreachPanel.hidden = !showOutreach;
+  navDailyWorkflowButton.classList.toggle("active", showDailyWorkflow);
   navDashboardButton.classList.toggle("active", showDashboard);
   navReferralsButton.classList.toggle("active", showReferrals);
   navClientsButton.classList.toggle("active", showClients);
   navReferralNetworkButton.classList.toggle("active", showReferralNetwork);
   navOutreachButton.classList.toggle("active", showOutreach);
+  navDailyWorkflowButton.setAttribute("aria-current", showDailyWorkflow ? "page" : "false");
   navDashboardButton.setAttribute("aria-current", showDashboard ? "page" : "false");
   navReferralsButton.setAttribute("aria-current", showReferrals ? "page" : "false");
   navClientsButton.setAttribute("aria-current", showClients ? "page" : "false");
   navReferralNetworkButton.setAttribute("aria-current", showReferralNetwork ? "page" : "false");
   navOutreachButton.setAttribute("aria-current", showOutreach ? "page" : "false");
 
-  if (showDashboard) {
+  if (showDailyWorkflow) {
+    closeReferralModal();
+    closeClientModal();
+    closeNetworkModal();
+    closeOutreachModal();
+    renderDailyWorkflow();
+  } else if (showDashboard) {
     closeReferralModal();
     closeClientModal();
     closeNetworkModal();
@@ -3901,6 +4065,7 @@ async function loadReferrals() {
     renderReferralSummary();
     renderReferrals();
     renderDashboard();
+    renderDailyWorkflow();
     renderReferralSourceOptions();
     if (!referralModal.hidden && selectedReferralId) {
       renderReferralDetail();
@@ -3934,6 +4099,7 @@ async function loadClients() {
     renderClientSummary();
     renderClients();
     renderDashboard();
+    renderDailyWorkflow();
     if (!clientModal.hidden && selectedClientId) {
       renderClientDetail();
     }
@@ -3998,6 +4164,7 @@ async function loadOutreachEvents() {
     renderOutreachEvents();
     renderOutreachEventOptions(outreachContactEventSelect.value);
     renderOutreachDashboard();
+    renderDailyWorkflow();
     if (!outreachModal.hidden && selectedOutreachEventId) {
       renderOutreachDetail();
     }
@@ -4029,6 +4196,7 @@ async function loadOutreachContacts() {
     loadedOutreachContacts = data.contacts;
     renderOutreachContacts();
     renderOutreachDashboard();
+    renderDailyWorkflow();
     if (!outreachContactModal.hidden && selectedOutreachContactId) {
       renderOutreachContactDetail();
     }
@@ -5039,7 +5207,8 @@ onAuthStateChanged(auth, (user) => {
   signOutButton.hidden = !signedIn;
   refreshButton.disabled = !signedIn;
   signedOutPanel.hidden = signedIn;
-  dashboardPanel.hidden = !signedIn;
+  dailyWorkflowPanel.hidden = !signedIn;
+  dashboardPanel.hidden = true;
   referralsPanel.hidden = true;
   clientsPanel.hidden = true;
   referralNetworkPanel.hidden = true;
@@ -5067,6 +5236,11 @@ onAuthStateChanged(auth, (user) => {
     networkList.innerHTML = "";
     outreachList.innerHTML = "";
     outreachContactList.innerHTML = "";
+    dailyWorkflowSummary.innerHTML = "";
+    dailyPriorityList.innerHTML = "";
+    dailyAppointmentsList.innerHTML = "";
+    dailyOutreachList.innerHTML = "";
+    dailyDataList.innerHTML = "";
     dashboardSummary.innerHTML = "";
     dashboardFollowups.innerHTML = "";
     dashboardNewReferrals.innerHTML = "";
@@ -5104,6 +5278,7 @@ onAuthStateChanged(auth, (user) => {
 signInButton.addEventListener("click", signIn);
 signOutButton.addEventListener("click", signOutUser);
 refreshButton.addEventListener("click", loadMessage);
+navDailyWorkflowButton.addEventListener("click", () => setActiveModule("daily-workflow"));
 navDashboardButton.addEventListener("click", () => setActiveModule("dashboard"));
 navReferralsButton.addEventListener("click", () => setActiveModule("referrals"));
 navClientsButton.addEventListener("click", () => setActiveModule("clients"));
