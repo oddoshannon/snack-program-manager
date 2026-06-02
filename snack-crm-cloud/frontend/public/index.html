@@ -990,15 +990,17 @@
 
       window.snackSignIn = async () => {
         try {
+          sessionStorage.setItem("snack-program-manager-sign-in-attempt", "1");
           status.textContent = "Opening Google sign-in...";
           const app = getApps()[0] || initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
           await signInWithRedirect(getAuth(app), new GoogleAuthProvider());
         } catch (error) {
+          sessionStorage.removeItem("snack-program-manager-sign-in-attempt");
           status.textContent = error?.message || "Sign-in did not finish.";
           console.error(error);
         }
       };
     </script>
-    <script type="module" src="./app.js?v=20260602-signin-redirect"></script>
+    <script type="module" src="./app.js?v=20260602-redirect-result"></script>
   </body>
 </html>

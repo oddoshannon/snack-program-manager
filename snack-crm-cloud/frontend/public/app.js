@@ -2,6 +2,7 @@ import { getApps, initializeApp } from "https://www.gstatic.com/firebasejs/12.13
 import {
   GoogleAuthProvider,
   getAuth,
+  getRedirectResult,
   onAuthStateChanged,
   signInWithRedirect,
   signOut
@@ -134,6 +135,11 @@ const cancelOutreachContactEditButton = document.querySelector("#cancel-outreach
 const app = getApps()[0] || initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
+const signInAttemptKey = "snack-program-manager-sign-in-attempt";
+
+if (sessionStorage.getItem(signInAttemptKey)) {
+  statusEl.textContent = "Checking Google sign-in result...";
+}
 
 window.addEventListener("error", (event) => {
   if (statusEl) {
@@ -5237,9 +5243,11 @@ async function convertReferralToClient(referral) {
 
 async function signIn() {
   try {
+    sessionStorage.setItem(signInAttemptKey, "1");
     statusEl.textContent = "Opening Google sign-in...";
     await signInWithRedirect(auth, provider);
   } catch (error) {
+    sessionStorage.removeItem(signInAttemptKey);
     statusEl.textContent = "Sign-in did not finish.";
     messageEl.textContent = "Check that Google sign-in is enabled in Firebase Authentication.";
     console.error(error);
@@ -5248,12 +5256,40 @@ async function signIn() {
 
 async function signOutUser() {
   try {
+    sessionStorage.removeItem(signInAttemptKey);
     await signOut(auth);
   } catch (error) {
     statusEl.textContent = "Could not sign out yet.";
     console.error(error);
   }
 }
+
+async function checkRedirectSignInResult() {
+  if (!sessionStorage.getItem(signInAttemptKey)) {
+    return;
+  }
+
+  try {
+    const result = await getRedirectResult(auth);
+
+    if (result?.user) {
+      sessionStorage.removeItem(signInAttemptKey);
+      statusEl.textContent = `Signed in as ${result.user.email}.`;
+      return;
+    }
+
+    if (!auth.currentUser) {
+      statusEl.textContent = "Google sign-in returned without an account. Try again, or send me this line.";
+    }
+  } catch (error) {
+    sessionStorage.removeItem(signInAttemptKey);
+    statusEl.textContent = `Google sign-in error: ${error.code || error.message}`;
+    messageEl.textContent = error.message || "Google sign-in did not finish.";
+    console.error(error);
+  }
+}
+
+checkRedirectSignInResult();
 
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
@@ -5273,6 +5309,7 @@ onAuthStateChanged(auth, (user) => {
   userEl.textContent = signedIn ? `Signed in as ${user.email}` : "Please sign in with your SNACK Google account.";
 
   if (signedIn) {
+    sessionStorage.removeItem(signInAttemptKey);
     setActiveModule(activeModule);
     loadMessage();
     loadReferrals();
@@ -5282,7 +5319,9 @@ onAuthStateChanged(auth, (user) => {
     loadOutreachContacts();
   } else {
     messageEl.textContent = "";
-    statusEl.textContent = "Sign in to load the database message.";
+    if (!sessionStorage.getItem(signInAttemptKey)) {
+      statusEl.textContent = "Sign in to load the database message.";
+    }
     referralsStatusEl.textContent = "";
     clientsStatusEl.textContent = "";
     networkStatusEl.textContent = "";
