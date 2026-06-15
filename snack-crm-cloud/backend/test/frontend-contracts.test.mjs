@@ -324,6 +324,24 @@ test("frontend script wires grants API resources and Admin Grants navigation", (
   assert.match(stylesCss, /\.grant-card/);
 });
 
+test("grant tracker includes a draggable colored flow board and closed archive", () => {
+  assert.match(indexHtml, /id="grant-flow-board"/);
+  assert.match(indexHtml, /Grant Flow/);
+  assert.match(appJs, /const grantFlowColumns = \[/);
+  assertInOrder(appJs, [
+    'label: "Upcoming Grants", statuses: ["Researching", "Planning"], accent: "var(--brand-red)"',
+    'label: "In Progress", statuses: ["In Progress"], accent: "var(--brand-green)"',
+    'label: "Submitted", statuses: ["Submitted", "Reporting"], accent: "var(--brand-blue)"',
+    'label: "Awarded", statuses: ["Awarded"], accent: "var(--brand-purple)"',
+    'label: "Closed Grants Archive"'
+  ]);
+  assert.match(appJs, /dragKind: "grant-flow"/);
+  assert.match(appJs, /function moveGrantToFlowColumn/);
+  assert.match(appJs, /function updateGrantStatus/);
+  assert.match(stylesCss, /\.grant-flow-card\s*{\s*grid-column: 1 \/ -1;/);
+  assert.match(stylesCss, /\.grant-flow-card \.flow-lanes\s*{\s*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);/);
+});
+
 test("archive cards hover like flow cards instead of turning solid green", () => {
   const archiveHover = stylesCss.slice(stylesCss.indexOf(".flow-archive:hover"), stylesCss.indexOf(".flow-archive h4"));
 

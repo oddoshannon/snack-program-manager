@@ -46,6 +46,7 @@ const adminTabGrantsButton = document.querySelector("#admin-tab-grants");
 const adminSettingsView = document.querySelector("#admin-settings-view");
 const adminGrantsView = document.querySelector("#admin-grants-view");
 const grantsSummary = document.querySelector("#grants-summary");
+const grantFlowBoard = document.querySelector("#grant-flow-board");
 const grantDeadlineList = document.querySelector("#grant-deadline-list");
 const grantsList = document.querySelector("#grants-list");
 const grantsStatusEl = document.querySelector("#grants-status");
@@ -375,6 +376,20 @@ const taskFlowColumns = [
   { key: "texts", label: "Texts", color: "var(--brand-green)" },
   { key: "forms", label: "Forms", color: "var(--brand-blue)" },
   { key: "tasks", label: "Tasks", color: "var(--brand-purple)" }
+];
+const grantFlowColumns = [
+  { key: "upcoming", label: "Upcoming Grants", statuses: ["Researching", "Planning"], accent: "var(--brand-red)" },
+  { key: "in-progress", label: "In Progress", statuses: ["In Progress"], accent: "var(--brand-green)" },
+  { key: "submitted", label: "Submitted", statuses: ["Submitted", "Reporting"], accent: "var(--brand-blue)" },
+  { key: "awarded", label: "Awarded", statuses: ["Awarded"], accent: "var(--brand-purple)" },
+  {
+    key: "closed",
+    label: "Closed Grants Archive",
+    statuses: ["Declined", "Closed"],
+    accent: "var(--brand-blue)",
+    archive: true,
+    countLabel: "closed"
+  }
 ];
 const zohoClientStatusMap = {
   "Appts in Progress": "Active",
@@ -2181,6 +2196,7 @@ function renderGrantDetail() {
 
 function renderGrants() {
   renderGrantsSummary();
+  renderGrantFlow(loadedGrants);
   renderGrantDeadlines();
   renderGrantList();
   renderGrantQuestions();
@@ -3691,6 +3707,32 @@ function renderClientFlow(clients) {
   });
 }
 
+function renderGrantFlow(grants) {
+  renderFlowBoard({
+    container: grantFlowBoard,
+    columns: grantFlowColumns,
+    records: grants,
+    statusFor: (grant) => grant.status || "Researching",
+    dragKind: "grant-flow",
+    onColumnDrop: (payload, column) => moveGrantToFlowColumn(payload.id, column),
+    cardFor: (grant, column) =>
+      flowCard({
+        title: grantTitle(grant),
+        detail: grantSubtitle(grant),
+        meta: [grant.status || "Researching", formatShortDate(grant.deadlineDate), grantAmountRange(grant)].filter(Boolean).join(" | "),
+        tag: grant.status || "Researching",
+        accent: column.accent,
+        dragData: { kind: "grant-flow", id: grant.id },
+        onOpen: () => {
+          if (!flowArchiveModal.hidden) {
+            closeFlowArchive();
+          }
+          openGrantProfile(grant.id);
+        }
+      })
+  });
+}
+
 async function moveReferralToFlowColumn(referralId, column) {
   const referral = loadedReferrals.find((item) => item.id === referralId);
   const currentStatus = normalizeStatus(referral?.status);
@@ -3713,6 +3755,18 @@ async function moveClientToFlowColumn(clientId, column) {
   }
 
   await updateClientStatus(client, nextStatus);
+}
+
+async function moveGrantToFlowColumn(grantId, column) {
+  const grant = loadedGrants.find((item) => item.id === grantId);
+  const currentStatus = grant?.status || "Researching";
+  const nextStatus = column.statuses[0];
+
+  if (!grant || !nextStatus || column.statuses.includes(currentStatus)) {
+    return;
+  }
+
+  await updateGrantStatus(grant, nextStatus);
 }
 
 function setSelectedReferral(referralId) {
@@ -11358,6 +11412,36 @@ async function deleteCurrentGrant(grantId = editingGrantId || selectedGrantId) {
   }
 }
 
+async function updateGrantStatus(grant, status) {
+  grantsStatusEl.textContent = "Updating grant status...";
+
+  try {
+    const response = await authedFetch(`/api/grants/${encodeURIComponent(grant.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        ...grant,
+        status
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    selectedGrantId = grant.id;
+    grantsStatusEl.textContent = "Grant status updated.";
+    await loadGrants();
+  } catch (error) {
+    grantsStatusEl.textContent = error.message || "Could not update grant status yet.";
+    console.error(error);
+    await loadGrants();
+  }
+}
+
 function setGrantQuestionFormValues(question = {}) {
   grantQuestionForm.reset();
 
@@ -12078,6 +12162,7 @@ onAuthStateChanged(auth, (user) => {
     workflowTaskSummary.innerHTML = "";
     workflowTaskList.innerHTML = "";
     grantsSummary.innerHTML = "";
+    grantFlowBoard.innerHTML = "";
     grantDeadlineList.innerHTML = "";
     grantsList.innerHTML = "";
     grantQuestionList.innerHTML = "";

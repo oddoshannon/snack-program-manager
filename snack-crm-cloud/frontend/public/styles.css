@@ -4104,6 +4104,14 @@ dd {
   grid-column: 2;
 }
 
+.grant-flow-card {
+  grid-column: 1 / -1;
+}
+
+.grant-flow-card .flow-lanes {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .grants-deadline-card {
   grid-column: 1;
 }
@@ -4520,11 +4528,16 @@ dd {
   }
 
   .grants-list-card,
+  .grant-flow-card,
   .grant-org-card,
   .grant-question-card,
   .grants-deadline-card {
     grid-column: auto;
     grid-row: auto;
+  }
+
+  .grant-flow-card .flow-lanes {
+    grid-template-columns: 1fr;
   }
 
   .sidebar-footer {
