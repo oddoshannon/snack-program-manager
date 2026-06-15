@@ -64,6 +64,13 @@ test("admin grants tab exposes deadlines, grant list, reusable answers, and orga
   assert.match(appJs, /dashboardTitle\.textContent = showAdminGrants \? "Grants" : "Admin"/);
   assert.equal(indexHtml.includes("Grant Tracker"), false);
   assert.equal(indexHtml.includes("Funding</p>"), false);
+  assertInOrder(indexHtml, [
+    'id="admin-grants-actions"',
+    'id="grant-search"',
+    'id="new-grant"',
+    'id="admin-settings-view"',
+    'id="admin-grants-view"'
+  ]);
   assert.match(indexHtml, /id="grant-deadline-list"/);
   assert.match(indexHtml, /id="grants-list"/);
   assert.match(indexHtml, /id="grant-org-card"/);
@@ -109,6 +116,8 @@ test("grant modal captures application details, portal info, awards, reports, an
   ]) {
     assert.match(grantModal, new RegExp(`name="${field}"`));
   }
+
+  assert.match(grantModal, /<option value="Not A Good Fit">Not A Good Fit<\/option>/);
 });
 
 test("grants index stays compact with profile and answer modals", () => {
@@ -122,7 +131,7 @@ test("grants index stays compact with profile and answer modals", () => {
   assert.match(stylesCss, /\.grant-edit-profile-grid/);
   assert.match(stylesCss, /\.grant-form > \.grant-edit-profile-grid\s*{\s*grid-column: 1 \/ -1;/);
   assert.match(stylesCss, /\.grant-reference-card/);
-  assert.match(stylesCss, /#grant-search\s*{[^}]*flex: 0 1 240px;/s);
+  assert.match(stylesCss, /#grant-search\s*{[^}]*width: min\(240px, 36vw\);/s);
   assert.match(stylesCss, /\.grant-question-card \.grant-reference-actions\s*{[^}]*margin-bottom: 10px;/s);
   assert.match(stylesCss, /\.grant-deadline-item\s*{[^}]*border-left: 4px solid var\(--brand-red\);/s);
 });
@@ -339,10 +348,12 @@ test("grant tracker includes a draggable colored flow board and closed archive",
   assertInOrder(appJs, [
     'label: "Upcoming Grants", statuses: ["Researching", "Planning"], accent: "var(--brand-red)"',
     'label: "In Progress", statuses: ["In Progress"], accent: "var(--brand-green)"',
-    'label: "Submitted", statuses: ["Submitted", "Reporting"], accent: "var(--brand-blue)"',
-    'label: "Awarded", statuses: ["Awarded"], accent: "var(--brand-purple)"',
+    'label: "Submitted", statuses: ["Submitted"], accent: "var(--brand-blue)"',
+    'label: "Awarded", statuses: ["Awarded", "Reporting"], accent: "var(--brand-purple)"',
     'label: "Closed Grants Archive"'
   ]);
+  assert.match(appJs, /statuses: \["Not A Good Fit", "Declined", "Closed"\]/);
+  assert.match(appJs, /\["Awarded", "Reporting", "Not A Good Fit", "Declined", "Closed"\]/);
   assert.match(appJs, /dragKind: "grant-flow"/);
   assert.match(appJs, /function moveGrantToFlowColumn/);
   assert.match(appJs, /function updateGrantStatus/);

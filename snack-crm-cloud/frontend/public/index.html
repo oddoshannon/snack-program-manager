@@ -87,6 +87,13 @@
               <p class="eyebrow">Admin</p>
               <h2 id="dashboard-title">Admin</h2>
             </div>
+            <div id="admin-grants-actions" class="header-actions grants-toolbar" hidden>
+              <label class="grants-search-field">
+                <span class="sr-only">Search grants</span>
+                <input id="grant-search" type="search" placeholder="Search grants">
+              </label>
+              <button id="new-grant" type="button">New Grant</button>
+            </div>
           </header>
 
           <section id="admin-settings-view" class="admin-view">
@@ -198,10 +205,6 @@
           </section>
 
           <section id="admin-grants-view" class="admin-view grants-view" hidden>
-            <div class="grants-toolbar">
-              <button id="new-grant" type="button">New Grant</button>
-            </div>
-
             <section id="grants-summary" class="summary-grid grants-summary" aria-label="Grant summary"></section>
 
             <div class="grants-layout">
@@ -228,7 +231,6 @@
                   <div>
                     <h3 id="grant-list-title">Grant Applications</h3>
                   </div>
-                  <input id="grant-search" type="search" placeholder="Search grants">
                 </div>
                 <div id="grants-list" class="grant-card-list"></div>
               </section>
@@ -380,8 +382,9 @@
                         <option value="In Progress">In Progress</option>
                         <option value="Submitted">Submitted</option>
                         <option value="Awarded">Awarded</option>
-                        <option value="Declined">Declined</option>
                         <option value="Reporting">Reporting</option>
+                        <option value="Not A Good Fit">Not A Good Fit</option>
+                        <option value="Declined">Declined</option>
                         <option value="Closed">Closed</option>
                       </select>
                     </label>

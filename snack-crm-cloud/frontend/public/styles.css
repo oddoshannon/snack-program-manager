@@ -4084,9 +4084,14 @@ dd {
 
 .grants-toolbar {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  margin-top: 8px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin: 0;
+}
+
+.grants-search-field {
+  margin: 0;
 }
 
 .grants-summary {
@@ -4097,7 +4102,7 @@ dd {
   display: grid;
   grid-template-columns: minmax(260px, 0.85fr) minmax(420px, 1.35fr);
   gap: 12px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .grants-list-card {
@@ -4116,8 +4121,7 @@ dd {
 }
 
 #grant-search {
-  flex: 0 1 240px;
-  width: min(240px, 48%);
+  width: min(240px, 36vw);
   max-width: 100%;
 }
 
@@ -4252,21 +4256,22 @@ dd {
   font-weight: 900;
 }
 
-.grant-status-pill.status-submitted,
-.grant-status-pill.status-reporting {
+.grant-status-pill.status-submitted {
   border-color: rgba(33, 86, 178, 0.24);
   background: var(--blue-soft);
   color: var(--brand-blue);
 }
 
-.grant-status-pill.status-awarded {
+.grant-status-pill.status-awarded,
+.grant-status-pill.status-reporting {
   border-color: rgba(14, 121, 69, 0.24);
   background: var(--green-soft);
   color: var(--brand-green);
 }
 
 .grant-status-pill.status-declined,
-.grant-status-pill.status-closed {
+.grant-status-pill.status-closed,
+.grant-status-pill.status-not-a-good-fit {
   border-color: rgba(101, 116, 122, 0.28);
   background: #f3f5f4;
   color: var(--muted);

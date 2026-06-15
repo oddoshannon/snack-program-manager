@@ -43,6 +43,7 @@ const dashboardWorkflow = document.querySelector("#dashboard-workflow");
 const dashboardTitle = document.querySelector("#dashboard-title");
 const adminTabSettingsButton = document.querySelector("#admin-tab-settings");
 const adminTabGrantsButton = document.querySelector("#admin-tab-grants");
+const adminGrantsActions = document.querySelector("#admin-grants-actions");
 const adminSettingsView = document.querySelector("#admin-settings-view");
 const adminGrantsView = document.querySelector("#admin-grants-view");
 const grantsSummary = document.querySelector("#grants-summary");
@@ -382,12 +383,12 @@ const taskFlowColumns = [
 const grantFlowColumns = [
   { key: "upcoming", label: "Upcoming Grants", statuses: ["Researching", "Planning"], accent: "var(--brand-red)" },
   { key: "in-progress", label: "In Progress", statuses: ["In Progress"], accent: "var(--brand-green)" },
-  { key: "submitted", label: "Submitted", statuses: ["Submitted", "Reporting"], accent: "var(--brand-blue)" },
-  { key: "awarded", label: "Awarded", statuses: ["Awarded"], accent: "var(--brand-purple)" },
+  { key: "submitted", label: "Submitted", statuses: ["Submitted"], accent: "var(--brand-blue)" },
+  { key: "awarded", label: "Awarded", statuses: ["Awarded", "Reporting"], accent: "var(--brand-purple)" },
   {
     key: "closed",
     label: "Closed Grants Archive",
-    statuses: ["Declined", "Closed"],
+    statuses: ["Not A Good Fit", "Declined", "Closed"],
     accent: "var(--brand-blue)",
     archive: true,
     countLabel: "closed"
@@ -2000,7 +2001,7 @@ function grantDaysUntil(deadlineDate) {
 }
 
 function grantIsOpen(grant) {
-  return !["Awarded", "Declined", "Closed"].includes(grant.status || "Researching");
+  return !["Awarded", "Reporting", "Not A Good Fit", "Declined", "Closed"].includes(grant.status || "Researching");
 }
 
 function grantDocumentByType(documents = [], type) {
@@ -2243,8 +2244,8 @@ function renderGrantsSummary() {
     const days = grantDaysUntil(grant.deadlineDate);
     return days >= 0 && days <= 45;
   });
-  const submitted = loadedGrants.filter((grant) => ["Submitted", "Reporting"].includes(grant.status || ""));
-  const awarded = loadedGrants.filter((grant) => (grant.status || "") === "Awarded");
+  const submitted = loadedGrants.filter((grant) => (grant.status || "") === "Submitted");
+  const awarded = loadedGrants.filter((grant) => ["Awarded", "Reporting"].includes(grant.status || ""));
   const metrics = [
     { label: "Open Grants", value: openGrants.length },
     { label: "Due in 45 Days", value: dueSoon.length },
@@ -3866,6 +3867,7 @@ function setActiveModule(moduleName) {
   schedulingPanel.hidden = !showScheduling;
   adminSettingsView.hidden = !showAdminSettings;
   adminGrantsView.hidden = !showAdminGrants;
+  adminGrantsActions.hidden = !showAdminGrants;
   dashboardTitle.textContent = showAdminGrants ? "Grants" : "Admin";
   navWorkflowButton.classList.toggle("active", showWorkflow);
   navDashboardButton.classList.toggle("active", showAdmin);
