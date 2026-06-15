@@ -303,15 +303,23 @@ test("grant question and organization info payloads preserve reusable grant cont
 
   const organizationInfo = cleanGrantOrganizationInfoPayload({
     legalName: " SNACK ",
+    dbaName: " The SNACK Program ",
     ein: " 00-0000000 ",
+    guidingPrinciples: " Inclusive, practical, joyful. ",
     copyBlocks: [{ title: " Mission ", content: " Copy " }],
-    documents: [{ type: "DEI Statement", title: " DEI ", url: " https://drive.example/dei " }]
+    documents: [
+      { type: "DEI Statement", title: " DEI ", url: " https://drive.example/dei " },
+      { type: "Balance Sheet", title: " Balance Sheet ", url: " https://drive.example/balance " }
+    ]
   });
 
   assert.equal(organizationInfo.legalName, "SNACK");
+  assert.equal(organizationInfo.dbaName, "The SNACK Program");
   assert.equal(organizationInfo.ein, "00-0000000");
+  assert.equal(organizationInfo.guidingPrinciples, "Inclusive, practical, joyful.");
   assert.equal(organizationInfo.copyBlocks[0].title, "Mission");
   assert.equal(organizationInfo.documents[0].title, "DEI");
+  assert.equal(organizationInfo.documents[1].type, "Balance Sheet");
 });
 
 test("cleanOutreachEventPayload defaults type and integer counts", () => {

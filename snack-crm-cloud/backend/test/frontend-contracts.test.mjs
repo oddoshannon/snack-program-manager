@@ -59,15 +59,26 @@ test("admin settings surface current scheduling rules", () => {
   assert.match(stylesCss, /\.admin-settings-list/);
 });
 
-test("admin grants tab exposes tracker, deadlines, question bank, and organization info", () => {
+test("admin grants tab exposes deadlines, grant list, reusable answers, and organization info", () => {
   assert.match(indexHtml, /id="admin-grants-view"/);
-  assert.match(indexHtml, /Grant Tracker/);
+  assert.match(appJs, /dashboardTitle\.textContent = showAdminGrants \? "Grants" : "Admin"/);
+  assert.equal(indexHtml.includes("Grant Tracker"), false);
+  assert.equal(indexHtml.includes("Funding</p>"), false);
   assert.match(indexHtml, /id="grant-deadline-list"/);
   assert.match(indexHtml, /id="grants-list"/);
   assert.match(indexHtml, /id="grant-question-form"/);
   assert.match(indexHtml, /id="grant-org-form"/);
+  assert.match(indexHtml, /Reusable Answers/);
+  assert.match(indexHtml, /DBA name/);
+  assert.match(indexHtml, /Guiding principles/);
   assert.match(indexHtml, /Board roster link/);
   assert.match(indexHtml, /CHA \/ CHIP link/);
+  assert.match(indexHtml, /Balance sheet link/);
+  assert.match(indexHtml, /Profit &amp; Loss Statement link/);
+  assert.match(indexHtml, /Strategic Plan link/);
+  assert.match(indexHtml, /Annual Report link/);
+  assert.equal(indexHtml.includes("Service area"), false);
+  assert.equal(indexHtml.includes("Organization description / reusable copy"), false);
 });
 
 test("grant modal captures application details, portal info, awards, reports, and document links", () => {
@@ -98,7 +109,7 @@ test("grant modal captures application details, portal info, awards, reports, an
   }
 });
 
-test("grants index stays compact with profile and question modals", () => {
+test("grants index stays compact with profile and answer modals", () => {
   assert.match(indexHtml, /id="grant-detail"/);
   assert.match(indexHtml, /id="new-grant-question"/);
   assert.match(indexHtml, /id="grant-question-modal"/);
@@ -106,6 +117,8 @@ test("grants index stays compact with profile and question modals", () => {
   assert.equal(indexHtml.includes("Foundation details, portals, reports, and document links"), false);
   assert.match(stylesCss, /\.grant-list-row/);
   assert.match(stylesCss, /\.grant-profile-grid/);
+  assert.match(stylesCss, /\.grant-edit-profile-grid/);
+  assert.match(stylesCss, /\.grant-reference-card/);
 });
 
 test("grant interactions open profiles, support question editing, and close on backdrop click", () => {

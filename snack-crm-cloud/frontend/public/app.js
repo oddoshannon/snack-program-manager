@@ -40,6 +40,7 @@ const dashboardNoNext = document.querySelector("#dashboard-no-next");
 const dashboardAppointmentsWeek = document.querySelector("#dashboard-appointments-week");
 const dashboardAttention = document.querySelector("#dashboard-attention");
 const dashboardWorkflow = document.querySelector("#dashboard-workflow");
+const dashboardTitle = document.querySelector("#dashboard-title");
 const adminTabSettingsButton = document.querySelector("#admin-tab-settings");
 const adminTabGrantsButton = document.querySelector("#admin-tab-grants");
 const adminSettingsView = document.querySelector("#admin-settings-view");
@@ -1899,7 +1900,12 @@ const grantOrgDocumentFields = [
   { type: "DEI Statement", title: "DEI Statement", formName: "deiStatementUrl" },
   { type: "Youth Protection Policy", title: "Youth Protection Policy", formName: "youthProtectionPolicyUrl" },
   { type: "Data Sheets", title: "Data Sheets", formName: "dataSheetUrl" },
-  { type: "CHA / CHIP", title: "Community Health Assessment / Improvement Plan", formName: "chaChipUrl" }
+  { type: "CHA / CHIP", title: "Community Health Assessment / Improvement Plan", formName: "chaChipUrl" },
+  { type: "Balance Sheet", title: "Balance Sheet", formName: "balanceSheetUrl" },
+  { type: "Profit & Loss Statement", title: "Profit & Loss Statement", formName: "profitLossStatementUrl" },
+  { type: "Annual Budget", title: "Annual Budget", formName: "annualBudgetDocumentUrl" },
+  { type: "Strategic Plan", title: "Strategic Plan", formName: "strategicPlanUrl" },
+  { type: "Annual Report", title: "Annual Report", formName: "annualReportUrl" }
 ];
 
 function formatGrantCurrency(value) {
@@ -2340,7 +2346,7 @@ function fillGrantOrganizationForm() {
   }
 
   const info = loadedGrantOrganizationInfo;
-  for (const name of ["legalName", "ein", "mission", "vision", "organizationDescription", "serviceArea", "populationServed", "annualBudget", "dataNotes"]) {
+  for (const name of ["legalName", "dbaName", "ein", "mission", "vision", "guidingPrinciples", "organizationDescription", "populationServed", "annualBudget", "dataNotes"]) {
     if (grantOrgForm.elements[name]) {
       grantOrgForm.elements[name].value = info[name] || "";
     }
@@ -3776,6 +3782,7 @@ function setActiveModule(moduleName) {
   schedulingPanel.hidden = !showScheduling;
   adminSettingsView.hidden = !showAdminSettings;
   adminGrantsView.hidden = !showAdminGrants;
+  dashboardTitle.textContent = showAdminGrants ? "Grants" : "Admin";
   navWorkflowButton.classList.toggle("active", showWorkflow);
   navDashboardButton.classList.toggle("active", showAdmin);
   navCrmButton.classList.toggle("active", showCrm);

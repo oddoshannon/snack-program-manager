@@ -526,11 +526,12 @@ function toGrantOrganizationInfo(snapshot) {
   return {
     id: snapshot.id,
     legalName: data.legalName || "",
+    dbaName: data.dbaName || "",
     ein: data.ein || "",
     mission: data.mission || "",
     vision: data.vision || "",
+    guidingPrinciples: data.guidingPrinciples || "",
     organizationDescription: data.organizationDescription || "",
-    serviceArea: data.serviceArea || "",
     populationServed: data.populationServed || "",
     annualBudget: data.annualBudget || "",
     copyBlocks: Array.isArray(data.copyBlocks) ? data.copyBlocks : [],
@@ -634,11 +635,12 @@ function cleanGrantQuestionPayload(body) {
 function cleanGrantOrganizationInfoPayload(body) {
   return {
     legalName: cleanString(body.legalName),
+    dbaName: cleanString(body.dbaName),
     ein: cleanString(body.ein),
     mission: cleanString(body.mission),
     vision: cleanString(body.vision),
+    guidingPrinciples: cleanString(body.guidingPrinciples),
     organizationDescription: cleanString(body.organizationDescription),
-    serviceArea: cleanString(body.serviceArea),
     populationServed: cleanString(body.populationServed),
     annualBudget: cleanString(body.annualBudget),
     copyBlocks: cleanGrantCopyBlocks(body.copyBlocks),

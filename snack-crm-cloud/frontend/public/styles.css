@@ -4082,8 +4082,15 @@ dd {
   min-height: auto;
 }
 
-.grants-header {
+.grants-toolbar {
+  display: flex;
+  justify-content: flex-end;
   margin-top: 8px;
+  margin-bottom: 12px;
+}
+
+.grants-summary {
+  margin-bottom: 16px;
 }
 
 .grants-layout {
@@ -4093,17 +4100,50 @@ dd {
   align-items: start;
 }
 
-.grants-list-card,
-.grant-question-card {
+.grants-list-card {
   grid-column: 2;
-}
-
-.grant-org-card {
-  grid-column: 1;
 }
 
 .grants-deadline-card {
   grid-column: 1;
+}
+
+.grant-reference-card,
+.grant-org-card,
+.grant-question-card {
+  grid-column: 1 / -1;
+}
+
+.grant-reference-card {
+  display: grid;
+  gap: 12px;
+}
+
+.grant-reference-summary {
+  cursor: pointer;
+  list-style: none;
+  margin-bottom: 0;
+}
+
+.grant-reference-summary::-webkit-details-marker {
+  display: none;
+}
+
+.grant-reference-summary::after {
+  content: "Collapse";
+  flex: 0 0 auto;
+  color: var(--brand-green);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.grant-reference-card:not([open]) .grant-reference-summary::after {
+  content: "Expand";
+}
+
+.grant-reference-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .grant-card-list,
@@ -4276,6 +4316,12 @@ dd {
   gap: 14px;
 }
 
+.grant-edit-profile-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.95fr) minmax(420px, 1.2fr);
+  gap: 14px;
+}
+
 .grant-profile-panel {
   display: grid;
   align-content: start;
@@ -4332,6 +4378,14 @@ dd {
   gap: 10px;
 }
 
+.grant-org-form > .grant-form-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grant-wide-field {
+  grid-column: span 2;
+}
+
 .grant-form label,
 .compact-form label {
   display: grid;
@@ -4371,6 +4425,14 @@ dd {
 
 .grant-document-fields h4 {
   margin: 0;
+}
+
+.grant-edit-detail-list {
+  align-content: start;
+}
+
+.grant-edit-card {
+  gap: 12px;
 }
 
 .grant-question-item {
@@ -4445,7 +4507,8 @@ dd {
   .workflow-board,
   .workflow-layout,
   .grants-layout,
-  .grant-profile-grid {
+  .grant-profile-grid,
+  .grant-edit-profile-grid {
     grid-template-columns: 1fr;
   }
 
@@ -4519,8 +4582,13 @@ dd {
   }
 
   .grant-form-grid,
+  .grant-org-form > .grant-form-grid,
   .grant-fact-grid {
     grid-template-columns: 1fr;
+  }
+
+  .grant-wide-field {
+    grid-column: auto;
   }
 
   .admin-settings-list > div {
