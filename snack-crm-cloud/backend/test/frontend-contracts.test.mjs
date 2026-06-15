@@ -48,6 +48,8 @@ test("workflow module includes start-day controls and a task summary", () => {
 });
 
 test("admin settings surface current scheduling rules", () => {
+  assert.match(indexHtml, /id="admin-tab-settings"/);
+  assert.match(indexHtml, /id="admin-tab-grants"/);
   assert.match(indexHtml, /Scheduling Settings/);
   assert.match(indexHtml, /Tuesday, Wednesday, Thursday/);
   assert.match(indexHtml, /1:00 PM - 6:00 PM/);
@@ -55,6 +57,45 @@ test("admin settings surface current scheduling rules", () => {
   assert.match(indexHtml, /15 minutes/);
   assert.match(indexHtml, /45 minutes for 3\+ clients/);
   assert.match(stylesCss, /\.admin-settings-list/);
+});
+
+test("admin grants tab exposes tracker, deadlines, question bank, and organization info", () => {
+  assert.match(indexHtml, /id="admin-grants-view"/);
+  assert.match(indexHtml, /Grant Tracker/);
+  assert.match(indexHtml, /id="grant-deadline-list"/);
+  assert.match(indexHtml, /id="grants-list"/);
+  assert.match(indexHtml, /id="grant-question-form"/);
+  assert.match(indexHtml, /id="grant-org-form"/);
+  assert.match(indexHtml, /Board roster link/);
+  assert.match(indexHtml, /CHA \/ CHIP link/);
+});
+
+test("grant modal captures application details, portal info, awards, reports, and document links", () => {
+  const grantModal = indexHtml.slice(indexHtml.indexOf('id="grant-modal"'), indexHtml.indexOf('id="crm-tabs"'));
+
+  for (const field of [
+    "foundationName",
+    "grantName",
+    "deadlineDate",
+    "focusAreas",
+    "recurrence",
+    "applicationFrequency",
+    "contactName",
+    "websiteUrl",
+    "portalUrl",
+    "portalLoginNotes",
+    "amountMin",
+    "amountMax",
+    "reportingRequirements",
+    "pastGrantReceived",
+    "completedApplicationUrl",
+    "grantAgreementUrl",
+    "budgetUrl",
+    "finalReportUrl",
+    "brandingUrl"
+  ]) {
+    assert.match(grantModal, new RegExp(`name="${field}"`));
+  }
 });
 
 test("scheduling module keeps calendar, today board, and bottom list views", () => {
@@ -235,6 +276,18 @@ test("summary cards keep rainbow order for six-card modules", () => {
 test("workflow task summary uses the shared counter-card system", () => {
   assert.match(stylesCss, /\.task-summary\s*{\s*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);/);
   assert.match(indexHtml, /class="summary-grid task-summary"/);
+});
+
+test("frontend script wires grants API resources and Admin Grants navigation", () => {
+  assert.match(appJs, /activeAdminView/);
+  assert.match(appJs, /function setAdminView/);
+  assert.match(appJs, /\/api\/grants/);
+  assert.match(appJs, /\/api\/grant-questions/);
+  assert.match(appJs, /\/api\/grant-organization-info/);
+  assert.match(appJs, /function renderGrantDeadlines/);
+  assert.match(appJs, /function saveGrantOrganizationInfo/);
+  assert.match(stylesCss, /\.grants-layout/);
+  assert.match(stylesCss, /\.grant-card/);
 });
 
 test("archive cards hover like flow cards instead of turning solid green", () => {

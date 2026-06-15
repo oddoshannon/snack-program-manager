@@ -78,7 +78,8 @@
 
         <section id="dashboard-panel" class="referrals-panel dashboard-panel" aria-labelledby="dashboard-title" hidden>
           <div class="module-tabs admin-tabs" role="tablist" aria-label="Admin views">
-            <button class="module-tab active" type="button" role="tab" aria-selected="true">Settings</button>
+            <button id="admin-tab-settings" class="module-tab active" type="button" role="tab" aria-selected="true">Settings</button>
+            <button id="admin-tab-grants" class="module-tab" type="button" role="tab" aria-selected="false">Grants</button>
           </div>
 
           <header class="workspace-header">
@@ -88,7 +89,8 @@
             </div>
           </header>
 
-          <div class="dashboard-feature-grid">
+          <section id="admin-settings-view" class="admin-view">
+            <div class="dashboard-feature-grid">
             <section class="dashboard-card admin-settings-card" aria-labelledby="admin-scheduling-settings-title">
               <div class="dashboard-card-header">
                 <div>
@@ -192,8 +194,313 @@
                 </section>
               </div>
             </section>
-          </div>
+            </div>
+          </section>
+
+          <section id="admin-grants-view" class="admin-view grants-view" hidden>
+            <div class="workspace-header grants-header">
+              <div>
+                <p class="eyebrow">Funding</p>
+                <h3>Grant Tracker</h3>
+              </div>
+              <div class="header-actions">
+                <button id="new-grant" type="button">New Grant</button>
+              </div>
+            </div>
+
+            <section id="grants-summary" class="summary-grid grants-summary" aria-label="Grant summary"></section>
+
+            <div class="grants-layout">
+              <section class="dashboard-card grants-deadline-card" aria-labelledby="grant-deadlines-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="grant-deadlines-title">Upcoming Deadlines</h3>
+                    <p class="dashboard-card-note">Sorted by next application deadline</p>
+                  </div>
+                </div>
+                <div id="grant-deadline-list" class="dashboard-list grant-deadline-list"></div>
+              </section>
+
+              <section class="dashboard-card grants-list-card" aria-labelledby="grant-list-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="grant-list-title">Grant Applications</h3>
+                    <p class="dashboard-card-note">Foundation details, portals, reports, and document links</p>
+                  </div>
+                  <input id="grant-search" type="search" placeholder="Search grants">
+                </div>
+                <div id="grants-list" class="grant-card-list"></div>
+              </section>
+
+              <section class="dashboard-card grant-question-card" aria-labelledby="grant-question-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="grant-question-title">Reusable Questions</h3>
+                    <p class="dashboard-card-note">Past prompts and answers to adapt for future applications</p>
+                  </div>
+                </div>
+                <form id="grant-question-form" class="compact-form grant-question-form">
+                  <label>
+                    Category
+                    <input id="grant-question-category" name="category" placeholder="Mission, evaluation, budget...">
+                  </label>
+                  <label>
+                    Question
+                    <textarea id="grant-question-prompt" name="prompt" rows="2" required></textarea>
+                  </label>
+                  <label>
+                    Answer
+                    <textarea id="grant-question-answer" name="answer" rows="4" required></textarea>
+                  </label>
+                  <label>
+                    Target limit
+                    <input id="grant-question-target-limit" name="targetLimit" placeholder="250 words, 1,500 characters...">
+                  </label>
+                  <label>
+                    Notes
+                    <input id="grant-question-notes" name="notes" placeholder="Tone, funder context, reuse notes">
+                  </label>
+                  <button id="save-grant-question" type="submit">Save Answer</button>
+                </form>
+                <div id="grant-question-list" class="grant-question-list"></div>
+              </section>
+
+              <section class="dashboard-card grant-org-card" aria-labelledby="grant-org-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="grant-org-title">Organization Info</h3>
+                    <p class="dashboard-card-note">Reusable copy and core documents for applications</p>
+                  </div>
+                </div>
+                <form id="grant-org-form" class="compact-form grant-org-form">
+                  <div class="grant-form-grid">
+                    <label>
+                      Legal name
+                      <input name="legalName" autocomplete="organization">
+                    </label>
+                    <label>
+                      EIN
+                      <input name="ein">
+                    </label>
+                    <label>
+                      Annual budget
+                      <input name="annualBudget">
+                    </label>
+                    <label>
+                      Service area
+                      <input name="serviceArea">
+                    </label>
+                  </div>
+                  <label>
+                    Mission
+                    <textarea name="mission" rows="3"></textarea>
+                  </label>
+                  <label>
+                    Vision
+                    <textarea name="vision" rows="3"></textarea>
+                  </label>
+                  <label>
+                    Organization description / reusable copy
+                    <textarea name="organizationDescription" rows="5"></textarea>
+                  </label>
+                  <label>
+                    Population served
+                    <textarea name="populationServed" rows="3"></textarea>
+                  </label>
+                  <div class="grant-form-grid">
+                    <label>
+                      Board roster link
+                      <input name="boardRosterUrl" type="url" placeholder="https://">
+                    </label>
+                    <label>
+                      DEI statement link
+                      <input name="deiStatementUrl" type="url" placeholder="https://">
+                    </label>
+                    <label>
+                      Youth Protection Policy link
+                      <input name="youthProtectionPolicyUrl" type="url" placeholder="https://">
+                    </label>
+                    <label>
+                      Data sheets link
+                      <input name="dataSheetUrl" type="url" placeholder="https://">
+                    </label>
+                    <label>
+                      CHA / CHIP link
+                      <input name="chaChipUrl" type="url" placeholder="https://">
+                    </label>
+                  </div>
+                  <label>
+                    Data and document notes
+                    <textarea name="dataNotes" rows="3"></textarea>
+                  </label>
+                  <button id="save-grant-org" type="submit">Save Organization Info</button>
+                </form>
+              </section>
+            </div>
+            <p id="grants-status" class="status" aria-live="polite"></p>
+          </section>
         </section>
+
+        <div id="grant-modal" class="modal-backdrop" hidden>
+          <section class="modal-card grants-modal-card" role="dialog" aria-modal="true" aria-label="Grant application">
+            <form id="grant-form" class="referral-form grant-form">
+              <div class="client-profile-topbar">
+                <div>
+                  <p class="eyebrow">Grant</p>
+                  <h3 id="grant-form-title">New Grant</h3>
+                </div>
+                <div class="detail-actions form-actions">
+                  <button id="save-grant" type="submit">Save Grant</button>
+                  <button id="cancel-grant-edit" class="secondary-button" type="button">Cancel</button>
+                  <button id="delete-grant" class="danger-button" type="button" hidden>Delete</button>
+                </div>
+              </div>
+
+              <div class="grant-form-grid">
+                <label>
+                  Foundation name
+                  <input name="foundationName" required>
+                </label>
+                <label>
+                  Grant name
+                  <input name="grantName">
+                </label>
+                <label>
+                  Status
+                  <select name="status">
+                    <option value="Researching">Researching</option>
+                    <option value="Planning">Planning</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Submitted">Submitted</option>
+                    <option value="Awarded">Awarded</option>
+                    <option value="Declined">Declined</option>
+                    <option value="Reporting">Reporting</option>
+                    <option value="Closed">Closed</option>
+                  </select>
+                </label>
+                <label>
+                  Deadline
+                  <input name="deadlineDate" type="date">
+                </label>
+                <label>
+                  Recurrence
+                  <input name="recurrence" placeholder="Annual, rolling, invitation only...">
+                </label>
+                <label>
+                  How often we can apply
+                  <input name="applicationFrequency" placeholder="Every year, every 2 years...">
+                </label>
+                <label>
+                  Grant range min
+                  <input name="amountMin" type="number" min="0" step="1">
+                </label>
+                <label>
+                  Grant range max
+                  <input name="amountMax" type="number" min="0" step="1">
+                </label>
+              </div>
+
+              <label>
+                Funding focus areas
+                <textarea name="focusAreas" rows="3"></textarea>
+              </label>
+
+              <div class="grant-form-grid">
+                <label>
+                  Point of contact
+                  <input name="contactName">
+                </label>
+                <label>
+                  Contact role
+                  <input name="contactRole">
+                </label>
+                <label>
+                  Contact email
+                  <input name="contactEmail" type="email">
+                </label>
+                <label>
+                  Contact phone
+                  <input name="contactPhone" type="tel">
+                </label>
+                <label>
+                  Website
+                  <input name="websiteUrl" type="url" placeholder="https://">
+                </label>
+                <label>
+                  Portal link
+                  <input name="portalUrl" type="url" placeholder="https://">
+                </label>
+              </div>
+
+              <label>
+                Portal login notes
+                <textarea name="portalLoginNotes" rows="3" placeholder="Do not store passwords here unless you intend staff with access to see them."></textarea>
+              </label>
+              <label>
+                Reporting requirements
+                <textarea name="reportingRequirements" rows="3"></textarea>
+              </label>
+
+              <div class="grant-form-grid">
+                <label class="checkbox-line">
+                  <input name="pastGrantReceived" type="checkbox">
+                  Received in the past
+                </label>
+                <label>
+                  Past amount
+                  <input name="pastGrantAmount" type="number" min="0" step="1">
+                </label>
+                <label>
+                  Past year
+                  <input name="pastGrantYear" type="number" min="1900" max="2100" step="1">
+                </label>
+              </div>
+              <label>
+                Past grant notes
+                <textarea name="pastGrantNotes" rows="2"></textarea>
+              </label>
+
+              <section class="grant-document-fields">
+                <h4>Grant Documents and Materials</h4>
+                <div class="grant-form-grid">
+                  <label>
+                    Completed application link
+                    <input name="completedApplicationUrl" type="url" placeholder="https://">
+                  </label>
+                  <label>
+                    Grant agreement link
+                    <input name="grantAgreementUrl" type="url" placeholder="https://">
+                  </label>
+                  <label>
+                    Budget link
+                    <input name="budgetUrl" type="url" placeholder="https://">
+                  </label>
+                  <label>
+                    Final report link
+                    <input name="finalReportUrl" type="url" placeholder="https://">
+                  </label>
+                  <label>
+                    Branding / logo / press info link
+                    <input name="brandingUrl" type="url" placeholder="https://">
+                  </label>
+                </div>
+                <label>
+                  Document notes
+                  <textarea name="documentNotes" rows="3"></textarea>
+                </label>
+                <label>
+                  Branding notes
+                  <textarea name="brandingNotes" rows="2"></textarea>
+                </label>
+              </section>
+
+              <label>
+                Notes
+                <textarea name="notes" rows="4"></textarea>
+              </label>
+            </form>
+          </section>
+        </div>
 
         <div id="crm-tabs" class="module-tabs crm-tabs" role="tablist" aria-label="CRM views" hidden>
           <button id="crm-tab-dashboard" class="module-tab active" type="button" role="tab" aria-selected="true">Dashboard</button>

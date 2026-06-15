@@ -11,6 +11,10 @@ import {
   cleanActivityLogPayload,
   cleanAppointmentPayload,
   cleanBoolean,
+  cleanGrantDocumentLink,
+  cleanGrantOrganizationInfoPayload,
+  cleanGrantPayload,
+  cleanGrantQuestionPayload,
   cleanNetworkProvider,
   cleanOptionalInteger,
   cleanOptionalNumber,
@@ -53,6 +57,9 @@ import {
   toActivityLog,
   toAppointment,
   toClient,
+  toGrant,
+  toGrantOrganizationInfo,
+  toGrantQuestion,
   toReferral,
   toTask
 } from "../server.js";
@@ -60,6 +67,7 @@ import {
 function snapshot(id, data) {
   return {
     id,
+    exists: true,
     data: () => data
   };
 }
@@ -243,6 +251,67 @@ test("cleanReferralNetworkPayload filters empty providers", () => {
   assert.equal(payload.name, "Physicians' Medical Center");
   assert.equal(payload.providers.length, 1);
   assert.equal(payload.providers[0].name, "William");
+});
+
+test("cleanGrantPayload normalizes grant tracker details and document links", () => {
+  const documentLink = cleanGrantDocumentLink({
+    type: " Completed Application ",
+    title: " 2025 Application ",
+    url: " https://drive.example/app ",
+    notes: " Final "
+  });
+
+  assert.equal(documentLink.type, "Completed Application");
+  assert.equal(documentLink.title, "2025 Application");
+  assert.equal(documentLink.url, "https://drive.example/app");
+
+  const payload = cleanGrantPayload({
+    foundationName: " Oregon Foundation ",
+    grantName: " Community Health ",
+    amountMin: "5000",
+    amountMax: " 15000 ",
+    pastGrantReceived: "checked",
+    pastGrantAmount: "7500",
+    pastGrantYear: "2024",
+    documents: [documentLink, { title: " " }]
+  });
+
+  assert.equal(payload.foundationName, "Oregon Foundation");
+  assert.equal(payload.amountMin, 5000);
+  assert.equal(payload.amountMax, 15000);
+  assert.equal(payload.pastGrantReceived, true);
+  assert.equal(payload.pastGrantAmount, 7500);
+  assert.equal(payload.pastGrantYear, 2024);
+  assert.equal(payload.documents.length, 1);
+});
+
+test("grant question and organization info payloads preserve reusable grant content", () => {
+  const question = cleanGrantQuestionPayload({
+    category: " Mission ",
+    prompt: " What do you do? ",
+    answer: " We support kids. ",
+    targetLimit: " 250 words "
+  });
+
+  assert.deepEqual(question, {
+    category: "Mission",
+    prompt: "What do you do?",
+    answer: "We support kids.",
+    targetLimit: "250 words",
+    notes: ""
+  });
+
+  const organizationInfo = cleanGrantOrganizationInfoPayload({
+    legalName: " SNACK ",
+    ein: " 00-0000000 ",
+    copyBlocks: [{ title: " Mission ", content: " Copy " }],
+    documents: [{ type: "DEI Statement", title: " DEI ", url: " https://drive.example/dei " }]
+  });
+
+  assert.equal(organizationInfo.legalName, "SNACK");
+  assert.equal(organizationInfo.ein, "00-0000000");
+  assert.equal(organizationInfo.copyBlocks[0].title, "Mission");
+  assert.equal(organizationInfo.documents[0].title, "DEI");
 });
 
 test("cleanOutreachEventPayload defaults type and integer counts", () => {
@@ -506,6 +575,12 @@ test("serializers produce stable API shapes", () => {
   const appointment = toAppointment(snapshot("a1", { clientIds: ["c1"], appointmentTime: "13:00", durationMinutes: 15 }));
   const task = toTask(snapshot("t1", { title: "Call", type: "forms", status: "Open" }));
   const activity = toActivityLog(snapshot("l1", { type: "Call", direction: "Outbound" }));
+  const grant = toGrant(snapshot("g1", { foundationName: "Foundation", pastGrantReceived: true, documents: [{ title: "Application" }] }));
+  const question = toGrantQuestion(snapshot("q1", { prompt: "Question", answer: "Answer" }));
+  const organizationInfo = toGrantOrganizationInfo(snapshot("grantOrganizationInfo", {
+    legalName: "SNACK",
+    documents: [{ title: "Board Roster" }]
+  }));
 
   assert.equal(referral.id, "r1");
   assert.equal(referral.ycco, true);
@@ -514,6 +589,10 @@ test("serializers produce stable API shapes", () => {
   assert.equal(appointment.durationMinutes, 15);
   assert.equal(task.type, "Form");
   assert.equal(activity.direction, "Outbound");
+  assert.equal(grant.pastGrantReceived, true);
+  assert.equal(grant.documents[0].title, "Application");
+  assert.equal(question.prompt, "Question");
+  assert.equal(organizationInfo.legalName, "SNACK");
 });
 
 test("date helpers validate date-only values", () => {
@@ -529,6 +608,11 @@ test("public and protected API routes are registered with expected middleware", 
   assert.ok(routes.indexOf("/api/public/booking-options") < routes.indexOf("/api/message"));
   assert.ok(routes.indexOf("/api/public/availability") < routes.indexOf("/api/message"));
   assert.ok(routes.indexOf("/api/public/bookings") < routes.indexOf("/api/message"));
+  assert.ok(routes.includes("/api/grants"));
+  assert.ok(routes.includes("/api/grants/:grantId"));
+  assert.ok(routes.includes("/api/grant-questions"));
+  assert.ok(routes.includes("/api/grant-questions/:questionId"));
+  assert.ok(routes.includes("/api/grant-organization-info"));
   const healthRoute = app._router.stack.find((layer) => layer.route?.path === "/health").route;
   const bookingOptionsRoute = app._router.stack.find((layer) => layer.route?.path === "/api/public/booking-options").route;
   const messageRoute = app._router.stack.find((layer) => layer.route?.path === "/api/message").route;

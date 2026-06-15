@@ -4082,6 +4082,198 @@ dd {
   min-height: auto;
 }
 
+.grants-header {
+  margin-top: 8px;
+}
+
+.grants-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(420px, 1.35fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.grants-list-card,
+.grant-org-card {
+  grid-column: 2;
+}
+
+.grant-question-card {
+  grid-column: 1;
+  grid-row: span 2;
+}
+
+.grants-deadline-card {
+  grid-column: 1;
+}
+
+.grant-card-list,
+.grant-question-list,
+.grant-deadline-list {
+  display: grid;
+  gap: 8px;
+}
+
+.grant-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--brand-green);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.grant-card-header,
+.grant-question-actions,
+.grant-link-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.grant-card h4,
+.grant-card p {
+  margin: 0;
+}
+
+.grant-card-header p,
+.grant-card-notes {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.grant-fact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.grant-fact-grid > div {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.grant-fact-grid span,
+.grant-form label,
+.compact-form label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.grant-fact-grid strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.grant-link-row {
+  justify-content: flex-start;
+}
+
+.grant-link-row a {
+  display: inline-flex;
+  padding: 5px 8px;
+  border: 1px solid rgba(7, 139, 77, 0.24);
+  border-radius: 8px;
+  color: var(--brand-green);
+  font-weight: 800;
+  text-decoration: none;
+  background: rgba(7, 139, 77, 0.06);
+}
+
+.grant-deadline-item {
+  border-left-color: var(--brand-red);
+}
+
+.compact-form,
+.grant-form {
+  display: grid;
+  gap: 10px;
+}
+
+.grant-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.grant-form label,
+.compact-form label {
+  display: grid;
+  gap: 5px;
+}
+
+.grant-form input,
+.grant-form select,
+.grant-form textarea,
+.compact-form input,
+.compact-form textarea {
+  width: 100%;
+  min-width: 0;
+}
+
+.checkbox-line {
+  display: flex !important;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-line input {
+  width: auto;
+  min-height: auto;
+}
+
+.grant-document-fields {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.grant-document-fields h4 {
+  margin: 0;
+}
+
+.grant-question-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.grant-question-item summary {
+  cursor: pointer;
+  display: grid;
+  gap: 3px;
+}
+
+.grant-question-item summary span,
+.grant-question-item small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.grant-question-item p {
+  margin: 10px 0;
+  white-space: pre-wrap;
+}
+
+.grants-modal-card {
+  max-width: 940px;
+}
+
 [hidden] {
   display: none !important;
 }
@@ -4115,8 +4307,17 @@ dd {
 
   .dashboard-week,
   .workflow-board,
-  .workflow-layout {
+  .workflow-layout,
+  .grants-layout {
     grid-template-columns: 1fr;
+  }
+
+  .grants-list-card,
+  .grant-org-card,
+  .grant-question-card,
+  .grants-deadline-card {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .sidebar-footer {
@@ -4177,6 +4378,11 @@ dd {
   .form-link-row,
   .form-link-controls,
   .referral-form {
+    grid-template-columns: 1fr;
+  }
+
+  .grant-form-grid,
+  .grant-fact-grid {
     grid-template-columns: 1fr;
   }
 

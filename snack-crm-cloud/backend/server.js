@@ -143,6 +143,9 @@ const outreachContacts = firestore.collection("outreachContacts");
 const appointments = firestore.collection("appointments");
 const tasks = firestore.collection("tasks");
 const activityLogs = firestore.collection("activityLogs");
+const grants = firestore.collection("grants");
+const grantQuestions = firestore.collection("grantQuestions");
+const adminSettings = firestore.collection("adminSettings");
 const firebaseJwtKeys = createRemoteJWKSet(
   new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
 );
@@ -468,6 +471,75 @@ function toActivityLog(snapshot) {
   };
 }
 
+function toGrant(snapshot) {
+  const data = snapshot.data();
+
+  return {
+    id: snapshot.id,
+    foundationName: data.foundationName,
+    grantName: data.grantName,
+    status: data.status,
+    deadlineDate: data.deadlineDate,
+    focusAreas: data.focusAreas,
+    recurrence: data.recurrence,
+    applicationFrequency: data.applicationFrequency,
+    contactName: data.contactName,
+    contactRole: data.contactRole,
+    contactEmail: data.contactEmail,
+    contactPhone: data.contactPhone,
+    websiteUrl: data.websiteUrl,
+    portalUrl: data.portalUrl,
+    portalLoginNotes: data.portalLoginNotes,
+    amountMin: data.amountMin ?? null,
+    amountMax: data.amountMax ?? null,
+    reportingRequirements: data.reportingRequirements,
+    pastGrantReceived: Boolean(data.pastGrantReceived),
+    pastGrantAmount: data.pastGrantAmount ?? null,
+    pastGrantYear: data.pastGrantYear ?? null,
+    pastGrantNotes: data.pastGrantNotes,
+    documents: Array.isArray(data.documents) ? data.documents : [],
+    brandingNotes: data.brandingNotes,
+    notes: data.notes,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt
+  };
+}
+
+function toGrantQuestion(snapshot) {
+  const data = snapshot.data();
+
+  return {
+    id: snapshot.id,
+    category: data.category,
+    prompt: data.prompt,
+    answer: data.answer,
+    targetLimit: data.targetLimit,
+    notes: data.notes,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt
+  };
+}
+
+function toGrantOrganizationInfo(snapshot) {
+  const data = snapshot.exists ? snapshot.data() : {};
+
+  return {
+    id: snapshot.id,
+    legalName: data.legalName || "",
+    ein: data.ein || "",
+    mission: data.mission || "",
+    vision: data.vision || "",
+    organizationDescription: data.organizationDescription || "",
+    serviceArea: data.serviceArea || "",
+    populationServed: data.populationServed || "",
+    annualBudget: data.annualBudget || "",
+    copyBlocks: Array.isArray(data.copyBlocks) ? data.copyBlocks : [],
+    documents: Array.isArray(data.documents) ? data.documents : [],
+    dataNotes: data.dataNotes || "",
+    updatedAt: data.updatedAt || ""
+  };
+}
+
 function cleanNetworkProvider(provider) {
   const id = cleanString(provider?.id) || crypto.randomUUID();
   return {
@@ -486,6 +558,92 @@ function cleanProviderLink(link) {
     providerId: cleanString(link?.providerId),
     organizationName: cleanString(link?.organizationName),
     providerName: cleanString(link?.providerName)
+  };
+}
+
+function cleanGrantDocumentLink(document = {}) {
+  return {
+    id: cleanString(document.id) || crypto.randomUUID(),
+    type: cleanString(document.type) || "Other",
+    title: cleanString(document.title),
+    url: cleanString(document.url),
+    notes: cleanString(document.notes)
+  };
+}
+
+function cleanGrantDocumentLinks(documents) {
+  return (Array.isArray(documents) ? documents : [])
+    .map(cleanGrantDocumentLink)
+    .filter((document) => document.title || document.url || document.notes);
+}
+
+function cleanGrantCopyBlock(block = {}) {
+  return {
+    id: cleanString(block.id) || crypto.randomUUID(),
+    title: cleanString(block.title),
+    content: cleanString(block.content),
+    notes: cleanString(block.notes)
+  };
+}
+
+function cleanGrantCopyBlocks(blocks) {
+  return (Array.isArray(blocks) ? blocks : [])
+    .map(cleanGrantCopyBlock)
+    .filter((block) => block.title || block.content || block.notes);
+}
+
+function cleanGrantPayload(body) {
+  return {
+    foundationName: cleanString(body.foundationName),
+    grantName: cleanString(body.grantName),
+    status: cleanString(body.status) || "Researching",
+    deadlineDate: cleanString(body.deadlineDate),
+    focusAreas: cleanString(body.focusAreas),
+    recurrence: cleanString(body.recurrence),
+    applicationFrequency: cleanString(body.applicationFrequency),
+    contactName: cleanString(body.contactName),
+    contactRole: cleanString(body.contactRole),
+    contactEmail: cleanString(body.contactEmail),
+    contactPhone: cleanString(body.contactPhone),
+    websiteUrl: cleanString(body.websiteUrl),
+    portalUrl: cleanString(body.portalUrl),
+    portalLoginNotes: cleanString(body.portalLoginNotes),
+    amountMin: cleanOptionalNumber(body.amountMin),
+    amountMax: cleanOptionalNumber(body.amountMax),
+    reportingRequirements: cleanString(body.reportingRequirements),
+    pastGrantReceived: cleanBoolean(body.pastGrantReceived),
+    pastGrantAmount: cleanOptionalNumber(body.pastGrantAmount),
+    pastGrantYear: cleanOptionalInteger(body.pastGrantYear),
+    pastGrantNotes: cleanString(body.pastGrantNotes),
+    documents: cleanGrantDocumentLinks(body.documents),
+    brandingNotes: cleanString(body.brandingNotes),
+    notes: cleanString(body.notes)
+  };
+}
+
+function cleanGrantQuestionPayload(body) {
+  return {
+    category: cleanString(body.category) || "General",
+    prompt: cleanString(body.prompt),
+    answer: cleanString(body.answer),
+    targetLimit: cleanString(body.targetLimit),
+    notes: cleanString(body.notes)
+  };
+}
+
+function cleanGrantOrganizationInfoPayload(body) {
+  return {
+    legalName: cleanString(body.legalName),
+    ein: cleanString(body.ein),
+    mission: cleanString(body.mission),
+    vision: cleanString(body.vision),
+    organizationDescription: cleanString(body.organizationDescription),
+    serviceArea: cleanString(body.serviceArea),
+    populationServed: cleanString(body.populationServed),
+    annualBudget: cleanString(body.annualBudget),
+    copyBlocks: cleanGrantCopyBlocks(body.copyBlocks),
+    documents: cleanGrantDocumentLinks(body.documents),
+    dataNotes: cleanString(body.dataNotes)
   };
 }
 
@@ -1874,6 +2032,235 @@ app.post("/api/activity-logs", requireAuth, async (request, response, next) => {
 
     response.status(201).json({
       activityLog: toActivityLog(created)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/grants", requireAuth, async (_request, response, next) => {
+  try {
+    const snapshot = await grants.orderBy("deadlineDate").limit(300).get();
+
+    response.json({
+      grants: snapshot.docs.map(toGrant)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/grants", requireAuth, async (request, response, next) => {
+  try {
+    const payload = cleanGrantPayload(request.body);
+    const now = new Date().toISOString();
+
+    if (!payload.foundationName && !payload.grantName) {
+      response.status(400).json({
+        error: "Foundation or grant name is required."
+      });
+      return;
+    }
+
+    const docRef = await grants.add({
+      ...payload,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: request.user.email
+    });
+    const created = await docRef.get();
+
+    response.status(201).json({
+      grant: toGrant(created)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/grants/:grantId", requireAuth, async (request, response, next) => {
+  try {
+    const grantRef = grants.doc(request.params.grantId);
+    const snapshot = await grantRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Grant not found."
+      });
+      return;
+    }
+
+    const payload = cleanGrantPayload(request.body);
+
+    if (!payload.foundationName && !payload.grantName) {
+      response.status(400).json({
+        error: "Foundation or grant name is required."
+      });
+      return;
+    }
+
+    await grantRef.update({
+      ...payload,
+      updatedAt: new Date().toISOString(),
+      updatedBy: request.user.email
+    });
+    const updated = await grantRef.get();
+
+    response.json({
+      grant: toGrant(updated)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/grants/:grantId", requireAuth, async (request, response, next) => {
+  try {
+    const grantRef = grants.doc(request.params.grantId);
+    const snapshot = await grantRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Grant not found."
+      });
+      return;
+    }
+
+    await grantRef.delete();
+
+    response.json({
+      deleted: true
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/grant-questions", requireAuth, async (_request, response, next) => {
+  try {
+    const snapshot = await grantQuestions.orderBy("updatedAt", "desc").limit(300).get();
+
+    response.json({
+      questions: snapshot.docs.map(toGrantQuestion)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/grant-questions", requireAuth, async (request, response, next) => {
+  try {
+    const payload = cleanGrantQuestionPayload(request.body);
+    const now = new Date().toISOString();
+
+    if (!payload.prompt || !payload.answer) {
+      response.status(400).json({
+        error: "Question and answer are required."
+      });
+      return;
+    }
+
+    const docRef = await grantQuestions.add({
+      ...payload,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: request.user.email
+    });
+    const created = await docRef.get();
+
+    response.status(201).json({
+      question: toGrantQuestion(created)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/grant-questions/:questionId", requireAuth, async (request, response, next) => {
+  try {
+    const questionRef = grantQuestions.doc(request.params.questionId);
+    const snapshot = await questionRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Grant question not found."
+      });
+      return;
+    }
+
+    const payload = cleanGrantQuestionPayload(request.body);
+
+    if (!payload.prompt || !payload.answer) {
+      response.status(400).json({
+        error: "Question and answer are required."
+      });
+      return;
+    }
+
+    await questionRef.update({
+      ...payload,
+      updatedAt: new Date().toISOString(),
+      updatedBy: request.user.email
+    });
+    const updated = await questionRef.get();
+
+    response.json({
+      question: toGrantQuestion(updated)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/grant-questions/:questionId", requireAuth, async (request, response, next) => {
+  try {
+    const questionRef = grantQuestions.doc(request.params.questionId);
+    const snapshot = await questionRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Grant question not found."
+      });
+      return;
+    }
+
+    await questionRef.delete();
+
+    response.json({
+      deleted: true
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/grant-organization-info", requireAuth, async (_request, response, next) => {
+  try {
+    const snapshot = await adminSettings.doc("grantOrganizationInfo").get();
+
+    response.json({
+      organizationInfo: toGrantOrganizationInfo(snapshot)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/grant-organization-info", requireAuth, async (request, response, next) => {
+  try {
+    const payload = cleanGrantOrganizationInfoPayload(request.body);
+    const docRef = adminSettings.doc("grantOrganizationInfo");
+
+    await docRef.set({
+      ...payload,
+      updatedAt: new Date().toISOString(),
+      updatedBy: request.user.email
+    }, { merge: true });
+
+    const updated = await docRef.get();
+
+    response.json({
+      organizationInfo: toGrantOrganizationInfo(updated)
     });
   } catch (error) {
     next(error);
@@ -3325,6 +3712,10 @@ export {
   cleanActivityLogPayload,
   cleanAppointmentPayload,
   cleanBoolean,
+  cleanGrantDocumentLink,
+  cleanGrantOrganizationInfoPayload,
+  cleanGrantPayload,
+  cleanGrantQuestionPayload,
   cleanNetworkProvider,
   cleanOptionalInteger,
   cleanOptionalNumber,
@@ -3367,6 +3758,9 @@ export {
   toActivityLog,
   toAppointment,
   toClient,
+  toGrant,
+  toGrantOrganizationInfo,
+  toGrantQuestion,
   toOutreachContact,
   toOutreachEvent,
   toReferral,

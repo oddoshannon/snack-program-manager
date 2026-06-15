@@ -40,6 +40,26 @@ const dashboardNoNext = document.querySelector("#dashboard-no-next");
 const dashboardAppointmentsWeek = document.querySelector("#dashboard-appointments-week");
 const dashboardAttention = document.querySelector("#dashboard-attention");
 const dashboardWorkflow = document.querySelector("#dashboard-workflow");
+const adminTabSettingsButton = document.querySelector("#admin-tab-settings");
+const adminTabGrantsButton = document.querySelector("#admin-tab-grants");
+const adminSettingsView = document.querySelector("#admin-settings-view");
+const adminGrantsView = document.querySelector("#admin-grants-view");
+const grantsSummary = document.querySelector("#grants-summary");
+const grantDeadlineList = document.querySelector("#grant-deadline-list");
+const grantsList = document.querySelector("#grants-list");
+const grantsStatusEl = document.querySelector("#grants-status");
+const grantSearchInput = document.querySelector("#grant-search");
+const newGrantButton = document.querySelector("#new-grant");
+const grantModal = document.querySelector("#grant-modal");
+const grantForm = document.querySelector("#grant-form");
+const grantFormTitle = document.querySelector("#grant-form-title");
+const saveGrantButton = document.querySelector("#save-grant");
+const cancelGrantEditButton = document.querySelector("#cancel-grant-edit");
+const deleteGrantButton = document.querySelector("#delete-grant");
+const grantQuestionForm = document.querySelector("#grant-question-form");
+const grantQuestionList = document.querySelector("#grant-question-list");
+const grantOrgForm = document.querySelector("#grant-org-form");
+const saveGrantOrgButton = document.querySelector("#save-grant-org");
 const referralForm = document.querySelector("#referral-form");
 const formTitle = document.querySelector("#form-title");
 const saveReferralButton = document.querySelector("#save-referral");
@@ -480,6 +500,7 @@ let appointmentCompletionMode = "complete";
 let visibleSchedulingWeekStart = null;
 const selectedAppointmentClientIds = new Set();
 let editingTaskId = null;
+let editingGrantId = null;
 let taskCompletionAudio = null;
 let taskUndoTimeoutId = null;
 let pendingTaskUndo = null;
@@ -493,17 +514,22 @@ let loadedOutreachContacts = [];
 let loadedAppointments = [];
 let loadedTasks = [];
 let loadedActivityLogs = [];
+let loadedGrants = [];
+let loadedGrantQuestions = [];
+let loadedGrantOrganizationInfo = null;
 let latestClientImportAnalysis = null;
 let latestReferralImportAnalysis = null;
 let latestNetworkImportAnalysis = null;
 const expandedNetworkEntryIds = new Set();
 let activeOutreachView = "dashboard";
+let activeAdminView = "settings";
 let activeReferralView = "flow";
 let activeClientView = "flow";
 const savedNavigationState = loadNavigationState();
 let activeModule = savedNavigationState.activeModule;
 let activeCrmView = savedNavigationState.activeCrmView;
 activeOutreachView = savedNavigationState.activeOutreachView;
+activeAdminView = savedNavigationState.activeAdminView;
 activeReferralView = savedNavigationState.activeReferralView;
 activeClientView = savedNavigationState.activeClientView;
 
@@ -1116,6 +1142,7 @@ function loadNavigationState() {
     activeModule: "workflow",
     activeCrmView: "dashboard",
     activeOutreachView: "dashboard",
+    activeAdminView: "settings",
     activeReferralView: "flow",
     activeClientView: "flow"
   };
@@ -1127,6 +1154,7 @@ function loadNavigationState() {
       activeModule: validValue(savedModule, ["workflow", "scheduling", "crm", "outreach", "admin"], defaults.activeModule),
       activeCrmView: validValue(saved.activeCrmView, ["dashboard", "referrals", "clients", "referral-network"], defaults.activeCrmView),
       activeOutreachView: validValue(saved.activeOutreachView, ["dashboard", "events", "contacts"], defaults.activeOutreachView),
+      activeAdminView: validValue(saved.activeAdminView, ["settings", "grants"], defaults.activeAdminView),
       activeReferralView: validValue(saved.activeReferralView, ["list", "flow"], defaults.activeReferralView),
       activeClientView: validValue(saved.activeClientView, ["list", "flow"], defaults.activeClientView)
     };
@@ -1140,6 +1168,7 @@ function saveNavigationState() {
     activeModule,
     activeCrmView,
     activeOutreachView,
+    activeAdminView,
     activeReferralView,
     activeClientView
   }));
@@ -1848,6 +1877,345 @@ function sortClients(clients) {
     dateValue(first.lastAppointmentDate) - dateValue(second.lastAppointmentDate) ||
     clientName(first).localeCompare(clientName(second))
   );
+}
+
+const grantDocumentFields = [
+  { type: "Completed Application", title: "Completed Application", formName: "completedApplicationUrl" },
+  { type: "Grant Agreement", title: "Grant Agreement", formName: "grantAgreementUrl" },
+  { type: "Budget", title: "Budget", formName: "budgetUrl" },
+  { type: "Final Report", title: "Final Report", formName: "finalReportUrl" },
+  { type: "Branding / Press Materials", title: "Branding / Logo / Press Info", formName: "brandingUrl" }
+];
+const grantOrgDocumentFields = [
+  { type: "Board Roster", title: "Board of Directors Roster", formName: "boardRosterUrl" },
+  { type: "DEI Statement", title: "DEI Statement", formName: "deiStatementUrl" },
+  { type: "Youth Protection Policy", title: "Youth Protection Policy", formName: "youthProtectionPolicyUrl" },
+  { type: "Data Sheets", title: "Data Sheets", formName: "dataSheetUrl" },
+  { type: "CHA / CHIP", title: "Community Health Assessment / Improvement Plan", formName: "chaChipUrl" }
+];
+
+function formatGrantCurrency(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return "";
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0
+  }).format(number);
+}
+
+function grantTitle(grant) {
+  return grant.grantName || grant.foundationName || "Unnamed grant";
+}
+
+function grantSubtitle(grant) {
+  return grant.grantName && grant.foundationName ? grant.foundationName : grant.status || "Grant";
+}
+
+function grantAmountRange(grant) {
+  const min = formatGrantCurrency(grant.amountMin);
+  const max = formatGrantCurrency(grant.amountMax);
+
+  if (min && max) {
+    return `${min} - ${max}`;
+  }
+  return min || max || "Range not set";
+}
+
+function grantDaysUntil(deadlineDate) {
+  if (!deadlineDate) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const today = new Date(`${todayDateString()}T00:00:00`);
+  const deadline = new Date(`${deadlineDate}T00:00:00`);
+
+  if (Number.isNaN(deadline.getTime())) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return Math.ceil((deadline.getTime() - today.getTime()) / 86400000);
+}
+
+function grantIsOpen(grant) {
+  return !["Awarded", "Declined", "Closed"].includes(grant.status || "Researching");
+}
+
+function grantDocumentByType(documents = [], type) {
+  return documents.find((document) => document.type === type) || null;
+}
+
+function documentsFromFixedFields(form, fields, notes = "") {
+  const documents = [];
+
+  for (const field of fields) {
+    const url = String(form.elements[field.formName]?.value || "").trim();
+    if (url) {
+      documents.push({
+        type: field.type,
+        title: field.title,
+        url,
+        notes
+      });
+    }
+  }
+
+  if (notes && !documents.length) {
+    documents.push({
+      type: "Document Notes",
+      title: "Document Notes",
+      url: "",
+      notes
+    });
+  }
+
+  return documents;
+}
+
+function fillFixedDocumentFields(form, fields, documents = []) {
+  for (const field of fields) {
+    const documentLink = grantDocumentByType(documents, field.type);
+    if (form.elements[field.formName]) {
+      form.elements[field.formName].value = documentLink?.url || "";
+    }
+  }
+
+  const notesDocument = documents.find((document) => document.type === "Document Notes");
+  return notesDocument?.notes || documents.find((document) => document.notes)?.notes || "";
+}
+
+function grantMatchesSearch(grant) {
+  const query = grantSearchInput.value.trim().toLowerCase();
+  if (!query) {
+    return true;
+  }
+
+  return [
+    grant.foundationName,
+    grant.grantName,
+    grant.status,
+    grant.focusAreas,
+    grant.contactName,
+    grant.reportingRequirements,
+    grant.notes
+  ].some((value) => String(value || "").toLowerCase().includes(query));
+}
+
+function renderGrants() {
+  renderGrantsSummary();
+  renderGrantDeadlines();
+  renderGrantList();
+  renderGrantQuestions();
+  fillGrantOrganizationForm();
+}
+
+function renderGrantsSummary() {
+  clearElement(grantsSummary);
+  const openGrants = loadedGrants.filter(grantIsOpen);
+  const dueSoon = openGrants.filter((grant) => {
+    const days = grantDaysUntil(grant.deadlineDate);
+    return days >= 0 && days <= 45;
+  });
+  const submitted = loadedGrants.filter((grant) => ["Submitted", "Reporting"].includes(grant.status || ""));
+  const awarded = loadedGrants.filter((grant) => (grant.status || "") === "Awarded");
+  const metrics = [
+    { label: "Open Grants", value: openGrants.length },
+    { label: "Due in 45 Days", value: dueSoon.length },
+    { label: "Submitted", value: submitted.length },
+    { label: "Awarded", value: awarded.length }
+  ];
+
+  for (const metric of metrics) {
+    const item = document.createElement("div");
+    item.className = "summary-item";
+    const value = document.createElement("strong");
+    value.textContent = metric.value;
+    const label = document.createElement("span");
+    label.textContent = metric.label;
+    item.append(value, label);
+    grantsSummary.append(item);
+  }
+}
+
+function renderGrantDeadlines() {
+  clearElement(grantDeadlineList);
+  const upcoming = loadedGrants
+    .filter((grant) => grantIsOpen(grant) && grant.deadlineDate)
+    .sort((first, second) => grantDaysUntil(first.deadlineDate) - grantDaysUntil(second.deadlineDate))
+    .slice(0, 10);
+
+  if (!upcoming.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-inline";
+    empty.textContent = "No upcoming grant deadlines yet.";
+    grantDeadlineList.append(empty);
+    return;
+  }
+
+  for (const grant of upcoming) {
+    const row = document.createElement("button");
+    row.className = "dashboard-list-item grant-deadline-item";
+    row.type = "button";
+    row.addEventListener("click", () => startEditGrant(grant.id));
+
+    const content = document.createElement("span");
+    const title = document.createElement("strong");
+    title.textContent = grantTitle(grant);
+    const detail = document.createElement("span");
+    const days = grantDaysUntil(grant.deadlineDate);
+    detail.textContent = `${grantSubtitle(grant)} | ${days < 0 ? "Past due" : `${days} day${days === 1 ? "" : "s"}`} | ${grantAmountRange(grant)}`;
+    content.append(title, detail);
+
+    const date = document.createElement("span");
+    date.className = "dashboard-item-date";
+    date.textContent = formatDateOnly(grant.deadlineDate);
+    row.append(content, date);
+    grantDeadlineList.append(row);
+  }
+}
+
+function renderGrantList() {
+  clearElement(grantsList);
+  const grants = loadedGrants
+    .filter(grantMatchesSearch)
+    .sort((first, second) => grantDaysUntil(first.deadlineDate) - grantDaysUntil(second.deadlineDate) || grantTitle(first).localeCompare(grantTitle(second)));
+
+  if (!grants.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-inline";
+    empty.textContent = loadedGrants.length ? "No grants match this search." : "No grants saved yet.";
+    grantsList.append(empty);
+    return;
+  }
+
+  for (const grant of grants) {
+    const card = document.createElement("article");
+    card.className = "grant-card";
+
+    const header = document.createElement("div");
+    header.className = "grant-card-header";
+    const copy = document.createElement("div");
+    const title = document.createElement("h4");
+    title.textContent = grantTitle(grant);
+    const subtitle = document.createElement("p");
+    subtitle.textContent = `${grantSubtitle(grant)} | ${grant.status || "Researching"}`;
+    copy.append(title, subtitle);
+    const edit = document.createElement("button");
+    edit.className = "secondary-button compact-button";
+    edit.type = "button";
+    edit.textContent = "Edit";
+    edit.addEventListener("click", () => startEditGrant(grant.id));
+    header.append(copy, edit);
+
+    const facts = document.createElement("div");
+    facts.className = "grant-fact-grid";
+    [
+      ["Deadline", formatDateOnly(grant.deadlineDate)],
+      ["Range", grantAmountRange(grant)],
+      ["Reoccurs", grant.recurrence || "-"],
+      ["Apply", grant.applicationFrequency || "-"],
+      ["Contact", grant.contactName || "-"],
+      ["Past award", grant.pastGrantReceived ? `${formatGrantCurrency(grant.pastGrantAmount) || "Yes"}${grant.pastGrantYear ? ` (${grant.pastGrantYear})` : ""}` : "-"]
+    ].forEach(([label, value]) => {
+      const fact = document.createElement("div");
+      const labelEl = document.createElement("span");
+      labelEl.textContent = label;
+      const valueEl = document.createElement("strong");
+      valueEl.textContent = value;
+      fact.append(labelEl, valueEl);
+      facts.append(fact);
+    });
+
+    const focus = document.createElement("p");
+    focus.className = "grant-card-notes";
+    focus.textContent = grant.focusAreas || "No focus areas added yet.";
+
+    const links = document.createElement("div");
+    links.className = "grant-link-row";
+    [
+      ["Website", grant.websiteUrl],
+      ["Portal", grant.portalUrl],
+      ...((grant.documents || []).filter((document) => document.url).map((document) => [document.title || document.type, document.url]))
+    ].forEach(([label, url]) => {
+      if (!url) {
+        return;
+      }
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.target = "_blank";
+      anchor.rel = "noreferrer";
+      anchor.textContent = label;
+      links.append(anchor);
+    });
+
+    card.append(header, facts, focus, links);
+    grantsList.append(card);
+  }
+}
+
+function renderGrantQuestions() {
+  clearElement(grantQuestionList);
+
+  if (!loadedGrantQuestions.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-inline";
+    empty.textContent = "No reusable grant answers saved yet.";
+    grantQuestionList.append(empty);
+    return;
+  }
+
+  for (const question of loadedGrantQuestions) {
+    const item = document.createElement("details");
+    item.className = "grant-question-item";
+    const summary = document.createElement("summary");
+    const title = document.createElement("strong");
+    title.textContent = question.prompt || "Untitled question";
+    const meta = document.createElement("span");
+    meta.textContent = `${question.category || "General"}${question.targetLimit ? ` | ${question.targetLimit}` : ""}`;
+    summary.append(title, meta);
+
+    const answer = document.createElement("p");
+    answer.textContent = question.answer || "";
+    const actions = document.createElement("div");
+    actions.className = "grant-question-actions";
+    const copy = document.createElement("button");
+    copy.className = "secondary-button compact-button";
+    copy.type = "button";
+    copy.textContent = "Copy";
+    copy.addEventListener("click", () => copyGrantAnswer(question.answer || ""));
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "secondary-button compact-button";
+    deleteButton.type = "button";
+    deleteButton.textContent = "Delete";
+    deleteButton.addEventListener("click", () => deleteGrantQuestion(question.id));
+    actions.append(copy, deleteButton);
+
+    if (question.notes) {
+      const notes = document.createElement("small");
+      notes.textContent = question.notes;
+      item.append(summary, answer, notes, actions);
+    } else {
+      item.append(summary, answer, actions);
+    }
+    grantQuestionList.append(item);
+  }
+}
+
+function fillGrantOrganizationForm() {
+  if (!grantOrgForm || !loadedGrantOrganizationInfo) {
+    return;
+  }
+
+  const info = loadedGrantOrganizationInfo;
+  for (const name of ["legalName", "ein", "mission", "vision", "organizationDescription", "serviceArea", "populationServed", "annualBudget", "dataNotes"]) {
+    if (grantOrgForm.elements[name]) {
+      grantOrgForm.elements[name].value = info[name] || "";
+    }
+  }
+  fillFixedDocumentFields(grantOrgForm, grantOrgDocumentFields, info.documents || []);
 }
 
 function renderDashboard() {
@@ -3258,6 +3626,8 @@ function setActiveModule(moduleName) {
   saveNavigationState();
   const showWorkflow = moduleName === "workflow";
   const showAdmin = moduleName === "admin";
+  const showAdminSettings = showAdmin && activeAdminView === "settings";
+  const showAdminGrants = showAdmin && activeAdminView === "grants";
   const showCrm = moduleName === "crm";
   const showCrmDashboard = showCrm && activeCrmView === "dashboard";
   const showReferrals = showCrm && activeCrmView === "referrals";
@@ -3274,6 +3644,8 @@ function setActiveModule(moduleName) {
   referralNetworkPanel.hidden = !showReferralNetwork;
   outreachPanel.hidden = !showOutreach;
   schedulingPanel.hidden = !showScheduling;
+  adminSettingsView.hidden = !showAdminSettings;
+  adminGrantsView.hidden = !showAdminGrants;
   navWorkflowButton.classList.toggle("active", showWorkflow);
   navDashboardButton.classList.toggle("active", showAdmin);
   navCrmButton.classList.toggle("active", showCrm);
@@ -3288,13 +3660,20 @@ function setActiveModule(moduleName) {
   crmTabReferralsButton.classList.toggle("active", showReferrals);
   crmTabClientsButton.classList.toggle("active", showClients);
   crmTabReferralNetworkButton.classList.toggle("active", showReferralNetwork);
+  adminTabSettingsButton.classList.toggle("active", showAdminSettings);
+  adminTabGrantsButton.classList.toggle("active", showAdminGrants);
   crmTabDashboardButton.setAttribute("aria-selected", String(showCrmDashboard));
   crmTabReferralsButton.setAttribute("aria-selected", String(showReferrals));
   crmTabClientsButton.setAttribute("aria-selected", String(showClients));
   crmTabReferralNetworkButton.setAttribute("aria-selected", String(showReferralNetwork));
+  adminTabSettingsButton.setAttribute("aria-selected", String(showAdminSettings));
+  adminTabGrantsButton.setAttribute("aria-selected", String(showAdminGrants));
 
   if (!showWorkflow) {
     closeTaskModal();
+  }
+  if (!showAdmin) {
+    closeGrantModal();
   }
   closeActivityLogModal();
   closeSiblingModal();
@@ -3312,7 +3691,9 @@ function setActiveModule(moduleName) {
     closeNetworkModal();
     closeOutreachModal();
     closeAppointmentModal();
-    renderDashboard();
+    if (showAdminGrants) {
+      renderGrants();
+    }
   } else if (showCrmDashboard) {
     closeReferralModal();
     closeClientModal();
@@ -3357,6 +3738,12 @@ function setCrmView(viewName) {
   activeCrmView = viewName;
   saveNavigationState();
   setActiveModule("crm");
+}
+
+function setAdminView(viewName) {
+  activeAdminView = viewName;
+  saveNavigationState();
+  setActiveModule("admin");
 }
 
 function openClientModal() {
@@ -8545,6 +8932,77 @@ async function loadActivityLogs() {
   }
 }
 
+async function loadGrants() {
+  if (!currentUser) {
+    loadedGrants = [];
+    renderGrants();
+    return;
+  }
+
+  grantsStatusEl.textContent = "Loading grants...";
+
+  try {
+    const response = await authedFetch("/api/grants");
+
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    loadedGrants = data.grants || [];
+    renderGrants();
+    grantsStatusEl.textContent = "";
+  } catch (error) {
+    grantsStatusEl.textContent = "Could not load grants yet.";
+    console.error(error);
+  }
+}
+
+async function loadGrantQuestions() {
+  if (!currentUser) {
+    loadedGrantQuestions = [];
+    renderGrantQuestions();
+    return;
+  }
+
+  try {
+    const response = await authedFetch("/api/grant-questions");
+
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    loadedGrantQuestions = data.questions || [];
+    renderGrantQuestions();
+  } catch (error) {
+    grantsStatusEl.textContent = "Could not load grant questions yet.";
+    console.error(error);
+  }
+}
+
+async function loadGrantOrganizationInfo() {
+  if (!currentUser) {
+    loadedGrantOrganizationInfo = null;
+    return;
+  }
+
+  try {
+    const response = await authedFetch("/api/grant-organization-info");
+
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    loadedGrantOrganizationInfo = data.organizationInfo || null;
+    fillGrantOrganizationForm();
+  } catch (error) {
+    grantsStatusEl.textContent = "Could not load organization info yet.";
+    console.error(error);
+  }
+}
+
 async function saveActivityLog(event) {
   event.preventDefault();
 
@@ -10584,6 +11042,263 @@ async function deleteOutreachContact(contact) {
   }
 }
 
+function grantPayloadFromForm() {
+  const formData = new FormData(grantForm);
+  const payload = Object.fromEntries(formData.entries());
+  payload.pastGrantReceived = Boolean(grantForm.elements.pastGrantReceived?.checked);
+  payload.documents = documentsFromFixedFields(grantForm, grantDocumentFields, grantForm.elements.documentNotes?.value || "");
+  payload.brandingNotes = grantForm.elements.brandingNotes?.value || "";
+  return payload;
+}
+
+function setGrantFormValues(grant = {}) {
+  grantForm.reset();
+
+  for (const name of [
+    "foundationName",
+    "grantName",
+    "status",
+    "deadlineDate",
+    "focusAreas",
+    "recurrence",
+    "applicationFrequency",
+    "contactName",
+    "contactRole",
+    "contactEmail",
+    "contactPhone",
+    "websiteUrl",
+    "portalUrl",
+    "portalLoginNotes",
+    "amountMin",
+    "amountMax",
+    "reportingRequirements",
+    "pastGrantAmount",
+    "pastGrantYear",
+    "pastGrantNotes",
+    "brandingNotes",
+    "notes"
+  ]) {
+    if (grantForm.elements[name]) {
+      grantForm.elements[name].value = grant[name] ?? "";
+    }
+  }
+
+  grantForm.elements.status.value = grant.status || "Researching";
+  grantForm.elements.pastGrantReceived.checked = Boolean(grant.pastGrantReceived);
+  grantForm.elements.documentNotes.value = fillFixedDocumentFields(grantForm, grantDocumentFields, grant.documents || []);
+}
+
+function openGrantModal() {
+  grantModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeGrantModal() {
+  const wasOpen = grantModal && !grantModal.hidden;
+  if (grantModal) {
+    grantModal.hidden = true;
+  }
+  if (wasOpen) {
+    document.body.classList.remove("modal-open");
+  }
+  editingGrantId = null;
+  grantForm?.reset();
+}
+
+function startNewGrant() {
+  editingGrantId = null;
+  setGrantFormValues({ status: "Researching" });
+  grantFormTitle.textContent = "New Grant";
+  saveGrantButton.textContent = "Save Grant";
+  deleteGrantButton.hidden = true;
+  openGrantModal();
+}
+
+function startEditGrant(grantId) {
+  const grant = loadedGrants.find((item) => item.id === grantId);
+  if (!grant) {
+    return;
+  }
+
+  editingGrantId = grant.id;
+  setGrantFormValues(grant);
+  grantFormTitle.textContent = `Edit ${grantTitle(grant)}`;
+  saveGrantButton.textContent = "Update Grant";
+  deleteGrantButton.hidden = false;
+  openGrantModal();
+}
+
+async function saveGrant(event) {
+  event.preventDefault();
+
+  const payload = grantPayloadFromForm();
+  const isEditing = Boolean(editingGrantId);
+  grantsStatusEl.textContent = isEditing ? "Updating grant..." : "Saving grant...";
+  saveGrantButton.disabled = true;
+
+  try {
+    const response = await authedFetch(isEditing ? `/api/grants/${encodeURIComponent(editingGrantId)}` : "/api/grants", {
+      method: isEditing ? "PATCH" : "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    grantsStatusEl.textContent = isEditing ? "Grant updated." : "Grant saved.";
+    closeGrantModal();
+    await loadGrants();
+  } catch (error) {
+    grantsStatusEl.textContent = error.message || "Could not save grant yet.";
+    console.error(error);
+  } finally {
+    saveGrantButton.disabled = false;
+  }
+}
+
+async function deleteCurrentGrant() {
+  if (!editingGrantId) {
+    return;
+  }
+
+  const grant = loadedGrants.find((item) => item.id === editingGrantId);
+  const confirmed = window.confirm(`Delete ${grant ? grantTitle(grant) : "this grant"}? This cannot be undone.`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  grantsStatusEl.textContent = "Deleting grant...";
+
+  try {
+    const response = await authedFetch(`/api/grants/${encodeURIComponent(editingGrantId)}`, {
+      method: "DELETE"
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    closeGrantModal();
+    grantsStatusEl.textContent = "Grant deleted.";
+    await loadGrants();
+  } catch (error) {
+    grantsStatusEl.textContent = error.message || "Could not delete grant yet.";
+    console.error(error);
+  }
+}
+
+async function saveGrantQuestion(event) {
+  event.preventDefault();
+
+  const payload = Object.fromEntries(new FormData(grantQuestionForm).entries());
+  grantsStatusEl.textContent = "Saving reusable answer...";
+
+  try {
+    const response = await authedFetch("/api/grant-questions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    grantQuestionForm.reset();
+    grantsStatusEl.textContent = "Reusable answer saved.";
+    await loadGrantQuestions();
+  } catch (error) {
+    grantsStatusEl.textContent = error.message || "Could not save reusable answer yet.";
+    console.error(error);
+  }
+}
+
+async function deleteGrantQuestion(questionId) {
+  const confirmed = window.confirm("Delete this reusable answer?");
+
+  if (!confirmed) {
+    return;
+  }
+
+  grantsStatusEl.textContent = "Deleting reusable answer...";
+
+  try {
+    const response = await authedFetch(`/api/grant-questions/${encodeURIComponent(questionId)}`, {
+      method: "DELETE"
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    grantsStatusEl.textContent = "Reusable answer deleted.";
+    await loadGrantQuestions();
+  } catch (error) {
+    grantsStatusEl.textContent = error.message || "Could not delete reusable answer yet.";
+    console.error(error);
+  }
+}
+
+async function copyGrantAnswer(answer) {
+  try {
+    await navigator.clipboard.writeText(answer);
+    grantsStatusEl.textContent = "Answer copied.";
+  } catch (error) {
+    grantsStatusEl.textContent = "Could not copy answer automatically.";
+    console.error(error);
+  }
+}
+
+function grantOrganizationPayloadFromForm() {
+  const payload = Object.fromEntries(new FormData(grantOrgForm).entries());
+  payload.documents = documentsFromFixedFields(grantOrgForm, grantOrgDocumentFields, grantOrgForm.elements.dataNotes?.value || "");
+  payload.copyBlocks = [];
+  return payload;
+}
+
+async function saveGrantOrganizationInfo(event) {
+  event.preventDefault();
+
+  grantsStatusEl.textContent = "Saving organization info...";
+  saveGrantOrgButton.disabled = true;
+
+  try {
+    const response = await authedFetch("/api/grant-organization-info", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(grantOrganizationPayloadFromForm())
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    loadedGrantOrganizationInfo = data.organizationInfo || null;
+    fillGrantOrganizationForm();
+    grantsStatusEl.textContent = "Organization info saved.";
+  } catch (error) {
+    grantsStatusEl.textContent = error.message || "Could not save organization info yet.";
+    console.error(error);
+  } finally {
+    saveGrantOrgButton.disabled = false;
+  }
+}
+
 function setAppointmentFormValues(appointment = {}) {
   const clientIds = appointmentClientIds(appointment);
   selectedAppointmentClientIds.clear();
@@ -11124,6 +11839,9 @@ onAuthStateChanged(auth, (user) => {
     loadAppointments();
     loadTasks();
     loadActivityLogs();
+    loadGrants();
+    loadGrantQuestions();
+    loadGrantOrganizationInfo();
   } else {
     messageEl.textContent = "";
     statusEl.textContent = "Sign in to load the database message.";
@@ -11134,6 +11852,7 @@ onAuthStateChanged(auth, (user) => {
     outreachContactStatusEl.textContent = "";
     appointmentsStatusEl.textContent = "";
     tasksStatusEl.textContent = "";
+    grantsStatusEl.textContent = "";
     referralsList.innerHTML = "";
     clientsList.innerHTML = "";
     networkList.innerHTML = "";
@@ -11142,6 +11861,10 @@ onAuthStateChanged(auth, (user) => {
     appointmentsList.innerHTML = "";
     workflowTaskSummary.innerHTML = "";
     workflowTaskList.innerHTML = "";
+    grantsSummary.innerHTML = "";
+    grantDeadlineList.innerHTML = "";
+    grantsList.innerHTML = "";
+    grantQuestionList.innerHTML = "";
     clearElement(dashboardSummary);
     clearElement(dashboardFollowups);
     clearElement(dashboardNewReferrals);
@@ -11176,6 +11899,9 @@ onAuthStateChanged(auth, (user) => {
     loadedAppointments = [];
     loadedTasks = [];
     loadedActivityLogs = [];
+    loadedGrants = [];
+    loadedGrantQuestions = [];
+    loadedGrantOrganizationInfo = null;
     referralForm.reset();
     appointmentForm.reset();
     taskForm.reset();
@@ -11189,6 +11915,7 @@ onAuthStateChanged(auth, (user) => {
     closeAppointmentModal();
     closeAppointmentCompletionModal();
     closeTaskModal();
+    closeGrantModal();
     closeActivityLogModal();
     closeSiblingModal();
     closeFlowArchive();
@@ -11205,6 +11932,8 @@ navDashboardButton.addEventListener("click", () => setActiveModule("admin"));
 navCrmButton.addEventListener("click", () => setActiveModule("crm"));
 navOutreachButton.addEventListener("click", () => setActiveModule("outreach"));
 navSchedulingButton.addEventListener("click", () => setActiveModule("scheduling"));
+adminTabSettingsButton.addEventListener("click", () => setAdminView("settings"));
+adminTabGrantsButton.addEventListener("click", () => setAdminView("grants"));
 crmTabDashboardButton.addEventListener("click", () => setCrmView("dashboard"));
 crmTabReferralsButton.addEventListener("click", () => setCrmView("referrals"));
 crmTabClientsButton.addEventListener("click", () => setCrmView("clients"));
@@ -11237,6 +11966,13 @@ printTodayScheduleButton.addEventListener("click", printTodaySchedule);
 printPrepSheetsButton.addEventListener("click", printPrepSheets);
 printNoteSheetsButton.addEventListener("click", printAppointmentNoteSheets);
 newTaskButton.addEventListener("click", () => startNewTask());
+newGrantButton.addEventListener("click", startNewGrant);
+grantSearchInput.addEventListener("input", renderGrantList);
+grantForm.addEventListener("submit", saveGrant);
+cancelGrantEditButton.addEventListener("click", closeGrantModal);
+deleteGrantButton.addEventListener("click", deleteCurrentGrant);
+grantQuestionForm.addEventListener("submit", saveGrantQuestion);
+grantOrgForm.addEventListener("submit", saveGrantOrganizationInfo);
 editAppointmentDetailButton.addEventListener("click", () => {
   const appointment = getSelectedAppointment();
   if (appointment) {
