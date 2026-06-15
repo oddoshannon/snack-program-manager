@@ -52,6 +52,8 @@ const grantsList = document.querySelector("#grants-list");
 const grantsStatusEl = document.querySelector("#grants-status");
 const grantSearchInput = document.querySelector("#grant-search");
 const newGrantButton = document.querySelector("#new-grant");
+const grantOrgCard = document.querySelector("#grant-org-card");
+const grantQuestionCard = document.querySelector("#grant-question-card");
 const grantModal = document.querySelector("#grant-modal");
 const grantDetail = document.querySelector("#grant-detail");
 const grantForm = document.querySelector("#grant-form");
@@ -1155,6 +1157,34 @@ function saveColumnState(moduleName, state) {
 
 function navigationStateKey() {
   return "snack-crm:navigation-state";
+}
+
+function grantDisclosureStateKey(sectionName) {
+  return `snack-crm:grant-disclosure:${sectionName}`;
+}
+
+function applyGrantDisclosureState(detailsEl, sectionName) {
+  if (!detailsEl) {
+    return;
+  }
+
+  const savedState = localStorage.getItem(grantDisclosureStateKey(sectionName));
+  if (savedState === "open") {
+    detailsEl.open = true;
+  } else if (savedState === "closed") {
+    detailsEl.open = false;
+  }
+}
+
+function bindGrantDisclosureState(detailsEl, sectionName) {
+  if (!detailsEl) {
+    return;
+  }
+
+  applyGrantDisclosureState(detailsEl, sectionName);
+  detailsEl.addEventListener("toggle", () => {
+    localStorage.setItem(grantDisclosureStateKey(sectionName), detailsEl.open ? "open" : "closed");
+  });
 }
 
 function validValue(value, allowed, fallback) {
@@ -12225,6 +12255,8 @@ onAuthStateChanged(auth, (user) => {
 });
 
 renderAppointmentTimeOptions();
+bindGrantDisclosureState(grantOrgCard, "organization-info");
+bindGrantDisclosureState(grantQuestionCard, "reusable-answers");
 
 signInButton.addEventListener("click", signIn);
 signOutButton.addEventListener("click", signOutUser);

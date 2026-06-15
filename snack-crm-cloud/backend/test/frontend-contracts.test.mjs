@@ -66,6 +66,8 @@ test("admin grants tab exposes deadlines, grant list, reusable answers, and orga
   assert.equal(indexHtml.includes("Funding</p>"), false);
   assert.match(indexHtml, /id="grant-deadline-list"/);
   assert.match(indexHtml, /id="grants-list"/);
+  assert.match(indexHtml, /id="grant-org-card"/);
+  assert.match(indexHtml, /id="grant-question-card"/);
   assert.match(indexHtml, /id="grant-question-form"/);
   assert.match(indexHtml, /id="grant-org-form"/);
   assert.match(indexHtml, /Reusable Answers/);
@@ -120,6 +122,9 @@ test("grants index stays compact with profile and answer modals", () => {
   assert.match(stylesCss, /\.grant-edit-profile-grid/);
   assert.match(stylesCss, /\.grant-form > \.grant-edit-profile-grid\s*{\s*grid-column: 1 \/ -1;/);
   assert.match(stylesCss, /\.grant-reference-card/);
+  assert.match(stylesCss, /#grant-search\s*{[^}]*flex: 0 1 240px;/s);
+  assert.match(stylesCss, /\.grant-question-card \.grant-reference-actions\s*{[^}]*margin-bottom: 10px;/s);
+  assert.match(stylesCss, /\.grant-deadline-item\s*{[^}]*border-left: 4px solid var\(--brand-red\);/s);
 });
 
 test("grant interactions open profiles, support question editing, and close on backdrop click", () => {
@@ -130,6 +135,9 @@ test("grant interactions open profiles, support question editing, and close on b
   assert.match(appJs, /\/api\/grant-questions\/\$\{encodeURIComponent\(editingGrantQuestionId\)\}/);
   assert.match(appJs, /event\.target === grantModal/);
   assert.match(appJs, /event\.target === grantQuestionModal/);
+  assert.match(appJs, /function grantDisclosureStateKey/);
+  assert.match(appJs, /bindGrantDisclosureState\(grantOrgCard, "organization-info"\)/);
+  assert.match(appJs, /bindGrantDisclosureState\(grantQuestionCard, "reusable-answers"\)/);
 });
 
 test("scheduling module keeps calendar, today board, and bottom list views", () => {

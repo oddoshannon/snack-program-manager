@@ -4104,6 +4104,23 @@ dd {
   grid-column: 2;
 }
 
+.grants-list-card .dashboard-card-header {
+  align-items: center;
+  gap: 12px;
+}
+
+.grants-list-card .dashboard-card-header h3 {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+#grant-search {
+  flex: 0 1 240px;
+  width: min(240px, 48%);
+  max-width: 100%;
+}
+
 .grant-flow-card {
   grid-column: 1 / -1;
 }
@@ -4152,6 +4169,10 @@ dd {
 .grant-reference-actions {
   display: flex;
   justify-content: flex-end;
+}
+
+.grant-question-card .grant-reference-actions {
+  margin-bottom: 10px;
 }
 
 .grant-card-list,
@@ -4310,7 +4331,7 @@ dd {
 }
 
 .grant-deadline-item {
-  border-left-color: var(--brand-red);
+  border-left: 4px solid var(--brand-red);
 }
 
 .grant-detail {
@@ -4538,6 +4559,15 @@ dd {
 
   .grant-flow-card .flow-lanes {
     grid-template-columns: 1fr;
+  }
+
+  .grants-list-card .dashboard-card-header {
+    align-items: flex-start;
+  }
+
+  #grant-search {
+    width: 100%;
+    flex-basis: auto;
   }
 
   .sidebar-footer {
