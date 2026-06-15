@@ -4369,7 +4369,14 @@ dd {
 .compact-form,
 .grant-form {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: 0;
   gap: 10px;
+}
+
+.grant-form > .client-profile-topbar,
+.grant-form > .grant-edit-profile-grid {
+  grid-column: 1 / -1;
 }
 
 .grant-form-grid {

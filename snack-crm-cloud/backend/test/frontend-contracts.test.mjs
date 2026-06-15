@@ -118,6 +118,7 @@ test("grants index stays compact with profile and answer modals", () => {
   assert.match(stylesCss, /\.grant-list-row/);
   assert.match(stylesCss, /\.grant-profile-grid/);
   assert.match(stylesCss, /\.grant-edit-profile-grid/);
+  assert.match(stylesCss, /\.grant-form > \.grant-edit-profile-grid\s*{\s*grid-column: 1 \/ -1;/);
   assert.match(stylesCss, /\.grant-reference-card/);
 });
 
