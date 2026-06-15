@@ -215,7 +215,6 @@
                 <div class="dashboard-card-header">
                   <div>
                     <h3 id="grant-deadlines-title">Upcoming Deadlines</h3>
-                    <p class="dashboard-card-note">Sorted by next application deadline</p>
                   </div>
                 </div>
                 <div id="grant-deadline-list" class="dashboard-list grant-deadline-list"></div>
@@ -225,51 +224,16 @@
                 <div class="dashboard-card-header">
                   <div>
                     <h3 id="grant-list-title">Grant Applications</h3>
-                    <p class="dashboard-card-note">Foundation details, portals, reports, and document links</p>
                   </div>
                   <input id="grant-search" type="search" placeholder="Search grants">
                 </div>
                 <div id="grants-list" class="grant-card-list"></div>
               </section>
 
-              <section class="dashboard-card grant-question-card" aria-labelledby="grant-question-title">
-                <div class="dashboard-card-header">
-                  <div>
-                    <h3 id="grant-question-title">Reusable Questions</h3>
-                    <p class="dashboard-card-note">Past prompts and answers to adapt for future applications</p>
-                  </div>
-                </div>
-                <form id="grant-question-form" class="compact-form grant-question-form">
-                  <label>
-                    Category
-                    <input id="grant-question-category" name="category" placeholder="Mission, evaluation, budget...">
-                  </label>
-                  <label>
-                    Question
-                    <textarea id="grant-question-prompt" name="prompt" rows="2" required></textarea>
-                  </label>
-                  <label>
-                    Answer
-                    <textarea id="grant-question-answer" name="answer" rows="4" required></textarea>
-                  </label>
-                  <label>
-                    Target limit
-                    <input id="grant-question-target-limit" name="targetLimit" placeholder="250 words, 1,500 characters...">
-                  </label>
-                  <label>
-                    Notes
-                    <input id="grant-question-notes" name="notes" placeholder="Tone, funder context, reuse notes">
-                  </label>
-                  <button id="save-grant-question" type="submit">Save Answer</button>
-                </form>
-                <div id="grant-question-list" class="grant-question-list"></div>
-              </section>
-
               <section class="dashboard-card grant-org-card" aria-labelledby="grant-org-title">
                 <div class="dashboard-card-header">
                   <div>
                     <h3 id="grant-org-title">Organization Info</h3>
-                    <p class="dashboard-card-note">Reusable copy and core documents for applications</p>
                   </div>
                 </div>
                 <form id="grant-org-form" class="compact-form grant-org-form">
@@ -336,6 +300,16 @@
                   <button id="save-grant-org" type="submit">Save Organization Info</button>
                 </form>
               </section>
+
+              <section class="dashboard-card grant-question-card" aria-labelledby="grant-question-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="grant-question-title">Reusable Questions</h3>
+                  </div>
+                  <button id="new-grant-question" class="secondary-button compact-button" type="button">Add Answer</button>
+                </div>
+                <div id="grant-question-list" class="grant-question-list"></div>
+              </section>
             </div>
             <p id="grants-status" class="status" aria-live="polite"></p>
           </section>
@@ -343,6 +317,7 @@
 
         <div id="grant-modal" class="modal-backdrop" hidden>
           <section class="modal-card grants-modal-card" role="dialog" aria-modal="true" aria-label="Grant application">
+            <div id="grant-detail" class="grant-detail" hidden></div>
             <form id="grant-form" class="referral-form grant-form">
               <div class="client-profile-topbar">
                 <div>
@@ -498,6 +473,45 @@
                 Notes
                 <textarea name="notes" rows="4"></textarea>
               </label>
+            </form>
+          </section>
+        </div>
+
+        <div id="grant-question-modal" class="modal-backdrop" hidden>
+          <section class="modal-card grant-question-modal-card" role="dialog" aria-modal="true" aria-label="Reusable grant answer">
+            <form id="grant-question-form" class="compact-form grant-question-form">
+              <div class="client-profile-topbar">
+                <div>
+                  <p class="eyebrow">Question Bank</p>
+                  <h3 id="grant-question-form-title">New Answer</h3>
+                </div>
+                <div class="detail-actions form-actions">
+                  <button id="save-grant-question" type="submit">Save Answer</button>
+                  <button id="cancel-grant-question-edit" class="secondary-button" type="button">Cancel</button>
+                </div>
+              </div>
+              <label>
+                Category
+                <input id="grant-question-category" name="category" placeholder="Mission, evaluation, budget...">
+              </label>
+              <label>
+                Question
+                <textarea id="grant-question-prompt" name="prompt" rows="3" required></textarea>
+              </label>
+              <label>
+                Answer
+                <textarea id="grant-question-answer" name="answer" rows="6" required></textarea>
+              </label>
+              <div class="grant-form-grid">
+                <label>
+                  Target limit
+                  <input id="grant-question-target-limit" name="targetLimit" placeholder="250 words, 1,500 characters...">
+                </label>
+                <label>
+                  Notes
+                  <input id="grant-question-notes" name="notes" placeholder="Tone, funder context, reuse notes">
+                </label>
+              </div>
             </form>
           </section>
         </div>
@@ -1464,7 +1478,7 @@
           </label>
           <label>
             Event Contact
-            <input id="outreach-contact-name" name="contactName">
+            <input id="outreach-event-contact-name" name="contactName">
           </label>
           <label>
             Contact Role

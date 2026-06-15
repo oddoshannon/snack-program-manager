@@ -98,6 +98,26 @@ test("grant modal captures application details, portal info, awards, reports, an
   }
 });
 
+test("grants index stays compact with profile and question modals", () => {
+  assert.match(indexHtml, /id="grant-detail"/);
+  assert.match(indexHtml, /id="new-grant-question"/);
+  assert.match(indexHtml, /id="grant-question-modal"/);
+  assert.equal(indexHtml.includes("Sorted by next application deadline"), false);
+  assert.equal(indexHtml.includes("Foundation details, portals, reports, and document links"), false);
+  assert.match(stylesCss, /\.grant-list-row/);
+  assert.match(stylesCss, /\.grant-profile-grid/);
+});
+
+test("grant interactions open profiles, support question editing, and close on backdrop click", () => {
+  assert.match(appJs, /function openGrantProfile/);
+  assert.match(appJs, /row\.addEventListener\("click", \(\) => openGrantProfile\(grant\.id\)\)/);
+  assert.match(appJs, /card\.addEventListener\("click", \(\) => openGrantProfile\(grant\.id\)\)/);
+  assert.match(appJs, /function startEditGrantQuestion/);
+  assert.match(appJs, /\/api\/grant-questions\/\$\{encodeURIComponent\(editingGrantQuestionId\)\}/);
+  assert.match(appJs, /event\.target === grantModal/);
+  assert.match(appJs, /event\.target === grantQuestionModal/);
+});
+
 test("scheduling module keeps calendar, today board, and bottom list views", () => {
   assert.match(indexHtml, /id="appointment-summary"/);
   assert.match(indexHtml, /id="scheduling-calendar"/);

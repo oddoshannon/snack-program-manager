@@ -4094,13 +4094,12 @@ dd {
 }
 
 .grants-list-card,
-.grant-org-card {
+.grant-question-card {
   grid-column: 2;
 }
 
-.grant-question-card {
+.grant-org-card {
   grid-column: 1;
-  grid-row: span 2;
 }
 
 .grants-deadline-card {
@@ -4114,14 +4113,34 @@ dd {
   gap: 8px;
 }
 
-.grant-card {
-  display: grid;
+.grant-list-row {
+  appearance: none;
+  width: 100%;
+  display: flex;
   gap: 10px;
+  align-items: center;
+  justify-content: space-between;
   padding: 12px;
   border: 1px solid var(--line);
   border-left: 4px solid var(--brand-green);
   border-radius: 8px;
   background: #ffffff;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.grant-list-row:hover,
+.grant-list-row:focus-visible {
+  border-color: var(--brand-green);
+  background: var(--green-soft);
+  outline: none;
+}
+
+.grant-list-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
 }
 
 .grant-card-header,
@@ -4137,6 +4156,58 @@ dd {
 .grant-card h4,
 .grant-card p {
   margin: 0;
+}
+
+.grant-list-row h4 {
+  font-size: 0.94rem;
+}
+
+.grant-list-row p {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.grant-status-pill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 4px 8px;
+  border: 1px solid rgba(14, 121, 69, 0.24);
+  border-radius: 999px;
+  background: rgba(14, 121, 69, 0.08);
+  color: var(--accent-dark);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.grant-status-pill.status-submitted,
+.grant-status-pill.status-reporting {
+  border-color: rgba(33, 86, 178, 0.24);
+  background: var(--blue-soft);
+  color: var(--brand-blue);
+}
+
+.grant-status-pill.status-awarded {
+  border-color: rgba(14, 121, 69, 0.24);
+  background: var(--green-soft);
+  color: var(--brand-green);
+}
+
+.grant-status-pill.status-declined,
+.grant-status-pill.status-closed {
+  border-color: rgba(101, 116, 122, 0.28);
+  background: #f3f5f4;
+  color: var(--muted);
+}
+
+.grant-status-pill.status-in-progress,
+.grant-status-pill.status-planning {
+  border-color: rgba(208, 122, 77, 0.28);
+  background: var(--orange-soft);
+  color: var(--brand-orange);
 }
 
 .grant-card-header p,
@@ -4194,6 +4265,61 @@ dd {
   border-left-color: var(--brand-red);
 }
 
+.grant-detail {
+  display: grid;
+  gap: 14px;
+}
+
+.grant-profile-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.9fr) minmax(420px, 1.2fr);
+  gap: 14px;
+}
+
+.grant-profile-panel {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  background: #fbfcfb;
+}
+
+.grant-profile-panel h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.grant-profile-link,
+.grant-profile-link-list a {
+  width: fit-content;
+  max-width: 100%;
+  display: inline-flex;
+  padding: 4px 8px;
+  border: 1px solid rgba(7, 139, 77, 0.24);
+  border-radius: 999px;
+  color: var(--brand-green);
+  font-weight: 900;
+  text-decoration: none;
+  background: rgba(7, 139, 77, 0.06);
+}
+
+.grant-profile-link:hover,
+.grant-profile-link:focus-visible,
+.grant-profile-link-list a:hover,
+.grant-profile-link-list a:focus-visible {
+  border-color: var(--brand-green);
+  background: var(--green-soft);
+  outline: none;
+}
+
+.grant-profile-link-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .compact-form,
 .grant-form {
   display: grid;
@@ -4216,7 +4342,8 @@ dd {
 .grant-form select,
 .grant-form textarea,
 .compact-form input,
-.compact-form textarea {
+.compact-form textarea,
+.compact-form select {
   width: 100%;
   min-width: 0;
 }
@@ -4271,7 +4398,16 @@ dd {
 }
 
 .grants-modal-card {
-  max-width: 940px;
+  width: min(980px, calc(100vw - 32px));
+  max-width: 980px;
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+}
+
+.grant-question-modal-card {
+  width: min(720px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
 }
 
 [hidden] {
@@ -4308,7 +4444,8 @@ dd {
   .dashboard-week,
   .workflow-board,
   .workflow-layout,
-  .grants-layout {
+  .grants-layout,
+  .grant-profile-grid {
     grid-template-columns: 1fr;
   }
 

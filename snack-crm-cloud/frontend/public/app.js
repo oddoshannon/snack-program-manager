@@ -51,12 +51,18 @@ const grantsStatusEl = document.querySelector("#grants-status");
 const grantSearchInput = document.querySelector("#grant-search");
 const newGrantButton = document.querySelector("#new-grant");
 const grantModal = document.querySelector("#grant-modal");
+const grantDetail = document.querySelector("#grant-detail");
 const grantForm = document.querySelector("#grant-form");
 const grantFormTitle = document.querySelector("#grant-form-title");
 const saveGrantButton = document.querySelector("#save-grant");
 const cancelGrantEditButton = document.querySelector("#cancel-grant-edit");
 const deleteGrantButton = document.querySelector("#delete-grant");
+const newGrantQuestionButton = document.querySelector("#new-grant-question");
+const grantQuestionModal = document.querySelector("#grant-question-modal");
 const grantQuestionForm = document.querySelector("#grant-question-form");
+const grantQuestionFormTitle = document.querySelector("#grant-question-form-title");
+const saveGrantQuestionButton = document.querySelector("#save-grant-question");
+const cancelGrantQuestionEditButton = document.querySelector("#cancel-grant-question-edit");
 const grantQuestionList = document.querySelector("#grant-question-list");
 const grantOrgForm = document.querySelector("#grant-org-form");
 const saveGrantOrgButton = document.querySelector("#save-grant-org");
@@ -501,6 +507,8 @@ let visibleSchedulingWeekStart = null;
 const selectedAppointmentClientIds = new Set();
 let editingTaskId = null;
 let editingGrantId = null;
+let selectedGrantId = null;
+let editingGrantQuestionId = null;
 let taskCompletionAudio = null;
 let taskUndoTimeoutId = null;
 let pendingTaskUndo = null;
@@ -2004,11 +2012,175 @@ function grantMatchesSearch(grant) {
   ].some((value) => String(value || "").toLowerCase().includes(query));
 }
 
+function grantStatusClass(status) {
+  return String(status || "Researching")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "researching";
+}
+
+function grantStatusPill(status) {
+  const pill = document.createElement("span");
+  pill.className = `grant-status-pill status-${grantStatusClass(status)}`;
+  pill.textContent = status || "Researching";
+  return pill;
+}
+
+function grantProfileValue(value, fallback = "-") {
+  return hasProfileValue(value) ? value : fallback;
+}
+
+function createGrantLink(label, url) {
+  if (!url) {
+    return document.createTextNode("-");
+  }
+
+  const anchor = document.createElement("a");
+  anchor.className = "grant-profile-link";
+  anchor.href = url;
+  anchor.target = "_blank";
+  anchor.rel = "noreferrer";
+  anchor.textContent = label;
+  return anchor;
+}
+
+function createGrantDocumentList(grant) {
+  const list = document.createElement("div");
+  list.className = "grant-profile-link-list";
+
+  for (const documentLink of grant.documents || []) {
+    if (!documentLink.url) {
+      continue;
+    }
+
+    list.append(createGrantLink(documentLink.title || documentLink.type || "Document", documentLink.url));
+  }
+
+  if (!list.children.length) {
+    const empty = document.createElement("span");
+    empty.className = "empty-inline";
+    empty.textContent = "No document links yet.";
+    list.append(empty);
+  }
+
+  return list;
+}
+
+function renderGrantDetail() {
+  clearElement(grantDetail);
+  const grant = loadedGrants.find((item) => item.id === selectedGrantId);
+
+  if (!grant) {
+    const empty = document.createElement("p");
+    empty.className = "empty-inline";
+    empty.textContent = "Select a grant to view details.";
+    grantDetail.append(empty);
+    return;
+  }
+
+  const topbar = document.createElement("div");
+  topbar.className = "client-profile-topbar";
+  const heading = document.createElement("div");
+  const eyebrow = document.createElement("p");
+  eyebrow.className = "eyebrow";
+  eyebrow.textContent = "Grant Profile";
+  const title = document.createElement("h3");
+  title.textContent = grantTitle(grant);
+  heading.append(eyebrow, title);
+
+  const actions = document.createElement("div");
+  actions.className = "detail-actions form-actions";
+  const edit = document.createElement("button");
+  edit.type = "button";
+  edit.textContent = "Edit";
+  edit.addEventListener("click", () => startEditGrant(grant.id));
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "danger-button";
+  deleteButton.textContent = "Delete";
+  deleteButton.addEventListener("click", () => deleteCurrentGrant(grant.id));
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "secondary-button";
+  close.textContent = "Close";
+  close.addEventListener("click", closeGrantModal);
+  actions.append(edit, deleteButton, close);
+  topbar.append(heading, actions);
+
+  const profileGrid = document.createElement("div");
+  profileGrid.className = "grant-profile-grid";
+
+  const overview = document.createElement("section");
+  overview.className = "grant-profile-panel";
+  const overviewHeader = document.createElement("h3");
+  overviewHeader.textContent = grant.foundationName || "Foundation";
+  const overviewFields = document.createElement("div");
+  overviewFields.className = "client-field-grid";
+  [
+    ["Status", grantStatusPill(grant.status)],
+    ["Deadline", formatDateOnly(grant.deadlineDate)],
+    ["Range", grantAmountRange(grant)],
+    ["Recurs", grantProfileValue(grant.recurrence)],
+    ["Apply", grantProfileValue(grant.applicationFrequency)],
+    ["Past Award", grant.pastGrantReceived ? `${formatGrantCurrency(grant.pastGrantAmount) || "Yes"}${grant.pastGrantYear ? ` (${grant.pastGrantYear})` : ""}` : "-"]
+  ].forEach(([labelText, value]) => {
+    const field = document.createElement("div");
+    field.className = "client-profile-field";
+    const label = document.createElement("span");
+    label.textContent = labelText;
+    const strong = document.createElement("strong");
+    if (value instanceof Node) {
+      strong.append(value);
+    } else {
+      strong.textContent = value;
+    }
+    field.append(label, strong);
+    overviewFields.append(field);
+  });
+  overview.append(overviewHeader, overviewFields);
+
+  const details = document.createElement("div");
+  details.className = "idea-list";
+  const contactRows = [
+    { label: "Name", value: grant.contactName },
+    { label: "Role", value: grant.contactRole },
+    { label: "Email", value: grant.contactEmail },
+    { label: "Phone", value: grant.contactPhone },
+    { label: "Website", value: createGrantLink("Website", grant.websiteUrl), alwaysShow: true },
+    { label: "Portal", value: createGrantLink("Portal", grant.portalUrl), alwaysShow: true }
+  ];
+  details.append(
+    renderProfileDetailCard("Focus", [
+      { label: "Areas", value: grantProfileValue(grant.focusAreas), alwaysShow: true }
+    ], "var(--brand-green)"),
+    renderProfileDetailCard("Contact and Portal", contactRows, "var(--brand-teal)"),
+    renderProfileDetailCard("Reporting", [
+      { label: "Requirements", value: grantProfileValue(grant.reportingRequirements), alwaysShow: true },
+      { label: "Portal notes", value: grant.portalLoginNotes }
+    ], "var(--brand-blue)"),
+    renderProfileDetailCard("Documents", [
+      { label: "Links", value: createGrantDocumentList(grant), alwaysShow: true },
+      { label: "Branding", value: grant.brandingNotes },
+      { label: "Notes", value: (grant.documents || []).find((documentLink) => documentLink.notes)?.notes }
+    ], "var(--brand-purple)"),
+    renderProfileDetailCard("Notes", [
+      { label: "Grant", value: grantProfileValue(grant.notes), alwaysShow: true },
+      { label: "Past award", value: grant.pastGrantNotes }
+    ], "var(--brand-orange)")
+  );
+
+  profileGrid.append(overview, details);
+  grantDetail.append(topbar, profileGrid);
+}
+
 function renderGrants() {
   renderGrantsSummary();
   renderGrantDeadlines();
   renderGrantList();
   renderGrantQuestions();
+  if (selectedGrantId && grantDetail && !grantDetail.hidden) {
+    renderGrantDetail();
+  }
   fillGrantOrganizationForm();
 }
 
@@ -2059,7 +2231,7 @@ function renderGrantDeadlines() {
     const row = document.createElement("button");
     row.className = "dashboard-list-item grant-deadline-item";
     row.type = "button";
-    row.addEventListener("click", () => startEditGrant(grant.id));
+    row.addEventListener("click", () => openGrantProfile(grant.id));
 
     const content = document.createElement("span");
     const title = document.createElement("strong");
@@ -2092,66 +2264,19 @@ function renderGrantList() {
   }
 
   for (const grant of grants) {
-    const card = document.createElement("article");
-    card.className = "grant-card";
+    const card = document.createElement("button");
+    card.className = "grant-card grant-list-row";
+    card.type = "button";
+    card.addEventListener("click", () => openGrantProfile(grant.id));
 
-    const header = document.createElement("div");
-    header.className = "grant-card-header";
-    const copy = document.createElement("div");
+    const copy = document.createElement("span");
+    copy.className = "grant-list-copy";
     const title = document.createElement("h4");
     title.textContent = grantTitle(grant);
     const subtitle = document.createElement("p");
-    subtitle.textContent = `${grantSubtitle(grant)} | ${grant.status || "Researching"}`;
+    subtitle.textContent = grantSubtitle(grant);
     copy.append(title, subtitle);
-    const edit = document.createElement("button");
-    edit.className = "secondary-button compact-button";
-    edit.type = "button";
-    edit.textContent = "Edit";
-    edit.addEventListener("click", () => startEditGrant(grant.id));
-    header.append(copy, edit);
-
-    const facts = document.createElement("div");
-    facts.className = "grant-fact-grid";
-    [
-      ["Deadline", formatDateOnly(grant.deadlineDate)],
-      ["Range", grantAmountRange(grant)],
-      ["Reoccurs", grant.recurrence || "-"],
-      ["Apply", grant.applicationFrequency || "-"],
-      ["Contact", grant.contactName || "-"],
-      ["Past award", grant.pastGrantReceived ? `${formatGrantCurrency(grant.pastGrantAmount) || "Yes"}${grant.pastGrantYear ? ` (${grant.pastGrantYear})` : ""}` : "-"]
-    ].forEach(([label, value]) => {
-      const fact = document.createElement("div");
-      const labelEl = document.createElement("span");
-      labelEl.textContent = label;
-      const valueEl = document.createElement("strong");
-      valueEl.textContent = value;
-      fact.append(labelEl, valueEl);
-      facts.append(fact);
-    });
-
-    const focus = document.createElement("p");
-    focus.className = "grant-card-notes";
-    focus.textContent = grant.focusAreas || "No focus areas added yet.";
-
-    const links = document.createElement("div");
-    links.className = "grant-link-row";
-    [
-      ["Website", grant.websiteUrl],
-      ["Portal", grant.portalUrl],
-      ...((grant.documents || []).filter((document) => document.url).map((document) => [document.title || document.type, document.url]))
-    ].forEach(([label, url]) => {
-      if (!url) {
-        return;
-      }
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.target = "_blank";
-      anchor.rel = "noreferrer";
-      anchor.textContent = label;
-      links.append(anchor);
-    });
-
-    card.append(header, facts, focus, links);
+    card.append(copy, grantStatusPill(grant.status));
     grantsList.append(card);
   }
 }
@@ -2186,12 +2311,17 @@ function renderGrantQuestions() {
     copy.type = "button";
     copy.textContent = "Copy";
     copy.addEventListener("click", () => copyGrantAnswer(question.answer || ""));
+    const edit = document.createElement("button");
+    edit.className = "secondary-button compact-button";
+    edit.type = "button";
+    edit.textContent = "Edit";
+    edit.addEventListener("click", () => startEditGrantQuestion(question.id));
     const deleteButton = document.createElement("button");
     deleteButton.className = "secondary-button compact-button";
     deleteButton.type = "button";
     deleteButton.textContent = "Delete";
     deleteButton.addEventListener("click", () => deleteGrantQuestion(question.id));
-    actions.append(copy, deleteButton);
+    actions.append(copy, edit, deleteButton);
 
     if (question.notes) {
       const notes = document.createElement("small");
@@ -6084,8 +6214,12 @@ function renderProfileDetailCard(titleText, rows, accent) {
 
     if (value instanceof Node) {
       detail.append(value);
+    } else if (hasProfileValue(value)) {
+      detail.textContent = value;
+    } else if (row.alwaysShow) {
+      detail.textContent = "-";
     } else {
-      detail.textContent = hasProfileValue(value) ? value : "";
+      detail.textContent = "";
     }
 
     line.append(label, detail);
@@ -11102,15 +11236,35 @@ function closeGrantModal() {
     document.body.classList.remove("modal-open");
   }
   editingGrantId = null;
+  selectedGrantId = null;
+  grantDetail.hidden = true;
+  grantForm.hidden = false;
   grantForm?.reset();
+}
+
+function openGrantProfile(grantId) {
+  const grant = loadedGrants.find((item) => item.id === grantId);
+  if (!grant) {
+    return;
+  }
+
+  selectedGrantId = grant.id;
+  editingGrantId = null;
+  grantForm.hidden = true;
+  grantDetail.hidden = false;
+  renderGrantDetail();
+  openGrantModal();
 }
 
 function startNewGrant() {
   editingGrantId = null;
+  selectedGrantId = null;
   setGrantFormValues({ status: "Researching" });
   grantFormTitle.textContent = "New Grant";
   saveGrantButton.textContent = "Save Grant";
   deleteGrantButton.hidden = true;
+  grantDetail.hidden = true;
+  grantForm.hidden = false;
   openGrantModal();
 }
 
@@ -11121,10 +11275,13 @@ function startEditGrant(grantId) {
   }
 
   editingGrantId = grant.id;
+  selectedGrantId = grant.id;
   setGrantFormValues(grant);
   grantFormTitle.textContent = `Edit ${grantTitle(grant)}`;
   saveGrantButton.textContent = "Update Grant";
   deleteGrantButton.hidden = false;
+  grantDetail.hidden = true;
+  grantForm.hidden = false;
   openGrantModal();
 }
 
@@ -11161,12 +11318,12 @@ async function saveGrant(event) {
   }
 }
 
-async function deleteCurrentGrant() {
-  if (!editingGrantId) {
+async function deleteCurrentGrant(grantId = editingGrantId || selectedGrantId) {
+  if (!grantId) {
     return;
   }
 
-  const grant = loadedGrants.find((item) => item.id === editingGrantId);
+  const grant = loadedGrants.find((item) => item.id === grantId);
   const confirmed = window.confirm(`Delete ${grant ? grantTitle(grant) : "this grant"}? This cannot be undone.`);
 
   if (!confirmed) {
@@ -11176,7 +11333,7 @@ async function deleteCurrentGrant() {
   grantsStatusEl.textContent = "Deleting grant...";
 
   try {
-    const response = await authedFetch(`/api/grants/${encodeURIComponent(editingGrantId)}`, {
+    const response = await authedFetch(`/api/grants/${encodeURIComponent(grantId)}`, {
       method: "DELETE"
     });
 
@@ -11194,15 +11351,65 @@ async function deleteCurrentGrant() {
   }
 }
 
+function setGrantQuestionFormValues(question = {}) {
+  grantQuestionForm.reset();
+
+  for (const name of ["category", "prompt", "answer", "targetLimit", "notes"]) {
+    if (grantQuestionForm.elements[name]) {
+      grantQuestionForm.elements[name].value = question[name] || "";
+    }
+  }
+}
+
+function openGrantQuestionModal() {
+  grantQuestionModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeGrantQuestionModal() {
+  const wasOpen = grantQuestionModal && !grantQuestionModal.hidden;
+  if (grantQuestionModal) {
+    grantQuestionModal.hidden = true;
+  }
+  if (wasOpen) {
+    document.body.classList.remove("modal-open");
+  }
+  editingGrantQuestionId = null;
+  grantQuestionForm?.reset();
+}
+
+function startNewGrantQuestion() {
+  editingGrantQuestionId = null;
+  setGrantQuestionFormValues();
+  grantQuestionFormTitle.textContent = "New Answer";
+  saveGrantQuestionButton.textContent = "Save Answer";
+  openGrantQuestionModal();
+}
+
+function startEditGrantQuestion(questionId) {
+  const question = loadedGrantQuestions.find((item) => item.id === questionId);
+  if (!question) {
+    return;
+  }
+
+  editingGrantQuestionId = question.id;
+  setGrantQuestionFormValues(question);
+  grantQuestionFormTitle.textContent = "Edit Answer";
+  saveGrantQuestionButton.textContent = "Update Answer";
+  openGrantQuestionModal();
+}
+
 async function saveGrantQuestion(event) {
   event.preventDefault();
 
   const payload = Object.fromEntries(new FormData(grantQuestionForm).entries());
-  grantsStatusEl.textContent = "Saving reusable answer...";
+  const isEditing = Boolean(editingGrantQuestionId);
+  grantsStatusEl.textContent = isEditing ? "Updating reusable answer..." : "Saving reusable answer...";
+  saveGrantQuestionButton.disabled = true;
 
   try {
-    const response = await authedFetch("/api/grant-questions", {
-      method: "POST",
+    const response = await authedFetch(isEditing ? `/api/grant-questions/${encodeURIComponent(editingGrantQuestionId)}` : "/api/grant-questions", {
+      method: isEditing ? "PATCH" : "POST",
       headers: {
         "Content-Type": "application/json"
       },
@@ -11214,12 +11421,14 @@ async function saveGrantQuestion(event) {
       throw new Error(errorData.error || `API returned ${response.status}`);
     }
 
-    grantQuestionForm.reset();
-    grantsStatusEl.textContent = "Reusable answer saved.";
+    closeGrantQuestionModal();
+    grantsStatusEl.textContent = isEditing ? "Reusable answer updated." : "Reusable answer saved.";
     await loadGrantQuestions();
   } catch (error) {
     grantsStatusEl.textContent = error.message || "Could not save reusable answer yet.";
     console.error(error);
+  } finally {
+    saveGrantQuestionButton.disabled = false;
   }
 }
 
@@ -11916,6 +12125,7 @@ onAuthStateChanged(auth, (user) => {
     closeAppointmentCompletionModal();
     closeTaskModal();
     closeGrantModal();
+    closeGrantQuestionModal();
     closeActivityLogModal();
     closeSiblingModal();
     closeFlowArchive();
@@ -11970,9 +12180,21 @@ newGrantButton.addEventListener("click", startNewGrant);
 grantSearchInput.addEventListener("input", renderGrantList);
 grantForm.addEventListener("submit", saveGrant);
 cancelGrantEditButton.addEventListener("click", closeGrantModal);
-deleteGrantButton.addEventListener("click", deleteCurrentGrant);
+deleteGrantButton.addEventListener("click", () => deleteCurrentGrant());
+newGrantQuestionButton.addEventListener("click", startNewGrantQuestion);
 grantQuestionForm.addEventListener("submit", saveGrantQuestion);
+cancelGrantQuestionEditButton.addEventListener("click", closeGrantQuestionModal);
 grantOrgForm.addEventListener("submit", saveGrantOrganizationInfo);
+grantModal.addEventListener("click", (event) => {
+  if (event.target === grantModal) {
+    closeGrantModal();
+  }
+});
+grantQuestionModal.addEventListener("click", (event) => {
+  if (event.target === grantQuestionModal) {
+    closeGrantQuestionModal();
+  }
+});
 editAppointmentDetailButton.addEventListener("click", () => {
   const appointment = getSelectedAppointment();
   if (appointment) {
