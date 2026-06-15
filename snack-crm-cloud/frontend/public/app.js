@@ -14,34 +14,45 @@ const signInButton = document.querySelector("#sign-in");
 const signOutButton = document.querySelector("#sign-out");
 const userEl = document.querySelector("#user");
 const signedOutPanel = document.querySelector("#signed-out-panel");
+const workflowPanel = document.querySelector("#workflow-panel");
 const dashboardPanel = document.querySelector("#dashboard-panel");
+const crmDashboardPanel = document.querySelector("#crm-dashboard-panel");
 const referralsPanel = document.querySelector("#referrals-panel");
 const clientsPanel = document.querySelector("#clients-panel");
 const referralNetworkPanel = document.querySelector("#referral-network-panel");
 const outreachPanel = document.querySelector("#outreach-panel");
 const schedulingPanel = document.querySelector("#scheduling-panel");
 const navDashboardButton = document.querySelector("#nav-dashboard");
-const navReferralsButton = document.querySelector("#nav-referrals");
-const navClientsButton = document.querySelector("#nav-clients");
-const navReferralNetworkButton = document.querySelector("#nav-referral-network");
+const navWorkflowButton = document.querySelector("#nav-workflow");
+const navCrmButton = document.querySelector("#nav-crm");
 const navOutreachButton = document.querySelector("#nav-outreach");
 const navSchedulingButton = document.querySelector("#nav-scheduling");
+const crmTabs = document.querySelector("#crm-tabs");
+const crmTabDashboardButton = document.querySelector("#crm-tab-dashboard");
+const crmTabReferralsButton = document.querySelector("#crm-tab-referrals");
+const crmTabClientsButton = document.querySelector("#crm-tab-clients");
+const crmTabReferralNetworkButton = document.querySelector("#crm-tab-referral-network");
 const dashboardSummary = document.querySelector("#dashboard-summary");
 const dashboardFollowups = document.querySelector("#dashboard-followups");
 const dashboardNewReferrals = document.querySelector("#dashboard-new-referrals");
 const dashboardScheduled = document.querySelector("#dashboard-scheduled");
 const dashboardNoNext = document.querySelector("#dashboard-no-next");
+const dashboardAppointmentsWeek = document.querySelector("#dashboard-appointments-week");
+const dashboardAttention = document.querySelector("#dashboard-attention");
+const dashboardWorkflow = document.querySelector("#dashboard-workflow");
 const referralForm = document.querySelector("#referral-form");
 const formTitle = document.querySelector("#form-title");
 const saveReferralButton = document.querySelector("#save-referral");
 const cancelEditButton = document.querySelector("#cancel-edit");
 const newReferralButton = document.querySelector("#new-referral");
 const referralsTableHead = document.querySelector("#referrals-table-head");
+const referralsTableView = document.querySelector("#referrals-table-view");
 const referralsList = document.querySelector("#referrals-list");
+const referralFlowBoard = document.querySelector("#referral-flow-board");
+const referralsViewListButton = document.querySelector("#referrals-view-list");
+const referralsViewFlowButton = document.querySelector("#referrals-view-flow");
 const referralsStatusEl = document.querySelector("#referrals-status");
 const referralSearchInput = document.querySelector("#referral-search");
-const statusFilterSelect = document.querySelector("#status-filter");
-const sortReferralsSelect = document.querySelector("#sort-referrals");
 const referralColumnOptions = document.querySelector("#referral-column-options");
 const importReferralsButton = document.querySelector("#import-referrals");
 const referralCsvInput = document.querySelector("#referral-csv-input");
@@ -50,17 +61,25 @@ const referralDetail = document.querySelector("#referral-detail");
 const referralModal = document.querySelector("#referral-modal");
 const closeReferralModalButton = document.querySelector("#close-referral-modal");
 const referralSourceInput = document.querySelector("#referral-source");
+const referralEditAvatar = document.querySelector("#referral-edit-avatar");
+const referralEditLessonDots = document.querySelector("#referral-edit-lesson-dots");
+const referralEditNotesPreview = document.querySelector("#referral-edit-notes-preview");
+const referralEditSiblingSummary = document.querySelector("#referral-edit-sibling-summary");
+const referralSourceDisplay = document.querySelector("#referral-source-display");
+const referralProviderLinkEditor = document.querySelector("#referral-provider-link-editor");
 const referralSourceOptions = document.querySelector("#referral-source-options");
 const referralImportModal = document.querySelector("#referral-import-modal");
 const referralImportDetail = document.querySelector("#referral-import-detail");
 const closeReferralImportButton = document.querySelector("#close-referral-import");
 const confirmReferralImportButton = document.querySelector("#confirm-referral-import");
 const clientsList = document.querySelector("#clients-list");
+const clientsTableView = document.querySelector("#clients-table-view");
+const clientFlowBoard = document.querySelector("#client-flow-board");
+const clientsViewListButton = document.querySelector("#clients-view-list");
+const clientsViewFlowButton = document.querySelector("#clients-view-flow");
 const clientsTableHead = document.querySelector("#clients-table-head");
 const clientsStatusEl = document.querySelector("#clients-status");
 const clientSearchInput = document.querySelector("#client-search");
-const clientStatusFilterSelect = document.querySelector("#client-status-filter");
-const sortClientsSelect = document.querySelector("#sort-clients");
 const clientColumnOptions = document.querySelector("#client-column-options");
 const importClientsButton = document.querySelector("#import-clients");
 const clientCsvInput = document.querySelector("#client-csv-input");
@@ -72,7 +91,13 @@ const clientForm = document.querySelector("#client-form");
 const clientFormTitle = document.querySelector("#client-form-title");
 const saveClientButton = document.querySelector("#save-client");
 const cancelClientEditButton = document.querySelector("#cancel-client-edit");
+const clientEditAvatar = document.querySelector("#client-edit-avatar");
+const clientEditLessonDots = document.querySelector("#client-edit-lesson-dots");
+const clientEditGoalsList = document.querySelector("#client-edit-goals-list");
+const clientEditSiblingSummary = document.querySelector("#client-edit-sibling-summary");
 const clientReferralSourceInput = document.querySelector("#client-referral-source");
+const clientReferralSourceDisplay = document.querySelector("#client-referral-source-display");
+const clientProviderLinkEditor = document.querySelector("#client-provider-link-editor");
 const clientImportModal = document.querySelector("#client-import-modal");
 const clientImportDetail = document.querySelector("#client-import-detail");
 const closeClientImportButton = document.querySelector("#close-client-import");
@@ -124,23 +149,110 @@ const outreachContactEventSelect = document.querySelector("#outreach-contact-eve
 const saveOutreachContactButton = document.querySelector("#save-outreach-contact");
 const cancelOutreachContactEditButton = document.querySelector("#cancel-outreach-contact-edit");
 const appointmentSummary = document.querySelector("#appointment-summary");
+const schedulingCalendar = document.querySelector("#scheduling-calendar");
+const schedulingTodayBoard = document.querySelector("#scheduling-today-board");
 const appointmentsList = document.querySelector("#appointments-list");
 const appointmentsStatusEl = document.querySelector("#appointments-status");
 const appointmentSearchInput = document.querySelector("#appointment-search");
 const appointmentDateFilterSelect = document.querySelector("#appointment-date-filter");
 const appointmentStatusFilterSelect = document.querySelector("#appointment-status-filter");
 const newAppointmentButton = document.querySelector("#new-appointment");
+const printTodayScheduleButton = document.querySelector("#print-today-schedule");
+const printPrepSheetsButton = document.querySelector("#print-prep-sheets");
+const printNoteSheetsButton = document.querySelector("#print-note-sheets");
 const appointmentModal = document.querySelector("#appointment-modal");
+const appointmentDetail = document.querySelector("#appointment-detail");
+const appointmentDetailTitle = document.querySelector("#appointment-detail-title");
+const appointmentDetailBody = document.querySelector("#appointment-detail-body");
+const editAppointmentDetailButton = document.querySelector("#edit-appointment-detail");
+const completeAppointmentDetailButton = document.querySelector("#complete-appointment-detail");
+const deleteAppointmentDetailButton = document.querySelector("#delete-appointment-detail");
+const closeAppointmentDetailButton = document.querySelector("#close-appointment-detail");
 const appointmentForm = document.querySelector("#appointment-form");
 const appointmentFormTitle = document.querySelector("#appointment-form-title");
+const appointmentFormStatusEl = document.querySelector("#appointment-form-status");
 const appointmentClientSelect = document.querySelector("#appointment-client-id");
+const appointmentClientIdsInput = document.querySelector("#appointment-client-ids");
+const appointmentClientSearchInput = document.querySelector("#appointment-client-search");
+const appointmentClientOptions = document.querySelector("#appointment-client-options");
+const addAppointmentClientButton = document.querySelector("#add-appointment-client");
+const appointmentClientSelected = document.querySelector("#appointment-client-selected");
+const appointmentTimeInput = document.querySelector("#appointment-time");
+const appointmentTimeOptions = document.querySelector("#appointment-time-options");
 const saveAppointmentButton = document.querySelector("#save-appointment");
 const deleteAppointmentButton = document.querySelector("#delete-appointment");
 const cancelAppointmentEditButton = document.querySelector("#cancel-appointment-edit");
+const appointmentCompleteModal = document.querySelector("#appointment-complete-modal");
+const appointmentCompleteForm = document.querySelector("#appointment-complete-form");
+const appointmentCompleteTitle = document.querySelector("#appointment-complete-title");
+const appointmentCompleteSummary = document.querySelector("#appointment-complete-summary");
+const completionNextLessonInput = document.querySelector("#completion-next-lesson");
+const completionNextGoalInput = document.querySelector("#completion-next-goal");
+const completionScheduleNextInput = document.querySelector("#completion-schedule-next");
+const completionNextDateInput = document.querySelector("#completion-next-date");
+const completionNextTimeInput = document.querySelector("#completion-next-time");
+const completionNextStaffInput = document.querySelector("#completion-next-staff");
+const completionNextNotesInput = document.querySelector("#completion-next-notes");
+const saveAppointmentCompletionButton = document.querySelector("#save-appointment-completion");
+const cancelAppointmentCompletionButton = document.querySelector("#cancel-appointment-completion");
+const flowArchiveModal = document.querySelector("#flow-archive-modal");
+const flowArchiveEyebrow = document.querySelector("#flow-archive-eyebrow");
+const flowArchiveTitle = document.querySelector("#flow-archive-title");
+const flowArchiveDescription = document.querySelector("#flow-archive-description");
+const flowArchiveList = document.querySelector("#flow-archive-list");
+const closeFlowArchiveButton = document.querySelector("#close-flow-archive");
+const workflowTaskSummary = document.querySelector("#workflow-task-summary");
+const workflowTaskList = document.querySelector("#workflow-task-list");
+const tasksStatusEl = document.querySelector("#tasks-status");
+const startDayButton = document.querySelector("#start-day");
+const newTaskButton = document.querySelector("#new-task");
+const taskModal = document.querySelector("#task-modal");
+const taskForm = document.querySelector("#task-form");
+const taskFormTitle = document.querySelector("#task-form-title");
+const taskRelatedTypeSelect = document.querySelector("#task-related-type");
+const taskRelatedSearchInput = document.querySelector("#task-related-search");
+const taskClientIdInput = document.querySelector("#task-client-id");
+const taskReferralIdInput = document.querySelector("#task-referral-id");
+const taskAppointmentIdInput = document.querySelector("#task-appointment-id");
+const taskRelatedOptions = document.querySelector("#task-related-options");
+const openTaskProfileButton = document.querySelector("#open-task-profile");
+const saveTaskButton = document.querySelector("#save-task");
+const cancelTaskEditButton = document.querySelector("#cancel-task-edit");
+const deleteTaskButton = document.querySelector("#delete-task");
+const taskUndoToast = document.querySelector("#task-undo-toast");
+const taskUndoMessage = document.querySelector("#task-undo-message");
+const taskUndoButton = document.querySelector("#task-undo-button");
+const activityLogModal = document.querySelector("#activity-log-modal");
+const activityLogForm = document.querySelector("#activity-log-form");
+const activityLogTitle = document.querySelector("#activity-log-title");
+const activityLogRelatedTypeInput = document.querySelector("#activity-log-related-type");
+const activityLogRelatedIdInput = document.querySelector("#activity-log-related-id");
+const activityLogRelatedNameInput = document.querySelector("#activity-log-related-name");
+const activityLogTypeInput = document.querySelector("#activity-log-type");
+const activityLogTitleField = document.querySelector("#activity-log-title-field");
+const activityLogDirectionSelect = document.querySelector("#activity-log-direction");
+const activityLogResultSelect = document.querySelector("#activity-log-result");
+const activityLogDateInput = document.querySelector("#activity-log-date");
+const activityLogTimeInput = document.querySelector("#activity-log-time");
+const saveActivityLogButton = document.querySelector("#save-activity-log");
+const cancelActivityLogButton = document.querySelector("#cancel-activity-log");
+const siblingModal = document.querySelector("#sibling-modal");
+const siblingForm = document.querySelector("#sibling-form");
+const siblingModuleInput = document.querySelector("#sibling-module");
+const siblingRecordIdInput = document.querySelector("#sibling-record-id");
+const siblingSearchInput = document.querySelector("#sibling-search");
+const siblingOptions = document.querySelector("#sibling-options");
+const saveSiblingLinkButton = document.querySelector("#save-sibling-link");
+const cancelSiblingLinkButton = document.querySelector("#cancel-sibling-link");
 
 const app = initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
+const schedulingStartMinutes = 13 * 60;
+const schedulingEndMinutes = 18 * 60;
+const defaultAppointmentDurationMinutes = 30;
+const taskCompleteSoundUrl = "./todoist-complete.m4a?v=20260603-prep-audio";
+const taskCompleteSoundDurationMs = 1600;
 const legacyStatusMap = {
   new: "New",
   contacted: "Texted",
@@ -171,6 +283,25 @@ const summaryGroups = [
   { key: "scheduled", label: "Scheduled", statuses: ["Scheduled"] },
   { key: "closed", label: "Closed", statuses: ["Not Interested", "Closed / No Further Outreach"] }
 ];
+const referralFlowColumns = [
+  { key: "new", label: "New Referrals", statuses: ["New"], accent: "var(--brand-red)" },
+  {
+    key: "contacted",
+    label: "In Contact",
+    statuses: ["Texted", "Left Voicemail", "Emailed", "Requested Call Back", "Caregiver Will Call Back"],
+    accent: "var(--brand-green)"
+  },
+  { key: "scheduled", label: "Scheduled", statuses: ["Scheduled"], accent: "var(--brand-blue)" },
+  { key: "watch", label: "Watch List", statuses: [], accent: "var(--brand-purple)", emptyText: "Language support and waiting-on-family referrals can land here later." },
+  {
+    key: "closed",
+    label: "Closed Referrals Archive",
+    statuses: ["Not Interested", "Closed / No Further Outreach"],
+    accent: "var(--brand-blue)",
+    archive: true,
+    countLabel: "closed"
+  }
+];
 const clientStatuses = [
   "Scheduled",
   "Active",
@@ -190,6 +321,34 @@ const clientSummaryGroups = [
   { key: "graduated", label: "Graduated", statuses: ["Graduated"] },
   { key: "closed", label: "Closed", statuses: ["Inactive", "Closed"] }
 ];
+const clientFlowColumns = [
+  { key: "reschedule", label: "Needs Reschedule", statuses: ["Needs Reschedule"], accent: "var(--brand-red)" },
+  { key: "scheduled", label: "Scheduled", statuses: ["Scheduled"], accent: "var(--brand-green)" },
+  { key: "progress", label: "Appts In Progress", statuses: ["Active"], accent: "var(--brand-blue)" },
+  { key: "watch", label: "Watch List", statuses: ["Needs Language Support", "Waiting on Family"], accent: "var(--brand-purple)" },
+  {
+    key: "graduated",
+    label: "Graduated Clients Archive",
+    statuses: ["Graduated"],
+    accent: "var(--brand-yellow)",
+    archive: true,
+    countLabel: "graduated"
+  },
+  {
+    key: "closed",
+    label: "Closed Clients Archive",
+    statuses: ["Inactive", "Closed"],
+    accent: "var(--brand-blue)",
+    archive: true,
+    countLabel: "closed"
+  }
+];
+const taskFlowColumns = [
+  { key: "calls", label: "Calls", color: "var(--brand-red)" },
+  { key: "texts", label: "Texts", color: "var(--brand-green)" },
+  { key: "forms", label: "Forms", color: "var(--brand-blue)" },
+  { key: "tasks", label: "Tasks", color: "var(--brand-purple)" }
+];
 const zohoClientStatusMap = {
   "Appts in Progress": "Active",
   Graduated: "Graduated",
@@ -204,11 +363,11 @@ const zohoClientStatusMap = {
 };
 const clientStatusGroupColors = {
   Scheduled: "scheduled",
-  Active: "new",
-  "Needs Reschedule": "new",
-  "Needs Language Support": "follow-up",
-  "Waiting on Family": "contacted",
-  Graduated: "new",
+  Active: "progress",
+  "Needs Reschedule": "reschedule",
+  "Needs Language Support": "watch",
+  "Waiting on Family": "watch",
+  Graduated: "graduated",
   Inactive: "closed",
   Closed: "closed"
 };
@@ -252,6 +411,7 @@ const clientCsvFieldMappings = [
   { key: "willingnessScore", label: "Willingness Score", source: "Willingness Score" },
   { key: "gender", label: "Gender", source: "Gender" },
   { key: "ycco", label: "YCCO", source: "YCCO" },
+  { key: "hrsn", label: "HRSN", source: "HRSN" },
   { key: "emailOptOut", label: "Email Opt Out", source: "Email Opt Out" },
   { key: "addressStreet", label: "Street Address", source: "Mailing Street" },
   { key: "addressCity", label: "City", source: "Mailing City" },
@@ -280,6 +440,7 @@ const referralCsvFieldMappings = [
   { key: "willingnessScore", label: "Willingness Score", source: "Willingness Score" },
   { key: "gender", label: "Gender", source: "Gender" },
   { key: "ycco", label: "YCCO", source: "YCCO" },
+  { key: "hrsn", label: "HRSN", source: "HRSN" },
   { key: "emailOptOut", label: "Email Opt Out", source: "Email Opt Out" },
   { key: "addressStreet", label: "Street Address", source: "Street" },
   { key: "addressCity", label: "City", source: "City" },
@@ -314,20 +475,37 @@ let selectedOutreachContactId = null;
 let editingOutreachContactId = null;
 let selectedAppointmentId = null;
 let editingAppointmentId = null;
+let completingAppointmentId = null;
+let appointmentCompletionMode = "complete";
+let visibleSchedulingWeekStart = null;
+const selectedAppointmentClientIds = new Set();
+let editingTaskId = null;
+let taskCompletionAudio = null;
+let taskUndoTimeoutId = null;
+let pendingTaskUndo = null;
+let editingReferralProviderLinks = [];
+let editingClientProviderLinks = [];
 let loadedReferrals = [];
 let loadedClients = [];
 let loadedNetworkEntries = [];
 let loadedOutreachEvents = [];
 let loadedOutreachContacts = [];
 let loadedAppointments = [];
+let loadedTasks = [];
+let loadedActivityLogs = [];
 let latestClientImportAnalysis = null;
 let latestReferralImportAnalysis = null;
 let latestNetworkImportAnalysis = null;
 const expandedNetworkEntryIds = new Set();
-let summaryFilter = "all";
-let clientSummaryFilter = "all";
-let activeModule = "dashboard";
 let activeOutreachView = "dashboard";
+let activeReferralView = "flow";
+let activeClientView = "flow";
+const savedNavigationState = loadNavigationState();
+let activeModule = savedNavigationState.activeModule;
+let activeCrmView = savedNavigationState.activeCrmView;
+activeOutreachView = savedNavigationState.activeOutreachView;
+activeReferralView = savedNavigationState.activeReferralView;
+activeClientView = savedNavigationState.activeClientView;
 
 async function authedFetch(path, options = {}) {
   const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL;
@@ -381,8 +559,141 @@ function clientName(client) {
 }
 
 function appointmentClientName(appointment) {
-  const client = loadedClients.find((item) => item.id === appointment.clientId);
-  return client ? clientName(client) : appointment.clientName || "Unknown client";
+  const names = appointmentClientNames(appointment);
+  return names.length ? names.join(", ") : "Unknown client";
+}
+
+function appointmentClientIds(appointment) {
+  if (Array.isArray(appointment.clientIds) && appointment.clientIds.length) {
+    return appointment.clientIds.filter(Boolean);
+  }
+
+  return appointment.clientId ? [appointment.clientId] : [];
+}
+
+function appointmentClientNames(appointment) {
+  const names = appointmentClientIds(appointment)
+    .map((clientId) => loadedClients.find((item) => item.id === clientId))
+    .filter(Boolean)
+    .map(clientName);
+
+  if (names.length) {
+    return names;
+  }
+
+  if (Array.isArray(appointment.clientNames) && appointment.clientNames.length) {
+    return appointment.clientNames.filter(Boolean);
+  }
+
+  return appointment.clientName ? [appointment.clientName] : [];
+}
+
+function appointmentTypeLabel(appointment) {
+  return appointment.appointmentType || (appointment.lesson ? "Nutrition Education" : "Enrollment");
+}
+
+function appointmentCarriesGoal(appointment) {
+  return appointmentTypeLabel(appointment) !== "Enrollment";
+}
+
+function appointmentGoalText(appointment) {
+  return appointmentCarriesGoal(appointment) ? appointment.goal || "" : "";
+}
+
+function appointmentLessonNumber(appointment) {
+  const lesson = Number.parseInt(String(appointment.lesson || "").replace(/\D/g, ""), 10);
+  return Number.isFinite(lesson) ? lesson : 0;
+}
+
+function appointmentPrepClients(appointment) {
+  return appointmentClientIds(appointment)
+    .map((clientId) => loadedClients.find((client) => client.id === clientId))
+    .filter(Boolean);
+}
+
+function appointmentPrepVisitLabel(appointment) {
+  if (appointmentTypeLabel(appointment) === "Enrollment") {
+    return "Enrollment";
+  }
+
+  const lesson = appointmentLessonNumber(appointment);
+  if (lesson === 7) {
+    return "Lesson 7 / Graduation";
+  }
+
+  return lesson >= 1 ? `Lesson ${lesson}` : appointmentTypeLabel(appointment);
+}
+
+function appointmentPrepItems(appointment) {
+  const lesson = appointmentLessonNumber(appointment);
+  const clients = appointmentPrepClients(appointment);
+  const hasYccoClient = clients.some((client) => truthyProfileValue(client.ycco));
+
+  if (appointmentTypeLabel(appointment) === "Enrollment") {
+    const items = [
+      "Place paperwork at reception before the appointment.",
+      "Enrollment form (file cabinet); siblings can share one form.",
+      "Questionnaire for each child (file cabinet); each child needs their own.",
+      "Write client name in the top right corner, initial code on the back, and circle PRE."
+    ];
+
+    if (hasYccoClient) {
+      items.push("HRSN screener for YCCO client (file cabinet).");
+    }
+
+    items.push("SNACK sticker.", "SNACK pen or pencil.", "Food snack.");
+    return items;
+  }
+
+  if (lesson === 1) {
+    return ["Workbook.", "Prize from the bin.", "Food snack."];
+  }
+
+  if (lesson >= 2 && lesson <= 6) {
+    return ["Prize from the bin.", "Food snack."];
+  }
+
+  if (lesson === 7) {
+    return [
+      "Graduation paperwork; tell client they can complete it with you or in the lobby and return it to the front desk.",
+      "Questionnaire for each child (file cabinet); each child needs their own.",
+      "Write client name in the top right corner, initial code on the back, and circle POST.",
+      "Child Feedback form for each child (file cabinet); each child needs their own.",
+      "Parent Feedback form (file cabinet).",
+      "1 SNACK tumbler per child.",
+      "1 $50 grocery gift card per family.",
+      "Food snack."
+    ];
+  }
+
+  return [];
+}
+
+function appointmentPrepTaskType(appointment) {
+  const lesson = appointmentLessonNumber(appointment);
+  return appointmentTypeLabel(appointment) === "Enrollment" || lesson === 7 ? "Form" : "Task";
+}
+
+function appointmentPrepTaskNotes(appointment) {
+  const items = appointmentPrepItems(appointment);
+
+  if (!items.length) {
+    return "";
+  }
+
+  return [
+    `Prep list for ${formatAppointmentDateTime(appointment)} ${appointmentPrepVisitLabel(appointment)}:`,
+    ...items.map((item) => `- ${item}`)
+  ].join("\n");
+}
+
+function appointmentLessonAccent(appointment) {
+  if (appointmentTypeLabel(appointment) === "Enrollment") {
+    return "var(--muted)";
+  }
+
+  const lesson = Number.parseInt(String(appointment.lesson || "").replace(/\D/g, ""), 10);
+  return Number.isFinite(lesson) && lesson >= 1 ? profileLessonAccent(lesson) : "var(--brand-red)";
 }
 
 function formatDate(value) {
@@ -390,10 +701,20 @@ function formatDate(value) {
     return "-";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(new Date(value));
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return `${new Intl.DateTimeFormat("en-US", {
+    month: "numeric",
+    day: "numeric",
+    year: "2-digit"
+  }).format(date)} ${new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(date)}`;
 }
 
 function formatDateOnly(value) {
@@ -408,7 +729,9 @@ function formatDateOnly(value) {
   }
 
   return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium"
+    month: "numeric",
+    day: "numeric",
+    year: "2-digit"
   }).format(date);
 }
 
@@ -416,9 +739,184 @@ function formatListDate(value) {
   return value ? formatDateOnly(value) : "";
 }
 
+function formatAppointmentTime(value) {
+  const normalized = normalizeAppointmentTime(value);
+
+  if (!normalized) {
+    return "";
+  }
+
+  const [hourText, minuteText] = normalized.split(":");
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${String(minute).padStart(2, "0")} ${period}`;
+}
+
+function normalizeAppointmentTime(value) {
+  const raw = String(value || "").trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  const militaryMatch = raw.match(/^(\d{1,2}):(\d{2})$/);
+
+  if (militaryMatch) {
+    const hour = Number(militaryMatch[1]);
+    const minute = Number(militaryMatch[2]);
+
+    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+      return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    }
+  }
+
+  const standardMatch = raw.match(/^(\d{1,2})(?::(\d{2}))?\s*([ap]\.?m\.?)$/i);
+
+  if (standardMatch) {
+    let hour = Number(standardMatch[1]);
+    const minute = Number(standardMatch[2] || "00");
+    const period = standardMatch[3].toLowerCase();
+
+    if (hour >= 1 && hour <= 12 && minute >= 0 && minute <= 59) {
+      if (period.startsWith("p") && hour !== 12) {
+        hour += 12;
+      }
+
+      if (period.startsWith("a") && hour === 12) {
+        hour = 0;
+      }
+
+      return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    }
+  }
+
+  return raw;
+}
+
+function appointmentTimeValue(value) {
+  return appointmentTimeMinutes(value) ?? 0;
+}
+
+function appointmentTimeMinutes(value) {
+  const normalized = normalizeAppointmentTime(value);
+  const match = normalized.match(/^(\d{2}):(\d{2})$/);
+  return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+}
+
+function appointmentClientCount(appointment) {
+  const clientIds = appointmentClientIds(appointment);
+
+  if (clientIds.length) {
+    return clientIds.length;
+  }
+
+  if (Array.isArray(appointment.clientNames) && appointment.clientNames.length) {
+    return appointment.clientNames.filter(Boolean).length;
+  }
+
+  return appointment.clientName ? 1 : 0;
+}
+
+function appointmentDurationMinutes(appointment) {
+  const explicitDuration = Number(appointment.durationMinutes);
+
+  if (Number.isInteger(explicitDuration) && explicitDuration > 0) {
+    return explicitDuration;
+  }
+
+  return appointmentClientCount(appointment) >= 3 ? 45 : defaultAppointmentDurationMinutes;
+}
+
+function appointmentDurationSlots(appointment) {
+  return Math.ceil(appointmentDurationMinutes(appointment) / 15);
+}
+
+function appointmentStartSlotIndex(appointment) {
+  return Math.floor((appointmentTimeValue(appointment.appointmentTime) % 60) / 15);
+}
+
+function formatDuration(minutes) {
+  return `${minutes} min`;
+}
+
+function appointmentFitsSchedulingWindow(appointment) {
+  const start = appointmentTimeMinutes(appointment.appointmentTime);
+  if (start === null) {
+    return false;
+  }
+
+  return start >= schedulingStartMinutes && start + appointmentDurationMinutes(appointment) <= schedulingEndMinutes;
+}
+
+function appointmentBlocksSchedule(appointment) {
+  return ["Scheduled", "Completed"].includes(appointment.status || "Scheduled");
+}
+
+function appointmentsOverlap(first, second) {
+  if (first.appointmentDate !== second.appointmentDate) {
+    return false;
+  }
+
+  const firstStart = appointmentTimeMinutes(first.appointmentTime);
+  const secondStart = appointmentTimeMinutes(second.appointmentTime);
+
+  if (firstStart === null || secondStart === null) {
+    return false;
+  }
+
+  const firstEnd = firstStart + appointmentDurationMinutes(first);
+  const secondEnd = secondStart + appointmentDurationMinutes(second);
+  return firstStart < secondEnd && firstEnd > secondStart;
+}
+
+function appointmentSchedulingConflict(appointment, excludedAppointmentId = "") {
+  if (!appointmentBlocksSchedule(appointment)) {
+    return null;
+  }
+
+  return loadedAppointments.find(
+    (existingAppointment) =>
+      existingAppointment.id !== excludedAppointmentId &&
+      appointmentBlocksSchedule(existingAppointment) &&
+      appointmentsOverlap(appointment, existingAppointment)
+  ) || null;
+}
+
+function appointmentConflictError(conflict) {
+  return `That time overlaps ${appointmentClientName(conflict)} at ${formatAppointmentTime(conflict.appointmentTime)}. Choose a different time or add the client to that appointment.`;
+}
+
+function schedulingWindowEndLabel() {
+  const hour = Math.floor(schedulingEndMinutes / 60);
+  const minute = schedulingEndMinutes % 60;
+  return formatAppointmentTime(`${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
+}
+
+function schedulingWindowError(appointment) {
+  if (appointmentTimeMinutes(appointment.appointmentTime) === null) {
+    return "Choose a valid appointment time.";
+  }
+
+  return `This appointment is ${formatDuration(appointmentDurationMinutes(appointment))}. Choose a start time that ends by ${schedulingWindowEndLabel()}.`;
+}
+
 function formatAppointmentDateTime(appointment) {
   const date = formatDateOnly(appointment.appointmentDate);
-  return appointment.appointmentTime ? `${date} ${appointment.appointmentTime}` : date;
+  const time = formatAppointmentTime(appointment.appointmentTime);
+  return time ? `${date} ${time}` : date;
+}
+
+function localDateTimeParts(date = new Date()) {
+  return {
+    date: toDateString(date),
+    time: `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`
+  };
+}
+
+function activityLogTimestamp(log) {
+  return log.occurredAt || `${log.activityDate || ""}T${normalizeAppointmentTime(log.activityTime) || "00:00"}:00`;
 }
 
 function normalizeCsvDate(value) {
@@ -463,6 +961,25 @@ function formatShortDate(value) {
   }).format(date);
 }
 
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function toDateString(date) {
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return offsetDate.toISOString().slice(0, 10);
+}
+
+function formatWeekdayDate(date) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "numeric",
+    day: "numeric"
+  }).format(date);
+}
+
 function formatPhone(value) {
   const digits = String(value || "").replace(/\D/g, "");
   const normalized = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
@@ -487,6 +1004,19 @@ function displayBoolean(value) {
   return value ? "✓" : "-";
 }
 
+function hasDisplayValue(value) {
+  return value !== null && value !== undefined && String(value).trim() !== "";
+}
+
+function truthyProfileValue(value) {
+  if (value === true) {
+    return true;
+  }
+
+  const normalized = String(value || "").trim().toLowerCase();
+  return ["true", "yes", "y", "1", "checked"].includes(normalized);
+}
+
 function formatContact(referral) {
   return [formatPhone(referral.phone), referral.email].filter(Boolean).join(" | ") || "No contact info yet";
 }
@@ -497,8 +1027,22 @@ function normalizeStatus(status) {
 
 function statusGroupKey(status) {
   const normalized = normalizeStatus(status);
-  const group = summaryGroups.find((item) => item.key !== "all" && item.statuses.includes(normalized));
-  return group?.key || "new";
+  const group = referralFlowColumns.find((item) => !item.archive && item.statuses.includes(normalized));
+
+  if (group?.key === "contacted") {
+    return "in-contact";
+  }
+
+  if (group?.key === "scheduled") {
+    return "referral-scheduled";
+  }
+
+  if (group?.key) {
+    return group.key;
+  }
+
+  const archiveGroup = referralFlowColumns.find((item) => item.archive && item.statuses.includes(normalized));
+  return archiveGroup?.key || "new";
 }
 
 function cssToken(value) {
@@ -557,6 +1101,48 @@ function columnState(moduleName) {
 
 function saveColumnState(moduleName, state) {
   localStorage.setItem(tablePreferenceKey(moduleName), JSON.stringify(state));
+}
+
+function navigationStateKey() {
+  return "snack-crm:navigation-state";
+}
+
+function validValue(value, allowed, fallback) {
+  return allowed.includes(value) ? value : fallback;
+}
+
+function loadNavigationState() {
+  const defaults = {
+    activeModule: "workflow",
+    activeCrmView: "dashboard",
+    activeOutreachView: "dashboard",
+    activeReferralView: "flow",
+    activeClientView: "flow"
+  };
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(navigationStateKey()) || "null") || {};
+    const savedModule = saved.activeModule === "dashboard" ? "admin" : saved.activeModule;
+    return {
+      activeModule: validValue(savedModule, ["workflow", "scheduling", "crm", "outreach", "admin"], defaults.activeModule),
+      activeCrmView: validValue(saved.activeCrmView, ["dashboard", "referrals", "clients", "referral-network"], defaults.activeCrmView),
+      activeOutreachView: validValue(saved.activeOutreachView, ["dashboard", "events", "contacts"], defaults.activeOutreachView),
+      activeReferralView: validValue(saved.activeReferralView, ["list", "flow"], defaults.activeReferralView),
+      activeClientView: validValue(saved.activeClientView, ["list", "flow"], defaults.activeClientView)
+    };
+  } catch (_error) {
+    return defaults;
+  }
+}
+
+function saveNavigationState() {
+  localStorage.setItem(navigationStateKey(), JSON.stringify({
+    activeModule,
+    activeCrmView,
+    activeOutreachView,
+    activeReferralView,
+    activeClientView
+  }));
 }
 
 function orderedColumns(moduleName) {
@@ -740,6 +1326,20 @@ function percentage(numerator, denominator) {
   return `${Math.round((numerator / denominator) * 100)}%`;
 }
 
+function percentageNumber(numerator, denominator) {
+  if (!denominator) {
+    return 0;
+  }
+
+  return Math.round((numerator / denominator) * 100);
+}
+
+function clearElement(element) {
+  if (element) {
+    element.innerHTML = "";
+  }
+}
+
 function todayDateString() {
   const date = new Date();
   const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
@@ -748,7 +1348,10 @@ function todayDateString() {
 
 function hasFutureAppointment(client) {
   const today = todayDateString();
-  return [client.firstAppointmentDate].some((value) => value && value >= today);
+  return (
+    clientAppointments(client).some((appointment) => appointment.status === "Scheduled" && appointment.appointmentDate >= today) ||
+    [client.firstAppointmentDate, client.mostRecentAppointmentDate].some((value) => value && value >= today)
+  );
 }
 
 function knownReferralSources() {
@@ -780,18 +1383,7 @@ function renderReferralSourceOptions(event) {
 }
 
 function referralMatchesFilters(referral) {
-  const statusFilter = statusFilterSelect.value;
   const query = referralSearchInput.value.trim().toLowerCase();
-  const group = summaryGroups.find((item) => item.key === summaryFilter);
-  const normalizedStatus = normalizeStatus(referral.status);
-
-  if (group && group.key !== "all" && !group.statuses.includes(normalizedStatus)) {
-    return false;
-  }
-
-  if (statusFilter !== "all" && normalizedStatus !== statusFilter) {
-    return false;
-  }
 
   if (!query) {
     return true;
@@ -825,18 +1417,7 @@ function getSelectedClient() {
 }
 
 function clientMatchesSearch(client) {
-  const statusFilter = clientStatusFilterSelect.value;
   const query = clientSearchInput.value.trim().toLowerCase();
-  const group = clientSummaryGroups.find((item) => item.key === clientSummaryFilter);
-  const status = client.status || "Scheduled";
-
-  if (group && group.key !== "all" && !group.statuses.includes(status)) {
-    return false;
-  }
-
-  if (statusFilter !== "all" && status !== statusFilter) {
-    return false;
-  }
 
   if (!query) {
     return true;
@@ -895,6 +1476,126 @@ function availableProviderLinks(record) {
       label: `${networkProviderName(provider)} (${networkEntryName(entry)})`
     }))
   ).filter((link) => link.providerId && !linked.has(`${link.networkId}:${link.providerId}`));
+}
+
+function renderFormProviderLinkEditor(editor, links, onLinksChange, onAddLink) {
+  if (!editor) {
+    return;
+  }
+
+  editor.innerHTML = "";
+
+  const header = document.createElement("div");
+  header.className = "form-link-editor-header";
+  const title = document.createElement("strong");
+  title.textContent = "Provider Profiles";
+  const hint = document.createElement("span");
+  hint.textContent = "Choose from Referral Network providers.";
+  header.append(title, hint);
+
+  const list = document.createElement("div");
+  list.className = "form-link-list";
+
+  if (!links.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-inline";
+    empty.textContent = "No provider profiles linked yet.";
+    list.append(empty);
+  }
+
+  links.forEach((link, index) => {
+    const row = document.createElement("div");
+    row.className = "form-link-row";
+    const name = document.createElement("span");
+    name.textContent = `${link.providerName} (${link.organizationName})`;
+    const remove = document.createElement("button");
+    remove.className = "secondary-button compact-button";
+    remove.type = "button";
+    remove.textContent = "Remove";
+    remove.addEventListener("click", () => {
+      onLinksChange(links.filter((_, rowIndex) => rowIndex !== index));
+    });
+    row.append(name, remove);
+    list.append(row);
+  });
+
+  const options = availableProviderLinks({ providerLinks: links });
+  const controls = document.createElement("div");
+  controls.className = "form-link-controls";
+  const select = document.createElement("select");
+  select.setAttribute("aria-label", "Add provider profile");
+
+  if (!options.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = loadedNetworkEntries.length ? "No more providers available" : "Add providers in Referral Network first";
+    select.append(option);
+    select.disabled = true;
+  } else {
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Add provider";
+    select.append(placeholder);
+
+    for (const optionLink of options) {
+      const option = document.createElement("option");
+      option.value = `${optionLink.networkId}:${optionLink.providerId}`;
+      option.textContent = optionLink.label;
+      select.append(option);
+    }
+  }
+
+  const add = document.createElement("button");
+  add.type = "button";
+  add.textContent = "Add Provider";
+  add.disabled = !options.length;
+  add.addEventListener("click", () => {
+    const link = options.find((optionLink) => `${optionLink.networkId}:${optionLink.providerId}` === select.value);
+
+    if (!link) {
+      select.focus();
+      return;
+    }
+
+    onLinksChange([...links, link]);
+    if (onAddLink) {
+      onAddLink(link);
+    }
+  });
+
+  controls.append(select, add);
+  editor.append(header, list, controls);
+}
+
+function renderReferralProviderLinkEditor() {
+  renderFormProviderLinkEditor(
+    referralProviderLinkEditor,
+    editingReferralProviderLinks,
+    (links) => {
+      editingReferralProviderLinks = links;
+      renderReferralProviderLinkEditor();
+    },
+    (link) => {
+      syncReferralSourceFromProviderLink(link);
+    }
+  );
+}
+
+function renderClientProviderLinkEditor() {
+  renderFormProviderLinkEditor(
+    clientProviderLinkEditor,
+    editingClientProviderLinks,
+    (links) => {
+      editingClientProviderLinks = links;
+      renderClientProviderLinkEditor();
+    },
+    (link) => {
+      if (!String(clientFormField("referralSource")?.value || "").trim()) {
+        setClientFormFieldValue("referralSource", link.providerName || "");
+        syncClientReferralSourceDisplay();
+      }
+    }
+  );
 }
 
 function networkEntryMatchesSearch(entry) {
@@ -1007,7 +1708,7 @@ function appointmentMatchesFilters(appointment) {
     return false;
   }
 
-  if (dateFilter === "upcoming" && appointment.appointmentDate < today) {
+  if (dateFilter === "upcoming" && appointment.appointmentDate <= today) {
     return false;
   }
 
@@ -1025,13 +1726,16 @@ function appointmentMatchesFilters(appointment) {
 
   const searchable = [
     appointmentClientName(appointment),
+    appointmentClientNames(appointment).join(" "),
+    appointmentTypeLabel(appointment),
     appointment.status,
     appointment.lesson,
     appointment.goal,
     appointment.staffMember,
     appointment.notes,
     appointment.appointmentDate,
-    appointment.appointmentTime
+    appointment.appointmentTime,
+    formatAppointmentTime(appointment.appointmentTime)
   ]
     .filter(Boolean)
     .join(" ")
@@ -1095,24 +1799,7 @@ function clientStatusSortIndex(client) {
 }
 
 function sortReferrals(referrals) {
-  const sortMode = sortReferralsSelect.value;
   const sorted = [...referrals];
-
-  if (sortMode === "recent-contact") {
-    return sorted.sort((first, second) =>
-      dateValue(first.mostRecentContactDate) - dateValue(second.mostRecentContactDate) || compareNames(first, second)
-    );
-  }
-
-  if (sortMode === "newest-referral") {
-    return sorted.sort((first, second) =>
-      dateTimeValue(second.createdAt, -1) - dateTimeValue(first.createdAt, -1) || compareNames(first, second)
-    );
-  }
-
-  if (sortMode === "name") {
-    return sorted.sort(compareNames);
-  }
 
   return sorted.sort((first, second) =>
     statusSortIndex(first) - statusSortIndex(second) ||
@@ -1122,26 +1809,7 @@ function sortReferrals(referrals) {
 }
 
 function sortClients(clients) {
-  const sortMode = sortClientsSelect.value;
   const sorted = [...clients];
-
-  if (sortMode === "last-appointment") {
-    return sorted.sort((first, second) =>
-      dateValue(first.lastAppointmentDate) - dateValue(second.lastAppointmentDate) ||
-      clientName(first).localeCompare(clientName(second))
-    );
-  }
-
-  if (sortMode === "newest-client") {
-    return sorted.sort((first, second) =>
-      dateTimeValue(second.createdAt, -1) - dateTimeValue(first.createdAt, -1) ||
-      clientName(first).localeCompare(clientName(second))
-    );
-  }
-
-  if (sortMode === "name") {
-    return sorted.sort((first, second) => clientName(first).localeCompare(clientName(second)));
-  }
 
   return sorted.sort((first, second) =>
     clientStatusSortIndex(first) - clientStatusSortIndex(second) ||
@@ -1151,38 +1819,47 @@ function sortClients(clients) {
 }
 
 function renderDashboard() {
-  dashboardSummary.innerHTML = "";
-  dashboardFollowups.innerHTML = "";
-  dashboardNewReferrals.innerHTML = "";
-  dashboardScheduled.innerHTML = "";
-  dashboardNoNext.innerHTML = "";
+  clearElement(dashboardSummary);
+  clearElement(dashboardFollowups);
+  clearElement(dashboardNewReferrals);
+  clearElement(dashboardScheduled);
+  clearElement(dashboardNoNext);
+  clearElement(dashboardAppointmentsWeek);
+  clearElement(dashboardAttention);
+  clearElement(dashboardWorkflow);
 
-  const newReferrals = loadedReferrals.filter((referral) => normalizeStatus(referral.status) === "New");
-  const referralFollowUps = loadedReferrals.filter((referral) =>
-    ["Texted", "Left Voicemail", "Emailed", "Requested Call Back", "Caregiver Will Call Back"].includes(
-      normalizeStatus(referral.status)
-    )
-  );
-  const scheduledClients = loadedClients.filter((client) => (client.status || "Scheduled") === "Scheduled");
-  const activeClients = loadedClients.filter((client) =>
-    ["Active", "Needs Reschedule"].includes(client.status || "Scheduled")
-  );
-  const clientFollowUps = loadedClients.filter((client) =>
-    ["Needs Reschedule", "Needs Language Support"].includes(client.status || "Scheduled")
+  const today = todayDateString();
+  const currentYear = today.slice(0, 4);
+  const convertedClients = loadedClients.filter((client) => client.sourceReferralId);
+  const totalReferralCount = loadedReferrals.length + convertedClients.length;
+  const currentClients = loadedClients.filter((client) => !["Closed", "Inactive", "Graduated"].includes(client.status || "Scheduled"));
+  const nonClosedClients = loadedClients.filter((client) => (client.status || "Scheduled") !== "Closed");
+  const graduatedYtd = loadedClients.filter(
+    (client) => (client.status || "Scheduled") === "Graduated" && String(client.lastAppointmentDate || "").startsWith(currentYear)
   );
   const clientsWithoutNextAppointment = loadedClients.filter((client) =>
     ["Active", "Needs Reschedule", "Waiting on Family", "Needs Language Support"].includes(client.status || "Scheduled") &&
     !hasFutureAppointment(client)
   );
-  const convertedClients = loadedClients.filter((client) => client.sourceReferralId);
-  const conversionDenominator = loadedReferrals.length + convertedClients.length;
+  const yccoClients = nonClosedClients.filter((client) => truthyProfileValue(client.ycco));
+  const englishClients = nonClosedClients.filter((client) => String(client.preferredLanguage || "").toLowerCase() === "english");
+  const spanishClients = nonClosedClients.filter((client) => String(client.preferredLanguage || "").toLowerCase() === "spanish");
+  const otherLanguageCount = Math.max(nonClosedClients.length - englishClients.length - spanishClients.length, 0);
+  const startedClients = loadedClients.filter((client) => {
+    const status = client.status || "Scheduled";
+    return (
+      client.firstAppointmentDate ||
+      clientAppointments(client).length ||
+      ["Active", "Needs Reschedule", "Needs Language Support", "Waiting on Family", "Graduated", "Inactive", "Closed"].includes(status)
+    );
+  });
+  const retainedClients = startedClients.filter((client) => !["Inactive", "Closed"].includes(client.status || "Scheduled"));
 
   const metrics = [
-    { label: "Total Referrals", value: loadedReferrals.length },
-    { label: "Active Clients", value: activeClients.length },
-    { label: "Follow Up", value: referralFollowUps.length + clientFollowUps.length },
-    { label: "Scheduled", value: scheduledClients.length },
-    { label: "Conversion Rate", value: percentage(convertedClients.length, conversionDenominator) }
+    { label: "Total Referrals", value: totalReferralCount },
+    { label: "Active Clients", value: currentClients.length },
+    { label: "Conversion Rate", value: percentage(convertedClients.length, totalReferralCount) },
+    { label: "Graduated YTD", value: graduatedYtd.length }
   ];
 
   for (const metric of metrics) {
@@ -1196,48 +1873,29 @@ function renderDashboard() {
     dashboardSummary.append(item);
   }
 
-  const followupItems = [
-    ...referralFollowUps.map((referral) => ({
-      type: "Referral",
-      title: referralName(referral),
-      detail: normalizeStatus(referral.status),
-      date: referral.mostRecentContactDate || referral.referralDate || "",
-      action: () => setSelectedReferral(referral.id)
-    })),
-    ...clientFollowUps.map((client) => ({
-      type: "Client",
-      title: clientName(client),
-      detail: client.status,
-      date: client.mostRecentContactDate || client.lastAppointmentDate || "",
-      action: () => setSelectedClient(client.id)
-    }))
-  ].sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
-
-  renderDashboardList(dashboardFollowups, followupItems, "No follow-ups waiting.");
-
-  const newReferralItems = newReferrals
-    .map((referral) => ({
-      type: "Referral",
-      title: referralName(referral),
-      detail: referral.referralSource ? `Source: ${referral.referralSource}` : displayValue(referral.referralType),
-      date: referral.referralDate || referral.createdAt || "",
-      action: () => setSelectedReferral(referral.id)
-    }))
-    .sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
-
-  renderDashboardList(dashboardNewReferrals, newReferralItems, "No new referrals waiting.");
-
-  const scheduledItems = scheduledClients
-    .map((client) => ({
-      type: "Client",
-      title: clientName(client),
-      detail: client.firstAppointmentDate ? `First appt ${formatDateOnly(client.firstAppointmentDate)}` : "Scheduled",
-      date: client.firstAppointmentDate || client.createdAt || "",
-      action: () => setSelectedClient(client.id)
-    }))
-    .sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
-
-  renderDashboardList(dashboardScheduled, scheduledItems, "No clients currently scheduled.");
+  dashboardAttention.append(
+    renderDashboardMetricCard({
+      title: "YCCO",
+      center: `${percentageNumber(yccoClients.length, nonClosedClients.length)}%`,
+      detail: `${yccoClients.length} of ${nonClosedClients.length} non-closed clients`,
+      segments: [{ value: percentageNumber(yccoClients.length, nonClosedClients.length), color: "var(--brand-yellow)" }]
+    }),
+    renderDashboardMetricCard({
+      title: "Language Mix",
+      center: `${percentageNumber(englishClients.length, nonClosedClients.length)}% EN`,
+      detail: `${englishClients.length} English | ${spanishClients.length} Spanish${otherLanguageCount ? ` | ${otherLanguageCount} other` : ""}`,
+      segments: [
+        { value: percentageNumber(englishClients.length, nonClosedClients.length), color: "var(--brand-green)" },
+        { value: percentageNumber(spanishClients.length, nonClosedClients.length), color: "var(--brand-blue)" }
+      ]
+    }),
+    renderDashboardMetricCard({
+      title: "Retention Rate",
+      center: `${percentageNumber(retainedClients.length, startedClients.length)}%`,
+      detail: `${retainedClients.length} of ${startedClients.length} clients active or graduated after starting`,
+      segments: [{ value: percentageNumber(retainedClients.length, startedClients.length), color: "var(--brand-purple)" }]
+    })
+  );
 
   const noNextItems = clientsWithoutNextAppointment
     .map((client) => ({
@@ -1250,6 +1908,863 @@ function renderDashboard() {
     .sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
 
   renderDashboardList(dashboardNoNext, noNextItems, "No active clients missing an appointment.");
+}
+
+function renderDashboardMetricCard({ title, center, detail, segments }) {
+  const card = document.createElement("section");
+  card.className = "dashboard-metric-card";
+
+  const ring = document.createElement("div");
+  ring.className = "dashboard-ring";
+  ring.style.background = dashboardRingGradient(segments);
+  const centerLabel = document.createElement("strong");
+  centerLabel.textContent = center;
+  ring.append(centerLabel);
+
+  const copy = document.createElement("div");
+  const heading = document.createElement("h4");
+  heading.textContent = title;
+  const detailText = document.createElement("p");
+  detailText.textContent = detail;
+  copy.append(heading, detailText);
+
+  card.append(ring, copy);
+  return card;
+}
+
+function dashboardRingGradient(segments) {
+  let current = 0;
+  const stops = [];
+
+  for (const segment of segments) {
+    const value = Math.max(Number(segment.value) || 0, 0);
+    const end = Math.min(current + value, 100);
+    if (end > current) {
+      stops.push(`${segment.color} ${current}% ${end}%`);
+    }
+    current = end;
+  }
+
+  stops.push(`#edf2ef ${current}% 100%`);
+  return `conic-gradient(${stops.join(", ")})`;
+}
+
+function renderDashboardAppointmentWeek() {
+  const today = new Date(`${todayDateString()}T00:00:00`);
+  const weekDates = Array.from({ length: 5 }, (_, index) => addDays(today, index));
+  const appointmentsByDate = new Map(weekDates.map((date) => [toDateString(date), []]));
+
+  for (const appointment of loadedAppointments) {
+    if (!appointmentsByDate.has(appointment.appointmentDate)) {
+      continue;
+    }
+
+    appointmentsByDate.get(appointment.appointmentDate).push(appointment);
+  }
+
+  for (const date of weekDates) {
+    const dateKey = toDateString(date);
+    const appointments = (appointmentsByDate.get(dateKey) || []).sort(
+      (first, second) =>
+        appointmentTimeValue(first.appointmentTime) - appointmentTimeValue(second.appointmentTime) ||
+        appointmentClientName(first).localeCompare(appointmentClientName(second))
+    );
+
+    const day = document.createElement("section");
+    day.className = "dashboard-day";
+    day.setAttribute("aria-label", formatWeekdayDate(date));
+
+    const header = document.createElement("div");
+    header.className = "dashboard-day-title";
+    const title = document.createElement("strong");
+    title.textContent = formatWeekdayDate(date);
+    const count = document.createElement("span");
+    count.className = "dashboard-day-count";
+    count.textContent = `${appointments.length} appt${appointments.length === 1 ? "" : "s"}`;
+    header.append(title, count);
+    day.append(header);
+
+    if (!appointments.length) {
+      const empty = document.createElement("p");
+      empty.className = "empty-inline";
+      empty.textContent = "Nothing scheduled.";
+      day.append(empty);
+    }
+
+    for (const appointment of appointments) {
+      const isNutrition = Boolean(String(appointment.lesson || "").trim());
+      const item = document.createElement("button");
+      item.className = `dashboard-appt ${isNutrition ? "dashboard-appt-nutrition" : "dashboard-appt-enrollment"}`;
+      item.style.setProperty("--appointment-accent", appointmentLessonAccent(appointment));
+      item.type = "button";
+      item.addEventListener("click", () => {
+        setActiveModule("scheduling");
+        setSelectedAppointment(appointment.id);
+      });
+
+      const name = document.createElement("strong");
+      name.textContent = appointmentClientName(appointment);
+      const detail = document.createElement("span");
+      const type = [appointmentTypeLabel(appointment), appointment.lesson ? `Lesson ${appointment.lesson}` : ""].filter(Boolean).join(" ");
+      detail.textContent = [formatAppointmentTime(appointment.appointmentTime), type].filter(Boolean).join(" | ");
+      item.append(name, detail);
+      day.append(item);
+    }
+
+    dashboardAppointmentsWeek.append(day);
+  }
+}
+
+function renderDashboardAttention({ newReferrals, referralFollowUps, clientFollowUps, clientsWithoutNextAppointment }) {
+  const missingFormsCount = loadedClients.filter((client) => (client.status || "Scheduled") === "Scheduled").length;
+  const languageSupportCount = loadedClients.filter((client) => client.status === "Needs Language Support").length;
+  const rescheduleCount = loadedClients.filter((client) => client.status === "Needs Reschedule").length;
+  const attentionItems = [
+    {
+      label: "Stale referrals",
+      detail: "New or contacted referrals waiting for next outreach",
+      value: newReferrals.length + referralFollowUps.length,
+      color: "var(--brand-red)"
+    },
+    {
+      label: "Needs reschedule",
+      detail: "Clients whose next appointment fell through",
+      value: rescheduleCount,
+      color: "var(--brand-orange)"
+    },
+    {
+      label: "No next appointment",
+      detail: "Active clients without a scheduled next visit",
+      value: clientsWithoutNextAppointment.length,
+      color: "var(--brand-yellow)"
+    },
+    {
+      label: "Language support",
+      detail: "Spanish or interpretation follow-up needed",
+      value: languageSupportCount,
+      color: "var(--brand-teal)"
+    },
+    {
+      label: "Missing forms",
+      detail: "Enrollment paperwork signal placeholder",
+      value: missingFormsCount,
+      color: "var(--brand-blue)"
+    },
+    {
+      label: "Needs review",
+      detail: "Appointment notes and workflow review placeholder",
+      value: clientFollowUps.length,
+      color: "var(--brand-purple)"
+    }
+  ];
+
+  dashboardAttention.innerHTML = "";
+
+  for (const item of attentionItems) {
+    const row = document.createElement("div");
+    row.className = "attention-item";
+    row.style.setProperty("--attention-accent", item.color);
+    const copy = document.createElement("div");
+    const label = document.createElement("strong");
+    label.textContent = item.label;
+    const detail = document.createElement("span");
+    detail.textContent = item.detail;
+    copy.append(label, detail);
+    const count = document.createElement("span");
+    count.className = "attention-count";
+    count.textContent = String(item.value);
+    row.append(copy, count);
+    dashboardAttention.append(row);
+  }
+}
+
+function renderDashboardWorkflow({ newReferrals, referralFollowUps, clientFollowUps, clientsWithoutNextAppointment }) {
+  const columns = [
+    {
+      title: "Today",
+      items: [
+        { label: "Call new referrals", detail: `${newReferrals.length} waiting for first contact`, tag: "CRM" },
+        { label: "Confirm appointments", detail: `${loadedAppointments.filter((appointment) => appointment.appointmentDate === todayDateString()).length} scheduled today`, tag: "Sched" }
+      ]
+    },
+    {
+      title: "Follow up",
+      items: [
+        { label: "Reschedule list", detail: `${clientFollowUps.length} clients need attention`, tag: "Client" },
+        { label: "Voicemails and texts", detail: `${referralFollowUps.length} referrals in contact`, tag: "Calls" }
+      ]
+    },
+    {
+      title: "Later",
+      items: [
+        { label: "Review notes", detail: "Placeholder until workflow is live", tag: "TBD" },
+        { label: "No next appointment", detail: `${clientsWithoutNextAppointment.length} active clients to review`, tag: "Appts" }
+      ]
+    }
+  ];
+
+  dashboardWorkflow.innerHTML = "";
+
+  for (const column of columns) {
+    const section = document.createElement("section");
+    section.className = "workflow-column";
+    const heading = document.createElement("h4");
+    heading.textContent = column.title;
+    section.append(heading);
+
+    for (const item of column.items) {
+      const row = document.createElement("div");
+      row.className = "workflow-item";
+      const copy = document.createElement("div");
+      const label = document.createElement("strong");
+      label.textContent = item.label;
+      const detail = document.createElement("span");
+      detail.textContent = item.detail;
+      copy.append(label, detail);
+      const tag = document.createElement("span");
+      tag.className = "workflow-tag";
+      tag.textContent = item.tag;
+      row.append(copy, tag);
+      section.append(row);
+    }
+
+    dashboardWorkflow.append(section);
+  }
+}
+
+function taskClientName(task) {
+  const client = loadedClients.find((item) => item.id === task.clientId);
+  return client ? clientName(client) : task.clientName || "";
+}
+
+function taskReferralName(task) {
+  const referral = loadedReferrals.find((item) => item.id === task.referralId);
+  return referral ? referralName(referral) : "";
+}
+
+function taskRelatedRecord(task) {
+  if (task.clientId) {
+    return loadedClients.find((item) => item.id === task.clientId) || null;
+  }
+
+  if (task.referralId) {
+    return loadedReferrals.find((item) => item.id === task.referralId) || null;
+  }
+
+  return null;
+}
+
+function taskRelatedName(task) {
+  if (task.clientId || task.clientName) {
+    return taskClientName(task);
+  }
+
+  if (task.referralId) {
+    return taskReferralName(task);
+  }
+
+  return "";
+}
+
+function contactPrefersText(record) {
+  return /\b(text|sms)\b/i.test(record?.preferredContactMethod || "");
+}
+
+function contactActionVerb(record) {
+  return contactPrefersText(record) ? "Text" : "Call";
+}
+
+function isRescheduleTask(task) {
+  return Boolean(task.clientId && /\breschedule\b/i.test(task.title || ""));
+}
+
+function taskDisplayTitle(task) {
+  const rawTitle = task.title || "Untitled task";
+  const relatedName = taskRelatedName(task);
+  const referralLabel = taskReferralName(task);
+
+  if (isRescheduleTask(task) && relatedName) {
+    return `Reschedule ${relatedName}`;
+  }
+
+  if (task.referralId && referralLabel && /about SNACK referral/i.test(rawTitle)) {
+    return `Schedule ${referralLabel}`;
+  }
+
+  if (task.referralId && referralLabel && /\bnew referral\b/i.test(rawTitle)) {
+    return `Schedule ${referralLabel}`;
+  }
+
+  return rawTitle.replace(/\bto reschedule\b/i, "to Reschedule");
+}
+
+function taskContactLines(task) {
+  const record = taskRelatedRecord(task);
+  if (!record) {
+    return [formatTaskDue(task), task.assignedTo ? `Assigned: ${task.assignedTo}` : ""].filter(Boolean);
+  }
+
+  const contactLine = [record.parentName, record.phone ? formatPhone(record.phone) : ""].filter(Boolean).join(" | ");
+  const dueLine = formatTaskDue(task);
+  const lines = [];
+
+  if (contactLine) {
+    lines.push(contactLine);
+  }
+  if (dueLine) {
+    lines.push(dueLine);
+  }
+  if (task.assignedTo) {
+    lines.push(`Assigned: ${task.assignedTo}`);
+  }
+
+  return lines;
+}
+
+function isGeneratedTaskNote(task) {
+  const note = String(task.notes || "").trim().toLowerCase();
+  return note === "client is on the needs reschedule list." || note === "new referral follow-up.";
+}
+
+function taskNotePreview(task) {
+  const note = String(task.notes || "").trim();
+
+  if (!note || isGeneratedTaskNote(task)) {
+    return "";
+  }
+
+  if (/^prep list for/i.test(note)) {
+    const lines = note.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+    const prepItems = lines.filter((line) => line.startsWith("-"));
+    const summary = lines[0]
+      .replace(/^Prep list for\s*/i, "")
+      .replace(/:$/, "")
+      .trim();
+    const count = prepItems.length;
+    return `${summary || "Prep list"} - ${count} prep item${count === 1 ? "" : "s"}.`;
+  }
+
+  return note;
+}
+
+function taskColumnKey(task) {
+  const title = taskDisplayTitle(task).toLowerCase();
+  const type = task.type || "";
+  const record = taskRelatedRecord(task);
+
+  if (type === "Text" || title.startsWith("text ") || (isRescheduleTask(task) && contactPrefersText(record))) {
+    return "texts";
+  }
+
+  if (type === "Form" || title.includes(" form")) {
+    return "forms";
+  }
+
+  if (type === "Call" || type === "Schedule" || title.startsWith("call ")) {
+    return "calls";
+  }
+
+  return "tasks";
+}
+
+function taskColumnConfig(task) {
+  const key = typeof task === "string" ? task : taskColumnKey(task);
+  return taskFlowColumns.find((column) => column.key === key) || taskFlowColumns[taskFlowColumns.length - 1];
+}
+
+function taskPriorityRank(task) {
+  const priority = task.priority || "Normal";
+  if (priority === "Urgent") {
+    return 0;
+  }
+  if (priority === "Normal") {
+    return 1;
+  }
+  return 2;
+}
+
+function taskStatusRank(task) {
+  const status = task.status || "Open";
+  const rank = {
+    Open: 0,
+    "In Progress": 1,
+    Waiting: 2,
+    Done: 3,
+    Canceled: 4
+  };
+  return rank[status] ?? 5;
+}
+
+function taskDueValue(task) {
+  if (!task.dueDate) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+  return dateValue(task.dueDate);
+}
+
+function compareWorkflowTasks(first, second) {
+  return (
+    taskDueValue(first) - taskDueValue(second) ||
+    taskPriorityRank(first) - taskPriorityRank(second) ||
+    taskStatusRank(first) - taskStatusRank(second) ||
+    taskDisplayTitle(first).localeCompare(taskDisplayTitle(second))
+  );
+}
+
+function isActiveTask(task) {
+  return ["Open", "In Progress", "Waiting"].includes(task.status || "Open");
+}
+
+function isGeneratedWorkflowTask(task) {
+  return ["Start the Day", "Polish Queue"].includes(task.source || "");
+}
+
+function isArchivedTask(task) {
+  return ["Done", "Canceled"].includes(task.status || "Open");
+}
+
+function formatTaskDue(task) {
+  if (!task.dueDate) {
+    return "";
+  }
+
+  return formatListDate(task.dueDate);
+}
+
+function renderTaskRelatedOptions(selectedId = "") {
+  taskRelatedOptions.innerHTML = "";
+  const isReferral = taskRelatedTypeSelect.value === "referral";
+  const records = isReferral
+    ? [...loadedReferrals].sort((first, second) => referralName(first).localeCompare(referralName(second)))
+    : [...loadedClients].sort((first, second) => clientName(first).localeCompare(clientName(second)));
+
+  for (const record of records) {
+    const option = document.createElement("option");
+    option.value = isReferral ? referralName(record) : clientName(record);
+    taskRelatedOptions.append(option);
+  }
+
+  const selectedRecord = records.find((record) => record.id === selectedId);
+  taskRelatedSearchInput.value = selectedRecord ? (isReferral ? referralName(selectedRecord) : clientName(selectedRecord)) : "";
+}
+
+function resolveTaskRelatedId() {
+  const query = taskRelatedSearchInput.value.trim().toLowerCase();
+  const isReferral = taskRelatedTypeSelect.value === "referral";
+  const selectedRecord = isReferral
+    ? loadedReferrals.find((referral) => referralName(referral).toLowerCase() === query)
+    : loadedClients.find((client) => clientName(client).toLowerCase() === query);
+  taskClientIdInput.value = !isReferral && selectedRecord ? selectedRecord.id : "";
+  taskReferralIdInput.value = isReferral && selectedRecord ? selectedRecord.id : "";
+  syncTaskProfileButton();
+  return selectedRecord?.id || "";
+}
+
+function selectedTaskRelatedRecord() {
+  if (taskRelatedTypeSelect.value === "referral") {
+    return loadedReferrals.find((referral) => referral.id === taskReferralIdInput.value) || null;
+  }
+
+  return loadedClients.find((client) => client.id === taskClientIdInput.value) || null;
+}
+
+function syncTaskProfileButton() {
+  const relatedRecord = selectedTaskRelatedRecord();
+  openTaskProfileButton.hidden = !relatedRecord;
+  openTaskProfileButton.textContent = "Profile";
+}
+
+function taskTypeForColumn(task) {
+  const columnKey = taskColumnKey(task);
+  return taskTypeForColumnKey(columnKey);
+}
+
+function taskTypeForColumnKey(columnKey) {
+  if (columnKey === "texts") {
+    return "Text";
+  }
+  if (columnKey === "forms") {
+    return "Form";
+  }
+  if (columnKey === "calls") {
+    return "Call";
+  }
+  return "Task";
+}
+
+function openTaskRelatedProfile() {
+  const isReferral = taskRelatedTypeSelect.value === "referral";
+  const relatedId = isReferral ? taskReferralIdInput.value : taskClientIdInput.value;
+
+  if (!relatedId) {
+    return;
+  }
+
+  closeTaskModal();
+  if (isReferral) {
+    setSelectedReferral(relatedId);
+    return;
+  }
+  setSelectedClient(relatedId);
+}
+
+function openTaskModal() {
+  taskModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeTaskModal() {
+  const wasOpen = !taskModal.hidden;
+  taskModal.hidden = true;
+  if (wasOpen) {
+    document.body.classList.remove("modal-open");
+  }
+  editingTaskId = null;
+  taskForm.reset();
+  renderWorkflowTasks();
+}
+
+function resetTaskForm(defaults = {}) {
+  editingTaskId = null;
+  taskForm.reset();
+  taskFormTitle.textContent = "New Task";
+  saveTaskButton.textContent = "Save Task";
+  cancelTaskEditButton.hidden = false;
+  deleteTaskButton.hidden = true;
+  taskRelatedTypeSelect.value = defaults.referralId ? "referral" : "client";
+  taskForm.elements.type.value = defaults.type || "Call";
+  taskForm.elements.status.value = defaults.status || "Open";
+  taskForm.elements.priority.value = defaults.priority || "Normal";
+  taskForm.elements.source.value = defaults.source || "Manual";
+  taskForm.elements.title.value = defaults.title || "";
+  taskForm.elements.dueDate.value = defaults.dueDate || "";
+  taskForm.elements.assignedTo.value = defaults.assignedTo || "";
+  taskForm.elements.appointmentId.value = defaults.appointmentId || "";
+  taskForm.elements.referralId.value = defaults.referralId || "";
+  taskForm.elements.clientId.value = defaults.clientId || "";
+  taskForm.elements.notes.value = defaults.notes || "";
+  renderTaskRelatedOptions(defaults.referralId || defaults.clientId || "");
+  syncTaskProfileButton();
+}
+
+function startNewTask(defaults = {}) {
+  resetTaskForm(defaults);
+  openTaskModal();
+}
+
+function playTaskCompleteSound() {
+  try {
+    if (!window.Audio) {
+      return;
+    }
+
+    taskCompletionAudio = taskCompletionAudio || new Audio(taskCompleteSoundUrl);
+    taskCompletionAudio.preload = "auto";
+
+    const audio = taskCompletionAudio.cloneNode(true);
+    audio.volume = 0.85;
+    const stopTimer = window.setTimeout(() => {
+      audio.pause();
+      audio.currentTime = 0;
+    }, taskCompleteSoundDurationMs);
+    audio.addEventListener("ended", () => window.clearTimeout(stopTimer), { once: true });
+
+    const playPromise = audio.play();
+    if (playPromise?.catch) {
+      playPromise.catch((error) => console.warn("Could not play task complete sound.", error));
+    }
+  } catch (error) {
+    console.warn("Could not play task complete sound.", error);
+  }
+}
+
+function hideTaskUndoToast() {
+  if (taskUndoTimeoutId) {
+    window.clearTimeout(taskUndoTimeoutId);
+    taskUndoTimeoutId = null;
+  }
+
+  pendingTaskUndo = null;
+  taskUndoToast.hidden = true;
+}
+
+function showTaskUndoToast(task, previousStatus) {
+  if (!taskUndoToast || !taskUndoButton) {
+    return;
+  }
+
+  if (taskUndoTimeoutId) {
+    window.clearTimeout(taskUndoTimeoutId);
+  }
+
+  pendingTaskUndo = {
+    taskId: task.id,
+    task: { ...task },
+    previousStatus: previousStatus || "Open"
+  };
+  taskUndoMessage.textContent = `${taskDisplayTitle(task)} marked done.`;
+  taskUndoToast.hidden = false;
+  taskUndoTimeoutId = window.setTimeout(hideTaskUndoToast, 6000);
+}
+
+async function undoTaskCompletion() {
+  if (!pendingTaskUndo) {
+    return;
+  }
+
+  const undo = pendingTaskUndo;
+  const task = loadedTasks.find((item) => item.id === undo.taskId) || undo.task;
+  hideTaskUndoToast();
+  await updateTaskStatus(task, undo.previousStatus, { statusMessage: "Task restored.", skipUndo: true });
+}
+
+function setTaskFormValues(task) {
+  editingTaskId = task.id;
+  taskFormTitle.textContent = "Edit Task";
+  saveTaskButton.textContent = "Update Task";
+  cancelTaskEditButton.hidden = false;
+  deleteTaskButton.hidden = false;
+  taskRelatedTypeSelect.value = task.referralId ? "referral" : "client";
+  taskForm.elements.title.value = taskDisplayTitle(task);
+  taskForm.elements.type.value = taskTypeForColumn(task);
+  taskForm.elements.status.value = task.status || "Open";
+  taskForm.elements.priority.value = task.priority || "Normal";
+  taskForm.elements.dueDate.value = task.dueDate || "";
+  taskForm.elements.assignedTo.value = task.assignedTo || "";
+  taskForm.elements.appointmentId.value = task.appointmentId || "";
+  taskForm.elements.referralId.value = task.referralId || "";
+  taskForm.elements.clientId.value = task.clientId || "";
+  taskForm.elements.source.value = task.source || "Manual";
+  taskForm.elements.notes.value = isGeneratedTaskNote(task) ? "" : task.notes || "";
+  renderTaskRelatedOptions(task.referralId || task.clientId || "");
+  syncTaskProfileButton();
+  openTaskModal();
+}
+
+function renderTaskSummary() {
+  workflowTaskSummary.innerHTML = "";
+  const today = todayDateString();
+  const activeTasks = loadedTasks.filter(isActiveTask);
+  const overdueCount = activeTasks.filter((task) => task.dueDate && task.dueDate < today).length;
+  const dueTodayCount = activeTasks.filter((task) => task.dueDate === today).length;
+  const urgentCount = activeTasks.filter((task) => task.priority === "Urgent").length;
+  const totals = [
+    { label: "Overdue", value: overdueCount, color: "var(--brand-red)" },
+    { label: "Urgent", value: urgentCount, color: "var(--brand-orange)" },
+    { label: "Due Today", value: dueTodayCount, color: "var(--brand-yellow)" },
+    { label: "Active", value: activeTasks.length, color: "var(--brand-green)" }
+  ];
+
+  for (const total of totals) {
+    const item = document.createElement("div");
+    item.className = "summary-item task-summary-item";
+    item.style.setProperty("--summary-accent", total.color);
+    const value = document.createElement("strong");
+    value.textContent = String(total.value);
+    const label = document.createElement("span");
+    label.textContent = total.label;
+    item.append(value, label);
+    workflowTaskSummary.append(item);
+  }
+}
+
+function renderTaskBadge(text, className) {
+  const badge = document.createElement("span");
+  badge.className = `task-badge ${className}`;
+  badge.textContent = text;
+  return badge;
+}
+
+function taskColumnHeader({ label, color }, count) {
+  const header = document.createElement("div");
+  header.className = "task-column-header";
+  header.style.setProperty("--task-column-accent", color);
+  const title = document.createElement("h4");
+  title.textContent = label;
+  const total = document.createElement("span");
+  total.textContent = String(count);
+  header.append(title, total);
+  return header;
+}
+
+function renderTaskCard(task, options = {}) {
+  const draggable = options.draggable !== false;
+  const row = document.createElement("article");
+  row.className = "task-item";
+  row.draggable = draggable;
+  row.style.setProperty("--task-accent", taskColumnConfig(task).color);
+  if (!isActiveTask(task)) {
+    row.classList.add("done");
+  }
+  if (task.id === editingTaskId) {
+    row.classList.add("selected");
+  }
+  if (draggable) {
+    row.addEventListener("dragstart", (event) => {
+      row.classList.add("is-dragging");
+      row.dataset.dragging = "true";
+      setSnackDragData(event, { kind: "workflow-task", id: task.id });
+    });
+    row.addEventListener("dragend", () => {
+      row.classList.remove("is-dragging");
+      clearSnackDragData();
+      window.setTimeout(() => {
+        delete row.dataset.dragging;
+      }, 0);
+    });
+  }
+
+  const checkButton = document.createElement("button");
+  checkButton.className = "task-check";
+  checkButton.type = "button";
+  checkButton.setAttribute("aria-label", `${isActiveTask(task) ? "Complete" : "Reopen"} ${taskDisplayTitle(task)}`);
+  checkButton.addEventListener("click", () => {
+    const nextStatus = isActiveTask(task) ? "Done" : "Open";
+    const previousStatus = task.status || "Open";
+    if (nextStatus === "Done") {
+      playTaskCompleteSound();
+    }
+    updateTaskStatus(task, nextStatus, { previousStatus, showUndo: nextStatus === "Done" });
+  });
+
+  const main = document.createElement("button");
+  main.className = "task-main";
+  main.type = "button";
+  main.addEventListener("click", () => {
+    if (row.dataset.dragging === "true") {
+      return;
+    }
+    if (!flowArchiveModal.hidden) {
+      closeFlowArchive();
+    }
+    setTaskFormValues(task);
+  });
+
+  const titleRow = document.createElement("span");
+  titleRow.className = "task-title-row";
+  const title = document.createElement("strong");
+  title.textContent = taskDisplayTitle(task);
+  titleRow.append(title);
+
+  const badges = [];
+  if ((task.priority || "Normal") !== "Normal") {
+    badges.push(renderTaskBadge(task.priority || "Normal", `priority-${String(task.priority || "Normal").toLowerCase()}`));
+  }
+  if ((task.status || "Open") !== "Open") {
+    badges.push(renderTaskBadge(task.status || "Open", `status-${String(task.status || "Open").toLowerCase().replace(/\s+/g, "-")}`));
+  }
+
+  main.append(titleRow);
+
+  const detailLines = taskContactLines(task);
+  if (detailLines.length) {
+    const meta = document.createElement("span");
+    meta.className = "task-detail-lines";
+    for (const line of detailLines) {
+      const lineEl = document.createElement("span");
+      lineEl.textContent = line;
+      meta.append(lineEl);
+    }
+    main.append(meta);
+  }
+
+  if (badges.length) {
+    const badgeRow = document.createElement("span");
+    badgeRow.className = "task-badges";
+    badgeRow.append(...badges);
+    main.append(badgeRow);
+  }
+
+  const notePreview = taskNotePreview(task);
+  if (notePreview) {
+    const notes = document.createElement("p");
+    notes.textContent = notePreview;
+    main.append(notes);
+  }
+
+  row.append(checkButton, main);
+  return row;
+}
+
+function renderWorkflowTasks() {
+  renderTaskSummary();
+  workflowTaskList.innerHTML = "";
+
+  const activeTasks = loadedTasks
+    .filter(isActiveTask)
+    .sort(compareWorkflowTasks);
+  const archivedTasks = loadedTasks
+    .filter(isArchivedTask)
+    .sort(compareWorkflowTasks);
+
+  const tasksByColumn = taskFlowColumns.reduce((groups, column) => ({ ...groups, [column.key]: [] }), {});
+
+  for (const task of activeTasks) {
+    tasksByColumn[taskColumnKey(task)].push(task);
+  }
+
+  const board = document.createElement("div");
+  board.className = "task-column-board";
+
+  for (const column of taskFlowColumns) {
+    const columnTasks = tasksByColumn[column.key].sort(compareWorkflowTasks);
+    const section = document.createElement("section");
+    section.className = "task-column";
+    bindDropZone(section, {
+      kind: "workflow-task",
+      onDrop: (payload) => moveTaskToColumn(payload.id, column.key)
+    });
+    section.append(taskColumnHeader(column, columnTasks.length));
+
+    const body = document.createElement("div");
+    body.className = "task-column-body";
+
+    if (!columnTasks.length) {
+      const empty = document.createElement("p");
+      empty.className = "empty-inline";
+      empty.textContent = "Nothing here.";
+      body.append(empty);
+    }
+
+    for (const task of columnTasks) {
+      body.append(renderTaskCard(task));
+    }
+
+    section.append(body);
+    board.append(section);
+  }
+
+  workflowTaskList.append(board);
+  workflowTaskList.append(renderTaskArchive(archivedTasks));
+}
+
+function renderTaskArchive(tasks) {
+  const archive = document.createElement("button");
+  archive.className = "flow-archive task-archive";
+  archive.type = "button";
+  archive.style.setProperty("--flow-accent", "var(--brand-blue)");
+  archive.addEventListener("click", () => {
+    openFlowArchive({
+      eyebrow: "Workflow",
+      title: "Closed / Canceled Tasks",
+      description: "",
+      records: tasks,
+      accent: "var(--brand-blue)",
+      cardFor: (task) => renderTaskCard(task, { draggable: false })
+    });
+  });
+
+  const copy = document.createElement("div");
+  const heading = document.createElement("h4");
+  heading.textContent = "Closed / Canceled Tasks Archive";
+  copy.append(heading);
+
+  const count = document.createElement("span");
+  count.className = "flow-archive-count";
+  count.textContent = `${tasks.length} archived`;
+
+  archive.append(copy, count);
+  return archive;
 }
 
 function renderDashboardList(container, items, emptyText) {
@@ -1304,6 +2819,366 @@ function renderDashboardList(container, items, emptyText) {
   }
 }
 
+function setReferralView(view) {
+  activeReferralView = view;
+  saveNavigationState();
+  renderReferrals();
+}
+
+function setClientView(view) {
+  activeClientView = view;
+  saveNavigationState();
+  renderClients();
+}
+
+function updateViewToggle(listButton, flowButton, activeView) {
+  const listActive = activeView === "list";
+  listButton.classList.toggle("active", listActive);
+  flowButton.classList.toggle("active", !listActive);
+  listButton.setAttribute("aria-pressed", String(listActive));
+  flowButton.setAttribute("aria-pressed", String(!listActive));
+}
+
+const snackDragMime = "application/x-snack-drag";
+let activeSnackDragPayload = null;
+
+function setSnackDragData(event, payload) {
+  const serialized = JSON.stringify(payload);
+  activeSnackDragPayload = payload;
+
+  if (event.dataTransfer) {
+    event.dataTransfer.setData(snackDragMime, serialized);
+    event.dataTransfer.setData("text/plain", serialized);
+    event.dataTransfer.effectAllowed = "move";
+  }
+}
+
+function snackDragData(event) {
+  const raw = event.dataTransfer?.getData(snackDragMime) || event.dataTransfer?.getData("text/plain");
+
+  if (!raw) {
+    return activeSnackDragPayload;
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch (_error) {
+    return activeSnackDragPayload;
+  }
+}
+
+function clearDragTargets() {
+  document.querySelectorAll(".drag-over").forEach((element) => element.classList.remove("drag-over"));
+}
+
+function clearSnackDragData() {
+  clearDragTargets();
+  activeSnackDragPayload = null;
+}
+
+function bindDropZone(element, { kind, onDrop }) {
+  element.addEventListener("dragover", (event) => {
+    const payload = snackDragData(event);
+
+    if (!payload || payload.kind !== kind) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "move";
+    element.classList.add("drag-over");
+  });
+
+  element.addEventListener("dragleave", (event) => {
+    if (!element.contains(event.relatedTarget)) {
+      element.classList.remove("drag-over");
+    }
+  });
+
+  element.addEventListener("drop", async (event) => {
+    const payload = snackDragData(event);
+
+    if (!payload || payload.kind !== kind) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    clearSnackDragData();
+    await onDrop(payload, event);
+  });
+}
+
+function calendarSlotTimeFromDrop(event, cell, hour) {
+  const minutes = calendarStartMinutes(hour);
+
+  if (!minutes.length) {
+    return null;
+  }
+
+  const rect = cell.getBoundingClientRect();
+  const slotHeight = rect.height / 4;
+  const rawIndex = Math.floor((event.clientY - rect.top) / slotHeight);
+  const index = Math.max(0, Math.min(minutes.length - 1, rawIndex));
+  return `${String(hour).padStart(2, "0")}:${String(minutes[index]).padStart(2, "0")}`;
+}
+
+function flowCard({ title, detail, meta, tag, accent, onOpen, dragData }) {
+  const card = document.createElement("article");
+  card.className = "flow-card";
+  card.setAttribute("role", "button");
+  card.tabIndex = 0;
+  card.style.setProperty("--flow-accent", accent);
+  if (dragData) {
+    card.draggable = true;
+    card.addEventListener("dragstart", (event) => {
+      card.classList.add("is-dragging");
+      card.dataset.dragging = "true";
+      setSnackDragData(event, dragData);
+    });
+    card.addEventListener("dragend", () => {
+      card.classList.remove("is-dragging");
+      clearSnackDragData();
+      window.setTimeout(() => {
+        delete card.dataset.dragging;
+      }, 0);
+    });
+  }
+  card.addEventListener("click", () => {
+    if (card.dataset.dragging === "true") {
+      return;
+    }
+    onOpen();
+  });
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onOpen();
+    }
+  });
+
+  const main = document.createElement("span");
+  main.className = "flow-card-main";
+  const titleEl = document.createElement("span");
+  titleEl.className = "flow-card-title";
+  titleEl.textContent = title;
+  const detailEl = document.createElement("span");
+  detailEl.className = "flow-card-detail";
+  detailEl.textContent = detail;
+  const metaEl = document.createElement("span");
+  metaEl.className = "flow-card-meta";
+  metaEl.textContent = meta;
+  main.append(titleEl, detailEl, metaEl);
+  card.append(main);
+
+  if (tag) {
+    const tagEl = document.createElement("span");
+    tagEl.className = "flow-card-tag";
+    tagEl.textContent = tag;
+    card.append(tagEl);
+  }
+
+  return card;
+}
+
+function openFlowArchive({ eyebrow, title, description, records, accent, cardFor }) {
+  flowArchiveEyebrow.textContent = eyebrow;
+  flowArchiveTitle.textContent = title;
+  flowArchiveDescription.textContent = description;
+  flowArchiveDescription.hidden = !description;
+  flowArchiveList.innerHTML = "";
+  flowArchiveList.style.setProperty("--flow-accent", accent);
+
+  if (!records.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "Nothing archived here yet.";
+    flowArchiveList.append(empty);
+  } else {
+    for (const record of records) {
+      flowArchiveList.append(cardFor(record));
+    }
+  }
+
+  flowArchiveModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeFlowArchive() {
+  flowArchiveModal.hidden = true;
+  flowArchiveList.innerHTML = "";
+  document.body.classList.remove("modal-open");
+}
+
+function renderFlowBoard({ container, columns, records, statusFor, cardFor, dragKind, onColumnDrop }) {
+  container.innerHTML = "";
+  const activeColumns = columns.filter((column) => !column.archive);
+  const archiveColumns = columns.filter((column) => column.archive);
+
+  const lanes = document.createElement("div");
+  lanes.className = "flow-lanes";
+
+  for (const column of activeColumns) {
+    const section = document.createElement("section");
+    section.className = "flow-column";
+    section.style.setProperty("--flow-accent", column.accent);
+    section.style.setProperty("--flow-header-text", column.headerText || "#ffffff");
+    if (dragKind && onColumnDrop && column.statuses.length) {
+      bindDropZone(section, {
+        kind: dragKind,
+        onDrop: (payload) => onColumnDrop(payload, column)
+      });
+    }
+
+    const header = document.createElement("div");
+    header.className = "flow-column-header";
+    const heading = document.createElement("h4");
+    heading.textContent = column.label;
+    const count = document.createElement("span");
+    count.className = "flow-column-count";
+
+    const columnRecords = records.filter((record) => column.statuses.includes(statusFor(record)));
+    count.textContent = String(columnRecords.length);
+    header.append(heading, count);
+    section.append(header);
+
+    if (!columnRecords.length) {
+      const empty = document.createElement("p");
+      empty.className = "empty-inline";
+      empty.textContent = column.emptyText || (column.archive ? "Nothing archived here." : "Nothing in this lane.");
+      section.append(empty);
+    } else {
+      for (const record of columnRecords) {
+        section.append(cardFor(record, column));
+      }
+    }
+
+    lanes.append(section);
+  }
+
+  container.append(lanes);
+
+  if (archiveColumns.length) {
+    const archiveWrap = document.createElement("div");
+    archiveWrap.className = "flow-archives";
+
+    for (const column of archiveColumns) {
+      const columnRecords = records.filter((record) => column.statuses.includes(statusFor(record)));
+      const archive = document.createElement("button");
+      archive.className = "flow-archive";
+      archive.type = "button";
+      archive.style.setProperty("--flow-accent", column.accent);
+      archive.addEventListener("click", () => {
+        openFlowArchive({
+          eyebrow: "Archive",
+          title: column.label,
+          description: column.description || "",
+          records: columnRecords,
+          accent: column.accent,
+          cardFor: (record) => cardFor(record, column)
+        });
+      });
+
+      const copy = document.createElement("div");
+      const heading = document.createElement("h4");
+      heading.textContent = column.label;
+      if (column.description) {
+        const description = document.createElement("p");
+        description.textContent = column.description;
+        copy.append(heading, description);
+      } else {
+        copy.append(heading);
+      }
+
+      const count = document.createElement("span");
+      count.className = "flow-archive-count";
+      count.textContent = `${columnRecords.length} ${column.countLabel || "archived"}`;
+
+      archive.append(copy, count);
+      archiveWrap.append(archive);
+    }
+
+    container.append(archiveWrap);
+  }
+}
+
+function renderReferralFlow(referrals) {
+  renderFlowBoard({
+    container: referralFlowBoard,
+    columns: referralFlowColumns,
+    records: referrals,
+    statusFor: (referral) => normalizeStatus(referral.status),
+    dragKind: "referral-flow",
+    onColumnDrop: (payload, column) => moveReferralToFlowColumn(payload.id, column),
+    cardFor: (referral, column) =>
+      flowCard({
+        title: referralName(referral),
+        detail: referral.referralSource || displayValue(referral.referralType),
+        meta: [normalizeStatus(referral.status), formatShortDate(referral.mostRecentContactDate || referral.referralDate)].filter(Boolean).join(" | "),
+        tag: normalizeStatus(referral.status),
+        accent: column.accent,
+        dragData: { kind: "referral-flow", id: referral.id },
+        onOpen: () => {
+          if (!flowArchiveModal.hidden) {
+            closeFlowArchive();
+          }
+          setSelectedReferral(referral.id);
+        }
+      })
+  });
+}
+
+function renderClientFlow(clients) {
+  renderFlowBoard({
+    container: clientFlowBoard,
+    columns: clientFlowColumns,
+    records: clients,
+    statusFor: (client) => client.status || "Scheduled",
+    dragKind: "client-flow",
+    onColumnDrop: (payload, column) => moveClientToFlowColumn(payload.id, column),
+    cardFor: (client, column) =>
+      flowCard({
+        title: clientName(client),
+        detail: [client.parentName, formatPhone(client.phone)].filter(Boolean).join(" | ") || "No contact info yet",
+        meta: [client.status || "Scheduled", formatShortDate(client.mostRecentContactDate || client.lastAppointmentDate)].filter(Boolean).join(" | "),
+        tag: client.status || "Scheduled",
+        accent: column.accent,
+        dragData: { kind: "client-flow", id: client.id },
+        onOpen: () => {
+          if (!flowArchiveModal.hidden) {
+            closeFlowArchive();
+          }
+          setSelectedClient(client.id);
+        }
+      })
+  });
+}
+
+async function moveReferralToFlowColumn(referralId, column) {
+  const referral = loadedReferrals.find((item) => item.id === referralId);
+  const currentStatus = normalizeStatus(referral?.status);
+  const nextStatus = column.statuses[0];
+
+  if (!referral || !nextStatus || column.statuses.includes(currentStatus)) {
+    return;
+  }
+
+  await updateReferralStatus(referral, nextStatus);
+}
+
+async function moveClientToFlowColumn(clientId, column) {
+  const client = loadedClients.find((item) => item.id === clientId);
+  const currentStatus = client?.status || "Scheduled";
+  const nextStatus = column.statuses[0];
+
+  if (!client || !nextStatus || column.statuses.includes(currentStatus)) {
+    return;
+  }
+
+  await updateClientStatus(client, nextStatus);
+}
+
 function setSelectedReferral(referralId) {
   selectedReferralId = referralId;
   referralForm.reset();
@@ -1331,6 +3206,8 @@ function closeReferralModal() {
   document.body.classList.remove("modal-open");
   editingReferralId = null;
   referralForm.reset();
+  editingReferralProviderLinks = [];
+  renderReferralProviderLinkEditor();
   referralForm.hidden = true;
   referralDetail.hidden = false;
   syncModalCloseButton();
@@ -1340,33 +3217,71 @@ function closeReferralModal() {
 }
 
 function setActiveModule(moduleName) {
+  if (["crm-dashboard", "referrals", "clients", "referral-network"].includes(moduleName)) {
+    activeCrmView = moduleName === "crm-dashboard" ? "dashboard" : moduleName;
+    moduleName = "crm";
+  }
+
   activeModule = moduleName;
-  const showDashboard = moduleName === "dashboard";
-  const showReferrals = moduleName === "referrals";
-  const showClients = moduleName === "clients";
-  const showReferralNetwork = moduleName === "referral-network";
+  saveNavigationState();
+  const showWorkflow = moduleName === "workflow";
+  const showAdmin = moduleName === "admin";
+  const showCrm = moduleName === "crm";
+  const showCrmDashboard = showCrm && activeCrmView === "dashboard";
+  const showReferrals = showCrm && activeCrmView === "referrals";
+  const showClients = showCrm && activeCrmView === "clients";
+  const showReferralNetwork = showCrm && activeCrmView === "referral-network";
   const showOutreach = moduleName === "outreach";
   const showScheduling = moduleName === "scheduling";
-  dashboardPanel.hidden = !showDashboard;
+  workflowPanel.hidden = !showWorkflow;
+  dashboardPanel.hidden = !showAdmin;
+  crmTabs.hidden = !showCrm;
+  crmDashboardPanel.hidden = !showCrmDashboard;
   referralsPanel.hidden = !showReferrals;
   clientsPanel.hidden = !showClients;
   referralNetworkPanel.hidden = !showReferralNetwork;
   outreachPanel.hidden = !showOutreach;
   schedulingPanel.hidden = !showScheduling;
-  navDashboardButton.classList.toggle("active", showDashboard);
-  navReferralsButton.classList.toggle("active", showReferrals);
-  navClientsButton.classList.toggle("active", showClients);
-  navReferralNetworkButton.classList.toggle("active", showReferralNetwork);
+  navWorkflowButton.classList.toggle("active", showWorkflow);
+  navDashboardButton.classList.toggle("active", showAdmin);
+  navCrmButton.classList.toggle("active", showCrm);
   navOutreachButton.classList.toggle("active", showOutreach);
   navSchedulingButton.classList.toggle("active", showScheduling);
-  navDashboardButton.setAttribute("aria-current", showDashboard ? "page" : "false");
-  navReferralsButton.setAttribute("aria-current", showReferrals ? "page" : "false");
-  navClientsButton.setAttribute("aria-current", showClients ? "page" : "false");
-  navReferralNetworkButton.setAttribute("aria-current", showReferralNetwork ? "page" : "false");
+  navWorkflowButton.setAttribute("aria-current", showWorkflow ? "page" : "false");
+  navDashboardButton.setAttribute("aria-current", showAdmin ? "page" : "false");
+  navCrmButton.setAttribute("aria-current", showCrm ? "page" : "false");
   navOutreachButton.setAttribute("aria-current", showOutreach ? "page" : "false");
   navSchedulingButton.setAttribute("aria-current", showScheduling ? "page" : "false");
+  crmTabDashboardButton.classList.toggle("active", showCrmDashboard);
+  crmTabReferralsButton.classList.toggle("active", showReferrals);
+  crmTabClientsButton.classList.toggle("active", showClients);
+  crmTabReferralNetworkButton.classList.toggle("active", showReferralNetwork);
+  crmTabDashboardButton.setAttribute("aria-selected", String(showCrmDashboard));
+  crmTabReferralsButton.setAttribute("aria-selected", String(showReferrals));
+  crmTabClientsButton.setAttribute("aria-selected", String(showClients));
+  crmTabReferralNetworkButton.setAttribute("aria-selected", String(showReferralNetwork));
 
-  if (showDashboard) {
+  if (!showWorkflow) {
+    closeTaskModal();
+  }
+  closeActivityLogModal();
+  closeSiblingModal();
+
+  if (showWorkflow) {
+    closeReferralModal();
+    closeClientModal();
+    closeNetworkModal();
+    closeOutreachModal();
+    closeAppointmentModal();
+    renderWorkflowTasks();
+  } else if (showAdmin) {
+    closeReferralModal();
+    closeClientModal();
+    closeNetworkModal();
+    closeOutreachModal();
+    closeAppointmentModal();
+    renderDashboard();
+  } else if (showCrmDashboard) {
     closeReferralModal();
     closeClientModal();
     closeNetworkModal();
@@ -1406,6 +3321,12 @@ function setActiveModule(moduleName) {
   }
 }
 
+function setCrmView(viewName) {
+  activeCrmView = viewName;
+  saveNavigationState();
+  setActiveModule("crm");
+}
+
 function openClientModal() {
   clientModal.hidden = false;
   document.body.classList.add("modal-open");
@@ -1417,6 +3338,8 @@ function closeClientModal() {
   selectedClientId = null;
   editingClientId = null;
   clientForm.reset();
+  editingClientProviderLinks = [];
+  renderClientProviderLinkEditor();
   clientForm.hidden = true;
   clientDetail.hidden = false;
   renderClients();
@@ -1432,6 +3355,134 @@ function setSelectedClient(clientId) {
   openClientModal();
   renderClients();
   renderClientDetail();
+}
+
+function activityLogResultOptions(type) {
+  return type === "Text"
+    ? ["Sent", "Reply received", "Scheduled", "Requested call back", "No response", "Not interested"]
+    : ["Scheduled", "Left voicemail", "No voicemail, call back", "Not interested, do not call back", "Requested call back", "Invalid number"];
+}
+
+function activityDirectionTitle(direction) {
+  return direction === "Inbound" ? "Incoming" : "Outgoing";
+}
+
+function renderActivityLogResultOptions(type, selectedValue = "") {
+  activityLogResultSelect.innerHTML = "";
+
+  for (const optionText of activityLogResultOptions(type)) {
+    const option = document.createElement("option");
+    option.value = optionText;
+    option.textContent = optionText;
+    activityLogResultSelect.append(option);
+  }
+
+  activityLogResultSelect.value = selectedValue || activityLogResultSelect.options[0]?.value || "";
+}
+
+function syncActivityLogTitle() {
+  const type = activityLogTypeInput.value || "Call";
+  const direction = activityLogDirectionSelect.value || "Outbound";
+  const relatedName = activityLogRelatedNameInput.value || "profile";
+  activityLogTitleField.value = `${activityDirectionTitle(direction)} ${type} to ${relatedName}`;
+}
+
+function openActivityLogModal(record, moduleName, type) {
+  const profileName = moduleName === "referrals" ? referralName(record) : clientName(record);
+  const now = localDateTimeParts();
+  activityLogForm.reset();
+  activityLogTitle.textContent = `Log ${type}`;
+  activityLogRelatedTypeInput.value = moduleName === "referrals" ? "referral" : "client";
+  activityLogRelatedIdInput.value = record.id;
+  activityLogRelatedNameInput.value = profileName;
+  activityLogTypeInput.value = type;
+  activityLogDirectionSelect.value = "Outbound";
+  activityLogDateInput.value = now.date;
+  activityLogTimeInput.value = formatAppointmentTime(now.time);
+  renderActivityLogResultOptions(type);
+  syncActivityLogTitle();
+  activityLogModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeActivityLogModal() {
+  activityLogModal.hidden = true;
+  activityLogForm.reset();
+
+  if (referralModal.hidden && clientModal.hidden && networkModal.hidden && outreachModal.hidden && outreachContactModal.hidden && appointmentModal.hidden && appointmentCompleteModal.hidden && taskModal.hidden && siblingModal.hidden) {
+    document.body.classList.remove("modal-open");
+  }
+}
+
+function siblingModuleRecords(moduleName) {
+  return moduleName === "clients" ? loadedClients : loadedReferrals;
+}
+
+function siblingModuleName(moduleName, record) {
+  return moduleName === "clients" ? clientName(record) : referralName(record);
+}
+
+function availableSiblingCandidates(record, moduleName) {
+  const siblingIds = Array.isArray(record.siblingIds) ? record.siblingIds : [];
+  const linkedIds = new Set([record.id, ...siblingIds]);
+  return siblingModuleRecords(moduleName)
+    .filter((item) => !linkedIds.has(item.id))
+    .sort((first, second) => siblingModuleName(moduleName, first).localeCompare(siblingModuleName(moduleName, second)));
+}
+
+function renderSiblingOptions(record, moduleName) {
+  siblingOptions.innerHTML = "";
+
+  for (const candidate of availableSiblingCandidates(record, moduleName)) {
+    const option = document.createElement("option");
+    option.value = siblingModuleName(moduleName, candidate);
+    siblingOptions.append(option);
+  }
+}
+
+function openSiblingModal(record, moduleName) {
+  siblingForm.reset();
+  siblingModuleInput.value = moduleName;
+  siblingRecordIdInput.value = record.id;
+  renderSiblingOptions(record, moduleName);
+  siblingModal.hidden = false;
+  document.body.classList.add("modal-open");
+  siblingSearchInput.focus();
+}
+
+function closeSiblingModal() {
+  siblingModal.hidden = true;
+  siblingForm.reset();
+
+  if (referralModal.hidden && clientModal.hidden && networkModal.hidden && outreachModal.hidden && outreachContactModal.hidden && appointmentModal.hidden && appointmentCompleteModal.hidden && taskModal.hidden && activityLogModal.hidden) {
+    document.body.classList.remove("modal-open");
+  }
+}
+
+async function saveSiblingLink(event) {
+  event.preventDefault();
+  const moduleName = siblingModuleInput.value;
+  const recordId = siblingRecordIdInput.value;
+  const record = siblingModuleRecords(moduleName).find((item) => item.id === recordId);
+  const typedName = siblingSearchInput.value.trim().toLowerCase();
+  const candidate = record
+    ? availableSiblingCandidates(record, moduleName).find((item) => siblingModuleName(moduleName, item).toLowerCase() === typedName)
+    : null;
+  const statusElement = moduleName === "clients" ? clientsStatusEl : referralsStatusEl;
+
+  if (!record || !candidate) {
+    statusElement.textContent = "Choose an existing profile from the sibling name list.";
+    siblingSearchInput.focus();
+    return;
+  }
+
+  saveSiblingLinkButton.disabled = true;
+  try {
+    await addSibling(moduleName, record.id, candidate.id);
+    closeSiblingModal();
+  } finally {
+    saveSiblingLinkButton.disabled = false;
+  }
 }
 
 function openNetworkModal() {
@@ -1527,21 +3578,151 @@ function closeAppointmentModal() {
   selectedAppointmentId = null;
   editingAppointmentId = null;
   appointmentForm.reset();
+  appointmentForm.hidden = true;
+  appointmentDetail.hidden = true;
+  selectedAppointmentClientIds.clear();
+  renderSelectedAppointmentClients();
+  appointmentsStatusEl.textContent = "";
+  appointmentFormStatusEl.textContent = "";
   deleteAppointmentButton.hidden = true;
   renderAppointments();
 }
 
+function setAppointmentFeedback(message) {
+  appointmentsStatusEl.textContent = message;
+  appointmentFormStatusEl.textContent = message;
+}
+
+function openAppointmentCompletionModal() {
+  appointmentCompleteModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeAppointmentCompletionModal() {
+  appointmentCompleteModal.hidden = true;
+  document.body.classList.remove("modal-open");
+  completingAppointmentId = null;
+  appointmentCompletionMode = "complete";
+  appointmentCompleteForm.reset();
+  appointmentsStatusEl.textContent = "";
+}
+
 function setSelectedAppointment(appointmentId) {
   selectedAppointmentId = appointmentId;
+  editingAppointmentId = null;
   const appointment = getSelectedAppointment();
   if (!appointment) {
     return;
   }
-  startEditingAppointment(appointment);
+  appointmentForm.hidden = true;
+  appointmentDetail.hidden = false;
+  renderAppointmentDetail(appointment);
+  openAppointmentModal();
+  renderAppointments();
+}
+
+function appointmentDetailField(label, value) {
+  const field = document.createElement("div");
+  field.className = "appointment-detail-field";
+  const labelEl = document.createElement("span");
+  labelEl.textContent = label;
+  const valueEl = document.createElement("strong");
+  valueEl.textContent = value || "-";
+  field.append(labelEl, valueEl);
+  return field;
+}
+
+function appointmentClientsDetailField(clients, fallbackText) {
+  const field = document.createElement("div");
+  field.className = "appointment-detail-field appointment-clients-field";
+  const labelEl = document.createElement("span");
+  labelEl.textContent = "Clients";
+  field.append(labelEl);
+
+  if (!clients.length) {
+    const valueEl = document.createElement("strong");
+    valueEl.textContent = fallbackText || "-";
+    field.append(valueEl);
+    return field;
+  }
+
+  const list = document.createElement("div");
+  list.className = "appointment-client-detail-list";
+  for (const client of clients) {
+    const row = document.createElement("div");
+    row.className = "appointment-client-detail-row";
+    const info = document.createElement("strong");
+    info.textContent = [clientName(client), client.parentName ? `Caregiver: ${client.parentName}` : "", formatPhone(client.phone)].filter(Boolean).join(" | ");
+    const profileButton = document.createElement("button");
+    profileButton.className = "secondary-button compact-button";
+    profileButton.type = "button";
+    profileButton.textContent = "Profile";
+    profileButton.addEventListener("click", () => {
+      closeAppointmentModal();
+      setSelectedClient(client.id);
+    });
+    row.append(info, profileButton);
+    list.append(row);
+  }
+  field.append(list);
+  return field;
+}
+
+function renderAppointmentDetail(appointment) {
+  appointmentDetailBody.innerHTML = "";
+  appointmentDetailTitle.textContent = `${appointmentClientName(appointment)} Appointment`;
+  completeAppointmentDetailButton.hidden = appointment.status !== "Scheduled";
+
+  const clientIds = appointmentClientIds(appointment);
+  const clients = clientIds.map((clientId) => loadedClients.find((client) => client.id === clientId)).filter(Boolean);
+
+  const details = document.createElement("div");
+  details.className = "appointment-detail-grid";
+  details.append(
+    appointmentClientsDetailField(clients, appointmentClientName(appointment)),
+    appointmentDetailField("Date", formatDateOnly(appointment.appointmentDate)),
+    appointmentDetailField("Time", formatAppointmentTime(appointment.appointmentTime)),
+    appointmentDetailField("Duration", formatDuration(appointmentDurationMinutes(appointment))),
+    appointmentDetailField("Type", appointmentTypeLabel(appointment)),
+    appointmentDetailField("Status", appointment.status || "Scheduled"),
+    appointmentDetailField("Lesson", appointment.lesson ? `Lesson ${appointment.lesson}` : "-"),
+    appointmentDetailField("Staff", appointment.staffMember || "-"),
+    appointmentDetailField("Goal", appointmentGoalText(appointment) || "-")
+  );
+
+  const notes = document.createElement("div");
+  notes.className = "appointment-detail-notes";
+  const notesLabel = document.createElement("span");
+  notesLabel.textContent = "Notes";
+  const notesValue = document.createElement("p");
+  notesValue.textContent = appointment.notes || "-";
+  notes.append(notesLabel, notesValue);
+
+  const prepItems = appointmentPrepItems(appointment);
+  const prep = document.createElement("div");
+  prep.className = "appointment-detail-prep";
+  const prepLabel = document.createElement("span");
+  prepLabel.textContent = "Prep List";
+  if (prepItems.length) {
+    const prepList = document.createElement("ul");
+    for (const item of prepItems) {
+      const listItem = document.createElement("li");
+      listItem.textContent = item;
+      prepList.append(listItem);
+    }
+    prep.append(prepLabel, prepList);
+  } else {
+    const empty = document.createElement("p");
+    empty.textContent = "-";
+    prep.append(prepLabel, empty);
+  }
+
+  appointmentDetailBody.append(details, prep, notes);
 }
 
 function setOutreachView(viewName) {
   activeOutreachView = viewName;
+  saveNavigationState();
   const showDashboard = viewName === "dashboard";
   const showEvents = viewName === "events";
   const showContacts = viewName === "contacts";
@@ -1593,14 +3774,14 @@ function appointmentStatusBadge(status = "Scheduled") {
 }
 
 function applyStatusSelectColor(select, status) {
-  for (const key of ["new", "contacted", "follow-up", "scheduled", "closed"]) {
+  for (const key of ["new", "contacted", "in-contact", "follow-up", "scheduled", "referral-scheduled", "graduated", "closed"]) {
     select.classList.remove(`status-group-${key}`);
   }
   select.classList.add("status-select", `status-group-${statusGroupKey(status)}`);
 }
 
 function applyClientStatusSelectColor(select, status) {
-  for (const key of ["new", "contacted", "follow-up", "scheduled", "closed"]) {
+  for (const key of ["new", "contacted", "in-contact", "follow-up", "scheduled", "referral-scheduled", "graduated", "closed"]) {
     select.classList.remove(`status-group-${key}`);
   }
   select.classList.add("status-select", `status-group-${clientStatusGroupKey(status)}`);
@@ -1608,14 +3789,23 @@ function applyClientStatusSelectColor(select, status) {
 
 function renderReferrals() {
   referralsList.innerHTML = "";
+  referralFlowBoard.innerHTML = "";
   renderTableHead("referrals");
   const referrals = sortReferrals(loadedReferrals.filter(referralMatchesFilters));
   const columns = visibleColumns("referrals");
   const gridTemplate = gridTemplateFor("referrals");
   const rowMinWidth = minTableWidth("referrals");
+  updateViewToggle(referralsViewListButton, referralsViewFlowButton, activeReferralView);
+  referralsTableView.hidden = activeReferralView !== "list";
+  referralFlowBoard.hidden = activeReferralView !== "flow";
 
   if (selectedReferralId && !referrals.some((referral) => referral.id === selectedReferralId)) {
     selectedReferralId = null;
+  }
+
+  if (activeReferralView === "flow") {
+    renderReferralFlow(referrals);
+    return;
   }
 
   if (!referrals.length) {
@@ -1648,14 +3838,23 @@ function renderReferrals() {
 
 function renderClients() {
   clientsList.innerHTML = "";
+  clientFlowBoard.innerHTML = "";
   renderTableHead("clients");
   const clients = sortClients(loadedClients.filter(clientMatchesSearch));
   const columns = visibleColumns("clients");
   const gridTemplate = gridTemplateFor("clients");
   const rowMinWidth = minTableWidth("clients");
+  updateViewToggle(clientsViewListButton, clientsViewFlowButton, activeClientView);
+  clientsTableView.hidden = activeClientView !== "list";
+  clientFlowBoard.hidden = activeClientView !== "flow";
 
   if (selectedClientId && !clients.some((client) => client.id === selectedClientId)) {
     selectedClientId = null;
+  }
+
+  if (activeClientView === "flow") {
+    renderClientFlow(clients);
+    return;
   }
 
   if (!clients.length) {
@@ -1969,32 +4168,222 @@ function renderOutreachContacts() {
 }
 
 function renderAppointmentClientOptions(selectedClientId = "") {
-  appointmentClientSelect.innerHTML = "";
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = loadedClients.length ? "Select client" : "Load or create clients first";
-  appointmentClientSelect.append(placeholder);
+  appointmentClientOptions.innerHTML = "";
 
   const clients = [...loadedClients].sort((first, second) => clientName(first).localeCompare(clientName(second)));
   for (const client of clients) {
     const option = document.createElement("option");
-    option.value = client.id;
-    option.textContent = clientName(client);
-    appointmentClientSelect.append(option);
+    option.value = appointmentClientOptionLabel(client);
+    appointmentClientOptions.append(option);
   }
 
   appointmentClientSelect.value = selectedClientId || "";
+  const selectedClient = loadedClients.find((client) => client.id === selectedClientId);
+  appointmentClientSearchInput.value = selectedClient ? appointmentClientOptionLabel(selectedClient) : "";
+}
+
+function renderSelectedAppointmentClients() {
+  appointmentClientSelected.innerHTML = "";
+  const ids = [...selectedAppointmentClientIds];
+  appointmentClientSelect.value = ids[0] || "";
+  appointmentClientIdsInput.value = ids.join(",");
+
+  if (!ids.length) {
+    const empty = document.createElement("span");
+    empty.className = "selected-client-empty";
+    empty.textContent = "No clients selected.";
+    appointmentClientSelected.append(empty);
+    return;
+  }
+
+  for (const clientId of ids) {
+    const client = loadedClients.find((item) => item.id === clientId);
+    const pill = document.createElement("span");
+    pill.className = "selected-client-pill";
+    pill.textContent = client ? clientName(client) : clientId;
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.setAttribute("aria-label", `Remove ${pill.textContent}`);
+    remove.textContent = "Remove";
+    remove.addEventListener("click", () => {
+      selectedAppointmentClientIds.delete(clientId);
+      renderSelectedAppointmentClients();
+      renderAppointmentTimeOptions();
+    });
+
+    pill.append(remove);
+    appointmentClientSelected.append(pill);
+  }
+}
+
+function addSelectedAppointmentClient(clientId) {
+  if (!clientId) {
+    return false;
+  }
+
+  selectedAppointmentClientIds.add(clientId);
+  appointmentClientSearchInput.value = "";
+  appointmentClientSelect.value = "";
+  renderSelectedAppointmentClients();
+  renderAppointmentTimeOptions();
+  return true;
+}
+
+function appointmentClientOptionLabel(client) {
+  return clientName(client);
+}
+
+function resolveAppointmentClientId() {
+  const query = appointmentClientSearchInput.value.trim().toLowerCase();
+  const exact = loadedClients.find((client) => appointmentClientOptionLabel(client).toLowerCase() === query);
+  const loose = loadedClients.find((client) => clientName(client).toLowerCase() === query);
+  const selected = exact || loose;
+  appointmentClientSelect.value = selected?.id || "";
+  return appointmentClientSelect.value;
+}
+
+function appointmentDraftClientIds() {
+  const ids = [...selectedAppointmentClientIds];
+  const pendingClientId = appointmentClientSelect.value;
+
+  if (pendingClientId && !ids.includes(pendingClientId)) {
+    ids.push(pendingClientId);
+  }
+
+  return ids;
+}
+
+function appointmentDraftForTime(appointmentTime, overrides = {}) {
+  const clientIds = Array.isArray(overrides.clientIds) ? overrides.clientIds : appointmentDraftClientIds();
+  const clients = clientIds
+    .map((clientId) => loadedClients.find((client) => client.id === clientId))
+    .filter(Boolean);
+
+  return {
+    id: editingAppointmentId || "",
+    clientIds,
+    clientId: clientIds[0] || "",
+    clientNames: clients.map(clientName),
+    clientName: clients[0] ? clientName(clients[0]) : "",
+    appointmentDate: overrides.appointmentDate || appointmentForm.elements.appointmentDate.value || todayDateString(),
+    appointmentTime,
+    appointmentType: overrides.appointmentType || appointmentForm.elements.appointmentType.value || "Enrollment",
+    lesson: (overrides.lesson ?? appointmentForm.elements.lesson.value) || "",
+    goal: (overrides.goal ?? appointmentForm.elements.goal.value) || "",
+    status: overrides.status || appointmentForm.elements.status.value || "Scheduled"
+  };
+}
+
+function appointmentAvailableTimeValues(selectedTime = "", overrides = {}) {
+  const selected = normalizeAppointmentTime(selectedTime);
+  const times = [];
+  const excludedAppointmentId = overrides.excludedAppointmentId ?? editingAppointmentId;
+  const draft = appointmentDraftForTime(
+    selected || `${String(Math.floor(schedulingStartMinutes / 60)).padStart(2, "0")}:00`,
+    overrides
+  );
+  const latestStart = schedulingEndMinutes - appointmentDurationMinutes(draft);
+
+  for (let minutes = schedulingStartMinutes; minutes <= latestStart; minutes += 15) {
+    const candidateTime = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+    const candidate = appointmentDraftForTime(candidateTime, overrides);
+    const conflict = appointmentSchedulingConflict(candidate, excludedAppointmentId);
+
+    if (!conflict) {
+      times.push(candidateTime);
+    }
+  }
+
+  if (excludedAppointmentId && selected && !times.includes(selected)) {
+    const selectedCandidate = appointmentDraftForTime(selected, overrides);
+    const selectedConflict = appointmentSchedulingConflict(selectedCandidate, excludedAppointmentId);
+    if (appointmentFitsSchedulingWindow(selectedCandidate) && !selectedConflict) {
+      times.unshift(selected);
+    }
+  }
+
+  return times;
+}
+
+function renderAppointmentTimeOptions(selectedTime = appointmentTimeInput.value) {
+  const normalizedSelected = normalizeAppointmentTime(selectedTime);
+  const times = appointmentAvailableTimeValues(normalizedSelected);
+  appointmentTimeInput.innerHTML = "";
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = times.length ? "Choose time" : "No open times";
+  appointmentTimeInput.append(placeholder);
+
+  for (const time of times) {
+    const selectOption = document.createElement("option");
+    selectOption.value = time;
+    selectOption.textContent = formatAppointmentTime(time);
+    appointmentTimeInput.append(selectOption);
+  }
+
+  appointmentTimeInput.value = times.includes(normalizedSelected) ? normalizedSelected : "";
+}
+
+function appointmentCompletionTimeContext(appointment) {
+  const isRescheduleMode = appointmentCompletionMode === "reschedule";
+  const nextLesson = nextLessonNumberForAppointment(appointment);
+  return {
+    clientIds: appointmentClientIds(appointment),
+    appointmentDate: completionNextDateInput.value || defaultNextAppointmentDate(appointment),
+    appointmentType: isRescheduleMode ? appointmentTypeLabel(appointment) : "Nutrition Education",
+    lesson: isRescheduleMode ? appointment.lesson || "" : nextLesson ? String(nextLesson) : "",
+    goal: isRescheduleMode ? appointmentGoalText(appointment) : completionNextGoalInput.value.trim(),
+    status: "Scheduled",
+    excludedAppointmentId: isRescheduleMode ? appointment.id : ""
+  };
+}
+
+function renderCompletionAppointmentTimeOptions() {
+  appointmentTimeOptions.innerHTML = "";
+  const appointment = loadedAppointments.find((item) => item.id === completingAppointmentId);
+
+  if (!appointment || completionNextTimeInput.disabled) {
+    return;
+  }
+
+  const normalizedSelected = normalizeAppointmentTime(completionNextTimeInput.value);
+  const times = appointmentAvailableTimeValues(normalizedSelected, appointmentCompletionTimeContext(appointment));
+
+  for (const time of times) {
+    const datalistOption = document.createElement("option");
+    datalistOption.value = formatAppointmentTime(time);
+    appointmentTimeOptions.append(datalistOption);
+  }
+
+  completionNextTimeInput.placeholder = times.length ? "3:00 PM" : "No open times";
 }
 
 function renderAppointmentSummary() {
   appointmentSummary.innerHTML = "";
   const today = todayDateString();
+  const currentWeekStart = weekStartDate(today);
+  const currentWeekDayKeys = [1, 2, 3].map((offset) => toDateString(addDays(currentWeekStart, offset)));
+  const completedAppointmentCount = loadedAppointments.filter((appointment) => appointment.status === "Completed").length;
+  const noShowAppointmentCount = loadedAppointments.filter((appointment) => appointment.status === "No-show").length;
+  const noShowRate = percentage(noShowAppointmentCount, completedAppointmentCount + noShowAppointmentCount);
   const totals = [
-    { label: "Today", value: loadedAppointments.filter((appointment) => appointment.appointmentDate === today).length },
-    { label: "Upcoming", value: loadedAppointments.filter((appointment) => appointment.appointmentDate >= today).length },
-    { label: "Scheduled", value: loadedAppointments.filter((appointment) => appointment.status === "Scheduled").length },
-    { label: "Completed", value: loadedAppointments.filter((appointment) => appointment.status === "Completed").length },
-    { label: "Needs Review", value: loadedAppointments.filter((appointment) => ["No-show", "Rescheduled", "Canceled"].includes(appointment.status)).length }
+    { label: "Today", value: loadedAppointments.filter((appointment) => appointment.appointmentDate === today && appointment.status !== "Canceled").length, date: "today", status: "all" },
+    {
+      label: "Upcoming Week",
+      value: loadedAppointments.filter(
+        (appointment) =>
+          currentWeekDayKeys.includes(appointment.appointmentDate) &&
+          appointment.appointmentDate > today &&
+          appointment.status === "Scheduled"
+      ).length,
+      date: "upcoming",
+      status: "Scheduled"
+    },
+    { label: "Scheduled", value: loadedAppointments.filter((appointment) => appointment.status === "Scheduled").length, date: "all", status: "Scheduled" },
+    { label: "Completed", value: completedAppointmentCount, date: "all", status: "Completed" },
+    { label: "No-Shows", value: noShowAppointmentCount, detail: `${noShowRate} rate`, date: "all", status: "No-show" }
   ];
 
   for (const total of totals) {
@@ -2004,24 +4393,407 @@ function renderAppointmentSummary() {
     value.textContent = total.value;
     const label = document.createElement("span");
     label.textContent = total.label;
-    item.append(value, label);
+    const copy = document.createElement("span");
+    copy.className = "summary-item-copy";
+    copy.append(label);
+    if (total.detail) {
+      const detail = document.createElement("small");
+      detail.textContent = total.detail;
+      copy.append(detail);
+    }
+    item.append(value, copy);
     appointmentSummary.append(item);
   }
+}
+
+function renderSchedulingTodayBoard() {
+  schedulingTodayBoard.innerHTML = "";
+  const today = todayDateString();
+  const todayAppointments = loadedAppointments
+    .filter((appointment) => appointment.appointmentDate === today && appointment.status !== "Canceled")
+    .sort(
+      (first, second) =>
+        appointmentTimeValue(first.appointmentTime) - appointmentTimeValue(second.appointmentTime) ||
+        appointmentClientName(first).localeCompare(appointmentClientName(second))
+    );
+  const futureScheduledAppointments = loadedAppointments
+    .filter((appointment) => appointment.appointmentDate > today && appointment.status === "Scheduled")
+    .sort(
+      (first, second) =>
+        dateValue(first.appointmentDate) - dateValue(second.appointmentDate) ||
+        appointmentTimeValue(first.appointmentTime) - appointmentTimeValue(second.appointmentTime)
+    );
+  const nextAppointmentDate = futureScheduledAppointments[0]?.appointmentDate || "";
+  const nextAppointments = nextAppointmentDate
+    ? futureScheduledAppointments.filter((appointment) => appointment.appointmentDate === nextAppointmentDate)
+    : [];
+  schedulingTodayBoard.append(
+    renderSchedulingColumn("Today", "", todayAppointments, "No appointments scheduled today.", true),
+    renderSchedulingColumn("Upcoming Day", "", nextAppointments, "No upcoming scheduled appointments.", true)
+  );
+}
+
+function weekStartDate(value = todayDateString()) {
+  const date = new Date(`${value}T00:00:00`);
+  const day = date.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  return addDays(date, mondayOffset);
+}
+
+function schedulingWeekStartDate() {
+  if (!visibleSchedulingWeekStart) {
+    visibleSchedulingWeekStart = toDateString(weekStartDate());
+  }
+
+  return new Date(`${visibleSchedulingWeekStart}T00:00:00`);
+}
+
+function moveSchedulingWeek(dayOffset) {
+  visibleSchedulingWeekStart = toDateString(addDays(schedulingWeekStartDate(), dayOffset));
+  renderSchedulingCalendar();
+}
+
+function resetSchedulingWeek() {
+  visibleSchedulingWeekStart = toDateString(weekStartDate());
+  renderSchedulingCalendar();
+}
+
+function calendarStartMinutes(hour) {
+  return [0, 15, 30, 45].filter((minute) => {
+    const start = hour * 60 + minute;
+    return start >= schedulingStartMinutes && start <= schedulingEndMinutes - defaultAppointmentDurationMinutes;
+  });
+}
+
+function renderSchedulingCalendar() {
+  schedulingCalendar.innerHTML = "";
+  const start = schedulingWeekStartDate();
+  const days = [1, 2, 3].map((offset) => addDays(start, offset));
+  const dayKeys = days.map(toDateString);
+  const calendarAppointments = loadedAppointments.filter(appointmentBlocksSchedule);
+  const startHour = Math.floor(schedulingStartMinutes / 60);
+  const endHour = Math.floor((schedulingEndMinutes - 1) / 60);
+
+  const header = document.createElement("div");
+  header.className = "calendar-header";
+
+  const titleBlock = document.createElement("div");
+  const title = document.createElement("h3");
+  title.textContent = "Week Calendar";
+  const range = document.createElement("p");
+  range.textContent = `${formatShortDate(dayKeys[0])} - ${formatShortDate(dayKeys[dayKeys.length - 1])}`;
+  titleBlock.append(title, range);
+
+  const controls = document.createElement("div");
+  controls.className = "calendar-controls";
+  const previousButton = document.createElement("button");
+  previousButton.className = "secondary-button compact-button";
+  previousButton.type = "button";
+  previousButton.textContent = "Previous";
+  previousButton.addEventListener("click", () => moveSchedulingWeek(-7));
+  const todayButton = document.createElement("button");
+  todayButton.className = "secondary-button compact-button";
+  todayButton.type = "button";
+  todayButton.textContent = "Today";
+  todayButton.disabled = visibleSchedulingWeekStart === toDateString(weekStartDate());
+  todayButton.addEventListener("click", resetSchedulingWeek);
+  const nextButton = document.createElement("button");
+  nextButton.className = "secondary-button compact-button";
+  nextButton.type = "button";
+  nextButton.textContent = "Next";
+  nextButton.addEventListener("click", () => moveSchedulingWeek(7));
+  controls.append(previousButton, todayButton, nextButton);
+  header.append(titleBlock, controls);
+
+  const grid = document.createElement("div");
+  grid.className = "calendar-grid";
+  grid.style.setProperty("--calendar-days", String(days.length));
+
+  const corner = document.createElement("div");
+  corner.className = "calendar-corner";
+  corner.textContent = "Time";
+  grid.append(corner);
+
+  for (const day of days) {
+    const dayHeader = document.createElement("div");
+    dayHeader.className = "calendar-day-header";
+    const weekday = document.createElement("strong");
+    weekday.textContent = new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(day);
+    const date = document.createElement("span");
+    date.textContent = new Intl.DateTimeFormat("en-US", { month: "numeric", day: "numeric" }).format(day);
+    dayHeader.append(weekday, date);
+    grid.append(dayHeader);
+  }
+
+  for (let hour = startHour; hour <= endHour; hour += 1) {
+    const timeLabel = document.createElement("div");
+    timeLabel.className = "calendar-time-label";
+    timeLabel.textContent = formatAppointmentTime(`${String(hour).padStart(2, "0")}:00`);
+    grid.append(timeLabel);
+
+    for (const dayKey of dayKeys) {
+      const cell = document.createElement("div");
+      cell.className = "calendar-hour-cell";
+      const hourAppointments = calendarAppointments.filter(
+        (appointment) =>
+          appointment.appointmentDate === dayKey &&
+          Math.floor(appointmentTimeValue(appointment.appointmentTime) / 60) === hour
+      );
+      if (hourAppointments.length) {
+        cell.classList.add("has-appointment");
+      }
+      bindDropZone(cell, {
+        kind: "calendar-appointment",
+        onDrop: (payload, event) => {
+          const slotTime = calendarSlotTimeFromDrop(event, cell, hour);
+
+          if (!slotTime) {
+            return null;
+          }
+
+          return moveAppointmentToCalendarSlot(payload.id, dayKey, slotTime);
+        }
+      });
+
+      for (const minute of calendarStartMinutes(hour)) {
+        const slotTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+        const matchingAppointments = calendarAppointments.filter(
+          (appointment) =>
+            appointment.appointmentDate === dayKey &&
+            normalizeAppointmentTime(appointment.appointmentTime) === slotTime
+        );
+
+        const slot = document.createElement("button");
+        slot.className = "calendar-slot";
+        slot.type = "button";
+        slot.setAttribute("aria-label", `Schedule appointment on ${formatDateOnly(dayKey)} at ${formatAppointmentTime(slotTime)}`);
+        slot.addEventListener("click", () => startNewAppointment({ appointmentDate: dayKey, appointmentTime: slotTime }));
+        bindDropZone(slot, {
+          kind: "calendar-appointment",
+          onDrop: (payload) => moveAppointmentToCalendarSlot(payload.id, dayKey, slotTime)
+        });
+        cell.append(slot);
+
+        if (matchingAppointments.length) {
+          matchingAppointments.forEach((appointment, index) => {
+            cell.append(renderCalendarAppointment(appointment, { overlapIndex: index, overlapCount: matchingAppointments.length }));
+          });
+        }
+      }
+
+      grid.append(cell);
+    }
+  }
+
+  schedulingCalendar.append(header, grid);
+}
+
+function renderCalendarAppointment(appointment, options = {}) {
+  const overlapCount = Math.max(1, options.overlapCount || 1);
+  const overlapIndex = Math.max(0, options.overlapIndex || 0);
+  const item = document.createElement("button");
+  item.className = "calendar-appointment";
+  item.style.setProperty("--appointment-accent", appointmentLessonAccent(appointment));
+  item.style.setProperty("--duration-slots", String(appointmentDurationSlots(appointment)));
+  item.style.setProperty("--slot-index", String(appointmentStartSlotIndex(appointment)));
+  if (overlapCount > 1) {
+    item.style.left = `calc(${(overlapIndex / overlapCount) * 100}% + 3px)`;
+    item.style.right = "auto";
+    item.style.width = `calc(${100 / overlapCount}% - 6px)`;
+  }
+  item.type = "button";
+  item.draggable = appointment.status === "Scheduled";
+  item.setAttribute(
+    "aria-label",
+    `Open ${appointmentClientName(appointment)} appointment at ${formatAppointmentTime(appointment.appointmentTime)} for ${formatDuration(appointmentDurationMinutes(appointment))}`
+  );
+  item.addEventListener("dragstart", (event) => {
+    item.classList.add("is-dragging");
+    item.dataset.dragging = "true";
+    setSnackDragData(event, { kind: "calendar-appointment", id: appointment.id });
+  });
+  item.addEventListener("dragend", () => {
+    item.classList.remove("is-dragging");
+    clearSnackDragData();
+    window.setTimeout(() => {
+      delete item.dataset.dragging;
+    }, 0);
+  });
+  item.addEventListener("click", () => {
+    if (item.dataset.dragging === "true") {
+      return;
+    }
+    setSelectedAppointment(appointment.id);
+  });
+
+  const summary = document.createElement("span");
+  summary.textContent = [
+    formatAppointmentTime(appointment.appointmentTime),
+    appointmentClientName(appointment),
+    appointment.lesson ? `L${appointment.lesson}` : appointmentTypeLabel(appointment),
+    formatDuration(appointmentDurationMinutes(appointment)),
+    appointment.status
+  ].filter(Boolean).join(" | ");
+  item.append(summary);
+  return item;
+}
+
+function renderSchedulingColumn(titleText, noteText, appointments, emptyText, showActions) {
+  const column = document.createElement("section");
+  column.className = "scheduling-column";
+
+  const header = document.createElement("div");
+  header.className = "scheduling-column-header";
+  const copy = document.createElement("div");
+  const title = document.createElement("h3");
+  title.textContent = titleText;
+  copy.append(title);
+  if (noteText) {
+    const note = document.createElement("p");
+    note.textContent = noteText;
+    copy.append(note);
+  }
+  const count = document.createElement("span");
+  count.className = "scheduling-count";
+  count.textContent = String(appointments.length);
+  header.append(copy, count);
+  column.append(header);
+
+  if (!appointments.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-inline";
+    empty.textContent = emptyText;
+    column.append(empty);
+    return column;
+  }
+
+  const list = document.createElement("div");
+  list.className = "scheduling-card-list";
+
+  for (const appointment of appointments) {
+    list.append(renderSchedulingCard(appointment, showActions));
+  }
+
+  column.append(list);
+  return column;
+}
+
+function renderSchedulingCard(appointment, showActions) {
+  const card = document.createElement("article");
+  card.className = "scheduling-card";
+  card.style.setProperty("--appointment-accent", appointmentLessonAccent(appointment));
+  const appointmentClients = appointmentClientIds(appointment)
+    .map((clientId) => loadedClients.find((item) => item.id === clientId))
+    .filter(Boolean);
+  const client = appointmentClients[0];
+
+  const main = document.createElement("button");
+  main.className = "scheduling-card-main";
+  main.type = "button";
+  main.addEventListener("click", () => setSelectedAppointment(appointment.id));
+
+  const top = document.createElement("span");
+  top.className = "scheduling-card-top";
+  const time = document.createElement("strong");
+  time.textContent = formatAppointmentTime(appointment.appointmentTime) || formatShortDate(appointment.appointmentDate);
+  const status = appointmentStatusBadge(appointment.status);
+  top.append(time, status);
+
+  const name = document.createElement("span");
+  name.className = "scheduling-card-name";
+  name.textContent = appointmentClientName(appointment);
+
+  const detail = document.createElement("span");
+  detail.className = "scheduling-card-detail";
+  detail.textContent = [
+    appointmentTypeLabel(appointment),
+    appointment.lesson ? `Lesson ${appointment.lesson}` : "",
+    appointmentGoalText(appointment),
+    client?.parentName ? `Caregiver: ${client.parentName}` : ""
+  ].filter(Boolean).join(" | ");
+
+  const contact = document.createElement("span");
+  contact.className = "scheduling-card-detail";
+  contact.textContent = [
+    client?.phone ? formatPhone(client.phone) : "",
+    client?.preferredLanguage ? `Language: ${client.preferredLanguage}` : "",
+    appointment.staffMember ? `Staff: ${appointment.staffMember}` : ""
+  ].filter(Boolean).join(" | ");
+
+  main.append(top, name, detail, contact);
+
+  if (appointment.notes) {
+    const notes = document.createElement("span");
+    notes.className = "scheduling-card-notes";
+    notes.textContent = appointment.notes;
+    main.append(notes);
+  }
+
+  card.append(main);
+
+  if (showActions && appointmentClients.length) {
+    const actions = document.createElement("div");
+    actions.className = "scheduling-card-actions";
+    for (const profileClient of appointmentClients) {
+      const profileButton = document.createElement("button");
+      profileButton.className = "secondary-button compact-button";
+      profileButton.type = "button";
+      profileButton.textContent = appointmentClients.length > 1 ? `${clientName(profileClient).split(" ")[0]} Profile` : "Profile";
+      profileButton.addEventListener("click", () => {
+        setSelectedClient(profileClient.id);
+      });
+      actions.append(profileButton);
+    }
+
+    if (appointment.status === "Scheduled") {
+      const completeButton = document.createElement("button");
+      completeButton.className = "secondary-button compact-button";
+      completeButton.type = "button";
+      completeButton.textContent = "Complete";
+      completeButton.addEventListener("click", () => startCompletingAppointment(appointment));
+      actions.append(completeButton);
+      const noShowButton = document.createElement("button");
+      noShowButton.className = "secondary-button compact-button";
+      noShowButton.type = "button";
+      noShowButton.textContent = "No-show";
+      noShowButton.addEventListener("click", () => updateAppointmentStatus(appointment, "No-show"));
+      actions.append(noShowButton);
+
+      const rescheduleButton = document.createElement("button");
+      rescheduleButton.className = "secondary-button compact-button";
+      rescheduleButton.type = "button";
+      rescheduleButton.textContent = "Reschedule";
+      rescheduleButton.addEventListener("click", () => startReschedulingAppointment(appointment));
+      actions.append(rescheduleButton);
+
+      const canceledButton = document.createElement("button");
+      canceledButton.className = "secondary-button compact-button";
+      canceledButton.type = "button";
+      canceledButton.textContent = "Canceled";
+      canceledButton.addEventListener("click", () => updateAppointmentStatus(appointment, "Canceled"));
+      actions.append(canceledButton);
+    }
+    card.append(actions);
+  }
+
+  return card;
 }
 
 function renderAppointments() {
   appointmentsList.innerHTML = "";
   renderAppointmentSummary();
+  renderSchedulingCalendar();
+  renderSchedulingTodayBoard();
   const appointments = loadedAppointments
     .filter(appointmentMatchesFilters)
     .sort(
       (first, second) =>
         dateValue(first.appointmentDate) - dateValue(second.appointmentDate) ||
-        (first.appointmentTime || "").localeCompare(second.appointmentTime || "") ||
+        appointmentTimeValue(first.appointmentTime) - appointmentTimeValue(second.appointmentTime) ||
         appointmentClientName(first).localeCompare(appointmentClientName(second))
     );
 
-  if (selectedAppointmentId && !appointments.some((appointment) => appointment.id === selectedAppointmentId)) {
+  if (selectedAppointmentId && !loadedAppointments.some((appointment) => appointment.id === selectedAppointmentId)) {
     selectedAppointmentId = null;
   }
 
@@ -2071,18 +4843,369 @@ function renderAppointments() {
   }
 }
 
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;"
+  })[character]);
+}
+
+function todayPrintableAppointments({ prepOnly = false } = {}) {
+  const today = todayDateString();
+  return loadedAppointments
+    .filter((appointment) => appointment.appointmentDate === today && appointment.status !== "Canceled")
+    .filter((appointment) => !prepOnly || appointmentPrepItems(appointment).length)
+    .sort(
+      (first, second) =>
+        appointmentTimeValue(first.appointmentTime) - appointmentTimeValue(second.appointmentTime) ||
+        appointmentClientName(first).localeCompare(appointmentClientName(second))
+    );
+}
+
+function appointmentPrintClientSummary(appointment) {
+  const clients = appointmentClientIds(appointment)
+    .map((clientId) => loadedClients.find((client) => client.id === clientId))
+    .filter(Boolean);
+
+  if (!clients.length) {
+    return [
+      {
+        name: appointmentClientName(appointment),
+        caregiver: "",
+        phone: "",
+        language: ""
+      }
+    ];
+  }
+
+  return clients.map((client) => ({
+    name: clientName(client),
+    caregiver: client.parentName || "",
+    phone: client.phone ? formatPhone(client.phone) : "",
+    language: client.preferredLanguage || ""
+  }));
+}
+
+function printField(label, value) {
+  return `
+    <div class="print-field">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value || "-")}</strong>
+    </div>
+  `;
+}
+
+function appointmentPrintCard(appointment, { includePrep = false, includeNotePrompts = false } = {}) {
+  const clientRows = appointmentPrintClientSummary(appointment)
+    .map((client) => `
+      <li>
+        <strong>${escapeHtml(client.name || "Client")}</strong>
+        <span>${escapeHtml([client.caregiver ? `Caregiver: ${client.caregiver}` : "", client.phone, client.language].filter(Boolean).join(" | ") || "-")}</span>
+      </li>
+    `)
+    .join("");
+  const prepItems = includePrep ? appointmentPrepItems(appointment) : [];
+  const prepList = prepItems.length
+    ? `
+      <div class="print-prep">
+        <h2>Prep List</h2>
+        <ul>${prepItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+      </div>
+    `
+    : "";
+  const notePrompts = includeNotePrompts
+    ? `
+      <div class="print-note-prompts">
+        <h2>Visit Notes</h2>
+        <div class="print-note-grid">
+          <div>
+            <span>Lesson / Topics Covered</span>
+            <div class="print-lines"></div>
+          </div>
+          <div>
+            <span>Client Response / Observations</span>
+            <div class="print-lines"></div>
+          </div>
+          <div>
+            <span>Goal Set Today</span>
+            <div class="print-lines"></div>
+          </div>
+          <div>
+            <span>Follow-Up / Chart Note To-Do</span>
+            <div class="print-lines"></div>
+          </div>
+        </div>
+      </div>
+    `
+    : "";
+
+  return `
+    <section class="print-card">
+      <div class="print-card-header">
+        <div>
+          <p>${escapeHtml(formatAppointmentTime(appointment.appointmentTime) || "Time TBD")}</p>
+          <h2>${escapeHtml(appointmentClientName(appointment))}</h2>
+        </div>
+        <span>${escapeHtml(appointment.status || "Scheduled")}</span>
+      </div>
+      <div class="print-grid">
+        ${printField("Type", appointmentTypeLabel(appointment))}
+        ${printField("Lesson", appointment.lesson ? `Lesson ${appointment.lesson}` : "-")}
+        ${printField("Duration", formatDuration(appointmentDurationMinutes(appointment)))}
+        ${printField("Staff", appointment.staffMember || "-")}
+        ${printField("Goal", appointmentGoalText(appointment) || "-")}
+        ${printField("Notes", appointment.notes || "-")}
+      </div>
+      <div class="print-clients">
+        <h2>Family</h2>
+        <ul>${clientRows}</ul>
+      </div>
+      ${prepList}
+      ${notePrompts}
+    </section>
+  `;
+}
+
+function printableDocumentHtml(title, subtitle, content) {
+  return `<!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>${escapeHtml(title)}</title>
+        <style>
+          :root {
+            color-scheme: light;
+            --ink: #172126;
+            --muted: #66757c;
+            --line: #d9e0da;
+            --green: #078b4d;
+            --red: #e23a4d;
+            --yellow: #f4c753;
+            font-family: "Public Sans", Arial, sans-serif;
+          }
+          body {
+            margin: 0;
+            padding: 28px;
+            color: var(--ink);
+            background: #ffffff;
+          }
+          .print-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            align-items: flex-start;
+            border-bottom: 3px solid var(--green);
+            padding-bottom: 14px;
+            margin-bottom: 18px;
+          }
+          .print-header p {
+            margin: 0 0 4px;
+            color: var(--green);
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 0;
+            text-transform: uppercase;
+          }
+          h1 {
+            margin: 0;
+            font-size: 28px;
+          }
+          .print-date {
+            color: var(--muted);
+            font-weight: 850;
+            text-align: right;
+          }
+          .print-card {
+            break-inside: avoid;
+            border: 1px solid var(--line);
+            border-left: 5px solid var(--green);
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 14px;
+          }
+          .print-card-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 12px;
+          }
+          .print-card-header p {
+            margin: 0 0 3px;
+            color: var(--green);
+            font-weight: 900;
+          }
+          .print-card-header h2,
+          .print-clients h2,
+          .print-prep h2,
+          .print-note-prompts h2 {
+            margin: 0;
+            font-size: 18px;
+          }
+          .print-card-header > span {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 5px 10px;
+            align-self: flex-start;
+            font-size: 12px;
+            font-weight: 900;
+          }
+          .print-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 9px;
+          }
+          .print-field {
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            padding: 9px;
+          }
+          .print-field span {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: uppercase;
+          }
+          .print-field strong {
+            white-space: pre-line;
+          }
+          .print-clients,
+          .print-prep,
+          .print-note-prompts {
+            margin-top: 12px;
+          }
+          .print-note-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 8px;
+          }
+          .print-note-grid > div {
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            padding: 9px;
+          }
+          .print-note-grid span {
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: uppercase;
+          }
+          .print-lines {
+            height: 78px;
+            margin-top: 8px;
+            background: repeating-linear-gradient(#ffffff 0 23px, var(--line) 24px);
+          }
+          ul {
+            margin: 8px 0 0;
+            padding-left: 20px;
+          }
+          li + li {
+            margin-top: 5px;
+          }
+          .print-clients li span {
+            display: block;
+            color: var(--muted);
+            font-weight: 750;
+          }
+          @media print {
+            body {
+              padding: 0;
+            }
+            .print-card {
+              box-shadow: none;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <header class="print-header">
+          <div>
+            <p>The SNACK Program</p>
+            <h1>${escapeHtml(title)}</h1>
+          </div>
+          <div class="print-date">${escapeHtml(subtitle)}</div>
+        </header>
+        ${content}
+      </body>
+    </html>`;
+}
+
+function openPrintableDocument(title, subtitle, content) {
+  const printWindow = window.open("", "_blank");
+
+  if (!printWindow) {
+    appointmentsStatusEl.textContent = "Allow pop-ups to open the printable sheet.";
+    return false;
+  }
+
+  printWindow.document.open();
+  printWindow.document.write(printableDocumentHtml(title, subtitle, content));
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.setTimeout(() => printWindow.print(), 250);
+  return true;
+}
+
+function printTodaySchedule() {
+  const appointments = todayPrintableAppointments();
+
+  if (!appointments.length) {
+    appointmentsStatusEl.textContent = "No appointments scheduled today to print.";
+    return;
+  }
+
+  const subtitle = formatDateOnly(todayDateString());
+  const content = appointments.map((appointment) => appointmentPrintCard(appointment)).join("");
+
+  if (openPrintableDocument("Daily Schedule", subtitle, content)) {
+    appointmentsStatusEl.textContent = "Printable daily schedule opened.";
+  }
+}
+
+function printPrepSheets() {
+  const appointments = todayPrintableAppointments({ prepOnly: true });
+
+  if (!appointments.length) {
+    appointmentsStatusEl.textContent = "No appointment prep sheets needed today.";
+    return;
+  }
+
+  const subtitle = formatDateOnly(todayDateString());
+  const content = appointments.map((appointment) => appointmentPrintCard(appointment, { includePrep: true })).join("");
+
+  if (openPrintableDocument("Appointment Prep Sheets", subtitle, content)) {
+    appointmentsStatusEl.textContent = "Printable prep sheets opened.";
+  }
+}
+
+function printAppointmentNoteSheets() {
+  const appointments = todayPrintableAppointments();
+
+  if (!appointments.length) {
+    appointmentsStatusEl.textContent = "No appointments scheduled today for note sheets.";
+    return;
+  }
+
+  const subtitle = formatDateOnly(todayDateString());
+  const content = appointments.map((appointment) => appointmentPrintCard(appointment, { includeNotePrompts: true })).join("");
+
+  if (openPrintableDocument("Appointment Note Sheets", subtitle, content)) {
+    appointmentsStatusEl.textContent = "Printable appointment note sheets opened.";
+  }
+}
+
 function renderClientSummary() {
   clientSummary.innerHTML = "";
 
   for (const group of clientSummaryGroups) {
     const count = loadedClients.filter((client) => group.statuses.includes(client.status || "Scheduled")).length;
-    const item = document.createElement("button");
+    const item = document.createElement("div");
     item.className = "summary-item";
-    item.type = "button";
-
-    if (clientSummaryFilter === group.key) {
-      item.classList.add("active");
-    }
 
     const countEl = document.createElement("strong");
     countEl.textContent = count;
@@ -2091,20 +5214,12 @@ function renderClientSummary() {
     labelEl.textContent = group.label;
 
     item.append(countEl, labelEl);
-    item.addEventListener("click", () => {
-      clientSummaryFilter = group.key === "all" || clientSummaryFilter === group.key ? "all" : group.key;
-      clientStatusFilterSelect.value = "all";
-      renderClientSummary();
-      renderClients();
-    });
     clientSummary.append(item);
   }
 }
 
 function clearClientFilters() {
   clientSearchInput.value = "";
-  clientStatusFilterSelect.value = "all";
-  clientSummaryFilter = "all";
   selectedClientId = null;
   renderClientSummary();
   renderClients();
@@ -2115,13 +5230,8 @@ function renderReferralSummary() {
 
   for (const group of summaryGroups) {
     const count = loadedReferrals.filter((referral) => group.statuses.includes(normalizeStatus(referral.status))).length;
-    const item = document.createElement("button");
+    const item = document.createElement("div");
     item.className = "summary-item";
-    item.type = "button";
-
-    if (summaryFilter === group.key) {
-      item.classList.add("active");
-    }
 
     const countEl = document.createElement("strong");
     countEl.textContent = count;
@@ -2130,14 +5240,1082 @@ function renderReferralSummary() {
     labelEl.textContent = group.label;
 
     item.append(countEl, labelEl);
-    item.addEventListener("click", () => {
-      summaryFilter = group.key === "all" || summaryFilter === group.key ? "all" : group.key;
-      statusFilterSelect.value = "all";
-      renderReferralSummary();
-      renderReferrals();
-    });
     referralSummary.append(item);
   }
+}
+
+function renderProfileHeader(kicker, titleText, badge, actions) {
+  const heading = document.createElement("div");
+  heading.className = "detail-heading profile-heading";
+
+  const titleWrap = document.createElement("div");
+  titleWrap.className = "profile-title-block";
+
+  const eyebrow = document.createElement("p");
+  eyebrow.className = "eyebrow";
+  eyebrow.textContent = kicker;
+
+  const titleRow = document.createElement("div");
+  titleRow.className = "profile-title-row";
+
+  const title = document.createElement("h3");
+  title.textContent = titleText;
+
+  titleRow.append(title, badge);
+  titleWrap.append(eyebrow, titleRow);
+  heading.append(titleWrap, actions);
+  return heading;
+}
+
+function renderProfileSummaryGrid(items) {
+  const grid = document.createElement("div");
+  grid.className = "profile-summary-grid";
+
+  for (const [label, value] of items) {
+    const card = document.createElement("div");
+    card.className = "profile-summary-card";
+
+    const labelEl = document.createElement("span");
+    labelEl.textContent = label;
+
+    const valueEl = document.createElement("strong");
+    valueEl.textContent = displayValue(value);
+
+    card.append(labelEl, valueEl);
+    grid.append(card);
+  }
+
+  return grid;
+}
+
+function renderProfileSection(titleText, fields) {
+  const section = document.createElement("section");
+  section.className = "profile-section";
+
+  const title = document.createElement("h4");
+  title.textContent = titleText;
+
+  const grid = document.createElement("div");
+  grid.className = "profile-field-grid";
+
+  for (const [label, value] of fields) {
+    grid.append(renderProfileField(label, value));
+  }
+
+  section.append(title, grid);
+  return section;
+}
+
+function renderProfileField(label, value) {
+  const field = document.createElement("div");
+  field.className = "profile-field";
+
+  const labelEl = document.createElement("span");
+  labelEl.textContent = label;
+
+  const valueEl = document.createElement("strong");
+  if (value instanceof Node) {
+    valueEl.append(value);
+  } else {
+    valueEl.textContent = displayValue(value);
+  }
+
+  field.append(labelEl, valueEl);
+  return field;
+}
+
+function renderProfileDateInput(label, value, record, moduleName, fieldName) {
+  const input = document.createElement("input");
+  input.className = "inline-date-input profile-date-input";
+  input.type = "date";
+  input.value = value || "";
+  input.setAttribute("aria-label", label);
+  input.addEventListener("change", () => updateInlineDate(record, moduleName, fieldName, input.value));
+  return input;
+}
+
+function renderProfileNotes(notesValue) {
+  const notes = document.createElement("section");
+  notes.className = "notes-panel profile-notes-panel";
+
+  const notesTitle = document.createElement("h4");
+  notesTitle.textContent = "Notes";
+
+  const notesText = document.createElement("p");
+  notesText.textContent = notesValue || "-";
+
+  notes.append(notesTitle, notesText);
+  return notes;
+}
+
+function recordInitials(name) {
+  const parts = String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (!parts.length) {
+    return "SN";
+  }
+
+  return parts.slice(0, 2).map((part) => part[0].toUpperCase()).join("");
+}
+
+function clientAppointments(client) {
+  return loadedAppointments
+    .filter((appointment) => appointmentClientIds(appointment).includes(client.id) || appointmentClientName(appointment) === clientName(client))
+    .sort(
+      (first, second) =>
+        dateValue(first.appointmentDate, 1) - dateValue(second.appointmentDate, 1) ||
+        appointmentTimeValue(first.appointmentTime) - appointmentTimeValue(second.appointmentTime)
+    );
+}
+
+function completedClientAppointments(client) {
+  return clientAppointments(client).filter((appointment) => appointment.status === "Completed");
+}
+
+function mostRecentCompletedAppointmentDateFromAppointments(appointments, excludedAppointmentId = "") {
+  const today = todayDateString();
+  const datedAppointments = appointments
+    .filter(
+      (appointment) =>
+        appointment.id !== excludedAppointmentId &&
+        appointment.status === "Completed" &&
+        appointment.appointmentDate &&
+        appointment.appointmentDate <= today
+    )
+    .sort(
+      (first, second) =>
+        dateValue(second.appointmentDate, -1) - dateValue(first.appointmentDate, -1) ||
+        appointmentTimeValue(second.appointmentTime) - appointmentTimeValue(first.appointmentTime)
+    );
+
+  return datedAppointments[0]?.appointmentDate || "";
+}
+
+function mostRecentCompletedAppointmentDateForClientId(clientId, excludedAppointmentId = "") {
+  return mostRecentCompletedAppointmentDateFromAppointments(
+    loadedAppointments.filter((appointment) => appointmentClientIds(appointment).includes(clientId)),
+    excludedAppointmentId
+  );
+}
+
+function clientManualLessonIndex(client) {
+  const value = String(client.currentLesson || "").trim();
+
+  if (value === "enrollment") {
+    return 0;
+  }
+
+  const match = value.match(/^lesson-(\d)$/);
+  return match ? Number(match[1]) : -1;
+}
+
+function clientCompletedLessonIndex(client) {
+  const manualIndex = clientManualLessonIndex(client);
+
+  if (manualIndex >= 0) {
+    return manualIndex;
+  }
+
+  const completed = completedClientAppointments(client);
+  const completedLessons = completed
+    .map((appointment) => Number.parseInt(String(appointment.lesson || "").replace(/\D/g, ""), 10))
+    .filter((lesson) => Number.isFinite(lesson) && lesson >= 1 && lesson <= 7);
+
+  if (completedLessons.length) {
+    return Math.max(...completedLessons);
+  }
+
+  return client.firstAppointmentDate || completed.length ? 0 : -1;
+}
+
+function currentLessonLabel(client) {
+  const index = clientCompletedLessonIndex(client);
+
+  if (index < 0) {
+    return "Not started";
+  }
+
+  return index === 0 ? "Enrollment" : `Lesson ${index}`;
+}
+
+function profileDate(value, emptyText = "-") {
+  return formatShortDate(value) || emptyText;
+}
+
+function mostRecentAppointmentDate(client) {
+  const appointments = clientAppointments(client);
+
+  if (appointments.length) {
+    return mostRecentCompletedAppointmentDateFromAppointments(appointments);
+  }
+
+  return client.mostRecentAppointmentDate || "";
+}
+
+function renderClientProfileHero(client, statusLabel) {
+  const hero = document.createElement("section");
+  hero.className = "panel client-profile-hero";
+
+  const top = document.createElement("div");
+  top.className = "client-person-top";
+
+  const avatar = document.createElement("div");
+  avatar.className = "client-avatar";
+  avatar.textContent = recordInitials(clientName(client));
+
+  const copy = document.createElement("div");
+  const title = document.createElement("h3");
+  title.textContent = statusLabel;
+
+  const lines = document.createElement("div");
+  lines.className = "client-contact-lines";
+  for (const value of [
+    `Caregiver: ${displayValue(client.parentName)}`,
+    `Phone: ${displayValue(formatPhone(client.phone))}`,
+    `Recent Contact: ${profileDate(client.mostRecentContactDate)}`
+  ]) {
+    const line = document.createElement("span");
+    line.textContent = value;
+    lines.append(line);
+  }
+
+  copy.append(title, lines);
+  top.append(avatar, copy);
+
+  const fields = document.createElement("div");
+  fields.className = "client-field-grid";
+  const recentAppointment = mostRecentAppointmentDate(client);
+  const fieldItems = [
+    ["First appointment", profileDate(client.firstAppointmentDate)],
+    ["Most recent appt", profileDate(recentAppointment)],
+    ["Graduation date", profileDate(client.lastAppointmentDate, "Not graduated")],
+    ["Language", displayValue(client.preferredLanguage)]
+  ];
+
+  for (const [label, value] of fieldItems) {
+    fields.append(renderClientProfileField(label, value));
+  }
+
+  hero.append(top, fields);
+  return hero;
+}
+
+function renderClientProfileField(label, value) {
+  const field = document.createElement("div");
+  field.className = "client-profile-field";
+
+  const labelEl = document.createElement("span");
+  labelEl.textContent = label;
+
+  const valueEl = document.createElement("strong");
+  valueEl.textContent = displayValue(value);
+
+  field.append(labelEl, valueEl);
+  return field;
+}
+
+function renderClientProgramProgress(client) {
+  const section = document.createElement("section");
+  section.className = "panel client-program-panel";
+
+  const header = document.createElement("div");
+  header.className = "client-program-header";
+  const title = document.createElement("h3");
+  title.textContent = "Program Progress";
+  header.append(title);
+
+  const appointments = clientAppointments(client);
+  const completedIndex = clientCompletedLessonIndex(client);
+
+  const lessonDots = document.createElement("div");
+  lessonDots.className = "lesson-dots";
+
+  const items = [
+    { key: "enrollment", label: "Enroll", done: completedIndex >= 0, value: "enrollment" },
+    ...Array.from({ length: 7 }, (_, index) => {
+      const lesson = index + 1;
+      return { key: `lesson-${lesson}`, label: `L${lesson}`, done: completedIndex >= lesson, value: `lesson-${lesson}` };
+    })
+  ];
+  const firstPendingIndex = items.findIndex((item) => !item.done);
+
+  items.forEach((item, index) => {
+    const dot = document.createElement("button");
+    dot.className = "lesson-dot";
+    dot.type = "button";
+    dot.style.setProperty("--lesson-accent", profileLessonAccent(index));
+    dot.title = `Set current progress to ${item.label}`;
+    if (item.done) {
+      dot.classList.add("done");
+    } else if (index === firstPendingIndex) {
+      dot.classList.add("next");
+    }
+
+    const label = document.createElement("strong");
+    label.textContent = item.label;
+    const state = document.createElement("span");
+    state.textContent = item.done ? "Done" : index === firstPendingIndex ? "Next" : "";
+    dot.append(label, state);
+    dot.addEventListener("click", () => updateClientCurrentLesson(client, item.value));
+    lessonDots.append(dot);
+  });
+
+  const goals = document.createElement("div");
+  goals.className = "goals-list";
+  const goalsTitle = document.createElement("h4");
+  goalsTitle.className = "program-goals-title";
+  goalsTitle.textContent = "Goals";
+  const goalsByKey = new Map();
+  appointments.forEach((appointment, index) => {
+    const goal = appointmentGoalText(appointment).trim();
+    if (!goal) {
+      return;
+    }
+
+    const lessonNumber = Number(appointment.lesson);
+    const hasLesson = Number.isFinite(lessonNumber) && lessonNumber > 0;
+    const key = hasLesson ? `lesson-${lessonNumber}` : `appointment-${appointment.id || index}`;
+    goalsByKey.set(key, {
+      label: hasLesson ? `Lesson ${lessonNumber}` : `Appointment ${index + 1}`,
+      goal,
+      lessonSort: hasLesson ? lessonNumber : 99,
+      appointmentDate: appointment.appointmentDate || "",
+      appointmentTime: appointment.appointmentTime || ""
+    });
+  });
+
+  const appointmentGoals = Array.from(goalsByKey.values())
+    .sort(
+      (first, second) =>
+        first.lessonSort - second.lessonSort ||
+        dateValue(first.appointmentDate, 1) - dateValue(second.appointmentDate, 1) ||
+        appointmentTimeValue(first.appointmentTime) - appointmentTimeValue(second.appointmentTime)
+    )
+    .slice(0, 8);
+
+  if (!appointmentGoals.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-inline";
+    empty.textContent = "No goals added yet.";
+    goals.append(empty);
+  }
+
+  for (const item of appointmentGoals) {
+    const row = document.createElement("div");
+    row.className = "goal-row";
+    const labelEl = document.createElement("span");
+    labelEl.textContent = item.label;
+    const goalEl = document.createElement("strong");
+    goalEl.textContent = item.goal;
+    row.append(labelEl, goalEl);
+    goals.append(row);
+  }
+
+  section.append(header, lessonDots, goalsTitle, goals);
+  return section;
+}
+
+function profileLessonAccent(index) {
+  const accents = [
+    "var(--muted)",
+    "var(--brand-red)",
+    "var(--brand-orange)",
+    "var(--brand-yellow)",
+    "var(--brand-green)",
+    "var(--brand-teal)",
+    "var(--brand-blue)",
+    "var(--brand-purple)"
+  ];
+  return accents[index % accents.length];
+}
+
+function hasProfileValue(value) {
+  const text = String(value || "").trim();
+  return text !== "" && text !== "-";
+}
+
+function renderProfileDetailCard(titleText, rows, accent) {
+  const card = document.createElement("div");
+  card.className = "idea-card profile-detail-card";
+  card.style.setProperty("--idea-accent", accent);
+
+  const title = document.createElement("strong");
+  title.textContent = titleText;
+  card.append(title);
+
+  const detailList = document.createElement("div");
+  detailList.className = "profile-detail-lines";
+
+  for (const row of rows) {
+    const value = row.value;
+    const hasValue = row.alwaysShow || (value instanceof Node ? true : hasProfileValue(value));
+
+    if (!hasValue) {
+      continue;
+    }
+
+    const line = document.createElement("div");
+    line.className = "profile-detail-line";
+    const label = document.createElement("span");
+    label.textContent = row.label;
+    const detail = document.createElement("strong");
+
+    if (value instanceof Node) {
+      detail.append(value);
+    } else {
+      detail.textContent = hasProfileValue(value) ? value : "";
+    }
+
+    line.append(label, detail);
+    detailList.append(line);
+  }
+
+  if (!detailList.children.length) {
+    const empty = document.createElement("span");
+    empty.className = "empty-inline";
+    empty.textContent = "No details yet.";
+    detailList.append(empty);
+  }
+
+  card.append(detailList);
+  return card;
+}
+
+function renderProfileCheckboxList(items) {
+  const list = document.createElement("div");
+  list.className = "profile-check-list";
+
+  for (const item of items) {
+    const row = document.createElement("div");
+    row.className = "profile-check-line";
+    const state = document.createElement("strong");
+    state.textContent = truthyProfileValue(item.value) ? "✓" : "-";
+    const text = document.createElement("span");
+    text.textContent = item.label;
+    row.append(state, text);
+    list.append(row);
+  }
+
+  return list;
+}
+
+function providerLinksForDisplay(record) {
+  return Array.isArray(record.providerLinks) ? record.providerLinks : [];
+}
+
+function providerSourceMatchKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function providerLinkMatchesSource(source, link) {
+  const sourceKey = providerSourceMatchKey(source);
+  if (!sourceKey || !link) {
+    return false;
+  }
+
+  const providerKey = providerSourceMatchKey(link.providerName);
+  const organizationKey = providerSourceMatchKey(link.organizationName);
+  const labelKey = providerSourceMatchKey(link.label || `${link.providerName || ""} ${link.organizationName || ""}`);
+  const keys = [providerKey, organizationKey, labelKey].filter(Boolean);
+
+  return keys.some((key) => key === sourceKey || key.includes(sourceKey) || sourceKey.includes(key));
+}
+
+function findReferralSourceProviderLink(record) {
+  const source = record?.referralSource;
+  const linkedMatch = providerLinksForDisplay(record).find((link) => providerLinkMatchesSource(source, link));
+
+  if (linkedMatch) {
+    return linkedMatch;
+  }
+
+  return loadedNetworkEntries.flatMap((entry) =>
+    (entry.providers || []).map((provider) => ({
+      networkId: entry.id,
+      providerId: provider.id,
+      organizationName: networkEntryName(entry),
+      providerName: networkProviderName(provider),
+      label: `${networkProviderName(provider)} (${networkEntryName(entry)})`
+    }))
+  ).find((link) => providerLinkMatchesSource(source, link)) || null;
+}
+
+function openReferralSourceProvider(link) {
+  if (!link?.networkId) {
+    return;
+  }
+
+  setCrmView("referral-network");
+  setSelectedNetworkEntry(link.networkId);
+}
+
+function renderReferralSourceValue(record) {
+  const source = record?.referralSource;
+  const link = findReferralSourceProviderLink(record);
+
+  if (!link) {
+    return source;
+  }
+
+  const button = document.createElement("button");
+  button.className = "link-button profile-name-button profile-source-link";
+  button.type = "button";
+  button.textContent = source || link.providerName || link.organizationName || "Provider profile";
+  button.title = "Open provider profile";
+  button.addEventListener("click", () => openReferralSourceProvider(link));
+  return button;
+}
+
+function renderReferralSourceField(record) {
+  const field = document.createElement("div");
+  field.className = "client-profile-field profile-linked-field";
+
+  const label = document.createElement("span");
+  label.textContent = "Referral Source";
+
+  const list = document.createElement("div");
+  list.className = "profile-linked-list";
+  const value = renderReferralSourceValue(record);
+
+  if (value instanceof Node) {
+    list.append(value);
+  } else {
+    const source = document.createElement("strong");
+    source.textContent = hasProfileValue(value) ? value : "None linked yet";
+    list.append(source);
+  }
+
+  field.append(label, list);
+  return field;
+}
+
+function renderProfileLinkedField(record, moduleName, kind) {
+  const isSiblings = kind === "siblings";
+  const field = document.createElement("div");
+  field.className = "client-profile-field profile-linked-field";
+
+  const labelEl = document.createElement("span");
+  labelEl.textContent = isSiblings ? "Siblings" : "Provider Profiles";
+  field.append(labelEl);
+
+  const list = document.createElement("div");
+  list.className = "profile-linked-list";
+
+  if (isSiblings) {
+    const records = moduleName === "clients" ? loadedClients : loadedReferrals;
+    const getName = moduleName === "clients" ? clientName : referralName;
+    const selectRecord = moduleName === "clients" ? setSelectedClient : setSelectedReferral;
+    const siblingIds = Array.isArray(record.siblingIds) ? record.siblingIds : [];
+    const siblings = siblingIds.map((id) => records.find((item) => item.id === id)).filter(Boolean);
+    const linkedIds = new Set([record.id, ...siblingIds]);
+    const candidates = records
+      .filter((item) => !linkedIds.has(item.id))
+      .sort((first, second) => getName(first).localeCompare(getName(second)));
+
+    if (!siblings.length) {
+      const empty = document.createElement("strong");
+      empty.textContent = "None linked yet";
+      list.append(empty);
+    }
+
+    for (const sibling of siblings) {
+      const openButton = document.createElement("button");
+      openButton.className = "link-button profile-name-button";
+      openButton.type = "button";
+      openButton.textContent = getName(sibling);
+      openButton.addEventListener("click", () => selectRecord(sibling.id));
+      list.append(openButton);
+    }
+
+    const addButton = document.createElement("button");
+    addButton.className = "secondary-button compact-button profile-add-button";
+    addButton.type = "button";
+    addButton.textContent = "Add Sibling";
+    addButton.disabled = !candidates.length;
+    addButton.addEventListener("click", () => openSiblingModal(record, moduleName));
+    field.append(list, addButton);
+    return field;
+  }
+
+  const links = providerLinksForDisplay(record);
+  if (!links.length) {
+    const empty = document.createElement("strong");
+    empty.textContent = "None linked yet";
+    list.append(empty);
+  }
+
+  for (const link of links) {
+    const name = document.createElement("strong");
+    name.textContent = `${link.providerName} (${link.organizationName})`;
+    list.append(name);
+  }
+
+  field.append(list);
+  return field;
+}
+
+function renderFormsPlaceholderField() {
+  const field = document.createElement("div");
+  field.className = "client-profile-field profile-linked-field";
+  const label = document.createElement("span");
+  label.textContent = "Forms";
+  const button = document.createElement("button");
+  button.className = "secondary-button compact-button profile-add-button";
+  button.type = "button";
+  button.textContent = "Forms";
+  button.disabled = true;
+  field.append(label, button);
+  return field;
+}
+
+function renderProfileLinkForm(placeholderText, options, getLabel, onSubmit, getValue = (item) => item.id) {
+  const form = document.createElement("form");
+  form.className = "profile-linked-form";
+
+  const select = document.createElement("select");
+  select.setAttribute("aria-label", placeholderText);
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = options.length ? placeholderText : "No matches available";
+  select.append(placeholder);
+
+  for (const optionItem of options) {
+    const option = document.createElement("option");
+    option.value = getValue(optionItem);
+    option.textContent = getLabel(optionItem);
+    select.append(option);
+  }
+
+  const addButton = document.createElement("button");
+  addButton.type = "submit";
+  addButton.textContent = "Add";
+  addButton.disabled = !options.length;
+  select.disabled = !options.length;
+  form.append(select, addButton);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (select.value) {
+      onSubmit(select.value);
+    }
+  });
+  return form;
+}
+
+function renderClientDetailsPanel(client) {
+  const section = document.createElement("section");
+  section.className = "panel client-ideas-panel";
+
+  const title = document.createElement("h3");
+  title.textContent = "Client Details";
+
+  const list = document.createElement("div");
+  list.className = "idea-list";
+  const convertedDate = client.convertedAt || (client.sourceReferralId ? client.createdAt : "");
+  const ideas = [
+    renderProfileDetailCard("Referral", [
+      { label: "Type", value: client.referralType },
+      { label: "Referral date", value: profileDate(client.referralDate) },
+      { label: "Converted date", value: formatDateOnly(String(convertedDate || "").slice(0, 10)), alwaysShow: true }
+    ], "var(--brand-green)"),
+    renderProfileDetailCard("Contact", [
+      { label: "Preferred", value: client.preferredContactMethod },
+      { label: "First contact", value: profileDate(client.firstContactDate) },
+      { label: "Email", value: client.email },
+      { label: "Email opt out", value: truthyProfileValue(client.emailOptOut) ? "✓" : "", alwaysShow: true },
+      { label: "Text opt out", value: truthyProfileValue(client.textOptOut) ? "✓" : "", alwaysShow: true },
+      { label: "Address", value: formatAddress(client) }
+    ], "var(--brand-teal)"),
+    renderProfileDetailCard("Insurance", [
+      { label: "YCCO", value: truthyProfileValue(client.ycco) ? "✓" : "", alwaysShow: true },
+      { label: "HRSN", value: truthyProfileValue(client.hrsn) ? "✓" : "", alwaysShow: true }
+    ], "var(--brand-yellow)"),
+    renderProfileDetailCard("Assessment", [
+      { label: "Assessment score", value: client.assessmentScore },
+      { label: "Willingness score", value: client.willingnessScore }
+    ], "var(--brand-purple)")
+  ];
+
+  for (const idea of ideas) {
+    list.append(idea);
+  }
+
+  section.append(title, list);
+  return section;
+}
+
+function profileActivityLogs(record, moduleName) {
+  const relatedType = moduleName === "referrals" ? "referral" : "client";
+  return loadedActivityLogs
+    .filter((log) => log.relatedType === relatedType && log.relatedId === record.id)
+    .map((log) => ({
+      title: log.title || `${log.direction || "Outbound"} ${log.type || "Activity"}`,
+      detail: [log.result, log.description].filter(Boolean).length
+        ? [log.result, log.description].filter(Boolean)
+        : displayValue(log.type),
+      date: log.activityDate || String(log.occurredAt || "").slice(0, 10),
+      sortKey: activityLogTimestamp(log)
+    }));
+}
+
+function renderClientRecentActivity(client) {
+  const section = document.createElement("section");
+  section.className = "panel client-activity-panel";
+
+  const title = document.createElement("h3");
+  title.textContent = "Recent Activity";
+
+  const list = document.createElement("div");
+  list.className = "mini-list";
+  const appointmentItems = [...clientAppointments(client)]
+    .sort((first, second) => dateValue(second.appointmentDate, -1) - dateValue(first.appointmentDate, -1))
+    .slice(0, 4)
+    .map((appointment) => ({
+      title: appointment.status === "Completed" ? "Appointment completed" : "Appointment scheduled",
+      detail: appointmentGoalText(appointment) || (appointment.lesson ? `Lesson ${appointment.lesson}` : "Enrollment appointment"),
+      date: appointment.appointmentDate,
+      sortKey: `${appointment.appointmentDate || ""}T${appointment.appointmentTime || "00:00"}`
+    }));
+
+  const fallbackItems = [
+    {
+      title: "Status changed",
+      detail: `${client.status || "Scheduled"}`,
+      date: client.mostRecentContactDate || client.firstAppointmentDate || client.createdAt,
+      sortKey: client.mostRecentContactDate || client.firstAppointmentDate || client.createdAt || ""
+    }
+  ];
+
+  const activityItems = profileActivityLogs(client, "clients");
+  const items = [...activityItems, ...appointmentItems]
+    .sort((first, second) => String(second.sortKey || "").localeCompare(String(first.sortKey || "")))
+    .slice(0, 5);
+
+  for (const item of (items.length ? items : fallbackItems)) {
+    list.append(renderClientActivityRow(item.title, item.detail, item.date));
+  }
+
+  section.append(title, list);
+  return section;
+}
+
+function renderClientAppointmentsPanel(client) {
+  const section = document.createElement("section");
+  section.className = "panel client-appointments-panel";
+
+  const header = document.createElement("div");
+  header.className = "client-program-header";
+  const title = document.createElement("h3");
+  title.textContent = "Appointments";
+  const count = document.createElement("span");
+  count.className = "client-current-lesson";
+  count.textContent = `${clientAppointments(client).length} total`;
+  header.append(title, count);
+
+  const today = todayDateString();
+  const appointments = clientAppointments(client);
+  const upcoming = appointments
+    .filter((appointment) => appointment.appointmentDate >= today && appointment.status === "Scheduled")
+    .slice(0, 3);
+  const past = [...appointments]
+    .filter((appointment) => appointment.appointmentDate < today || appointment.status !== "Scheduled")
+    .sort((first, second) => dateValue(second.appointmentDate, -1) - dateValue(first.appointmentDate, -1))
+    .slice(0, 5);
+
+  section.append(header);
+  section.append(renderClientAppointmentGroup("Upcoming", upcoming, "No upcoming appointment."));
+  section.append(renderClientAppointmentGroup("History", past, "No appointment history yet."));
+  return section;
+}
+
+function renderClientAppointmentGroup(titleText, appointments, emptyText) {
+  const group = document.createElement("div");
+  group.className = "client-appointment-group";
+
+  const title = document.createElement("h4");
+  title.textContent = titleText;
+  group.append(title);
+
+  if (!appointments.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-inline";
+    empty.textContent = emptyText;
+    group.append(empty);
+    return group;
+  }
+
+  for (const appointment of appointments) {
+    const row = document.createElement("button");
+    row.className = "client-appointment-row";
+    row.type = "button";
+    row.addEventListener("click", () => {
+      closeClientModal();
+      setActiveModule("scheduling");
+      setSelectedAppointment(appointment.id);
+    });
+
+    const copy = document.createElement("span");
+    const title = document.createElement("strong");
+    title.textContent = [
+      profileDate(appointment.appointmentDate),
+      formatAppointmentTime(appointment.appointmentTime)
+    ].filter(Boolean).join(" ");
+    const detail = document.createElement("span");
+    detail.textContent = [
+      appointment.lesson ? `Lesson ${appointment.lesson}` : "Enrollment",
+      appointmentGoalText(appointment) || appointment.notes || ""
+    ].filter(Boolean).join(" | ");
+    copy.append(title, detail);
+
+    row.append(copy, appointmentStatusBadge(appointment.status));
+    group.append(row);
+  }
+
+  return group;
+}
+
+function renderClientActivityRow(titleText, detailText, dateValueText) {
+  const row = document.createElement("div");
+  row.className = "mini-row";
+  const copy = document.createElement("div");
+  const title = document.createElement("strong");
+  title.textContent = titleText;
+  copy.append(title);
+
+  for (const detailValue of (Array.isArray(detailText) ? detailText : [detailText]).filter(Boolean)) {
+    const detail = document.createElement("span");
+    detail.textContent = detailValue;
+    copy.append(detail);
+  }
+
+  const date = document.createElement("span");
+  date.className = "pill";
+  date.textContent = profileDate(String(dateValueText || "").slice(0, 10));
+  row.append(copy, date);
+  return row;
+}
+
+function renderReferralProfileHero(referral, statusLabel) {
+  const hero = document.createElement("section");
+  hero.className = "panel client-profile-hero";
+
+  const top = document.createElement("div");
+  top.className = "client-person-top";
+
+  const avatar = document.createElement("div");
+  avatar.className = "client-avatar referral-avatar";
+  avatar.textContent = recordInitials(referralName(referral));
+
+  const copy = document.createElement("div");
+  const title = document.createElement("h3");
+  title.textContent = statusLabel;
+
+  const lines = document.createElement("div");
+  lines.className = "client-contact-lines";
+  for (const value of [
+    `Caregiver: ${displayValue(referral.parentName)}`,
+    `Phone: ${displayValue(formatPhone(referral.phone))}`,
+    `Recent Contact: ${profileDate(referral.mostRecentContactDate)}`
+  ]) {
+    const line = document.createElement("span");
+    line.textContent = value;
+    lines.append(line);
+  }
+
+  copy.append(title, lines);
+  top.append(avatar, copy);
+
+  const fields = document.createElement("div");
+  fields.className = "client-field-grid";
+  for (const [label, value] of [
+    ["Referral date", profileDate(referral.referralDate)],
+    ["First appointment", profileDate(referral.firstAppointmentDate)],
+    ["Recent appt", profileDate(referral.mostRecentAppointmentDate)],
+    ["Language", displayValue(referral.preferredLanguage)]
+  ]) {
+    fields.append(renderClientProfileField(label, value));
+  }
+
+  hero.append(top, fields);
+  return hero;
+}
+
+function referralProgressIndex(referral) {
+  if (referral.convertedClientId) {
+    return 3;
+  }
+
+  const status = normalizeStatus(referral.status);
+  if (status === "Scheduled") {
+    return 2;
+  }
+
+  if (summaryGroups.find((group) => group.key === "follow-up")?.statuses.includes(status)) {
+    return 1;
+  }
+
+  return 0;
+}
+
+function renderReferralProgressPanel(referral) {
+  const section = document.createElement("section");
+  section.className = "panel client-program-panel referral-progress-panel";
+
+  const header = document.createElement("div");
+  header.className = "client-program-header";
+  const title = document.createElement("h3");
+  title.textContent = "Referral Progress";
+  const current = document.createElement("span");
+  current.className = "client-current-lesson";
+  current.textContent = referral.convertedClientId ? "Converted" : normalizeStatus(referral.status);
+  header.append(title, current);
+
+  const steps = document.createElement("div");
+  steps.className = "lesson-dots referral-progress-dots";
+  const currentIndex = referralProgressIndex(referral);
+  const items = [
+    { label: "New", accent: "var(--brand-red)" },
+    { label: "Contact", accent: "var(--brand-green)" },
+    { label: "Scheduled", accent: "var(--brand-blue)" },
+    { label: "Converted", accent: "var(--brand-purple)" }
+  ];
+
+  items.forEach((item, index) => {
+    const dot = document.createElement("div");
+    dot.className = "lesson-dot referral-progress-dot";
+    dot.style.setProperty("--lesson-accent", item.accent);
+    if (index < currentIndex || (index === currentIndex && currentIndex === items.length - 1)) {
+      dot.classList.add("done");
+    } else if (index === currentIndex) {
+      dot.classList.add("next");
+    }
+
+    const label = document.createElement("strong");
+    label.textContent = item.label;
+    const state = document.createElement("span");
+    state.textContent = index < currentIndex || (index === currentIndex && currentIndex === items.length - 1)
+      ? "Done"
+      : index === currentIndex
+        ? "Current"
+        : "";
+    dot.append(label, state);
+    steps.append(dot);
+  });
+
+  const summary = document.createElement("div");
+  summary.className = "goals-list referral-progress-summary";
+  const rows = [
+    ["Referral source", displayValue(referral.referralSource)],
+    ["Referral type", displayValue(referral.referralType)],
+    ["Preferred contact", displayValue(referral.preferredContactMethod)]
+  ];
+  if (referral.convertedClientId) {
+    rows.push(["Conversion", "Converted to client"]);
+  }
+
+  for (const item of rows) {
+    const row = document.createElement("div");
+    row.className = "goal-row";
+    const labelEl = document.createElement("span");
+    labelEl.textContent = item[0];
+    const valueEl = document.createElement("strong");
+    valueEl.textContent = item[1];
+    row.append(labelEl, valueEl);
+    summary.append(row);
+  }
+
+  section.append(header, steps, summary);
+  return section;
+}
+
+function renderReferralDetailsPanel(referral) {
+  const section = document.createElement("section");
+  section.className = "panel client-ideas-panel";
+
+  const title = document.createElement("h3");
+  title.textContent = "Referral Details";
+
+  const list = document.createElement("div");
+  list.className = "idea-list";
+  const ideas = [
+    renderProfileDetailCard("Referral", [
+      { label: "Type", value: referral.referralType },
+      { label: "Referral date", value: profileDate(referral.referralDate) }
+    ], "var(--brand-green)"),
+    renderProfileDetailCard("Contact", [
+      { label: "Preferred", value: referral.preferredContactMethod },
+      { label: "First contact", value: profileDate(referral.firstContactDate) },
+      { label: "Email", value: referral.email },
+      { label: "Email opt out", value: truthyProfileValue(referral.emailOptOut) ? "✓" : "", alwaysShow: true },
+      { label: "Text opt out", value: truthyProfileValue(referral.textOptOut) ? "✓" : "", alwaysShow: true },
+      { label: "Address", value: formatAddress(referral) }
+    ], "var(--brand-teal)"),
+    renderProfileDetailCard("Insurance", [
+      { label: "YCCO", value: truthyProfileValue(referral.ycco) ? "✓" : "", alwaysShow: true },
+      { label: "HRSN", value: truthyProfileValue(referral.hrsn) ? "✓" : "", alwaysShow: true }
+    ], "var(--brand-yellow)"),
+    renderProfileDetailCard("Assessment", [
+      { label: "Assessment score", value: referral.assessmentScore },
+      { label: "Willingness score", value: referral.willingnessScore }
+    ], "var(--brand-purple)")
+  ];
+
+  for (const idea of ideas) {
+    list.append(idea);
+  }
+
+  section.append(title, list);
+  return section;
+}
+
+function renderReferralRecentActivity(referral) {
+  const section = document.createElement("section");
+  section.className = "panel client-activity-panel";
+
+  const title = document.createElement("h3");
+  title.textContent = "Recent Activity";
+
+  const list = document.createElement("div");
+  list.className = "mini-list";
+  const fallbackItems = [
+    {
+      title: "Referral status",
+      detail: normalizeStatus(referral.status),
+      date: referral.mostRecentContactDate || referral.referralDate || referral.createdAt,
+      sortKey: referral.mostRecentContactDate || referral.referralDate || referral.createdAt || ""
+    },
+    {
+      title: "Referral received",
+      detail: displayValue(referral.referralSource),
+      date: referral.referralDate || referral.createdAt,
+      sortKey: referral.referralDate || referral.createdAt || ""
+    },
+    {
+      title: "Appointment activity",
+      detail: referral.firstAppointmentDate ? "First appointment scheduled" : "No appointment yet",
+      date: referral.mostRecentAppointmentDate || referral.firstAppointmentDate,
+      sortKey: referral.mostRecentAppointmentDate || referral.firstAppointmentDate || ""
+    }
+  ];
+  const activityItems = profileActivityLogs(referral, "referrals");
+  const items = activityItems.length
+    ? [...activityItems, ...fallbackItems].sort((first, second) => String(second.sortKey || "").localeCompare(String(first.sortKey || ""))).slice(0, 5)
+    : fallbackItems;
+
+  for (const item of items) {
+    list.append(renderClientActivityRow(item.title, item.detail, item.date));
+  }
+
+  section.append(title, list);
+  return section;
 }
 
 function renderReferralDetail() {
@@ -2165,17 +6343,6 @@ function renderReferralDetail() {
     return;
   }
 
-  const heading = document.createElement("div");
-  heading.className = "detail-heading";
-
-  const titleWrap = document.createElement("div");
-  const eyebrow = document.createElement("p");
-  eyebrow.className = "eyebrow";
-  eyebrow.textContent = "Referral profile";
-  const title = document.createElement("h3");
-  title.textContent = referralName(referral);
-  titleWrap.append(eyebrow, title);
-
   const actions = document.createElement("div");
   actions.className = "detail-actions";
 
@@ -2185,18 +6352,37 @@ function renderReferralDetail() {
   editButton.textContent = "Edit";
   editButton.addEventListener("click", () => startEditingReferral(referral));
 
+  const logCallButton = document.createElement("button");
+  logCallButton.className = "secondary-button";
+  logCallButton.type = "button";
+  logCallButton.textContent = "Log Call";
+  logCallButton.addEventListener("click", () => openActivityLogModal(referral, "referrals", "Call"));
+
+  const logTextButton = document.createElement("button");
+  logTextButton.className = "secondary-button";
+  logTextButton.type = "button";
+  logTextButton.textContent = "Log Text";
+  logTextButton.addEventListener("click", () => openActivityLogModal(referral, "referrals", "Text"));
+
   const deleteButton = document.createElement("button");
   deleteButton.className = "danger-button";
   deleteButton.type = "button";
   deleteButton.textContent = "Delete";
   deleteButton.addEventListener("click", () => deleteReferral(referral));
 
-  actions.append(editButton, deleteButton, closeReferralModalButton);
+  if (normalizeStatus(referral.status) === "Scheduled" && !referral.convertedClientId) {
+    const convertButton = document.createElement("button");
+    convertButton.type = "button";
+    convertButton.textContent = "Convert to Client";
+    convertButton.addEventListener("click", () => convertReferralToClient(referral));
+    actions.append(convertButton);
+  }
+
+  actions.append(logCallButton, logTextButton, editButton, deleteButton, closeReferralModalButton);
   syncModalCloseButton();
-  heading.append(titleWrap, actions);
 
   const statusLabel = document.createElement("label");
-  statusLabel.className = "status-field";
+  statusLabel.className = "status-field profile-status-field";
   statusLabel.textContent = "Status";
 
   const statusSelect = document.createElement("select");
@@ -2218,84 +6404,61 @@ function renderReferralDetail() {
   });
   statusLabel.append(statusSelect);
 
-  const infoGrid = document.createElement("div");
-  infoGrid.className = "detail-grid";
-  const leftColumn = document.createElement("dl");
-  leftColumn.className = "detail-column";
-  const rightColumn = document.createElement("dl");
-  rightColumn.className = "detail-column";
+  const shell = document.createElement("div");
+  shell.className = "client-progress-profile referral-progress-profile";
 
-  addDetailField(leftColumn, "Client Name", referralName(referral));
-  addInlineDateField(leftColumn, "Date of Birth", referral.dateOfBirth, referral, "referrals", "dateOfBirth");
-  addDetailField(leftColumn, "Gender", displayValue(referral.gender));
-  addDetailField(leftColumn, "Caregiver", displayValue(referral.parentName));
-  addDetailField(leftColumn, "Email", displayValue(referral.email));
-  addDetailField(leftColumn, "Mobile", displayValue(formatPhone(referral.phone)));
-  addDetailField(leftColumn, "Preferred Language", displayValue(referral.preferredLanguage));
-  addDetailField(leftColumn, "Referral Type", displayValue(referral.referralType));
-  addDetailField(leftColumn, "Referral Source", displayValue(referral.referralSource));
-  addDetailField(leftColumn, "YCCO", referral.ycco === "Yes" ? "✓" : "-");
+  const topbar = document.createElement("div");
+  topbar.className = "client-profile-topbar";
+  const titleWrap = document.createElement("div");
+  const eyebrow = document.createElement("p");
+  eyebrow.className = "eyebrow";
+  eyebrow.textContent = "Referral profile";
+  const title = document.createElement("h3");
+  title.textContent = referralName(referral);
+  titleWrap.append(eyebrow, title);
+  topbar.append(titleWrap, actions);
 
-  addDetailField(rightColumn, "Assessment Score", displayValue(referral.assessmentScore));
-  addDetailField(rightColumn, "Willingness Score", displayValue(referral.willingnessScore));
-  addDetailField(rightColumn, "Preferred Contact", displayValue(referral.preferredContactMethod));
-  addDetailField(rightColumn, "Email Opt Out", displayBoolean(referral.emailOptOut));
-  addDetailField(rightColumn, "Text Opt Out", displayBoolean(referral.textOptOut));
-  addDetailField(rightColumn, "Address", formatAddress(referral));
-
-  if (referral.convertedClientId) {
-    addDetailField(rightColumn, "Conversion", "✓");
-  }
-
-  infoGrid.append(leftColumn, rightColumn);
-
-  const trackingGrid = document.createElement("div");
-  trackingGrid.className = "detail-grid detail-tracking-grid";
-  const trackingLeftColumn = document.createElement("dl");
-  trackingLeftColumn.className = "detail-column";
-  const trackingRightColumn = document.createElement("dl");
-  trackingRightColumn.className = "detail-column";
-
-  addInlineDateField(trackingLeftColumn, "Referral Date", referral.referralDate, referral, "referrals", "referralDate");
-  addDetailField(trackingLeftColumn, "Created Date", formatDateOnly((referral.createdAt || "").slice(0, 10)));
-  addInlineDateField(trackingLeftColumn, "First Contact Date", referral.firstContactDate, referral, "referrals", "firstContactDate");
-  addInlineDateField(trackingLeftColumn, "Most Recent Contact Date", referral.mostRecentContactDate, referral, "referrals", "mostRecentContactDate");
-  addDetailField(trackingRightColumn, "Referral Type", displayValue(referral.referralType));
-  addInlineDateField(trackingRightColumn, "First Appointment Date", referral.firstAppointmentDate, referral, "referrals", "firstAppointmentDate");
-  addInlineDateField(trackingRightColumn, "Graduation Date", referral.lastAppointmentDate, referral, "referrals", "lastAppointmentDate");
-  addDetailField(trackingRightColumn, "Most Recent Appointment", displayValue(referral.mostRecentAppointmentDate));
-  trackingGrid.append(trackingLeftColumn, trackingRightColumn);
-
-  const notes = document.createElement("section");
-  notes.className = "notes-panel";
-  const notesTitle = document.createElement("h4");
-  notesTitle.textContent = "Notes";
-  const notesText = document.createElement("p");
-  notesText.textContent = referral.notes || "-";
-  notes.append(notesTitle, notesText);
-
-  const trackingTitle = document.createElement("h4");
-  trackingTitle.className = "section-title";
-  trackingTitle.textContent = "Data Tracking";
-
-  referralDetail.append(
-    heading,
-    statusLabel,
-    infoGrid,
-    trackingTitle,
-    trackingGrid,
-    renderSiblingsSection(referral, "referrals"),
-    renderLinkedProvidersSection(referral, "referrals"),
-    notes
+  const profileGrid = document.createElement("div");
+  profileGrid.className = "client-profile-grid";
+  profileGrid.append(
+    renderReferralProfileHero(referral, normalizeStatus(referral.status)),
+    renderReferralProgressPanel(referral)
   );
 
-  if (normalizeStatus(referral.status) === "Scheduled" && !referral.convertedClientId) {
-    const convertButton = document.createElement("button");
-    convertButton.type = "button";
-    convertButton.textContent = "Convert to Client";
-    convertButton.addEventListener("click", () => convertReferralToClient(referral));
-    referralDetail.append(convertButton);
-  }
+  const adminStrip = document.createElement("div");
+  adminStrip.className = "client-admin-strip";
+  adminStrip.append(
+    statusLabel,
+    renderProfileLinkedField(referral, "referrals", "siblings"),
+    renderReferralSourceField(referral),
+    renderFormsPlaceholderField()
+  );
+
+  const splitGrid = document.createElement("div");
+  splitGrid.className = "client-profile-split-grid";
+  splitGrid.append(renderReferralDetailsPanel(referral), renderReferralRecentActivity(referral));
+
+  const datesSection = renderProfileSection("Key dates", [
+    ["Date of Birth", renderProfileDateInput("Date of Birth", referral.dateOfBirth, referral, "referrals", "dateOfBirth")],
+    ["Referral Date", renderProfileDateInput("Referral Date", referral.referralDate, referral, "referrals", "referralDate")],
+    ["First Contact", renderProfileDateInput("First Contact Date", referral.firstContactDate, referral, "referrals", "firstContactDate")],
+    ["Recent Contact", renderProfileDateInput("Most Recent Contact Date", referral.mostRecentContactDate, referral, "referrals", "mostRecentContactDate")],
+    ["First Appointment", renderProfileDateInput("First Appointment Date", referral.firstAppointmentDate, referral, "referrals", "firstAppointmentDate")],
+    ["Recent Appointment", displayValue(formatShortDate(referral.mostRecentAppointmentDate))],
+    ["Graduation Date", renderProfileDateInput("Graduation Date", referral.lastAppointmentDate, referral, "referrals", "lastAppointmentDate")],
+    ["Created", formatDateOnly((referral.createdAt || "").slice(0, 10))]
+  ]);
+
+  shell.append(
+    topbar,
+    profileGrid,
+    adminStrip,
+    splitGrid,
+    datesSection,
+    renderProfileNotes(referral.notes)
+  );
+
+  referralDetail.append(shell);
 }
 
 function renderClientDetail() {
@@ -2318,21 +6481,35 @@ function renderClientDetail() {
     return;
   }
 
-  const heading = document.createElement("div");
-  heading.className = "detail-heading";
-
-  const titleWrap = document.createElement("div");
-  const eyebrow = document.createElement("p");
-  eyebrow.className = "eyebrow";
-  eyebrow.textContent = "Client profile";
-  const title = document.createElement("h3");
-  title.textContent = clientName(client);
-  titleWrap.append(eyebrow, title);
-
   const actions = document.createElement("div");
   actions.className = "detail-actions";
+
+  const logCallButton = document.createElement("button");
+  logCallButton.className = "secondary-button";
+  logCallButton.type = "button";
+  logCallButton.textContent = "Log Call";
+  logCallButton.addEventListener("click", () => openActivityLogModal(client, "clients", "Call"));
+
+  const logTextButton = document.createElement("button");
+  logTextButton.className = "secondary-button";
+  logTextButton.type = "button";
+  logTextButton.textContent = "Log Text";
+  logTextButton.addEventListener("click", () => openActivityLogModal(client, "clients", "Text"));
+
+  const newAppointmentFromClientButton = document.createElement("button");
+  newAppointmentFromClientButton.className = "secondary-button";
+  newAppointmentFromClientButton.type = "button";
+  newAppointmentFromClientButton.textContent = "New Appt";
+  newAppointmentFromClientButton.addEventListener("click", () => {
+    startNewAppointment({
+      clientId: client.id,
+      clientIds: [client.id],
+      clientName: clientName(client),
+      clientNames: [clientName(client)]
+    });
+  });
+
   const editButton = document.createElement("button");
-  editButton.className = "secondary-button";
   editButton.type = "button";
   editButton.textContent = "Edit";
   editButton.addEventListener("click", () => startEditingClient(client));
@@ -2348,11 +6525,10 @@ function renderClientDetail() {
   closeButton.type = "button";
   closeButton.textContent = "Close";
   closeButton.addEventListener("click", closeClientModal);
-  actions.append(editButton, deleteButton, closeButton);
-  heading.append(titleWrap, actions);
+  actions.append(newAppointmentFromClientButton, logCallButton, logTextButton, editButton, deleteButton, closeButton);
 
   const statusLabel = document.createElement("label");
-  statusLabel.className = "status-field";
+  statusLabel.className = "status-field profile-status-field";
   statusLabel.textContent = "Status";
 
   const statusSelect = document.createElement("select");
@@ -2374,74 +6550,50 @@ function renderClientDetail() {
   });
   statusLabel.append(statusSelect);
 
-  const infoGrid = document.createElement("div");
-  infoGrid.className = "detail-grid";
-  const leftColumn = document.createElement("dl");
-  leftColumn.className = "detail-column";
-  const rightColumn = document.createElement("dl");
-  rightColumn.className = "detail-column";
+  const shell = document.createElement("div");
+  shell.className = "client-progress-profile";
 
-  addDetailField(leftColumn, "Client Name", clientName(client));
-  addInlineDateField(leftColumn, "Date of Birth", client.dateOfBirth, client, "clients", "dateOfBirth");
-  addDetailField(leftColumn, "Gender", displayValue(client.gender));
-  addDetailField(leftColumn, "Caregiver", displayValue(client.parentName));
-  addDetailField(leftColumn, "Email", displayValue(client.email));
-  addDetailField(leftColumn, "Mobile", displayValue(formatPhone(client.phone)));
-  addDetailField(leftColumn, "Preferred Language", displayValue(client.preferredLanguage));
-  addDetailField(leftColumn, "Referral Type", displayValue(client.referralType));
-  addDetailField(leftColumn, "Referral Source", displayValue(client.referralSource));
-  addDetailField(leftColumn, "YCCO", client.ycco === "Yes" ? "✓" : "-");
+  const topbar = document.createElement("div");
+  topbar.className = "client-profile-topbar";
+  const titleWrap = document.createElement("div");
+  const eyebrow = document.createElement("p");
+  eyebrow.className = "eyebrow";
+  eyebrow.textContent = "Client profile";
+  const title = document.createElement("h3");
+  title.textContent = clientName(client);
+  titleWrap.append(eyebrow, title);
+  topbar.append(titleWrap, actions);
 
-  addDetailField(rightColumn, "Assessment Score", displayValue(client.assessmentScore));
-  addDetailField(rightColumn, "Willingness Score", displayValue(client.willingnessScore));
-  addDetailField(rightColumn, "Preferred Contact", displayValue(client.preferredContactMethod));
-  addDetailField(rightColumn, "Email Opt Out", displayBoolean(client.emailOptOut));
-  addDetailField(rightColumn, "Text Opt Out", displayBoolean(client.textOptOut));
-  addDetailField(rightColumn, "Address", formatAddress(client));
-
-  infoGrid.append(leftColumn, rightColumn);
-
-  const trackingTitle = document.createElement("h4");
-  trackingTitle.className = "section-title";
-  trackingTitle.textContent = "Data Tracking";
-
-  const trackingGrid = document.createElement("div");
-  trackingGrid.className = "detail-grid detail-tracking-grid";
-  const trackingLeftColumn = document.createElement("dl");
-  trackingLeftColumn.className = "detail-column";
-  const trackingRightColumn = document.createElement("dl");
-  trackingRightColumn.className = "detail-column";
-
-  addInlineDateField(trackingLeftColumn, "Referral Date", client.referralDate, client, "clients", "referralDate");
-  addDetailField(trackingLeftColumn, "Created Date", formatDateOnly((client.createdAt || "").slice(0, 10)));
-  addInlineDateField(trackingLeftColumn, "First Contact Date", client.firstContactDate, client, "clients", "firstContactDate");
-  addInlineDateField(trackingLeftColumn, "Most Recent Contact Date", client.mostRecentContactDate, client, "clients", "mostRecentContactDate");
-  const convertedDate = client.convertedAt || (client.sourceReferralId ? client.createdAt : "");
-  addDetailField(trackingRightColumn, "Converted Date", formatDateOnly(convertedDate.slice(0, 10)));
-  addDetailField(trackingRightColumn, "Referral Type", displayValue(client.referralType));
-  addInlineDateField(trackingRightColumn, "First Appointment Date", client.firstAppointmentDate, client, "clients", "firstAppointmentDate");
-  addInlineDateField(trackingRightColumn, "Graduation Date", client.lastAppointmentDate, client, "clients", "lastAppointmentDate");
-  addDetailField(trackingRightColumn, "Most Recent Appointment", displayValue(client.mostRecentAppointmentDate));
-  trackingGrid.append(trackingLeftColumn, trackingRightColumn);
-
-  const notes = document.createElement("section");
-  notes.className = "notes-panel";
-  const notesTitle = document.createElement("h4");
-  notesTitle.textContent = "Notes";
-  const notesText = document.createElement("p");
-  notesText.textContent = client.notes || "-";
-  notes.append(notesTitle, notesText);
-
-  clientDetail.append(
-    heading,
-    statusLabel,
-    infoGrid,
-    trackingTitle,
-    trackingGrid,
-    renderSiblingsSection(client, "clients"),
-    renderLinkedProvidersSection(client, "clients"),
-    notes
+  const profileGrid = document.createElement("div");
+  profileGrid.className = "client-profile-grid";
+  profileGrid.append(
+    renderClientProfileHero(client, client.status || "Scheduled"),
+    renderClientProgramProgress(client)
   );
+
+  const adminStrip = document.createElement("div");
+  adminStrip.className = "client-admin-strip";
+  adminStrip.append(
+    statusLabel,
+    renderProfileLinkedField(client, "clients", "siblings"),
+    renderReferralSourceField(client),
+    renderFormsPlaceholderField()
+  );
+
+  const splitGrid = document.createElement("div");
+  splitGrid.className = "client-profile-split-grid";
+  splitGrid.append(renderClientDetailsPanel(client), renderClientRecentActivity(client));
+
+  shell.append(
+    topbar,
+    profileGrid,
+    adminStrip,
+    splitGrid,
+    renderClientAppointmentsPanel(client),
+    renderProfileNotes(client.notes)
+  );
+
+  clientDetail.append(shell);
 }
 
 function renderNetworkDetail() {
@@ -2957,8 +7109,6 @@ function emptyDetail(text, actionLabel, action) {
 
 function clearReferralFilters() {
   referralSearchInput.value = "";
-  statusFilterSelect.value = "all";
-  summaryFilter = "all";
   selectedReferralId = null;
   renderReferralSummary();
   renderReferrals();
@@ -3072,6 +7222,7 @@ function mapZohoClientRow(row) {
     willingnessScore: csvValue(row, "Willingness Score"),
     gender: csvValue(row, "Gender") || "Unspecified",
     ycco: csvValue(row, "YCCO"),
+    hrsn: csvValue(row, "HRSN"),
     emailOptOut: /^true|yes|1$/i.test(csvValue(row, "Email Opt Out")),
     addressStreet: csvValue(row, "Mailing Street"),
     addressCity: csvValue(row, "Mailing City"),
@@ -3119,6 +7270,7 @@ function mapZohoReferralRow(row, sourceType) {
     willingnessScore: csvValue(row, "Willingness Score"),
     gender: csvValue(row, "Gender") || "Unspecified",
     ycco: csvValue(row, "YCCO"),
+    hrsn: csvValue(row, "HRSN"),
     emailOptOut: /^true|yes|1$/i.test(csvValue(row, "Email Opt Out")),
     addressStreet: csvValue(row, "Street"),
     addressCity: csvValue(row, "City"),
@@ -4135,6 +8287,8 @@ async function loadReferrals() {
     renderReferrals();
     renderDashboard();
     renderReferralSourceOptions();
+    renderTaskRelatedOptions(taskReferralIdInput.value || taskClientIdInput.value);
+    renderWorkflowTasks();
     if (!referralModal.hidden && selectedReferralId) {
       renderReferralDetail();
     }
@@ -4168,7 +8322,9 @@ async function loadClients() {
     renderClients();
     renderDashboard();
     renderAppointmentClientOptions(appointmentClientSelect.value);
+    renderTaskRelatedOptions(taskReferralIdInput.value || taskClientIdInput.value);
     renderAppointments();
+    renderWorkflowTasks();
     if (!clientModal.hidden && selectedClientId) {
       renderClientDetail();
     }
@@ -4200,6 +8356,8 @@ async function loadReferralNetwork() {
     loadedNetworkEntries = data.entries;
     renderReferralNetwork();
     renderReferralSourceOptions();
+    renderReferralProviderLinkEditor();
+    renderClientProviderLinkEditor();
     if (!networkModal.hidden && selectedNetworkEntryId) {
       renderNetworkDetail();
     }
@@ -4294,11 +8452,765 @@ async function loadAppointments() {
     const data = await response.json();
     loadedAppointments = data.appointments;
     renderAppointments();
+    renderDashboard();
     appointmentsStatusEl.textContent = "";
   } catch (error) {
     appointmentsStatusEl.textContent = "Could not load appointments yet.";
     console.error(error);
   }
+}
+
+async function loadTasks() {
+  if (!currentUser) {
+    tasksStatusEl.textContent = "";
+    workflowTaskSummary.innerHTML = "";
+    workflowTaskList.innerHTML = "";
+    return;
+  }
+
+  tasksStatusEl.textContent = "Loading tasks...";
+
+  try {
+    const response = await authedFetch("/api/tasks");
+
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    loadedTasks = data.tasks;
+    renderWorkflowTasks();
+    tasksStatusEl.textContent = "";
+  } catch (error) {
+    tasksStatusEl.textContent = "Could not load tasks yet.";
+    console.error(error);
+  }
+}
+
+async function loadActivityLogs() {
+  if (!currentUser) {
+    loadedActivityLogs = [];
+    return;
+  }
+
+  try {
+    const response = await authedFetch("/api/activity-logs");
+
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    loadedActivityLogs = data.activityLogs || [];
+    if (!clientModal.hidden && selectedClientId) {
+      renderClientDetail();
+    }
+    if (!referralModal.hidden && selectedReferralId) {
+      renderReferralDetail();
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function saveActivityLog(event) {
+  event.preventDefault();
+
+  if (!currentUser) {
+    clientsStatusEl.textContent = "Sign in before logging activity.";
+    return;
+  }
+
+  const formData = new FormData(activityLogForm);
+  const activityLog = Object.fromEntries(formData.entries());
+  activityLog.activityTime = normalizeAppointmentTime(activityLog.activityTime);
+  saveActivityLogButton.disabled = true;
+
+  try {
+    const response = await authedFetch("/api/activity-logs", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(activityLog)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    closeActivityLogModal();
+    await loadActivityLogs();
+
+    if (activityLog.relatedType === "referral") {
+      referralsStatusEl.textContent = `${activityLog.type} logged.`;
+      await loadReferrals();
+    } else {
+      clientsStatusEl.textContent = `${activityLog.type} logged.`;
+      await loadClients();
+    }
+  } catch (error) {
+    const statusElement = activityLog.relatedType === "referral" ? referralsStatusEl : clientsStatusEl;
+    statusElement.textContent = error.message || "Could not log activity yet.";
+    console.error(error);
+  } finally {
+    saveActivityLogButton.disabled = false;
+  }
+}
+
+async function saveTask(event) {
+  event.preventDefault();
+
+  if (!currentUser) {
+    tasksStatusEl.textContent = "Sign in before saving a task.";
+    return;
+  }
+
+  resolveTaskRelatedId();
+  const formData = new FormData(taskForm);
+  const task = Object.fromEntries(formData.entries());
+  task.clientId = taskClientIdInput.value;
+  task.referralId = taskReferralIdInput.value;
+  task.appointmentId = taskAppointmentIdInput.value;
+  const client = loadedClients.find((item) => item.id === task.clientId);
+  task.clientName = client ? clientName(client) : "";
+  task.dueTime = "";
+  const isEditing = Boolean(editingTaskId);
+
+  if (!task.title.trim()) {
+    tasksStatusEl.textContent = "Task title is required.";
+    taskForm.elements.title.focus();
+    return;
+  }
+
+  tasksStatusEl.textContent = isEditing ? "Updating task..." : "Saving task...";
+  saveTaskButton.disabled = true;
+
+  try {
+    const path = isEditing ? `/api/tasks/${encodeURIComponent(editingTaskId)}` : "/api/tasks";
+    const response = await authedFetch(path, {
+      method: isEditing ? "PATCH" : "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(task)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    resetTaskForm();
+    closeTaskModal();
+    await loadTasks();
+    tasksStatusEl.textContent = isEditing ? "Task updated." : "Task saved.";
+  } catch (error) {
+    tasksStatusEl.textContent = error.message || "Could not save task yet.";
+    console.error(error);
+  } finally {
+    saveTaskButton.disabled = false;
+  }
+}
+
+async function updateTaskStatus(task, status, options = {}) {
+  if (!currentUser) {
+    tasksStatusEl.textContent = "Sign in before updating a task.";
+    return;
+  }
+
+  tasksStatusEl.textContent = "Updating task...";
+
+  try {
+    const response = await authedFetch(`/api/tasks/${encodeURIComponent(task.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ ...task, status })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    if (editingTaskId === task.id) {
+      resetTaskForm();
+    }
+    await loadTasks();
+    if (!flowArchiveModal.hidden) {
+      closeFlowArchive();
+    }
+    if (options.showUndo) {
+      showTaskUndoToast(task, options.previousStatus || task.status || "Open");
+    }
+    tasksStatusEl.textContent = options.statusMessage || "Task updated.";
+  } catch (error) {
+    tasksStatusEl.textContent = error.message || "Could not update task yet.";
+    console.error(error);
+  }
+}
+
+async function moveTaskToColumn(taskId, columnKey) {
+  const task = loadedTasks.find((item) => item.id === taskId);
+  const nextType = taskTypeForColumnKey(columnKey);
+
+  if (!task || taskTypeForColumn(task) === nextType) {
+    return;
+  }
+
+  tasksStatusEl.textContent = "Moving task...";
+
+  try {
+    const response = await authedFetch(`/api/tasks/${encodeURIComponent(task.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ ...task, type: nextType })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    await loadTasks();
+    tasksStatusEl.textContent = "Task moved.";
+  } catch (error) {
+    tasksStatusEl.textContent = error.message || "Could not move task yet.";
+    console.error(error);
+  }
+}
+
+async function deleteTaskRecord() {
+  if (!editingTaskId) {
+    return;
+  }
+
+  const task = loadedTasks.find((item) => item.id === editingTaskId);
+  const confirmed = window.confirm(`Delete task "${task?.title || "Untitled task"}"? This cannot be undone.`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  tasksStatusEl.textContent = "Deleting task...";
+  deleteTaskButton.disabled = true;
+
+  try {
+    const response = await authedFetch(`/api/tasks/${encodeURIComponent(editingTaskId)}`, {
+      method: "DELETE"
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    resetTaskForm();
+    closeTaskModal();
+    await loadTasks();
+    tasksStatusEl.textContent = "Task deleted.";
+  } catch (error) {
+    tasksStatusEl.textContent = error.message || "Could not delete task yet.";
+    console.error(error);
+  } finally {
+    deleteTaskButton.disabled = false;
+  }
+}
+
+function startDayTaskExists(candidate) {
+  return loadedTasks.some((task) => {
+    const sameDayGeneratedTask = isGeneratedWorkflowTask(task) && task.dueDate === candidate.dueDate;
+    if (!isActiveTask(task) && !sameDayGeneratedTask) {
+      return false;
+    }
+
+    return startDayTaskMatchesCandidate(task, candidate);
+  });
+}
+
+function startDayTaskTitleExists(title) {
+  const normalizedTitle = normalizedStartDayTitle(title);
+  return loadedTasks.some((task) => {
+    const rawTitle = normalizedStartDayTitle(task.title || "");
+    const displayTitle = normalizedStartDayTitle(taskDisplayTitle(task));
+    return rawTitle === normalizedTitle || displayTitle === normalizedTitle;
+  });
+}
+
+function normalizedStartDayTitle(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function startDayTaskIntent(title) {
+  const normalized = normalizedStartDayTitle(title);
+
+  if (normalized.includes("reschedule")) {
+    return "reschedule";
+  }
+
+  if (normalized.includes("schedule") || normalized.includes("new referral")) {
+    return "schedule";
+  }
+
+  if (normalized.startsWith("prep ")) {
+    return "prep";
+  }
+
+  if (normalized.includes("update outcome")) {
+    return "outcome";
+  }
+
+  return normalized.split(" ")[0] || "task";
+}
+
+function startDayTaskSubject(title) {
+  return normalizedStartDayTitle(title)
+    .replace(/^(call|text)\s+new referral\s+/, "")
+    .replace(/^(call|text)\s+/, "")
+    .replace(/^(schedule|reschedule|prep)\s+/, "")
+    .replace(/^update outcome for\s+/, "")
+    .replace(/\s+appointment$/, "")
+    .trim();
+}
+
+function startDayTaskMatchesCandidate(task, candidate) {
+  const candidateDisplayTitle = normalizedStartDayTitle(taskDisplayTitle(candidate));
+  const taskDisplay = normalizedStartDayTitle(taskDisplayTitle(task));
+  const rawTaskTitle = normalizedStartDayTitle(task.title || "");
+
+  if (taskDisplay === candidateDisplayTitle || rawTaskTitle === candidateDisplayTitle) {
+    return true;
+  }
+
+  const candidateIntent = startDayTaskIntent(candidateDisplayTitle);
+  const taskIntent = startDayTaskIntent(taskDisplay);
+  const rawTaskIntent = startDayTaskIntent(rawTaskTitle);
+
+  if (candidate.appointmentId && task.appointmentId === candidate.appointmentId) {
+    return candidateIntent === taskIntent || candidateIntent === rawTaskIntent;
+  }
+
+  if (candidate.clientId && task.clientId === candidate.clientId) {
+    if (candidateIntent === "reschedule") {
+      return taskIntent === "reschedule" || rawTaskIntent === "reschedule";
+    }
+
+    return candidateIntent === taskIntent || candidateIntent === rawTaskIntent;
+  }
+
+  if (candidate.referralId && task.referralId === candidate.referralId) {
+    if (candidateIntent === "schedule") {
+      return taskIntent === "schedule" || rawTaskIntent === "schedule";
+    }
+
+    return candidateIntent === taskIntent || candidateIntent === rawTaskIntent;
+  }
+
+  const candidateSubject = startDayTaskSubject(candidateDisplayTitle);
+  const taskSubject = startDayTaskSubject(taskDisplay);
+  const rawTaskSubject = startDayTaskSubject(rawTaskTitle);
+
+  return Boolean(
+    candidateSubject &&
+    (taskSubject === candidateSubject || rawTaskSubject === candidateSubject) &&
+    (taskIntent === candidateIntent || rawTaskIntent === candidateIntent)
+  );
+}
+
+function startDayCandidateKeys(candidate) {
+  const title = normalizedStartDayTitle(taskDisplayTitle(candidate));
+  const intent = startDayTaskIntent(title);
+  const subject = startDayTaskSubject(title);
+  const keys = new Set();
+
+  if (candidate.appointmentId) {
+    keys.add(`appointment:${candidate.appointmentId}:${intent}`);
+  } else {
+    keys.add(`title:${title}`);
+  }
+
+  if (candidate.clientId) {
+    keys.add(`client:${candidate.clientId}:${intent}`);
+  }
+
+  if (candidate.referralId) {
+    keys.add(`referral:${candidate.referralId}:${intent}`);
+  }
+
+  if (subject) {
+    keys.add(`subject:${intent}:${subject}`);
+  }
+
+  return [...keys];
+}
+
+function uniqueStartDayCandidates(candidates) {
+  const seenKeys = new Set();
+  const uniqueCandidates = [];
+
+  for (const candidate of candidates) {
+    const keys = startDayCandidateKeys(candidate);
+
+    if (keys.some((key) => seenKeys.has(key))) {
+      continue;
+    }
+
+    keys.forEach((key) => seenKeys.add(key));
+    uniqueCandidates.push(candidate);
+  }
+
+  return uniqueCandidates;
+}
+
+function formatStartDayTaskSummary(tasks) {
+  const visibleTasks = tasks.slice(0, 5).map((task) => `${taskTypeForColumn(task)}: ${taskDisplayTitle(task)}`);
+  const hiddenCount = tasks.length - visibleTasks.length;
+  const suffix = hiddenCount > 0 ? `; +${hiddenCount} more` : "";
+  return `Start the Day added ${tasks.length} task${tasks.length === 1 ? "" : "s"}: ${visibleTasks.join("; ")}${suffix}.`;
+}
+
+function formatStartDayResultSummary(createdTasks, skippedTasks) {
+  if (!createdTasks.length) {
+    if (!skippedTasks.length) {
+      return "Daily task list is already up to date.";
+    }
+
+    const visibleSkipped = skippedTasks.slice(0, 4).map(taskDisplayTitle);
+    const hiddenSkipped = skippedTasks.length - visibleSkipped.length;
+    const suffix = hiddenSkipped > 0 ? `; +${hiddenSkipped} more` : "";
+    return `Daily task list is already up to date. Already existed: ${visibleSkipped.join("; ")}${suffix}.`;
+  }
+
+  const createdSummary = formatStartDayTaskSummary(createdTasks);
+
+  if (!skippedTasks.length) {
+    return createdSummary;
+  }
+
+  return `${createdSummary} ${skippedTasks.length} already existed.`;
+}
+
+function dailyTaskCandidates() {
+  const today = todayDateString();
+  const newReferralTasks = loadedReferrals
+    .filter((referral) => normalizeStatus(referral.status) === "New")
+    .map((referral) => ({
+      title: `Schedule ${referralName(referral)}`,
+      type: "Call",
+      status: "Open",
+      priority: "Normal",
+      dueDate: today,
+      assignedTo: "",
+      clientId: "",
+      appointmentId: "",
+      referralId: referral.id,
+      source: "Start the Day",
+      notes: ""
+    }));
+  const rescheduleTasks = loadedClients
+    .filter((client) => (client.status || "Scheduled") === "Needs Reschedule")
+    .map((client) => {
+      const action = contactActionVerb(client);
+      return {
+        title: `Reschedule ${clientName(client)}`,
+        type: action,
+        status: "Open",
+        priority: "Normal",
+        dueDate: today,
+        assignedTo: "",
+        clientId: client.id,
+        appointmentId: "",
+        referralId: "",
+        source: "Start the Day",
+        notes: ""
+      };
+    });
+  const staleAppointmentTasks = loadedAppointments
+    .filter((appointment) => (appointment.status || "Scheduled") === "Scheduled" && appointment.appointmentDate < today)
+    .map((appointment) => ({
+      title: `Update outcome for ${appointmentClientName(appointment)}`,
+      type: "Task",
+      status: "Open",
+      priority: "Normal",
+      dueDate: today,
+      assignedTo: appointment.staffMember || "",
+      clientId: appointmentClientIds(appointment)[0] || appointment.clientId || "",
+      appointmentId: appointment.id || "",
+      referralId: "",
+      source: "Start the Day",
+      notes: `Past scheduled appointment from ${formatAppointmentDateTime(appointment)} still needs an outcome: Completed, No-show, Canceled, or Rescheduled.`
+    }));
+  const appointmentPrepTasks = loadedAppointments
+    .filter((appointment) => (appointment.status || "Scheduled") === "Scheduled" && appointment.appointmentDate === today)
+    .filter((appointment) => appointmentPrepItems(appointment).length)
+    .map((appointment) => ({
+      title: `Prep ${appointmentClientName(appointment)} appointment`,
+      type: appointmentPrepTaskType(appointment),
+      status: "Open",
+      priority: "Normal",
+      dueDate: today,
+      assignedTo: appointment.staffMember || "",
+      clientId: appointmentClientIds(appointment)[0] || appointment.clientId || "",
+      appointmentId: appointment.id || "",
+      referralId: "",
+      source: "Start the Day",
+      notes: appointmentPrepTaskNotes(appointment)
+    }));
+  const providerSourcePolishTitle = "Test provider profile referral source sync";
+  const providerSourcePolishTasks = startDayTaskTitleExists(providerSourcePolishTitle)
+    ? []
+    : [
+        {
+          title: providerSourcePolishTitle,
+          type: "Task",
+          status: "Open",
+          priority: "Normal",
+          dueDate: today,
+          assignedTo: "",
+          clientId: "",
+          appointmentId: "",
+          referralId: "",
+          source: "Polish Queue",
+          notes: "Add a provider profile on a referral/client and confirm the referral source updates and links to the provider profile."
+        }
+      ];
+
+  return uniqueStartDayCandidates([
+    ...newReferralTasks,
+    ...rescheduleTasks,
+    ...staleAppointmentTasks,
+    ...appointmentPrepTasks,
+    ...providerSourcePolishTasks
+  ])
+    .filter((task) => !startDayTaskExists(task));
+}
+
+async function startDayWorkflow() {
+  if (!currentUser) {
+    tasksStatusEl.textContent = "Sign in before starting the day.";
+    return;
+  }
+
+  const candidates = dailyTaskCandidates();
+
+  if (!candidates.length) {
+    tasksStatusEl.textContent = "Daily task list is already up to date.";
+    return;
+  }
+
+  tasksStatusEl.textContent = `Creating ${candidates.length} daily task${candidates.length === 1 ? "" : "s"}...`;
+  startDayButton.disabled = true;
+
+  try {
+    const createdTasks = [];
+    const skippedTasks = [];
+
+    for (const task of candidates) {
+      const response = await authedFetch("/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(task)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `API returned ${response.status}`);
+      }
+
+      const result = await response.json().catch(() => ({}));
+      if (result.duplicate) {
+        skippedTasks.push(result.task || task);
+      } else {
+        createdTasks.push(result.task || task);
+      }
+    }
+
+    await loadTasks();
+    tasksStatusEl.textContent = formatStartDayResultSummary(createdTasks, skippedTasks);
+  } catch (error) {
+    tasksStatusEl.textContent = error.message || "Could not start the day yet.";
+    console.error(error);
+  } finally {
+    startDayButton.disabled = false;
+  }
+}
+
+function referralFormField(name) {
+  return referralForm?.elements?.namedItem(name) || null;
+}
+
+function setReferralFormFieldValue(name, value) {
+  const field = referralFormField(name);
+  if (field) {
+    field.value = value;
+  }
+}
+
+function setReferralFormFieldChecked(name, value) {
+  const field = referralFormField(name);
+  if (field) {
+    field.checked = Boolean(value);
+  }
+}
+
+function syncReferralEditAvatar() {
+  if (!referralEditAvatar || !referralForm?.elements) {
+    return;
+  }
+
+  const firstInitial = String(referralFormField("firstName")?.value || "").trim().charAt(0);
+  const lastInitial = String(referralFormField("lastName")?.value || "").trim().charAt(0);
+  referralEditAvatar.textContent = `${firstInitial}${lastInitial}`.trim().toUpperCase() || "--";
+}
+
+function syncReferralSourceDisplay() {
+  if (!referralSourceDisplay || !referralForm?.elements) {
+    return;
+  }
+
+  const source = String(referralFormField("referralSource")?.value || "").trim();
+  referralSourceDisplay.textContent = source || "-";
+}
+
+function syncReferralSourceFromProviderLink(link) {
+  if (!link?.providerName) {
+    return;
+  }
+
+  setReferralFormFieldValue("referralSource", link.providerName);
+  syncReferralSourceDisplay();
+}
+
+function syncReferralEditStatusColor() {
+  const statusField = referralFormField("status");
+  if (statusField) {
+    applyStatusSelectColor(statusField, statusField.value || "New");
+  }
+}
+
+function referralEditStageIndex(status) {
+  const normalized = normalizeStatus(status);
+
+  if (normalized === "Scheduled") {
+    return 2;
+  }
+
+  if (["Not Interested", "Closed / No Further Outreach"].includes(normalized)) {
+    return 3;
+  }
+
+  if (["Texted", "Left Voicemail", "Emailed", "Requested Call Back", "Caregiver Will Call Back"].includes(normalized)) {
+    return 1;
+  }
+
+  return 0;
+}
+
+function syncReferralEditProgress() {
+  if (!referralEditLessonDots) {
+    return;
+  }
+
+  const status = referralFormField("status")?.value || "New";
+  const currentIndex = referralEditStageIndex(status);
+  const steps = [
+    { label: "New", accent: "var(--brand-red)" },
+    { label: "Contact", accent: "var(--brand-green)" },
+    { label: "Schedule", accent: "var(--brand-blue)" },
+    { label: "Close", accent: "var(--muted)" }
+  ];
+
+  referralEditLessonDots.innerHTML = "";
+
+  steps.forEach((step, index) => {
+    const dot = document.createElement("span");
+    dot.className = `lesson-dot${index < currentIndex ? " done" : ""}${index === currentIndex ? " next" : ""}`;
+    dot.style.setProperty("--lesson-accent", step.accent);
+
+    const label = document.createElement("strong");
+    label.textContent = step.label;
+    const state = document.createElement("span");
+    state.textContent = index < currentIndex ? "Done" : index === currentIndex ? "Next" : "";
+
+    dot.append(label, state);
+    referralEditLessonDots.append(dot);
+  });
+}
+
+function syncReferralEditNotesPreview() {
+  if (!referralEditNotesPreview) {
+    return;
+  }
+
+  const notes = String(referralFormField("notes")?.value || "").trim();
+  referralEditNotesPreview.textContent = notes || "No notes added yet.";
+}
+
+function syncReferralEditSiblingSummary(referral = {}) {
+  if (!referralEditSiblingSummary) {
+    return;
+  }
+
+  const siblingIds = Array.isArray(referral.siblingIds) ? referral.siblingIds : [];
+  const siblingNames = siblingIds
+    .map((id) => loadedReferrals.find((item) => item.id === id))
+    .filter(Boolean)
+    .map(referralName);
+  referralEditSiblingSummary.textContent = siblingNames.length ? siblingNames.join(", ") : "None linked yet";
+}
+
+function syncReferralEditChrome(referral = {}) {
+  syncReferralEditAvatar();
+  syncReferralSourceDisplay();
+  syncReferralEditStatusColor();
+  syncReferralEditSiblingSummary(referral);
+  syncReferralEditProgress();
+  syncReferralEditNotesPreview();
+}
+
+function setReferralFormValues(referral = {}) {
+  const providerLinks = Array.isArray(referral.providerLinks) ? [...referral.providerLinks] : [];
+  const providerSource = providerLinks[0]?.providerName || "";
+
+  setReferralFormFieldValue("firstName", referral.firstName || "");
+  setReferralFormFieldValue("lastName", referral.lastName || "");
+  setReferralFormFieldValue("parentName", referral.parentName || "");
+  setReferralFormFieldValue("phone", referral.phone || "");
+  setReferralFormFieldValue("email", referral.email || "");
+  setReferralFormFieldValue("preferredLanguage", referral.preferredLanguage || "English");
+  setReferralFormFieldValue("status", normalizeStatus(referral.status || "New"));
+  setReferralFormFieldValue("preferredContactMethod", referral.preferredContactMethod || "");
+  setReferralFormFieldValue("referralType", referral.referralType || "Internal Clinic Referral");
+  setReferralFormFieldValue("referralSource", referral.referralSource || providerSource);
+  setReferralFormFieldValue("dateOfBirth", referral.dateOfBirth || "");
+  setReferralFormFieldValue("gender", referral.gender || "Unspecified");
+  setReferralFormFieldChecked("ycco", truthyProfileValue(referral.ycco));
+  setReferralFormFieldChecked("hrsn", truthyProfileValue(referral.hrsn));
+  setReferralFormFieldValue("assessmentScore", referral.assessmentScore ?? "");
+  setReferralFormFieldValue("willingnessScore", referral.willingnessScore ?? "");
+  setReferralFormFieldValue("referralDate", referral.referralDate || "");
+  setReferralFormFieldValue("firstContactDate", referral.firstContactDate || "");
+  setReferralFormFieldValue("mostRecentContactDate", referral.mostRecentContactDate || "");
+  setReferralFormFieldValue("firstAppointmentDate", referral.firstAppointmentDate || "");
+  setReferralFormFieldValue("mostRecentAppointmentDate", referral.mostRecentAppointmentDate || "");
+  setReferralFormFieldValue("lastAppointmentDate", referral.lastAppointmentDate || "");
+  setReferralFormFieldValue("addressStreet", referral.addressStreet || "");
+  setReferralFormFieldValue("addressCity", referral.addressCity || "");
+  setReferralFormFieldValue("addressState", referral.addressState || "");
+  setReferralFormFieldValue("addressZip", referral.addressZip || "");
+  setReferralFormFieldChecked("emailOptOut", referral.emailOptOut);
+  setReferralFormFieldChecked("textOptOut", referral.textOptOut);
+  setReferralFormFieldValue("notes", referral.notes || "");
+  editingReferralProviderLinks = providerLinks;
+  renderReferralProviderLinkEditor();
+  syncReferralEditChrome(referral);
 }
 
 async function saveReferral(event) {
@@ -4311,8 +9223,11 @@ async function saveReferral(event) {
 
   const formData = new FormData(referralForm);
   const referral = Object.fromEntries(formData.entries());
-  referral.emailOptOut = referralForm.elements.emailOptOut.checked;
-  referral.textOptOut = referralForm.elements.textOptOut.checked;
+  referral.ycco = Boolean(referralFormField("ycco")?.checked);
+  referral.hrsn = Boolean(referralFormField("hrsn")?.checked);
+  referral.emailOptOut = Boolean(referralFormField("emailOptOut")?.checked);
+  referral.textOptOut = Boolean(referralFormField("textOptOut")?.checked);
+  referral.providerLinks = editingReferralProviderLinks;
   const isEditing = Boolean(editingReferralId);
 
   referralsStatusEl.textContent = isEditing ? "Updating referral..." : "Saving referral...";
@@ -4335,7 +9250,10 @@ async function saveReferral(event) {
 
     const data = await response.json();
     selectedReferralId = data.referral?.id || editingReferralId;
+    editingReferralId = null;
     referralForm.reset();
+    editingReferralProviderLinks = [];
+    renderReferralProviderLinkEditor();
     referralsStatusEl.textContent = isEditing ? "Referral updated." : "Referral saved.";
     await loadReferrals();
     referralForm.hidden = true;
@@ -4354,6 +9272,7 @@ function startNewReferral() {
   editingReferralId = null;
   selectedReferralId = null;
   referralForm.reset();
+  setReferralFormValues({ status: "New", preferredLanguage: "English", referralType: "Internal Clinic Referral", gender: "Unspecified" });
   renderReferralSourceOptions();
   formTitle.textContent = "New Referral";
   saveReferralButton.textContent = "Save referral";
@@ -4368,33 +9287,7 @@ function startNewReferral() {
 function startEditingReferral(referral) {
   editingReferralId = referral.id;
   selectedReferralId = referral.id;
-  referralForm.elements.firstName.value = referral.firstName || "";
-  referralForm.elements.lastName.value = referral.lastName || "";
-  referralForm.elements.parentName.value = referral.parentName || "";
-  referralForm.elements.phone.value = referral.phone || "";
-  referralForm.elements.email.value = referral.email || "";
-  referralForm.elements.preferredLanguage.value = referral.preferredLanguage || "English";
-  referralForm.elements.status.value = normalizeStatus(referral.status);
-  referralForm.elements.preferredContactMethod.value = referral.preferredContactMethod || "";
-  referralForm.elements.referralType.value = referral.referralType || "Internal Clinic Referral";
-  referralForm.elements.referralSource.value = referral.referralSource || "";
-  referralForm.elements.dateOfBirth.value = referral.dateOfBirth || "";
-  referralForm.elements.gender.value = referral.gender || "Unspecified";
-  referralForm.elements.ycco.value = referral.ycco || "";
-  referralForm.elements.assessmentScore.value = referral.assessmentScore ?? "";
-  referralForm.elements.willingnessScore.value = referral.willingnessScore ?? "";
-  referralForm.elements.referralDate.value = referral.referralDate || "";
-  referralForm.elements.firstContactDate.value = referral.firstContactDate || "";
-  referralForm.elements.mostRecentContactDate.value = referral.mostRecentContactDate || "";
-  referralForm.elements.firstAppointmentDate.value = referral.firstAppointmentDate || "";
-  referralForm.elements.lastAppointmentDate.value = referral.lastAppointmentDate || "";
-  referralForm.elements.addressStreet.value = referral.addressStreet || "";
-  referralForm.elements.addressCity.value = referral.addressCity || "";
-  referralForm.elements.addressState.value = referral.addressState || "";
-  referralForm.elements.addressZip.value = referral.addressZip || "";
-  referralForm.elements.emailOptOut.checked = Boolean(referral.emailOptOut);
-  referralForm.elements.textOptOut.checked = Boolean(referral.textOptOut);
-  referralForm.elements.notes.value = referral.notes || "";
+  setReferralFormValues(referral);
   renderReferralSourceOptions();
   formTitle.textContent = `Edit ${referralName(referral)}`;
   saveReferralButton.textContent = "Update referral";
@@ -4411,40 +9304,198 @@ function stopEditingReferral() {
   formTitle.textContent = "New Referral";
   saveReferralButton.textContent = "Save referral";
   cancelEditButton.hidden = true;
+  editingReferralProviderLinks = [];
+  renderReferralProviderLinkEditor();
   referralForm.hidden = true;
   referralDetail.hidden = false;
   syncModalCloseButton();
   renderReferralDetail();
 }
 
+function clientProgramGoalItems(client = {}) {
+  const goalsByKey = new Map();
+  clientAppointments(client).forEach((appointment, index) => {
+    const goal = appointmentGoalText(appointment).trim();
+    if (!goal) {
+      return;
+    }
+
+    const lessonNumber = Number(appointment.lesson);
+    const hasLesson = Number.isFinite(lessonNumber) && lessonNumber > 0;
+    const key = hasLesson ? `lesson-${lessonNumber}` : `appointment-${appointment.id || index}`;
+    goalsByKey.set(key, {
+      label: hasLesson ? `Lesson ${lessonNumber}` : `Appointment ${index + 1}`,
+      goal,
+      lessonSort: hasLesson ? lessonNumber : 99,
+      appointmentDate: appointment.appointmentDate || "",
+      appointmentTime: appointment.appointmentTime || ""
+    });
+  });
+
+  return Array.from(goalsByKey.values())
+    .sort(
+      (first, second) =>
+        first.lessonSort - second.lessonSort ||
+        dateValue(first.appointmentDate, 1) - dateValue(second.appointmentDate, 1) ||
+        appointmentTimeValue(first.appointmentTime) - appointmentTimeValue(second.appointmentTime)
+    )
+    .slice(0, 8);
+}
+
+function syncClientEditProgramProgress(client = {}) {
+  if (!clientEditLessonDots || !clientEditGoalsList) {
+    return;
+  }
+
+  const completedIndex = clientCompletedLessonIndex(client);
+  const items = [
+    { label: "Enroll", done: completedIndex >= 0 },
+    ...Array.from({ length: 7 }, (_, index) => {
+      const lesson = index + 1;
+      return { label: `L${lesson}`, done: completedIndex >= lesson };
+    })
+  ];
+  const firstPendingIndex = items.findIndex((item) => !item.done);
+  clientEditLessonDots.innerHTML = "";
+
+  items.forEach((item, index) => {
+    const dot = document.createElement("span");
+    dot.className = "lesson-dot";
+    dot.style.setProperty("--lesson-accent", profileLessonAccent(index));
+    if (item.done) {
+      dot.classList.add("done");
+    } else if (index === firstPendingIndex) {
+      dot.classList.add("next");
+    }
+
+    const label = document.createElement("strong");
+    label.textContent = item.label;
+    const state = document.createElement("span");
+    state.textContent = item.done ? "Done" : index === firstPendingIndex ? "Next" : "";
+    dot.append(label, state);
+    clientEditLessonDots.append(dot);
+  });
+
+  const goals = clientProgramGoalItems(client);
+  clientEditGoalsList.innerHTML = "";
+  if (!goals.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-inline";
+    empty.textContent = "No goals added yet.";
+    clientEditGoalsList.append(empty);
+    return;
+  }
+
+  for (const item of goals) {
+    const row = document.createElement("div");
+    row.className = "goal-row";
+    const label = document.createElement("span");
+    label.textContent = item.label;
+    const value = document.createElement("strong");
+    value.textContent = item.goal;
+    row.append(label, value);
+    clientEditGoalsList.append(row);
+  }
+}
+
+function clientFormField(name) {
+  return clientForm?.elements?.namedItem(name) || null;
+}
+
+function setClientFormFieldValue(name, value) {
+  const field = clientFormField(name);
+  if (field) {
+    field.value = value;
+  }
+}
+
+function setClientFormFieldChecked(name, value) {
+  const field = clientFormField(name);
+  if (field) {
+    field.checked = Boolean(value);
+  }
+}
+
+function syncClientEditAvatar() {
+  if (!clientEditAvatar || !clientForm?.elements) {
+    return;
+  }
+
+  const firstInitial = String(clientFormField("firstName")?.value || "").trim().charAt(0);
+  const lastInitial = String(clientFormField("lastName")?.value || "").trim().charAt(0);
+  clientEditAvatar.textContent = `${firstInitial}${lastInitial}`.trim().toUpperCase() || "--";
+}
+
+function syncClientReferralSourceDisplay() {
+  if (!clientReferralSourceDisplay || !clientForm?.elements) {
+    return;
+  }
+
+  const source = String(clientFormField("referralSource")?.value || "").trim();
+  clientReferralSourceDisplay.textContent = source || "-";
+}
+
+function syncClientEditStatusColor() {
+  const statusField = clientFormField("status");
+  if (statusField) {
+    applyClientStatusSelectColor(statusField, statusField.value || "Scheduled");
+  }
+}
+
+function syncClientEditSiblingSummary(client = {}) {
+  if (!clientEditSiblingSummary) {
+    return;
+  }
+
+  const siblingIds = Array.isArray(client.siblingIds) ? client.siblingIds : [];
+  const siblingNames = siblingIds
+    .map((id) => loadedClients.find((item) => item.id === id))
+    .filter(Boolean)
+    .map(clientName);
+  clientEditSiblingSummary.textContent = siblingNames.length ? siblingNames.join(", ") : "None linked yet";
+}
+
+function syncClientEditChrome(client = {}) {
+  syncClientEditAvatar();
+  syncClientReferralSourceDisplay();
+  syncClientEditStatusColor();
+  syncClientEditSiblingSummary(client);
+  syncClientEditProgramProgress(client);
+}
+
 function setClientFormValues(client = {}) {
-  clientForm.elements.firstName.value = client.firstName || "";
-  clientForm.elements.lastName.value = client.lastName || "";
-  clientForm.elements.parentName.value = client.parentName || "";
-  clientForm.elements.phone.value = client.phone || "";
-  clientForm.elements.email.value = client.email || "";
-  clientForm.elements.preferredLanguage.value = client.preferredLanguage || "English";
-  clientForm.elements.status.value = client.status || "Scheduled";
-  clientForm.elements.preferredContactMethod.value = client.preferredContactMethod || "";
-  clientForm.elements.referralType.value = client.referralType || "";
-  clientForm.elements.referralSource.value = client.referralSource || "";
-  clientForm.elements.dateOfBirth.value = client.dateOfBirth || "";
-  clientForm.elements.gender.value = client.gender || "Unspecified";
-  clientForm.elements.ycco.value = client.ycco || "";
-  clientForm.elements.assessmentScore.value = client.assessmentScore ?? "";
-  clientForm.elements.willingnessScore.value = client.willingnessScore ?? "";
-  clientForm.elements.referralDate.value = client.referralDate || "";
-  clientForm.elements.firstContactDate.value = client.firstContactDate || "";
-  clientForm.elements.mostRecentContactDate.value = client.mostRecentContactDate || "";
-  clientForm.elements.firstAppointmentDate.value = client.firstAppointmentDate || "";
-  clientForm.elements.lastAppointmentDate.value = client.lastAppointmentDate || "";
-  clientForm.elements.addressStreet.value = client.addressStreet || "";
-  clientForm.elements.addressCity.value = client.addressCity || "";
-  clientForm.elements.addressState.value = client.addressState || "";
-  clientForm.elements.addressZip.value = client.addressZip || "";
-  clientForm.elements.emailOptOut.checked = Boolean(client.emailOptOut);
-  clientForm.elements.textOptOut.checked = Boolean(client.textOptOut);
-  clientForm.elements.notes.value = client.notes || "";
+  setClientFormFieldValue("firstName", client.firstName || "");
+  setClientFormFieldValue("lastName", client.lastName || "");
+  setClientFormFieldValue("parentName", client.parentName || "");
+  setClientFormFieldValue("phone", client.phone || "");
+  setClientFormFieldValue("email", client.email || "");
+  setClientFormFieldValue("preferredLanguage", client.preferredLanguage || "English");
+  setClientFormFieldValue("status", client.status || "Scheduled");
+  setClientFormFieldValue("preferredContactMethod", client.preferredContactMethod || "");
+  setClientFormFieldValue("referralType", client.referralType || "");
+  setClientFormFieldValue("referralSource", client.referralSource || "");
+  setClientFormFieldValue("dateOfBirth", client.dateOfBirth || "");
+  setClientFormFieldValue("gender", client.gender || "Unspecified");
+  setClientFormFieldChecked("ycco", truthyProfileValue(client.ycco));
+  setClientFormFieldChecked("hrsn", truthyProfileValue(client.hrsn));
+  setClientFormFieldValue("assessmentScore", client.assessmentScore ?? "");
+  setClientFormFieldValue("willingnessScore", client.willingnessScore ?? "");
+  setClientFormFieldValue("referralDate", client.referralDate || "");
+  setClientFormFieldValue("firstContactDate", client.firstContactDate || "");
+  setClientFormFieldValue("mostRecentContactDate", client.mostRecentContactDate || "");
+  setClientFormFieldValue("firstAppointmentDate", client.firstAppointmentDate || "");
+  setClientFormFieldValue("mostRecentAppointmentDate", client.mostRecentAppointmentDate || "");
+  setClientFormFieldValue("lastAppointmentDate", client.lastAppointmentDate || "");
+  setClientFormFieldValue("addressStreet", client.addressStreet || "");
+  setClientFormFieldValue("addressCity", client.addressCity || "");
+  setClientFormFieldValue("addressState", client.addressState || "");
+  setClientFormFieldValue("addressZip", client.addressZip || "");
+  setClientFormFieldChecked("emailOptOut", client.emailOptOut);
+  setClientFormFieldChecked("textOptOut", client.textOptOut);
+  setClientFormFieldValue("notes", client.notes || "");
+  editingClientProviderLinks = Array.isArray(client.providerLinks) ? [...client.providerLinks] : [];
+  renderClientProviderLinkEditor();
+  syncClientEditChrome(client);
 }
 
 async function saveClient(event) {
@@ -4457,8 +9508,11 @@ async function saveClient(event) {
 
   const formData = new FormData(clientForm);
   const client = Object.fromEntries(formData.entries());
-  client.emailOptOut = clientForm.elements.emailOptOut.checked;
-  client.textOptOut = clientForm.elements.textOptOut.checked;
+  client.ycco = Boolean(clientFormField("ycco")?.checked);
+  client.hrsn = Boolean(clientFormField("hrsn")?.checked);
+  client.emailOptOut = Boolean(clientFormField("emailOptOut")?.checked);
+  client.textOptOut = Boolean(clientFormField("textOptOut")?.checked);
+  client.providerLinks = editingClientProviderLinks;
   const isEditing = Boolean(editingClientId);
 
   clientsStatusEl.textContent = isEditing ? "Updating client..." : "Saving client...";
@@ -4483,6 +9537,8 @@ async function saveClient(event) {
     selectedClientId = data.client?.id || editingClientId;
     editingClientId = null;
     clientForm.reset();
+    editingClientProviderLinks = [];
+    renderClientProviderLinkEditor();
     clientsStatusEl.textContent = isEditing ? "Client updated." : "Client saved.";
     await loadClients();
     clientForm.hidden = true;
@@ -4641,17 +9697,53 @@ async function saveAppointment(event) {
   event.preventDefault();
 
   if (!currentUser) {
-    appointmentsStatusEl.textContent = "Sign in before saving an appointment.";
+    setAppointmentFeedback("Sign in before saving an appointment.");
     return;
   }
 
   const formData = new FormData(appointmentForm);
   const appointment = Object.fromEntries(formData.entries());
-  const selectedClient = loadedClients.find((client) => client.id === appointment.clientId);
-  appointment.clientName = selectedClient ? clientName(selectedClient) : "";
+  const resolvedClientId = resolveAppointmentClientId();
+  if (resolvedClientId) {
+    addSelectedAppointmentClient(resolvedClientId);
+  }
+  appointment.clientIds = [...selectedAppointmentClientIds];
+  appointment.clientId = appointment.clientIds[0] || "";
+  appointment.appointmentTime = normalizeAppointmentTime(appointment.appointmentTime);
+
+  if (appointment.appointmentType === "Enrollment") {
+    appointment.lesson = "";
+    appointment.goal = "";
+  }
+
+  if (!appointment.clientIds.length) {
+    setAppointmentFeedback("Add at least one client before saving.");
+    appointmentClientSearchInput.focus();
+    return;
+  }
+
+  const selectedClients = appointment.clientIds
+    .map((clientId) => loadedClients.find((client) => client.id === clientId))
+    .filter(Boolean);
+  appointment.clientNames = selectedClients.map(clientName);
+  appointment.clientName = appointment.clientNames[0] || "";
   const isEditing = Boolean(editingAppointmentId);
 
-  appointmentsStatusEl.textContent = isEditing ? "Updating appointment..." : "Saving appointment...";
+  if (!appointmentFitsSchedulingWindow(appointment)) {
+    setAppointmentFeedback(schedulingWindowError(appointment));
+    appointmentTimeInput.focus();
+    return;
+  }
+
+  const conflict = appointmentSchedulingConflict(appointment, editingAppointmentId);
+
+  if (conflict) {
+    setAppointmentFeedback(appointmentConflictError(conflict));
+    appointmentTimeInput.focus();
+    return;
+  }
+
+  setAppointmentFeedback(isEditing ? "Updating appointment..." : "Saving appointment...");
   saveAppointmentButton.disabled = true;
 
   try {
@@ -4670,17 +9762,510 @@ async function saveAppointment(event) {
     }
 
     const data = await response.json();
-    selectedAppointmentId = data.appointment?.id || editingAppointmentId;
+    const savedAppointment = data.appointment || { ...appointment, id: editingAppointmentId };
+    const completedRescheduleTasks = Number(data.completedRescheduleTasks || 0);
+    await applyAppointmentClientEffects(savedAppointment, savedAppointment.status || appointment.status);
+    selectedAppointmentId = savedAppointment.id || editingAppointmentId;
     editingAppointmentId = null;
     appointmentForm.reset();
-    appointmentsStatusEl.textContent = isEditing ? "Appointment updated." : "Appointment saved.";
     closeAppointmentModal();
+    setAppointmentFeedback(completedRescheduleTasks
+      ? `${isEditing ? "Appointment updated" : "Appointment saved"}; reschedule task completed.`
+      : isEditing ? "Appointment updated." : "Appointment saved.");
+    await loadClients();
     await loadAppointments();
+    await loadTasks();
   } catch (error) {
-    appointmentsStatusEl.textContent = error.message || "Could not save appointment yet.";
+    setAppointmentFeedback(error.message || "Could not save appointment yet.");
     console.error(error);
   } finally {
     saveAppointmentButton.disabled = false;
+  }
+}
+
+function nextLessonNumberForAppointment(appointment) {
+  if (appointmentTypeLabel(appointment) === "Enrollment") {
+    return 1;
+  }
+
+  const lesson = Number.parseInt(String(appointment.lesson || "").replace(/\D/g, ""), 10);
+
+  if (!Number.isFinite(lesson) || lesson < 1) {
+    return 1;
+  }
+
+  return lesson < 7 ? lesson + 1 : null;
+}
+
+function defaultNextAppointmentDate(appointment) {
+  const baseDate = appointment.appointmentDate || todayDateString();
+  return toDateString(addDays(new Date(`${baseDate}T00:00:00`), 7));
+}
+
+function completionScheduleFields() {
+  return [
+    completionNextDateInput,
+    completionNextTimeInput,
+    completionNextStaffInput,
+    completionNextNotesInput
+  ];
+}
+
+function syncCompletionScheduleFields() {
+  const appointment = loadedAppointments.find((item) => item.id === completingAppointmentId);
+  const isRescheduleMode = appointmentCompletionMode === "reschedule";
+  const hasNextLesson = appointment ? Boolean(nextLessonNumberForAppointment(appointment)) : true;
+  const shouldSchedule = isRescheduleMode || (hasNextLesson && completionScheduleNextInput.checked);
+  completionScheduleNextInput.disabled = isRescheduleMode || !hasNextLesson;
+  completionNextGoalInput.closest("label").hidden = isRescheduleMode
+    ? !appointment || !appointmentCarriesGoal(appointment)
+    : !shouldSchedule;
+  completionScheduleNextInput.closest("label").hidden = isRescheduleMode || !hasNextLesson;
+
+  for (const field of completionScheduleFields()) {
+    const label = field.closest("label");
+    if (label) {
+      label.hidden = !shouldSchedule;
+    }
+    field.disabled = !shouldSchedule;
+    field.required = shouldSchedule && (field === completionNextDateInput || field === completionNextTimeInput);
+  }
+
+  saveAppointmentCompletionButton.textContent = isRescheduleMode
+    ? "Reschedule Appointment"
+    : shouldSchedule ? "Complete & Schedule" : "Complete Appointment";
+  renderCompletionAppointmentTimeOptions();
+}
+
+function startCompletingAppointment(appointment) {
+  appointmentCompletionMode = "complete";
+  completingAppointmentId = appointment.id;
+  appointmentCompleteForm.reset();
+  const nextLesson = nextLessonNumberForAppointment(appointment);
+  const nextLabel = nextLesson ? `Lesson ${nextLesson}` : "Program complete";
+  appointmentCompleteTitle.textContent = `Complete ${appointmentClientName(appointment)}`;
+  appointmentCompleteSummary.textContent = [
+    formatAppointmentDateTime(appointment),
+    appointmentTypeLabel(appointment),
+    appointment.lesson ? `Lesson ${appointment.lesson}` : ""
+  ].filter(Boolean).join(" | ");
+  completionNextLessonInput.value = nextLabel;
+  completionScheduleNextInput.checked = Boolean(nextLesson);
+  completionNextDateInput.value = nextLesson ? defaultNextAppointmentDate(appointment) : "";
+  completionNextTimeInput.value = nextLesson ? formatAppointmentTime(appointment.appointmentTime) : "";
+  completionNextStaffInput.value = appointment.staffMember || "";
+  syncCompletionScheduleFields();
+  openAppointmentCompletionModal();
+}
+
+function startReschedulingAppointment(appointment) {
+  appointmentCompletionMode = "reschedule";
+  completingAppointmentId = appointment.id;
+  appointmentCompleteForm.reset();
+  const visitLabel = appointment.lesson ? `Lesson ${appointment.lesson}` : appointmentTypeLabel(appointment);
+  appointmentCompleteTitle.textContent = `Reschedule ${appointmentClientName(appointment)}`;
+  appointmentCompleteSummary.textContent = [
+    formatAppointmentDateTime(appointment),
+    appointmentTypeLabel(appointment),
+    appointment.lesson ? `Lesson ${appointment.lesson}` : ""
+  ].filter(Boolean).join(" | ");
+  completionNextLessonInput.value = visitLabel;
+  completionNextGoalInput.value = appointmentGoalText(appointment);
+  completionScheduleNextInput.checked = true;
+  completionNextDateInput.value = defaultNextAppointmentDate(appointment);
+  completionNextTimeInput.value = formatAppointmentTime(appointment.appointmentTime);
+  completionNextStaffInput.value = appointment.staffMember || "";
+  completionNextNotesInput.value = appointment.notes || "";
+  syncCompletionScheduleFields();
+  openAppointmentCompletionModal();
+}
+
+async function saveAppointmentCompletion(event) {
+  event.preventDefault();
+
+  if (!currentUser) {
+    appointmentsStatusEl.textContent = "Sign in before completing an appointment.";
+    return;
+  }
+
+  const appointment = loadedAppointments.find((item) => item.id === completingAppointmentId);
+
+  if (!appointment) {
+    appointmentsStatusEl.textContent = "Could not find that appointment.";
+    closeAppointmentCompletionModal();
+    return;
+  }
+
+  if (appointmentCompletionMode === "reschedule") {
+    await saveAppointmentReschedule(appointment);
+    return;
+  }
+
+  const nextLesson = nextLessonNumberForAppointment(appointment);
+  const shouldScheduleNext = Boolean(nextLesson && completionScheduleNextInput.checked);
+  const nextGoal = completionNextGoalInput.value.trim();
+  let nextAppointment = null;
+
+  if (shouldScheduleNext && (!completionNextDateInput.value || !completionNextTimeInput.value)) {
+    appointmentsStatusEl.textContent = "Add a date and time for the next appointment.";
+    return;
+  }
+
+  if (shouldScheduleNext) {
+    const nextClients = appointmentClientIds(appointment)
+      .map((clientId) => loadedClients.find((client) => client.id === clientId))
+      .filter(Boolean);
+    nextAppointment = {
+      clientIds: appointmentClientIds(appointment),
+      clientId: appointmentClientIds(appointment)[0] || "",
+      clientNames: nextClients.map(clientName),
+      clientName: nextClients[0] ? clientName(nextClients[0]) : appointment.clientName || "",
+      appointmentDate: completionNextDateInput.value,
+      appointmentTime: normalizeAppointmentTime(completionNextTimeInput.value),
+      appointmentType: "Nutrition Education",
+      status: "Scheduled",
+      lesson: String(nextLesson),
+      goal: nextGoal,
+      staffMember: completionNextStaffInput.value.trim(),
+      notes: completionNextNotesInput.value.trim()
+    };
+
+    if (!appointmentFitsSchedulingWindow(nextAppointment)) {
+      appointmentsStatusEl.textContent = schedulingWindowError(nextAppointment);
+      completionNextTimeInput.focus();
+      return;
+    }
+
+    const conflict = appointmentSchedulingConflict(nextAppointment);
+
+    if (conflict) {
+      appointmentsStatusEl.textContent = appointmentConflictError(conflict);
+      completionNextTimeInput.focus();
+      return;
+    }
+  }
+
+  appointmentsStatusEl.textContent = shouldScheduleNext ? "Completing appointment and scheduling next visit..." : "Completing appointment...";
+  saveAppointmentCompletionButton.disabled = true;
+
+  try {
+    let completedRescheduleTasks = 0;
+    const completedAppointment = { ...appointment, status: "Completed" };
+    const response = await authedFetch(`/api/appointments/${encodeURIComponent(appointment.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(completedAppointment)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    if (shouldScheduleNext) {
+      const createResponse = await authedFetch("/api/appointments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(nextAppointment)
+      });
+
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Next appointment returned ${createResponse.status}`);
+      }
+      const nextData = await createResponse.json().catch(() => ({}));
+      completedRescheduleTasks += Number(nextData.completedRescheduleTasks || 0);
+    }
+
+    await applyAppointmentClientEffects(completedAppointment, "Completed", {
+      nextAppointmentScheduled: shouldScheduleNext || !nextLesson
+    });
+    closeAppointmentCompletionModal();
+    await loadClients();
+    await loadAppointments();
+    await loadTasks();
+    appointmentsStatusEl.textContent = completedRescheduleTasks
+      ? "Appointment completed, next visit scheduled, and reschedule task completed."
+      : shouldScheduleNext ? "Appointment completed and next visit scheduled." : "Appointment completed; client marked Needs Reschedule.";
+  } catch (error) {
+    appointmentsStatusEl.textContent = error.message || "Could not complete appointment yet.";
+    console.error(error);
+  } finally {
+    saveAppointmentCompletionButton.disabled = false;
+  }
+}
+
+async function saveAppointmentReschedule(appointment) {
+  if (!completionNextDateInput.value || !completionNextTimeInput.value) {
+    appointmentsStatusEl.textContent = "Add a date and time for the rescheduled appointment.";
+    return;
+  }
+
+  const normalizedTime = normalizeAppointmentTime(completionNextTimeInput.value);
+  const originalTime = normalizeAppointmentTime(appointment.appointmentTime);
+
+  if (appointment.appointmentDate === completionNextDateInput.value && originalTime === normalizedTime) {
+    appointmentsStatusEl.textContent = "Choose a new date or time for the rescheduled appointment.";
+    completionNextTimeInput.focus();
+    return;
+  }
+
+  const nextClients = appointmentClientIds(appointment)
+    .map((clientId) => loadedClients.find((client) => client.id === clientId))
+    .filter(Boolean);
+  const rescheduledAppointment = {
+    ...appointment,
+    status: "Rescheduled"
+  };
+  const replacementAppointment = {
+    clientIds: appointmentClientIds(appointment),
+    clientId: appointmentClientIds(appointment)[0] || "",
+    clientNames: nextClients.map(clientName),
+    clientName: nextClients[0] ? clientName(nextClients[0]) : appointment.clientName || "",
+    appointmentDate: completionNextDateInput.value,
+    appointmentTime: normalizedTime,
+    appointmentType: appointmentTypeLabel(appointment),
+    status: "Scheduled",
+    lesson: appointment.lesson || "",
+    goal: appointmentCarriesGoal(appointment) ? completionNextGoalInput.value.trim() : "",
+    staffMember: completionNextStaffInput.value.trim(),
+    notes: completionNextNotesInput.value.trim()
+  };
+
+  if (!appointmentFitsSchedulingWindow(replacementAppointment)) {
+    appointmentsStatusEl.textContent = schedulingWindowError(replacementAppointment);
+    completionNextTimeInput.focus();
+    return;
+  }
+
+  const conflict = appointmentSchedulingConflict(replacementAppointment, appointment.id);
+
+  if (conflict) {
+    appointmentsStatusEl.textContent = appointmentConflictError(conflict);
+    completionNextTimeInput.focus();
+    return;
+  }
+
+  appointmentsStatusEl.textContent = "Rescheduling appointment...";
+  saveAppointmentCompletionButton.disabled = true;
+
+  let originalAppointmentRetired = false;
+  let replacementAppointmentCreated = false;
+
+  try {
+    const updateResponse = await authedFetch(`/api/appointments/${encodeURIComponent(appointment.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(rescheduledAppointment)
+    });
+
+    if (!updateResponse.ok) {
+      const errorData = await updateResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || `Original appointment returned ${updateResponse.status}`);
+    }
+
+    originalAppointmentRetired = true;
+
+    const createResponse = await authedFetch("/api/appointments", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(replacementAppointment)
+    });
+
+    if (!createResponse.ok) {
+      const errorData = await createResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || `Rescheduled appointment returned ${createResponse.status}`);
+    }
+
+    replacementAppointmentCreated = true;
+    const createData = await createResponse.json().catch(() => ({}));
+    const completedRescheduleTasks = Number(createData.completedRescheduleTasks || 0);
+    const savedReplacement = createData.appointment || replacementAppointment;
+    await applyAppointmentClientEffects(savedReplacement, "Scheduled");
+    closeAppointmentCompletionModal();
+    await loadClients();
+    await loadAppointments();
+    await loadTasks();
+    appointmentsStatusEl.textContent = completedRescheduleTasks
+      ? "Appointment rescheduled and reschedule task completed."
+      : "Appointment rescheduled.";
+  } catch (error) {
+    if (originalAppointmentRetired && !replacementAppointmentCreated) {
+      await authedFetch(`/api/appointments/${encodeURIComponent(appointment.id)}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(appointment)
+      }).catch((restoreError) => {
+        console.error("Could not restore original appointment after reschedule failure.", restoreError);
+      });
+    }
+    appointmentsStatusEl.textContent = error.message || "Could not reschedule appointment yet.";
+    console.error(error);
+  } finally {
+    saveAppointmentCompletionButton.disabled = false;
+  }
+}
+
+async function updateAppointmentStatus(appointment, status) {
+  if (status === "Completed") {
+    startCompletingAppointment(appointment);
+    return;
+  }
+
+  appointmentsStatusEl.textContent = "Updating appointment...";
+
+  try {
+    const response = await authedFetch(`/api/appointments/${encodeURIComponent(appointment.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ ...appointment, status })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    await applyAppointmentClientEffects(appointment, status);
+    selectedAppointmentId = appointment.id;
+    appointmentsStatusEl.textContent = "Appointment updated.";
+    await loadClients();
+    await loadAppointments();
+  } catch (error) {
+    appointmentsStatusEl.textContent = error.message || "Could not update appointment yet.";
+    console.error(error);
+    await loadAppointments();
+  }
+}
+
+async function moveAppointmentToCalendarSlot(appointmentId, appointmentDate, appointmentTime) {
+  const appointment = loadedAppointments.find((item) => item.id === appointmentId);
+
+  if (!appointment) {
+    appointmentsStatusEl.textContent = "Could not find that appointment.";
+    return;
+  }
+
+  const normalizedTime = normalizeAppointmentTime(appointmentTime);
+  const movedAppointment = {
+    ...appointment,
+    appointmentDate,
+    appointmentTime: normalizedTime
+  };
+
+  if (appointment.appointmentDate === appointmentDate && normalizeAppointmentTime(appointment.appointmentTime) === normalizedTime) {
+    return;
+  }
+
+  if (!appointmentFitsSchedulingWindow(movedAppointment)) {
+    appointmentsStatusEl.textContent = schedulingWindowError(movedAppointment);
+    return;
+  }
+
+  const conflict = appointmentSchedulingConflict(movedAppointment, appointment.id);
+
+  if (conflict) {
+    appointmentsStatusEl.textContent = appointmentConflictError(conflict);
+    return;
+  }
+
+  appointmentsStatusEl.textContent = "Moving appointment...";
+
+  try {
+    const response = await authedFetch(`/api/appointments/${encodeURIComponent(appointment.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(movedAppointment)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    const savedAppointment = data.appointment || movedAppointment;
+    const completedRescheduleTasks = Number(data.completedRescheduleTasks || 0);
+    await applyAppointmentClientEffects(savedAppointment, savedAppointment.status || movedAppointment.status);
+    selectedAppointmentId = appointment.id;
+    await loadClients();
+    await loadAppointments();
+    await loadTasks();
+    appointmentsStatusEl.textContent = completedRescheduleTasks
+      ? "Appointment moved; reschedule task completed."
+      : "Appointment moved.";
+  } catch (error) {
+    appointmentsStatusEl.textContent = error.message || "Could not move appointment yet.";
+    console.error(error);
+    await loadAppointments();
+  }
+}
+
+async function applyAppointmentClientEffects(appointment, status, options = {}) {
+  const clientIds = appointmentClientIds(appointment);
+
+  if (!clientIds.length) {
+    return;
+  }
+
+  const sharedUpdates = {};
+
+  if (status === "Completed") {
+    sharedUpdates.mostRecentAppointmentDate = appointment.appointmentDate;
+    sharedUpdates.status = options.nextAppointmentScheduled === false ? "Needs Reschedule" : "Active";
+    const lesson = Number.parseInt(String(appointment.lesson || "").replace(/\D/g, ""), 10);
+    if (Number.isFinite(lesson) && lesson >= 1 && lesson <= 7) {
+      sharedUpdates.currentLesson = `lesson-${lesson}`;
+    } else {
+      sharedUpdates.currentLesson = "enrollment";
+    }
+  }
+
+  if (status === "No-show" || status === "Canceled") {
+    sharedUpdates.status = "Needs Reschedule";
+  }
+
+  if (status === "Scheduled") {
+    sharedUpdates.status = appointmentTypeLabel(appointment) === "Enrollment" ? "Scheduled" : "Active";
+  }
+
+  if (!Object.keys(sharedUpdates).length) {
+    return;
+  }
+
+  for (const clientId of clientIds) {
+    const updates = { ...sharedUpdates };
+
+    if (status === "No-show" || status === "Canceled") {
+      updates.mostRecentAppointmentDate = mostRecentCompletedAppointmentDateForClientId(clientId, appointment.id);
+    }
+
+    const response = await authedFetch(`/api/clients/${encodeURIComponent(clientId)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(updates)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Client update returned ${response.status}`);
+    }
   }
 }
 
@@ -4958,27 +10543,54 @@ async function deleteOutreachContact(contact) {
 }
 
 function setAppointmentFormValues(appointment = {}) {
-  renderAppointmentClientOptions(appointment.clientId || "");
-  appointmentForm.elements.clientId.value = appointment.clientId || "";
+  const clientIds = appointmentClientIds(appointment);
+  selectedAppointmentClientIds.clear();
+  clientIds.forEach((clientId) => selectedAppointmentClientIds.add(clientId));
+  renderAppointmentClientOptions(clientIds[0] || "");
+  renderSelectedAppointmentClients();
+  appointmentClientSearchInput.value = "";
   appointmentForm.elements.appointmentDate.value = appointment.appointmentDate || todayDateString();
-  appointmentForm.elements.appointmentTime.value = appointment.appointmentTime || "";
+  appointmentForm.elements.appointmentType.value = appointment.appointmentType || (appointment.lesson ? "Nutrition Education" : "Enrollment");
   appointmentForm.elements.status.value = appointment.status || "Scheduled";
   appointmentForm.elements.lesson.value = appointment.lesson || "";
   appointmentForm.elements.goal.value = appointment.goal || "";
   appointmentForm.elements.staffMember.value = appointment.staffMember || "";
   appointmentForm.elements.notes.value = appointment.notes || "";
+  syncAppointmentGoalField();
+  renderAppointmentTimeOptions(appointment.appointmentTime || "");
 }
 
-function startNewAppointment() {
+function syncAppointmentGoalField() {
+  const isEnrollment = appointmentForm.elements.appointmentType.value === "Enrollment";
+  const goalLabel = appointmentForm.elements.goal.closest("label");
+  const lessonLabel = appointmentForm.elements.lesson.closest("label");
+  if (lessonLabel) {
+    lessonLabel.hidden = isEnrollment;
+  }
+  if (goalLabel) {
+    goalLabel.hidden = isEnrollment;
+  }
+
+  if (isEnrollment) {
+    appointmentForm.elements.lesson.value = "";
+    appointmentForm.elements.goal.value = "";
+  }
+  appointmentForm.elements.lesson.disabled = isEnrollment;
+  appointmentForm.elements.goal.disabled = isEnrollment;
+}
+
+function startNewAppointment(defaults = {}) {
   editingAppointmentId = null;
   selectedAppointmentId = null;
   appointmentForm.reset();
-  setAppointmentFormValues({ status: "Scheduled" });
+  setAppointmentFormValues({ status: "Scheduled", ...defaults });
   appointmentFormTitle.textContent = "New Appointment";
   saveAppointmentButton.textContent = "Save appointment";
   deleteAppointmentButton.hidden = true;
+  appointmentDetail.hidden = true;
+  appointmentForm.hidden = false;
   openAppointmentModal();
-  appointmentsStatusEl.textContent = "Creating a new appointment.";
+  setAppointmentFeedback("");
 }
 
 function startEditingAppointment(appointment) {
@@ -4988,8 +10600,10 @@ function startEditingAppointment(appointment) {
   appointmentFormTitle.textContent = `Edit ${appointmentClientName(appointment)}`;
   saveAppointmentButton.textContent = "Update appointment";
   deleteAppointmentButton.hidden = false;
+  appointmentDetail.hidden = true;
+  appointmentForm.hidden = false;
   openAppointmentModal();
-  appointmentsStatusEl.textContent = `Editing appointment for ${appointmentClientName(appointment)}.`;
+  setAppointmentFeedback("");
 }
 
 async function deleteAppointment() {
@@ -5191,6 +10805,35 @@ async function updateClientStatus(client, status) {
     clientsStatusEl.textContent = error.message || "Could not update client status yet.";
     console.error(error);
     await loadClients();
+  }
+}
+
+async function updateClientCurrentLesson(client, currentLesson) {
+  clientsStatusEl.textContent = "Updating program progress...";
+
+  try {
+    const response = await authedFetch(`/api/clients/${encodeURIComponent(client.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ currentLesson })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    selectedClientId = client.id;
+    clientsStatusEl.textContent = "Program progress updated.";
+    await loadClients();
+    renderClientDetail();
+  } catch (error) {
+    clientsStatusEl.textContent = error.message || "Could not update program progress yet.";
+    console.error(error);
+    await loadClients();
+    renderClientDetail();
   }
 }
 
@@ -5417,7 +11060,10 @@ onAuthStateChanged(auth, (user) => {
   signOutButton.hidden = !signedIn;
   refreshButton.disabled = !signedIn;
   signedOutPanel.hidden = signedIn;
-  dashboardPanel.hidden = !signedIn;
+  workflowPanel.hidden = !signedIn;
+  dashboardPanel.hidden = true;
+  crmTabs.hidden = true;
+  crmDashboardPanel.hidden = true;
   referralsPanel.hidden = true;
   clientsPanel.hidden = true;
   referralNetworkPanel.hidden = true;
@@ -5434,6 +11080,8 @@ onAuthStateChanged(auth, (user) => {
     loadOutreachEvents();
     loadOutreachContacts();
     loadAppointments();
+    loadTasks();
+    loadActivityLogs();
   } else {
     messageEl.textContent = "";
     statusEl.textContent = "Sign in to load the database message.";
@@ -5443,17 +11091,24 @@ onAuthStateChanged(auth, (user) => {
     outreachStatusEl.textContent = "";
     outreachContactStatusEl.textContent = "";
     appointmentsStatusEl.textContent = "";
+    tasksStatusEl.textContent = "";
     referralsList.innerHTML = "";
     clientsList.innerHTML = "";
     networkList.innerHTML = "";
     outreachList.innerHTML = "";
     outreachContactList.innerHTML = "";
     appointmentsList.innerHTML = "";
-    dashboardSummary.innerHTML = "";
-    dashboardFollowups.innerHTML = "";
-    dashboardNewReferrals.innerHTML = "";
-    dashboardScheduled.innerHTML = "";
-    dashboardNoNext.innerHTML = "";
+    workflowTaskSummary.innerHTML = "";
+    workflowTaskList.innerHTML = "";
+    clearElement(dashboardSummary);
+    clearElement(dashboardFollowups);
+    clearElement(dashboardNewReferrals);
+    clearElement(dashboardScheduled);
+    clearElement(dashboardNoNext);
+    clearElement(dashboardAppointmentsWeek);
+    clearElement(dashboardAttention);
+    clearElement(dashboardWorkflow);
+    workflowPanel.hidden = true;
     referralSummary.innerHTML = "";
     clientSummary.innerHTML = "";
     referralDetail.innerHTML = "";
@@ -5463,20 +11118,25 @@ onAuthStateChanged(auth, (user) => {
     outreachContactDetail.innerHTML = "";
     outreachSummary.innerHTML = "";
     appointmentSummary.innerHTML = "";
+    schedulingCalendar.innerHTML = "";
     selectedReferralId = null;
     selectedClientId = null;
     selectedNetworkEntryId = null;
     selectedOutreachEventId = null;
     selectedOutreachContactId = null;
     selectedAppointmentId = null;
+    editingTaskId = null;
     loadedReferrals = [];
     loadedClients = [];
     loadedNetworkEntries = [];
     loadedOutreachEvents = [];
     loadedOutreachContacts = [];
     loadedAppointments = [];
+    loadedTasks = [];
+    loadedActivityLogs = [];
     referralForm.reset();
     appointmentForm.reset();
+    taskForm.reset();
     closeReferralModal();
     closeReferralImportModal();
     closeClientModal();
@@ -5485,21 +11145,37 @@ onAuthStateChanged(auth, (user) => {
     closeOutreachModal();
     closeOutreachContactModal();
     closeAppointmentModal();
+    closeAppointmentCompletionModal();
+    closeTaskModal();
+    closeActivityLogModal();
+    closeSiblingModal();
+    closeFlowArchive();
   }
 });
+
+renderAppointmentTimeOptions();
 
 signInButton.addEventListener("click", signIn);
 signOutButton.addEventListener("click", signOutUser);
 refreshButton.addEventListener("click", loadMessage);
-navDashboardButton.addEventListener("click", () => setActiveModule("dashboard"));
-navReferralsButton.addEventListener("click", () => setActiveModule("referrals"));
-navClientsButton.addEventListener("click", () => setActiveModule("clients"));
-navReferralNetworkButton.addEventListener("click", () => setActiveModule("referral-network"));
+navWorkflowButton.addEventListener("click", () => setActiveModule("workflow"));
+navDashboardButton.addEventListener("click", () => setActiveModule("admin"));
+navCrmButton.addEventListener("click", () => setActiveModule("crm"));
 navOutreachButton.addEventListener("click", () => setActiveModule("outreach"));
 navSchedulingButton.addEventListener("click", () => setActiveModule("scheduling"));
+crmTabDashboardButton.addEventListener("click", () => setCrmView("dashboard"));
+crmTabReferralsButton.addEventListener("click", () => setCrmView("referrals"));
+crmTabClientsButton.addEventListener("click", () => setCrmView("clients"));
+crmTabReferralNetworkButton.addEventListener("click", () => setCrmView("referral-network"));
 outreachTabDashboardButton.addEventListener("click", () => setOutreachView("dashboard"));
 outreachTabEventsButton.addEventListener("click", () => setOutreachView("events"));
 outreachTabContactsButton.addEventListener("click", () => setOutreachView("contacts"));
+referralsViewListButton.addEventListener("click", () => setReferralView("list"));
+referralsViewFlowButton.addEventListener("click", () => setReferralView("flow"));
+clientsViewListButton.addEventListener("click", () => setClientView("list"));
+clientsViewFlowButton.addEventListener("click", () => setClientView("flow"));
+closeFlowArchiveButton.addEventListener("click", closeFlowArchive);
+startDayButton.addEventListener("click", startDayWorkflow);
 newReferralButton.addEventListener("click", startNewReferral);
 newClientButton.addEventListener("click", startNewClient);
 importReferralsButton.addEventListener("click", () => referralCsvInput.click());
@@ -5515,12 +11191,50 @@ newNetworkEntryButton.addEventListener("click", startNewNetworkEntry);
 newOutreachEventButton.addEventListener("click", startNewOutreachEvent);
 newOutreachContactButton.addEventListener("click", startNewOutreachContact);
 newAppointmentButton.addEventListener("click", startNewAppointment);
+printTodayScheduleButton.addEventListener("click", printTodaySchedule);
+printPrepSheetsButton.addEventListener("click", printPrepSheets);
+printNoteSheetsButton.addEventListener("click", printAppointmentNoteSheets);
+newTaskButton.addEventListener("click", () => startNewTask());
+editAppointmentDetailButton.addEventListener("click", () => {
+  const appointment = getSelectedAppointment();
+  if (appointment) {
+    startEditingAppointment(appointment);
+  }
+});
+completeAppointmentDetailButton.addEventListener("click", () => {
+  const appointment = getSelectedAppointment();
+  if (appointment) {
+    closeAppointmentModal();
+    startCompletingAppointment(appointment);
+  }
+});
+deleteAppointmentDetailButton.addEventListener("click", deleteAppointment);
+closeAppointmentDetailButton.addEventListener("click", closeAppointmentModal);
+appointmentCompleteForm.addEventListener("submit", saveAppointmentCompletion);
+cancelAppointmentCompletionButton.addEventListener("click", closeAppointmentCompletionModal);
 referralForm.addEventListener("submit", saveReferral);
+referralFormField("firstName")?.addEventListener("input", syncReferralEditAvatar);
+referralFormField("lastName")?.addEventListener("input", syncReferralEditAvatar);
+referralFormField("status")?.addEventListener("change", () => {
+  syncReferralEditStatusColor();
+  syncReferralEditProgress();
+});
+referralFormField("referralSource")?.addEventListener("input", syncReferralSourceDisplay);
+referralFormField("notes")?.addEventListener("input", syncReferralEditNotesPreview);
 clientForm.addEventListener("submit", saveClient);
+clientFormField("firstName")?.addEventListener("input", syncClientEditAvatar);
+clientFormField("lastName")?.addEventListener("input", syncClientEditAvatar);
+clientFormField("status")?.addEventListener("change", syncClientEditStatusColor);
 networkForm.addEventListener("submit", saveNetworkEntry);
 outreachForm.addEventListener("submit", saveOutreachEvent);
 outreachContactForm.addEventListener("submit", saveOutreachContact);
 appointmentForm.addEventListener("submit", saveAppointment);
+taskForm.addEventListener("submit", saveTask);
+activityLogForm.addEventListener("submit", saveActivityLog);
+cancelActivityLogButton.addEventListener("click", closeActivityLogModal);
+activityLogDirectionSelect.addEventListener("change", syncActivityLogTitle);
+siblingForm.addEventListener("submit", saveSiblingLink);
+cancelSiblingLinkButton.addEventListener("click", closeSiblingModal);
 referralSourceInput.addEventListener("focus", renderReferralSourceOptions);
 referralSourceInput.addEventListener("input", renderReferralSourceOptions);
 clientReferralSourceInput.addEventListener("focus", renderReferralSourceOptions);
@@ -5529,28 +11243,78 @@ referralSearchInput.addEventListener("input", () => {
   renderReferralSummary();
   renderReferrals();
 });
-statusFilterSelect.addEventListener("change", () => {
-  summaryFilter = "all";
-  renderReferralSummary();
-  renderReferrals();
-});
-sortReferralsSelect.addEventListener("change", renderReferrals);
 clientSearchInput.addEventListener("input", () => {
   renderClientSummary();
   renderClients();
 });
-clientStatusFilterSelect.addEventListener("change", () => {
-  clientSummaryFilter = "all";
-  renderClientSummary();
-  renderClients();
-});
-sortClientsSelect.addEventListener("change", renderClients);
 networkSearchInput.addEventListener("input", renderReferralNetwork);
 outreachSearchInput.addEventListener("input", renderOutreachEvents);
 outreachContactSearchInput.addEventListener("input", renderOutreachContacts);
 appointmentSearchInput.addEventListener("input", renderAppointments);
 appointmentDateFilterSelect.addEventListener("change", renderAppointments);
 appointmentStatusFilterSelect.addEventListener("change", renderAppointments);
+taskRelatedTypeSelect.addEventListener("change", () => {
+  taskClientIdInput.value = "";
+  taskReferralIdInput.value = "";
+  taskRelatedSearchInput.value = "";
+  renderTaskRelatedOptions();
+  syncTaskProfileButton();
+});
+taskRelatedSearchInput.addEventListener("input", resolveTaskRelatedId);
+taskRelatedSearchInput.addEventListener("change", resolveTaskRelatedId);
+openTaskProfileButton.addEventListener("click", openTaskRelatedProfile);
+taskUndoButton.addEventListener("click", undoTaskCompletion);
+appointmentClientSearchInput.addEventListener("input", () => {
+  resolveAppointmentClientId();
+  renderAppointmentTimeOptions();
+});
+appointmentClientSearchInput.addEventListener("change", () => {
+  resolveAppointmentClientId();
+  renderAppointmentTimeOptions();
+});
+addAppointmentClientButton.addEventListener("click", () => {
+  const clientId = resolveAppointmentClientId();
+  if (!addSelectedAppointmentClient(clientId)) {
+    appointmentsStatusEl.textContent = "Choose a client from the search results first.";
+  } else {
+    appointmentsStatusEl.textContent = "";
+  }
+});
+appointmentForm.elements.lesson.addEventListener("change", () => {
+  if (appointmentForm.elements.lesson.value) {
+    appointmentForm.elements.appointmentType.value = "Nutrition Education";
+  }
+  syncAppointmentGoalField();
+});
+appointmentForm.elements.appointmentDate.addEventListener("change", () => renderAppointmentTimeOptions());
+appointmentForm.elements.status.addEventListener("change", () => renderAppointmentTimeOptions());
+appointmentForm.elements.appointmentType.addEventListener("change", () => {
+  syncAppointmentGoalField();
+  renderAppointmentTimeOptions();
+});
+appointmentTimeInput.addEventListener("invalid", (event) => {
+  event.preventDefault();
+  setAppointmentFeedback(
+    appointmentTimeInput.options.length <= 1
+      ? "No open appointment times are available for that date and duration."
+      : "Choose an open appointment time."
+  );
+});
+appointmentTimeInput.addEventListener("change", () => setAppointmentFeedback(""));
+completionScheduleNextInput.addEventListener("change", syncCompletionScheduleFields);
+completionNextDateInput.addEventListener("change", renderCompletionAppointmentTimeOptions);
+completionNextGoalInput.addEventListener("change", renderCompletionAppointmentTimeOptions);
+completionNextTimeInput.addEventListener("focus", renderCompletionAppointmentTimeOptions);
+completionNextTimeInput.addEventListener("blur", () => {
+  completionNextTimeInput.value = formatAppointmentTime(completionNextTimeInput.value) || completionNextTimeInput.value;
+  renderCompletionAppointmentTimeOptions();
+});
+cancelTaskEditButton.addEventListener("click", () => {
+  resetTaskForm();
+  closeTaskModal();
+  tasksStatusEl.textContent = "";
+});
+deleteTaskButton.addEventListener("click", deleteTaskRecord);
 cancelEditButton.addEventListener("click", () => {
   referralForm.reset();
   if (selectedReferralId) {
@@ -5602,53 +11366,34 @@ closeReferralModalButton.addEventListener("click", closeReferralModal);
 closeReferralImportButton.addEventListener("click", closeReferralImportModal);
 closeClientImportButton.addEventListener("click", closeClientImportModal);
 closeNetworkImportButton.addEventListener("click", closeNetworkImportModal);
-referralModal.addEventListener("click", (event) => {
-  if (event.target === referralModal) {
-    closeReferralModal();
-  }
-});
-clientModal.addEventListener("click", (event) => {
-  if (event.target === clientModal) {
-    closeClientModal();
-  }
-});
-clientImportModal.addEventListener("click", (event) => {
-  if (event.target === clientImportModal) {
-    closeClientImportModal();
-  }
-});
-referralImportModal.addEventListener("click", (event) => {
-  if (event.target === referralImportModal) {
-    closeReferralImportModal();
-  }
-});
-networkImportModal.addEventListener("click", (event) => {
-  if (event.target === networkImportModal) {
-    closeNetworkImportModal();
-  }
-});
-networkModal.addEventListener("click", (event) => {
-  if (event.target === networkModal) {
-    closeNetworkModal();
-  }
-});
-outreachModal.addEventListener("click", (event) => {
-  if (event.target === outreachModal) {
-    closeOutreachModal();
-  }
-});
-outreachContactModal.addEventListener("click", (event) => {
-  if (event.target === outreachContactModal) {
-    closeOutreachContactModal();
-  }
-});
-appointmentModal.addEventListener("click", (event) => {
-  if (event.target === appointmentModal) {
-    closeAppointmentModal();
-  }
-});
+
+function bindBackdropClose(modal, closeFn) {
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) {
+      closeFn();
+    }
+  });
+}
+
+[
+  [referralModal, closeReferralModal],
+  [clientModal, closeClientModal],
+  [clientImportModal, closeClientImportModal],
+  [referralImportModal, closeReferralImportModal],
+  [networkImportModal, closeNetworkImportModal],
+  [networkModal, closeNetworkModal],
+  [outreachModal, closeOutreachModal],
+  [outreachContactModal, closeOutreachContactModal],
+  [appointmentModal, closeAppointmentModal],
+  [appointmentCompleteModal, closeAppointmentCompletionModal],
+  [taskModal, closeTaskModal],
+  [activityLogModal, closeActivityLogModal],
+  [siblingModal, closeSiblingModal],
+  [flowArchiveModal, closeFlowArchive]
+].forEach(([modal, closeFn]) => bindBackdropClose(modal, closeFn));
+
 document.addEventListener("click", (event) => {
-  for (const menu of document.querySelectorAll(".columns-menu[open]")) {
+  for (const menu of document.querySelectorAll(".columns-menu[open], .header-search-menu[open]")) {
     if (!menu.contains(event.target)) {
       menu.open = false;
     }

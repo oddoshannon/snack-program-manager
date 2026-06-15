@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --env-file=.env --watch server.js"
+    "dev": "node --env-file=.env --watch server.js",
+    "test": "node --test test/*.test.mjs",
+    "qa:public-booking-api": "node test/qa-public-booking-api.mjs"
   },
   "dependencies": {
     "@google-cloud/firestore": "^8.6.0",

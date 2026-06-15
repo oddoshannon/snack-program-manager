@@ -19,6 +19,10 @@
     ],
     "rewrites": [
       {
+        "source": "/booking",
+        "destination": "/booking.html"
+      },
+      {
         "source": "/api/**",
         "run": {
           "serviceId": "snack-crm-api",

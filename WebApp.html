@@ -3,22 +3,37 @@
   <head>
     <base target="_top">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
       :root {
         color-scheme: light;
-        --ink: #172b2a;
-        --muted: #667875;
-        --line: #d9e3e0;
-        --soft: #f5f7f4;
+        --ink: #233330;
+        --muted: #6f7774;
+        --line: #e6e1dc;
+        --soft: #ffffff;
         --paper: #ffffff;
-        --accent: #1f7a68;
-        --accent-soft: #e5f1ee;
-        --warn: #a05a1f;
-        --warn-soft: #fff3df;
+        --brand-red: #c64f45;
+        --brand-orange: #cd8450;
+        --brand-yellow: #dbaf4f;
+        --brand-green: #217b4d;
+        --brand-teal: #4a97ad;
+        --brand-blue: #4969af;
+        --brand-purple: #4f44aa;
+        --red-soft: #ffe5e8;
+        --orange-soft: #ffece6;
+        --yellow-soft: #fff7e4;
+        --green-soft: #e5f6ef;
+        --teal-soft: #e8fbff;
+        --blue-soft: #eff6ff;
+        --purple-soft: #f6eeff;
+        --accent: var(--brand-green);
+        --accent-soft: var(--green-soft);
+        --warn: #9a5a1b;
+        --warn-soft: var(--yellow-soft);
         --danger: #a33b2f;
-        --danger-soft: #fdecea;
-        --blue: #2f638f;
-        --blue-soft: #e7f0f7;
+        --danger-soft: var(--red-soft);
       }
 
       * {
@@ -29,7 +44,7 @@
         margin: 0;
         background: var(--soft);
         color: var(--ink);
-        font-family: Arial, sans-serif;
+        font-family: "Public Sans", Arial, sans-serif;
         font-size: 14px;
       }
 
@@ -51,7 +66,9 @@
       }
 
       h1 {
+        font-family: "Public Sans", Arial, sans-serif;
         font-size: 20px;
+        letter-spacing: 0;
       }
 
       h2 {
@@ -70,6 +87,7 @@
 
       button {
         background: var(--accent);
+        border-color: rgba(33, 123, 77, .16);
         color: white;
         cursor: pointer;
         font-weight: 700;
@@ -79,6 +97,7 @@
 
       button.secondary {
         background: var(--paper);
+        border-color: #eadfda;
         color: var(--ink);
       }
 
@@ -89,6 +108,7 @@
 
       input, select, textarea {
         background: white;
+        border-color: #eadfda;
         min-height: 34px;
         padding: 7px 9px;
         width: 100%;
@@ -112,6 +132,27 @@
         align-items: center;
         display: flex;
         gap: 12px;
+      }
+
+      .brand-lockup {
+        align-items: center;
+        display: flex;
+        gap: 10px;
+      }
+
+      .brand-mark {
+        align-items: center;
+        background: var(--paper);
+        border: 1px solid #f0c8c4;
+        border-radius: 8px;
+        color: var(--brand-red);
+        display: flex;
+        font-size: 24px;
+        font-weight: 800;
+        height: 34px;
+        justify-content: center;
+        line-height: 1;
+        width: 34px;
       }
 
       .muted {
@@ -171,8 +212,15 @@
         background: var(--paper);
         border: 1px solid var(--line);
         border-radius: 8px;
+        box-shadow: inset 0 4px 0 var(--red-soft);
         padding: 12px;
       }
+
+      .metric:nth-child(2) { box-shadow: inset 0 4px 0 var(--orange-soft); }
+      .metric:nth-child(3) { box-shadow: inset 0 4px 0 var(--yellow-soft); }
+      .metric:nth-child(4) { box-shadow: inset 0 4px 0 var(--green-soft); }
+      .metric:nth-child(5) { box-shadow: inset 0 4px 0 var(--teal-soft); }
+      .metric:nth-child(6) { box-shadow: inset 0 4px 0 var(--blue-soft); }
 
       .metric strong {
         display: block;
@@ -253,8 +301,13 @@
       }
 
       .badge.blue {
-        background: var(--blue-soft);
-        color: var(--blue);
+        background: var(--teal-soft);
+        color: #22687b;
+      }
+
+      .badge.purple {
+        background: var(--purple-soft);
+        color: var(--brand-purple);
       }
 
       .table {
@@ -278,7 +331,7 @@
       }
 
       .table-row.header {
-        background: #eef4f2;
+        background: linear-gradient(90deg, var(--green-soft), var(--teal-soft));
         color: var(--muted);
         font-size: 12px;
         font-weight: 700;
@@ -299,7 +352,7 @@
       }
 
       .progress div {
-        background: var(--accent);
+        background: linear-gradient(90deg, var(--brand-green), var(--brand-teal));
         height: 100%;
       }
 
@@ -326,11 +379,16 @@
   <body>
     <header>
       <div>
-        <div class="topline">
-          <h1>SNACK CRM</h1>
-          <span class="badge blue">Playground Phase 1</span>
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true">S</div>
+          <div>
+            <div class="topline">
+              <h1>SNACK CRM</h1>
+              <span class="badge purple">Playground Phase 1</span>
+            </div>
+            <div class="muted" id="todayLabel">Loading dashboard...</div>
+          </div>
         </div>
-        <div class="muted" id="todayLabel">Loading dashboard...</div>
       </div>
       <button class="secondary" onclick="refreshAll()">Refresh</button>
     </header>

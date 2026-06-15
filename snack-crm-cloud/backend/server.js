@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import crypto from "node:crypto";
+import { pathToFileURL } from "node:url";
 import { FieldValue, Firestore } from "@google-cloud/firestore";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
@@ -41,6 +42,88 @@ const allowedClientStatuses = new Set([
   "Closed"
 ]);
 const allowedAppointmentStatuses = new Set(["Scheduled", "Completed", "No-show", "Rescheduled", "Canceled"]);
+const allowedTaskStatuses = new Set(["Open", "In Progress", "Waiting", "Done", "Canceled"]);
+const allowedTaskPriorities = new Set(["Low", "Normal", "Urgent"]);
+const allowedTaskTypes = new Set(["Call", "Text", "Form", "Task"]);
+const allowedActivityTypes = new Set(["Call", "Text"]);
+const allowedActivityDirections = new Set(["Outbound", "Inbound"]);
+const defaultAppointmentDurationMinutes = 30;
+const schedulingStartMinutes = 13 * 60;
+const schedulingEndMinutes = 18 * 60;
+const publicSchedulingWeekdays = new Set([2, 3, 4]);
+const publicAvailabilityDefaultDays = 21;
+const publicAvailabilityMaxDays = 45;
+const publicBookingMaxAdvanceDays = 120;
+const publicBookingMaxLengths = {
+  firstName: 60,
+  lastName: 60,
+  parentName: 80,
+  phone: 30,
+  email: 120,
+  preferredLanguage: 30,
+  preferredContactMethod: 20,
+  notes: 600
+};
+const publicBookingServices = [
+  {
+    id: "enrollment",
+    label: "Enrollment Appointment",
+    appointmentType: "Enrollment",
+    durationMinutes: 30,
+    defaultLanguage: "English"
+  },
+  {
+    id: "nutrition-education",
+    label: "Nutrition Education Appointment",
+    appointmentType: "Nutrition Education",
+    durationMinutes: 30,
+    defaultLanguage: "English"
+  },
+  {
+    id: "spanish-enrollment",
+    label: "Cita de inscripción en ESPAÑOL",
+    appointmentType: "Enrollment",
+    durationMinutes: 30,
+    defaultLanguage: "Spanish"
+  },
+  {
+    id: "spanish-nutrition-education",
+    label: "Cita de educación nutricional en ESPAÑOL",
+    appointmentType: "Nutrition Education",
+    durationMinutes: 30,
+    defaultLanguage: "Spanish"
+  },
+  {
+    id: "sibling-enrollment",
+    label: "Sibling Enrollment Appointment",
+    appointmentType: "Enrollment",
+    durationMinutes: 15,
+    defaultLanguage: "English",
+    siblingVisit: true
+  },
+  {
+    id: "sibling-nutrition-education",
+    label: "Sibling Nutrition Education Appointment",
+    appointmentType: "Nutrition Education",
+    durationMinutes: 15,
+    defaultLanguage: "English",
+    siblingVisit: true
+  }
+];
+const publicBookingServiceById = new Map(publicBookingServices.map((service) => [service.id, service]));
+const publicBookingAttempts = new Map();
+const legacyTaskTypeMap = {
+  call: "Call",
+  text: "Text",
+  form: "Form",
+  forms: "Form",
+  schedule: "Call",
+  review: "Task",
+  admin: "Task",
+  other: "Task",
+  task: "Task",
+  tasks: "Task"
+};
 const legacyStatusMap = {
   new: "New",
   contacted: "Texted",
@@ -58,6 +141,8 @@ const referralNetwork = firestore.collection("referralNetwork");
 const outreachEvents = firestore.collection("outreachEvents");
 const outreachContacts = firestore.collection("outreachContacts");
 const appointments = firestore.collection("appointments");
+const tasks = firestore.collection("tasks");
+const activityLogs = firestore.collection("activityLogs");
 const firebaseJwtKeys = createRemoteJWKSet(
   new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
 );
@@ -128,6 +213,10 @@ function cleanString(value) {
 }
 
 function cleanOptionalNumber(value) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
   const cleaned = cleanString(value);
   if (!cleaned) {
     return null;
@@ -142,7 +231,12 @@ function cleanOptionalInteger(value) {
 }
 
 function cleanBoolean(value) {
-  return value === true || value === "true";
+  if (value === true) {
+    return true;
+  }
+
+  const normalized = cleanString(value).toLowerCase();
+  return ["true", "yes", "y", "1", "checked"].includes(normalized);
 }
 
 function normalizeStatus(status) {
@@ -170,6 +264,7 @@ function toReferral(snapshot) {
     firstContactDate: data.firstContactDate,
     mostRecentContactDate: data.mostRecentContactDate,
     firstAppointmentDate: data.firstAppointmentDate,
+    mostRecentAppointmentDate: data.mostRecentAppointmentDate,
     lastAppointmentDate: data.lastAppointmentDate,
     addressStreet: data.addressStreet,
     addressCity: data.addressCity,
@@ -177,7 +272,8 @@ function toReferral(snapshot) {
     addressZip: data.addressZip,
     emailOptOut: Boolean(data.emailOptOut),
     textOptOut: Boolean(data.textOptOut),
-    ycco: data.ycco,
+    ycco: cleanBoolean(data.ycco),
+    hrsn: cleanBoolean(data.hrsn),
     assessmentScore: data.assessmentScore,
     willingnessScore: data.willingnessScore,
     status: normalizeStatus(data.status),
@@ -212,6 +308,7 @@ function toClient(snapshot) {
     firstContactDate: data.firstContactDate,
     mostRecentContactDate: data.mostRecentContactDate,
     firstAppointmentDate: data.firstAppointmentDate,
+    mostRecentAppointmentDate: data.mostRecentAppointmentDate,
     lastAppointmentDate: data.lastAppointmentDate,
     addressStreet: data.addressStreet,
     addressCity: data.addressCity,
@@ -219,9 +316,11 @@ function toClient(snapshot) {
     addressZip: data.addressZip,
     emailOptOut: Boolean(data.emailOptOut),
     textOptOut: Boolean(data.textOptOut),
-    ycco: data.ycco,
+    ycco: cleanBoolean(data.ycco),
+    hrsn: cleanBoolean(data.hrsn),
     assessmentScore: data.assessmentScore,
     willingnessScore: data.willingnessScore,
+    currentLesson: data.currentLesson,
     status: data.status,
     notes: data.notes,
     siblingIds: Array.isArray(data.siblingIds) ? data.siblingIds : [],
@@ -296,18 +395,74 @@ function toOutreachContact(snapshot) {
 
 function toAppointment(snapshot) {
   const data = snapshot.data();
+  const clientIds = Array.isArray(data.clientIds)
+    ? data.clientIds.filter(Boolean)
+    : data.clientId
+      ? [data.clientId]
+      : [];
 
   return {
     id: snapshot.id,
-    clientId: data.clientId,
+    clientId: data.clientId || clientIds[0] || "",
+    clientIds,
     clientName: data.clientName,
+    clientNames: Array.isArray(data.clientNames) ? data.clientNames.filter(Boolean) : data.clientName ? [data.clientName] : [],
     appointmentDate: data.appointmentDate,
     appointmentTime: data.appointmentTime,
+    appointmentType: data.appointmentType || (data.lesson ? "Nutrition Education" : "Enrollment"),
+    durationMinutes: cleanOptionalInteger(data.durationMinutes),
+    publicBookingServiceId: data.publicBookingServiceId,
+    publicBookingServiceLabel: data.publicBookingServiceLabel,
     status: data.status,
     lesson: data.lesson,
     goal: data.goal,
     staffMember: data.staffMember,
     notes: data.notes,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt
+  };
+}
+
+function toTask(snapshot) {
+  const data = snapshot.data();
+
+  return {
+    id: snapshot.id,
+    title: data.title,
+    type: normalizeTaskType(data.type),
+    status: data.status,
+    priority: data.priority,
+    dueDate: data.dueDate,
+    dueTime: data.dueTime,
+    assignedTo: data.assignedTo,
+    clientId: data.clientId,
+    clientName: data.clientName,
+    appointmentId: data.appointmentId,
+    referralId: data.referralId,
+    source: data.source,
+    notes: data.notes,
+    completedAt: data.completedAt,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt
+  };
+}
+
+function toActivityLog(snapshot) {
+  const data = snapshot.data();
+
+  return {
+    id: snapshot.id,
+    type: data.type,
+    direction: data.direction,
+    title: data.title,
+    result: data.result,
+    description: data.description,
+    activityDate: data.activityDate,
+    activityTime: data.activityTime,
+    occurredAt: data.occurredAt,
+    relatedType: data.relatedType,
+    relatedId: data.relatedId,
+    relatedName: data.relatedName,
     createdAt: data.createdAt,
     updatedAt: data.updatedAt
   };
@@ -351,14 +506,17 @@ function cleanPersonPayload(body) {
     firstContactDate: cleanString(body.firstContactDate),
     mostRecentContactDate: cleanString(body.mostRecentContactDate),
     firstAppointmentDate: cleanString(body.firstAppointmentDate),
+    mostRecentAppointmentDate: cleanString(body.mostRecentAppointmentDate),
     lastAppointmentDate: cleanString(body.lastAppointmentDate),
+    currentLesson: cleanString(body.currentLesson),
     addressStreet: cleanString(body.addressStreet),
     addressCity: cleanString(body.addressCity),
     addressState: cleanString(body.addressState),
     addressZip: cleanString(body.addressZip),
     emailOptOut: cleanBoolean(body.emailOptOut),
     textOptOut: cleanBoolean(body.textOptOut),
-    ycco: cleanString(body.ycco),
+    ycco: cleanBoolean(body.ycco),
+    hrsn: cleanBoolean(body.hrsn),
     assessmentScore: cleanOptionalNumber(body.assessmentScore),
     willingnessScore: cleanOptionalNumber(body.willingnessScore),
     notes: cleanString(body.notes)
@@ -417,18 +575,420 @@ function normalizeAppointmentStatus(status) {
   return allowedAppointmentStatuses.has(cleaned) ? cleaned : "Scheduled";
 }
 
+function normalizeTaskStatus(status) {
+  const cleaned = cleanString(status) || "Open";
+  return allowedTaskStatuses.has(cleaned) ? cleaned : "Open";
+}
+
+function normalizeTaskPriority(priority) {
+  const cleaned = cleanString(priority) || "Normal";
+  return allowedTaskPriorities.has(cleaned) ? cleaned : "Normal";
+}
+
+function normalizeTaskType(type) {
+  const cleaned = cleanString(type);
+  if (!cleaned) {
+    return "Task";
+  }
+  const mapped = legacyTaskTypeMap[cleaned.toLowerCase()] || cleaned;
+  return allowedTaskTypes.has(mapped) ? mapped : "Task";
+}
+
+function normalizeActivityType(type) {
+  const cleaned = cleanString(type);
+  return allowedActivityTypes.has(cleaned) ? cleaned : "Call";
+}
+
+function normalizeActivityDirection(direction) {
+  const cleaned = cleanString(direction);
+  return allowedActivityDirections.has(cleaned) ? cleaned : "Outbound";
+}
+
 function cleanAppointmentPayload(body) {
-  return {
-    clientId: cleanString(body.clientId),
-    clientName: cleanString(body.clientName),
+  const clientIds = Array.isArray(body.clientIds)
+    ? body.clientIds.map(cleanString).filter(Boolean)
+    : cleanString(body.clientIds)
+      ? cleanString(body.clientIds).split(",").map(cleanString).filter(Boolean)
+      : cleanString(body.clientId)
+        ? [cleanString(body.clientId)]
+        : [];
+  const clientNames = Array.isArray(body.clientNames)
+    ? body.clientNames.map(cleanString).filter(Boolean)
+    : cleanString(body.clientNames)
+      ? cleanString(body.clientNames).split(",").map(cleanString).filter(Boolean)
+      : cleanString(body.clientName)
+        ? [cleanString(body.clientName)]
+        : [];
+  const durationMinutes = cleanOptionalInteger(body.durationMinutes);
+  const payload = {
+    clientId: clientIds[0] || "",
+    clientIds,
+    clientName: clientNames[0] || cleanString(body.clientName),
+    clientNames,
     appointmentDate: cleanString(body.appointmentDate),
-    appointmentTime: cleanString(body.appointmentTime),
+    appointmentTime: normalizeAppointmentTimeValue(body.appointmentTime),
+    appointmentType: cleanString(body.appointmentType) || (cleanString(body.lesson) ? "Nutrition Education" : "Enrollment"),
     status: normalizeAppointmentStatus(body.status),
     lesson: cleanString(body.lesson),
     goal: cleanString(body.goal),
     staffMember: cleanString(body.staffMember),
     notes: cleanString(body.notes)
   };
+  const publicBookingServiceId = cleanString(body.publicBookingServiceId);
+  const publicBookingServiceLabel = cleanString(body.publicBookingServiceLabel);
+
+  if (durationMinutes) {
+    payload.durationMinutes = durationMinutes;
+  }
+
+  if (publicBookingServiceId) {
+    payload.publicBookingServiceId = publicBookingServiceId;
+  }
+
+  if (publicBookingServiceLabel) {
+    payload.publicBookingServiceLabel = publicBookingServiceLabel;
+  }
+
+  return payload;
+}
+
+function normalizeAppointmentTimeValue(value) {
+  const raw = cleanString(value);
+
+  if (!raw) {
+    return "";
+  }
+
+  const militaryMatch = raw.match(/^(\d{1,2}):(\d{2})$/);
+
+  if (militaryMatch) {
+    const hour = Number(militaryMatch[1]);
+    const minute = Number(militaryMatch[2]);
+
+    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+      return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    }
+  }
+
+  const standardMatch = raw.match(/^(\d{1,2})(?::(\d{2}))?\s*([ap]\.?m\.?)$/i);
+
+  if (standardMatch) {
+    let hour = Number(standardMatch[1]);
+    const minute = Number(standardMatch[2] || "00");
+    const period = standardMatch[3].toLowerCase();
+
+    if (hour >= 1 && hour <= 12 && minute >= 0 && minute <= 59) {
+      if (period.startsWith("p") && hour !== 12) {
+        hour += 12;
+      }
+
+      if (period.startsWith("a") && hour === 12) {
+        hour = 0;
+      }
+
+      return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    }
+  }
+
+  return raw;
+}
+
+function appointmentTimeMinutes(value) {
+  const normalized = normalizeAppointmentTimeValue(value);
+  const match = normalized.match(/^(\d{2}):(\d{2})$/);
+  return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+}
+
+function formatAppointmentTimeValue(value) {
+  const minutes = appointmentTimeMinutes(value);
+
+  if (minutes === null) {
+    return cleanString(value);
+  }
+
+  const hour = Math.floor(minutes / 60);
+  const minute = minutes % 60;
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${String(minute).padStart(2, "0")} ${period}`;
+}
+
+function appointmentClientCountFromRecord(appointment) {
+  if (Array.isArray(appointment.clientIds) && appointment.clientIds.length) {
+    return appointment.clientIds.filter(Boolean).length;
+  }
+
+  if (Array.isArray(appointment.clientNames) && appointment.clientNames.length) {
+    return appointment.clientNames.filter(Boolean).length;
+  }
+
+  return appointment.clientId || appointment.clientName ? 1 : 0;
+}
+
+function appointmentDurationMinutesFromRecord(appointment) {
+  const explicitDuration = Number(appointment.durationMinutes);
+
+  if (Number.isInteger(explicitDuration) && explicitDuration > 0) {
+    return explicitDuration;
+  }
+
+  return appointmentClientCountFromRecord(appointment) >= 3 ? 45 : defaultAppointmentDurationMinutes;
+}
+
+function appointmentBlocksSchedule(appointment) {
+  return ["Scheduled", "Completed"].includes(appointment.status || "Scheduled");
+}
+
+function appointmentFitsSchedulingWindow(appointment) {
+  const start = appointmentTimeMinutes(appointment.appointmentTime);
+
+  if (start === null) {
+    return false;
+  }
+
+  return start >= schedulingStartMinutes && start + appointmentDurationMinutesFromRecord(appointment) <= schedulingEndMinutes;
+}
+
+function schedulingWindowEndLabel() {
+  return formatAppointmentTimeValue(
+    `${String(Math.floor(schedulingEndMinutes / 60)).padStart(2, "0")}:${String(schedulingEndMinutes % 60).padStart(2, "0")}`
+  );
+}
+
+function schedulingWindowError(appointment) {
+  if (appointmentTimeMinutes(appointment.appointmentTime) === null) {
+    return "Choose a valid appointment time.";
+  }
+
+  return `This appointment is ${appointmentDurationMinutesFromRecord(appointment)} min. Choose a start time that ends by ${schedulingWindowEndLabel()}.`;
+}
+
+function appointmentRangesOverlap(first, second) {
+  const firstStart = appointmentTimeMinutes(first.appointmentTime);
+  const secondStart = appointmentTimeMinutes(second.appointmentTime);
+
+  if (firstStart === null || secondStart === null) {
+    return false;
+  }
+
+  const firstEnd = firstStart + appointmentDurationMinutesFromRecord(first);
+  const secondEnd = secondStart + appointmentDurationMinutesFromRecord(second);
+  return firstStart < secondEnd && firstEnd > secondStart;
+}
+
+async function findAppointmentConflict(payload, excludedAppointmentId = "") {
+  if (!appointmentBlocksSchedule(payload) || !payload.appointmentDate || !payload.appointmentTime) {
+    return null;
+  }
+
+  const snapshot = await appointments.where("appointmentDate", "==", payload.appointmentDate).get();
+
+  for (const doc of snapshot.docs) {
+    if (doc.id === excludedAppointmentId) {
+      continue;
+    }
+
+    const appointment = toAppointment(doc);
+
+    if (!appointmentBlocksSchedule(appointment)) {
+      continue;
+    }
+
+    if (appointmentRangesOverlap(payload, appointment)) {
+      return appointment;
+    }
+  }
+
+  return null;
+}
+
+function cleanTaskPayload(body) {
+  return {
+    title: cleanString(body.title),
+    type: normalizeTaskType(body.type),
+    status: normalizeTaskStatus(body.status),
+    priority: normalizeTaskPriority(body.priority),
+    dueDate: cleanString(body.dueDate),
+    dueTime: cleanString(body.dueTime),
+    assignedTo: cleanString(body.assignedTo),
+    clientId: cleanString(body.clientId),
+    clientName: cleanString(body.clientName),
+    appointmentId: cleanString(body.appointmentId),
+    referralId: cleanString(body.referralId),
+    source: cleanString(body.source) || "Manual",
+    notes: cleanString(body.notes)
+  };
+}
+
+function isActiveTaskStatus(status) {
+  return ["Open", "In Progress", "Waiting"].includes(status || "Open");
+}
+
+function isGeneratedTaskSource(source) {
+  return ["Start the Day", "Polish Queue"].includes(source || "");
+}
+
+function normalizedTaskTitle(value) {
+  return cleanString(value).replace(/\s+/g, " ").toLowerCase();
+}
+
+function startDayTaskIntent(title) {
+  const normalized = normalizedTaskTitle(title);
+
+  if (normalized.includes("reschedule")) {
+    return "reschedule";
+  }
+
+  if (normalized.includes("schedule") || normalized.includes("new referral")) {
+    return "schedule";
+  }
+
+  if (normalized.startsWith("prep ")) {
+    return "prep";
+  }
+
+  if (normalized.includes("update outcome")) {
+    return "outcome";
+  }
+
+  return normalized.split(" ")[0] || "task";
+}
+
+function startDayTaskSubject(title) {
+  return normalizedTaskTitle(title)
+    .replace(/^(call|text)\s+new referral\s+/, "")
+    .replace(/^(call|text)\s+/, "")
+    .replace(/^(schedule|reschedule|prep)\s+/, "")
+    .replace(/^update outcome for\s+/, "")
+    .replace(/\s+appointment$/, "")
+    .trim();
+}
+
+function tasksMatchStartDayIntent(existingTask, payload) {
+  const payloadTitle = normalizedTaskTitle(payload.title);
+  const taskTitle = normalizedTaskTitle(existingTask.title);
+
+  if (payloadTitle === taskTitle) {
+    return true;
+  }
+
+  const payloadIntent = startDayTaskIntent(payloadTitle);
+  const taskIntent = startDayTaskIntent(taskTitle);
+
+  if (payload.appointmentId && existingTask.appointmentId === payload.appointmentId) {
+    return payloadIntent === taskIntent;
+  }
+
+  if (payload.clientId && existingTask.clientId === payload.clientId) {
+    return payloadIntent === "reschedule" ? taskIntent === "reschedule" : payloadIntent === taskIntent;
+  }
+
+  if (payload.referralId && existingTask.referralId === payload.referralId) {
+    return payloadIntent === "schedule" ? taskIntent === "schedule" : payloadIntent === taskIntent;
+  }
+
+  const payloadSubject = startDayTaskSubject(payloadTitle);
+  const taskSubject = startDayTaskSubject(taskTitle);
+  return Boolean(payloadSubject && taskSubject === payloadSubject && payloadIntent === taskIntent);
+}
+
+async function findExistingStartDayTask(payload) {
+  if (!isGeneratedTaskSource(payload.source)) {
+    return null;
+  }
+
+  const snapshot = await tasks.orderBy("createdAt", "desc").limit(300).get();
+
+  for (const doc of snapshot.docs) {
+    const task = toTask(doc);
+    const sameDayGeneratedTask = isGeneratedTaskSource(task.source) && task.dueDate === payload.dueDate;
+
+    if (!isActiveTaskStatus(task.status) && !sameDayGeneratedTask) {
+      continue;
+    }
+
+    if (tasksMatchStartDayIntent(task, payload)) {
+      return doc;
+    }
+  }
+
+  return null;
+}
+
+function cleanActivityLogPayload(body) {
+  const type = normalizeActivityType(body.type);
+  const direction = normalizeActivityDirection(body.direction);
+  const relatedType = cleanString(body.relatedType) === "referral" ? "referral" : "client";
+  const activityDate = cleanString(body.activityDate);
+  const activityTime = normalizeAppointmentTimeValue(body.activityTime);
+  const relatedName = cleanString(body.relatedName);
+  const title = cleanString(body.title) || `${direction} ${type} to ${relatedName || "profile"}`;
+  const occurredAtDate = activityDate ? new Date(`${activityDate}T${activityTime || "00:00"}:00`) : null;
+
+  return {
+    type,
+    direction,
+    title,
+    result: cleanString(body.result),
+    description: cleanString(body.description),
+    activityDate,
+    activityTime,
+    occurredAt: occurredAtDate && !Number.isNaN(occurredAtDate.getTime()) ? occurredAtDate.toISOString() : "",
+    relatedType,
+    relatedId: cleanString(body.relatedId),
+    relatedName
+  };
+}
+
+function appointmentShouldCompleteRescheduleTasks(appointment) {
+  return (appointment.status || "Scheduled") === "Scheduled";
+}
+
+async function completeRescheduleTasksForAppointment(appointment, userEmail, now = new Date().toISOString()) {
+  if (!appointmentShouldCompleteRescheduleTasks(appointment)) {
+    return 0;
+  }
+
+  const clientIds = [...new Set(Array.isArray(appointment.clientIds) ? appointment.clientIds : [])].filter(Boolean);
+
+  if (!clientIds.length) {
+    return 0;
+  }
+
+  let completedCount = 0;
+
+  for (let index = 0; index < clientIds.length; index += 10) {
+    const batchClientIds = clientIds.slice(index, index + 10);
+    const snapshot = await tasks.where("clientId", "in", batchClientIds).get();
+    const batch = firestore.batch();
+    let batchUpdates = 0;
+
+    for (const doc of snapshot.docs) {
+      const task = toTask(doc);
+      const isActive = !["Done", "Canceled"].includes(task.status || "Open");
+      const isRescheduleTask = cleanString(task.title).toLowerCase().includes("reschedule");
+
+      if (!isActive || !isRescheduleTask) {
+        continue;
+      }
+
+      batch.update(doc.ref, {
+        status: "Done",
+        completedAt: task.completedAt || now,
+        updatedAt: now,
+        updatedBy: userEmail,
+        completionSource: "Appointment scheduled"
+      });
+      batchUpdates += 1;
+    }
+
+    if (batchUpdates) {
+      await batch.commit();
+      completedCount += batchUpdates;
+    }
+  }
+
+  return completedCount;
 }
 
 function normalizedLookupKey(value) {
@@ -450,11 +1010,390 @@ function hasRequiredPersonFields(payload) {
   return Boolean(payload.firstName && payload.lastName && payload.parentName && payload.phone && payload.preferredLanguage);
 }
 
+function todayDateString() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function parseDateOnly(value) {
+  const raw = cleanString(value);
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return null;
+  }
+
+  const date = new Date(`${raw}T00:00:00Z`);
+
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== raw) {
+    return null;
+  }
+
+  return date;
+}
+
+function addDaysToDateString(value, days) {
+  const date = parseDateOnly(value);
+
+  if (!date) {
+    return "";
+  }
+
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function daysBetweenDateStrings(startDate, endDate) {
+  const start = parseDateOnly(startDate);
+  const end = parseDateOnly(endDate);
+
+  if (!start || !end) {
+    return null;
+  }
+
+  return Math.round((end.getTime() - start.getTime()) / 86400000);
+}
+
+function isPublicBookableDate(dateString) {
+  const date = parseDateOnly(dateString);
+
+  if (!date) {
+    return false;
+  }
+
+  return publicSchedulingWeekdays.has(date.getUTCDay());
+}
+
+function isPublicBookingDateInRange(dateString) {
+  const today = todayDateString();
+  const daysAhead = daysBetweenDateStrings(today, dateString);
+  return daysAhead !== null && daysAhead >= 0 && daysAhead <= publicBookingMaxAdvanceDays;
+}
+
+function publicBookingServiceFromId(serviceId) {
+  return publicBookingServiceById.get(cleanString(serviceId)) || publicBookingServices[0];
+}
+
+function publicAppointmentDraft({ service, appointmentDate, appointmentTime, clientName = "Public booking" }) {
+  return {
+    clientId: "public-booking-draft",
+    clientIds: ["public-booking-draft"],
+    clientName,
+    clientNames: [clientName],
+    appointmentDate,
+    appointmentTime,
+    appointmentType: service.appointmentType,
+    durationMinutes: service.durationMinutes,
+    status: "Scheduled"
+  };
+}
+
+function publicSlotValuesForDate(dateString, service, existingAppointments = []) {
+  if (!isPublicBookableDate(dateString) || !isPublicBookingDateInRange(dateString)) {
+    return [];
+  }
+
+  const slots = [];
+  const latestStart = schedulingEndMinutes - service.durationMinutes;
+
+  for (let minutes = schedulingStartMinutes; minutes <= latestStart; minutes += 15) {
+    const appointmentTime = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+    const candidate = publicAppointmentDraft({ service, appointmentDate: dateString, appointmentTime });
+    const conflict = existingAppointments.some(
+      (appointment) => appointmentBlocksSchedule(appointment) && appointmentRangesOverlap(candidate, appointment)
+    );
+
+    if (!conflict) {
+      slots.push({
+        value: appointmentTime,
+        label: formatAppointmentTimeValue(appointmentTime)
+      });
+    }
+  }
+
+  return slots;
+}
+
+function publicBookingRateLimit(request, response, next) {
+  const key = cleanString(request.get("x-forwarded-for")).split(",")[0] || request.ip || "unknown";
+  const now = Date.now();
+  const windowMs = 60 * 60 * 1000;
+  const maxAttempts = 12;
+  const attempts = (publicBookingAttempts.get(key) || []).filter((timestamp) => now - timestamp < windowMs);
+
+  if (attempts.length >= maxAttempts) {
+    response.status(429).json({
+      error: "Too many booking attempts. Please try again later or call us at (971) 202-0232."
+    });
+    return;
+  }
+
+  attempts.push(now);
+  publicBookingAttempts.set(key, attempts);
+  next();
+}
+
+function cleanPublicBookingPayload(body) {
+  const service = publicBookingServiceFromId(body.serviceId);
+  const firstName = cleanString(body.firstName || body.childFirstName);
+  const lastName = cleanString(body.lastName || body.childLastName);
+  const parentName = cleanString(body.parentName || body.caregiverName);
+  const preferredLanguage = cleanString(body.preferredLanguage) || service.defaultLanguage || "English";
+
+  return {
+    service,
+    firstName,
+    lastName,
+    parentName,
+    phone: cleanString(body.phone),
+    email: cleanString(body.email),
+    preferredLanguage,
+    preferredContactMethod: cleanString(body.preferredContactMethod) || "Call",
+    appointmentDate: cleanString(body.appointmentDate),
+    appointmentTime: normalizeAppointmentTimeValue(body.appointmentTime),
+    notes: cleanString(body.notes),
+    spamTrap: cleanString(body.website || body.company || body.url || body.contactMe)
+  };
+}
+
+function publicBookingValidationError(payload) {
+  if (payload.spamTrap || payload.website || payload.company || payload.url || payload.contactMe) {
+    return "Could not submit this booking request. Please call or text (971) 202-0232.";
+  }
+
+  if (!payload.firstName || !payload.lastName || !payload.parentName || !payload.phone || !payload.preferredLanguage) {
+    return "Child name, caregiver name, phone, and preferred language are required.";
+  }
+
+  for (const [field, maxLength] of Object.entries(publicBookingMaxLengths)) {
+    if (cleanString(payload[field]).length > maxLength) {
+      return "Please shorten the booking details and try again.";
+    }
+  }
+
+  if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+    return "Enter a valid email address or leave email blank.";
+  }
+
+  if (!parseDateOnly(payload.appointmentDate) || !payload.appointmentTime) {
+    return "Choose an appointment date and time.";
+  }
+
+  if (!isPublicBookableDate(payload.appointmentDate) || !isPublicBookingDateInRange(payload.appointmentDate)) {
+    return "Choose an available appointment date.";
+  }
+
+  return "";
+}
+
+function validatePublicBookingPayload(payload, response) {
+  const error = publicBookingValidationError(payload);
+
+  if (error) {
+    response.status(400).json({
+      error
+    });
+    return false;
+  }
+
+  return true;
+}
+
 app.get("/health", (_request, response) => {
   response.json({
     ok: true,
     service: "snack-crm-api"
   });
+});
+
+app.get("/api/public/booking-options", (_request, response) => {
+  response.json({
+    services: publicBookingServices,
+    scheduling: {
+      startTime: formatAppointmentTimeValue(
+        `${String(Math.floor(schedulingStartMinutes / 60)).padStart(2, "0")}:${String(schedulingStartMinutes % 60).padStart(2, "0")}`
+      ),
+      endTime: schedulingWindowEndLabel(),
+      weekdays: Array.from(publicSchedulingWeekdays)
+    }
+  });
+});
+
+app.get("/api/public/availability", async (request, response, next) => {
+  try {
+    const service = publicBookingServiceFromId(request.query.serviceId);
+    const requestedStart = cleanString(request.query.startDate || request.query.start) || todayDateString();
+    const startDate = parseDateOnly(requestedStart) ? requestedStart : todayDateString();
+    const requestedDays = Number(request.query.days);
+    const days = Number.isInteger(requestedDays)
+      ? Math.min(Math.max(requestedDays, 1), publicAvailabilityMaxDays)
+      : publicAvailabilityDefaultDays;
+    const endDate = addDaysToDateString(startDate, days - 1);
+    const snapshot = await appointments
+      .where("appointmentDate", ">=", startDate)
+      .where("appointmentDate", "<=", endDate)
+      .get();
+    const existingAppointmentsByDate = new Map();
+
+    for (const doc of snapshot.docs) {
+      const appointment = toAppointment(doc);
+
+      if (!appointmentBlocksSchedule(appointment)) {
+        continue;
+      }
+
+      const dateAppointments = existingAppointmentsByDate.get(appointment.appointmentDate) || [];
+      dateAppointments.push(appointment);
+      existingAppointmentsByDate.set(appointment.appointmentDate, dateAppointments);
+    }
+
+    const dates = [];
+
+    for (let offset = 0; offset < days; offset += 1) {
+      const date = addDaysToDateString(startDate, offset);
+
+      if (!date || !isPublicBookableDate(date) || !isPublicBookingDateInRange(date)) {
+        continue;
+      }
+
+      dates.push({
+        date,
+        slots: publicSlotValuesForDate(date, service, existingAppointmentsByDate.get(date) || [])
+      });
+    }
+
+    response.json({
+      service,
+      dates
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/public/bookings", publicBookingRateLimit, async (request, response, next) => {
+  try {
+    const payload = cleanPublicBookingPayload(request.body);
+    const now = new Date().toISOString();
+    const today = todayDateString();
+    const clientName = `${payload.firstName} ${payload.lastName}`.trim();
+
+    if (!validatePublicBookingPayload(payload, response)) {
+      return;
+    }
+
+    const appointmentDraft = publicAppointmentDraft({
+      service: payload.service,
+      appointmentDate: payload.appointmentDate,
+      appointmentTime: payload.appointmentTime,
+      clientName
+    });
+
+    if (!appointmentFitsSchedulingWindow(appointmentDraft)) {
+      response.status(400).json({
+        error: schedulingWindowError(appointmentDraft)
+      });
+      return;
+    }
+
+    const conflict = await findAppointmentConflict(appointmentDraft);
+
+    if (conflict) {
+      response.status(409).json({
+        error: "That time was just booked. Please choose another open time."
+      });
+      return;
+    }
+
+    const clientRef = clients.doc();
+    const appointmentRef = appointments.doc();
+    const taskRef = tasks.doc();
+    const publicNotes = [
+      "Booked through the public SNACK booking page.",
+      payload.service.siblingVisit ? "Sibling appointment type selected." : "",
+      payload.notes ? `Family notes: ${payload.notes}` : ""
+    ].filter(Boolean).join(" ");
+    const clientRecord = {
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      parentName: payload.parentName,
+      phone: payload.phone,
+      email: payload.email,
+      preferredLanguage: payload.preferredLanguage,
+      preferredContactMethod: payload.preferredContactMethod,
+      referralType: "Self Referral",
+      referralSource: "Public booking",
+      referralDate: today,
+      firstAppointmentDate: payload.appointmentDate,
+      status: "Scheduled",
+      notes: publicNotes,
+      publicBookingServiceId: payload.service.id,
+      publicBookingServiceLabel: payload.service.label,
+      createdVia: "Public booking",
+      createdAt: now,
+      updatedAt: now,
+      createdBy: "public-booking"
+    };
+    const appointmentRecord = {
+      clientId: clientRef.id,
+      clientIds: [clientRef.id],
+      clientName,
+      clientNames: [clientName],
+      appointmentDate: payload.appointmentDate,
+      appointmentTime: payload.appointmentTime,
+      appointmentType: payload.service.appointmentType,
+      durationMinutes: payload.service.durationMinutes,
+      publicBookingServiceId: payload.service.id,
+      publicBookingServiceLabel: payload.service.label,
+      status: "Scheduled",
+      lesson: "",
+      goal: "",
+      staffMember: "",
+      notes: publicNotes,
+      createdVia: "Public booking",
+      createdAt: now,
+      updatedAt: now,
+      createdBy: "public-booking"
+    };
+    const taskRecord = {
+      title: `Review public booking for ${clientName}`,
+      type: "Task",
+      status: "Open",
+      priority: "Normal",
+      dueDate: today,
+      dueTime: "",
+      assignedTo: "",
+      clientId: clientRef.id,
+      clientName,
+      appointmentId: appointmentRef.id,
+      referralId: "",
+      source: "Public Booking",
+      notes: [
+        `Booked ${payload.service.label} for ${payload.appointmentDate} at ${formatAppointmentTimeValue(payload.appointmentTime)}.`,
+        "Review for duplicate records, sibling needs, forms, and appointment prep."
+      ].join(" "),
+      createdAt: now,
+      updatedAt: now,
+      createdBy: "public-booking"
+    };
+    const batch = firestore.batch();
+
+    batch.set(clientRef, clientRecord);
+    batch.set(appointmentRef, appointmentRecord);
+    batch.set(taskRef, taskRecord);
+    await batch.commit();
+
+    response.status(201).json({
+      booking: {
+        clientName,
+        serviceLabel: payload.service.label,
+        appointmentDate: payload.appointmentDate,
+        appointmentTime: payload.appointmentTime,
+        appointmentTimeLabel: formatAppointmentTimeValue(payload.appointmentTime),
+        durationMinutes: payload.service.durationMinutes
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get("/api/message", requireAuth, async (_request, response, next) => {
@@ -514,19 +1453,40 @@ app.post("/api/appointments", requireAuth, async (request, response, next) => {
     const payload = cleanAppointmentPayload(request.body);
     const now = new Date().toISOString();
 
-    if (!payload.clientId || !payload.appointmentDate) {
+    if (!payload.clientIds.length || !payload.appointmentDate || !payload.appointmentTime) {
       response.status(400).json({
-        error: "Client and appointment date are required."
+        error: "At least one client, appointment date, and appointment time are required."
       });
       return;
     }
 
-    if (!payload.clientName) {
-      const clientSnapshot = await clients.doc(payload.clientId).get();
-      if (clientSnapshot.exists) {
-        const client = toClient(clientSnapshot);
-        payload.clientName = `${client.firstName || ""} ${client.lastName || ""}`.trim();
+    if (!payload.clientNames.length) {
+      const clientNames = [];
+      for (const clientId of payload.clientIds) {
+        const clientSnapshot = await clients.doc(clientId).get();
+        if (clientSnapshot.exists) {
+          const client = toClient(clientSnapshot);
+          clientNames.push(`${client.firstName || ""} ${client.lastName || ""}`.trim());
+        }
       }
+      payload.clientNames = clientNames;
+      payload.clientName = clientNames[0] || "";
+    }
+
+    if (!appointmentFitsSchedulingWindow(payload)) {
+      response.status(400).json({
+        error: schedulingWindowError(payload)
+      });
+      return;
+    }
+
+    const conflict = await findAppointmentConflict(payload);
+
+    if (conflict) {
+      response.status(409).json({
+        error: `That time overlaps ${conflict.clientName || "another appointment"} at ${formatAppointmentTimeValue(conflict.appointmentTime)}. Choose a different time or add the client to that appointment.`
+      });
+      return;
     }
 
     const docRef = await appointments.add({
@@ -536,9 +1496,11 @@ app.post("/api/appointments", requireAuth, async (request, response, next) => {
       createdBy: request.user.email
     });
     const created = await docRef.get();
+    const completedRescheduleTasks = await completeRescheduleTasksForAppointment(payload, request.user.email, now);
 
     response.status(201).json({
-      appointment: toAppointment(created)
+      appointment: toAppointment(created),
+      completedRescheduleTasks
     });
   } catch (error) {
     next(error);
@@ -568,22 +1530,41 @@ app.patch("/api/appointments/:appointmentId", requireAuth, async (request, respo
 
     const payload = cleanAppointmentPayload(request.body);
 
-    if (!payload.clientId || !payload.appointmentDate) {
+    if (!payload.clientIds.length || !payload.appointmentDate || !payload.appointmentTime) {
       response.status(400).json({
-        error: "Client and appointment date are required."
+        error: "At least one client, appointment date, and appointment time are required."
+      });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    if (!appointmentFitsSchedulingWindow(payload)) {
+      response.status(400).json({
+        error: schedulingWindowError(payload)
+      });
+      return;
+    }
+
+    const conflict = await findAppointmentConflict(payload, appointmentId);
+
+    if (conflict) {
+      response.status(409).json({
+        error: `That time overlaps ${conflict.clientName || "another appointment"} at ${formatAppointmentTimeValue(conflict.appointmentTime)}. Choose a different time or add the client to that appointment.`
       });
       return;
     }
 
     await docRef.update({
       ...payload,
-      updatedAt: new Date().toISOString(),
+      updatedAt: now,
       updatedBy: request.user.email
     });
     const updated = await docRef.get();
+    const completedRescheduleTasks = await completeRescheduleTasksForAppointment(payload, request.user.email, now);
 
     response.json({
-      appointment: toAppointment(updated)
+      appointment: toAppointment(updated),
+      completedRescheduleTasks
     });
   } catch (error) {
     next(error);
@@ -615,6 +1596,226 @@ app.delete("/api/appointments/:appointmentId", requireAuth, async (request, resp
 
     response.json({
       ok: true
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/tasks", requireAuth, async (_request, response, next) => {
+  try {
+    const snapshot = await tasks.orderBy("createdAt", "desc").limit(300).get();
+
+    response.json({
+      tasks: snapshot.docs.map(toTask)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/tasks", requireAuth, async (request, response, next) => {
+  try {
+    const payload = cleanTaskPayload(request.body);
+    const now = new Date().toISOString();
+
+    if (!payload.title) {
+      response.status(400).json({
+        error: "Task title is required."
+      });
+      return;
+    }
+
+    if (payload.clientId && !payload.clientName) {
+      const clientSnapshot = await clients.doc(payload.clientId).get();
+      if (clientSnapshot.exists) {
+        const client = toClient(clientSnapshot);
+        payload.clientName = `${client.firstName || ""} ${client.lastName || ""}`.trim();
+      }
+    }
+
+    const existingStartDayTask = await findExistingStartDayTask(payload);
+
+    if (existingStartDayTask) {
+      response.json({
+        task: toTask(existingStartDayTask),
+        duplicate: true
+      });
+      return;
+    }
+
+    const docRef = await tasks.add({
+      ...payload,
+      completedAt: payload.status === "Done" ? now : "",
+      createdAt: now,
+      updatedAt: now,
+      createdBy: request.user.email
+    });
+    const created = await docRef.get();
+
+    response.status(201).json({
+      task: toTask(created),
+      duplicate: false
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/tasks/:taskId", requireAuth, async (request, response, next) => {
+  try {
+    const taskId = cleanString(request.params.taskId);
+
+    if (!taskId) {
+      response.status(400).json({
+        error: "Task ID is required."
+      });
+      return;
+    }
+
+    const docRef = tasks.doc(taskId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Task was not found."
+      });
+      return;
+    }
+
+    const payload = cleanTaskPayload(request.body);
+
+    if (!payload.title) {
+      response.status(400).json({
+        error: "Task title is required."
+      });
+      return;
+    }
+
+    if (payload.clientId && !payload.clientName) {
+      const clientSnapshot = await clients.doc(payload.clientId).get();
+      if (clientSnapshot.exists) {
+        const client = toClient(clientSnapshot);
+        payload.clientName = `${client.firstName || ""} ${client.lastName || ""}`.trim();
+      }
+    }
+
+    const existingTask = toTask(snapshot);
+    const now = new Date().toISOString();
+
+    await docRef.update({
+      ...payload,
+      completedAt: payload.status === "Done" ? existingTask.completedAt || now : "",
+      updatedAt: now,
+      updatedBy: request.user.email
+    });
+    const updated = await docRef.get();
+
+    response.json({
+      task: toTask(updated)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/tasks/:taskId", requireAuth, async (request, response, next) => {
+  try {
+    const taskId = cleanString(request.params.taskId);
+
+    if (!taskId) {
+      response.status(400).json({
+        error: "Task ID is required."
+      });
+      return;
+    }
+
+    const docRef = tasks.doc(taskId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Task was not found."
+      });
+      return;
+    }
+
+    await docRef.delete();
+
+    response.json({
+      ok: true
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/activity-logs", requireAuth, async (_request, response, next) => {
+  try {
+    const snapshot = await activityLogs.orderBy("occurredAt", "desc").limit(500).get();
+
+    response.json({
+      activityLogs: snapshot.docs.map(toActivityLog)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/activity-logs", requireAuth, async (request, response, next) => {
+  try {
+    const payload = cleanActivityLogPayload(request.body);
+    const now = new Date().toISOString();
+
+    if (!payload.relatedId) {
+      response.status(400).json({
+        error: "Choose a client or referral before logging activity."
+      });
+      return;
+    }
+
+    if (!payload.activityDate) {
+      response.status(400).json({
+        error: "Activity date is required."
+      });
+      return;
+    }
+
+    const relatedCollection = payload.relatedType === "referral" ? referrals : clients;
+    const relatedRef = relatedCollection.doc(payload.relatedId);
+    const relatedSnapshot = await relatedRef.get();
+
+    if (!relatedSnapshot.exists) {
+      response.status(404).json({
+        error: "The related profile was not found."
+      });
+      return;
+    }
+
+    const relatedData = relatedSnapshot.data();
+    const docRef = await activityLogs.add({
+      ...payload,
+      relatedName: payload.relatedName || `${relatedData.firstName || ""} ${relatedData.lastName || ""}`.trim(),
+      createdAt: now,
+      updatedAt: now,
+      createdBy: request.user.email
+    });
+
+    const contactUpdates = {
+      mostRecentContactDate: payload.activityDate,
+      updatedAt: now,
+      updatedBy: request.user.email
+    };
+
+    if (!relatedData.firstContactDate) {
+      contactUpdates.firstContactDate = payload.activityDate;
+    }
+
+    await relatedRef.update(contactUpdates);
+    const created = await docRef.get();
+
+    response.status(201).json({
+      activityLog: toActivityLog(created)
     });
   } catch (error) {
     next(error);
@@ -1118,6 +2319,9 @@ app.post("/api/clients", requireAuth, async (request, response, next) => {
     const docRef = await clients.add({
       ...payload,
       status,
+      providerLinks: Array.isArray(request.body.providerLinks)
+        ? request.body.providerLinks.map(cleanProviderLink).filter((link) => link.networkId && link.providerId)
+        : [],
       createdAt: now,
       updatedAt: now,
       createdBy: request.user.email
@@ -1266,12 +2470,13 @@ app.patch("/api/clients/:clientId", requireAuth, async (request, response, next)
       "firstContactDate",
       "mostRecentContactDate",
       "firstAppointmentDate",
+      "mostRecentAppointmentDate",
       "lastAppointmentDate",
+      "currentLesson",
       "addressStreet",
       "addressCity",
       "addressState",
       "addressZip",
-      "ycco",
       "notes"
     ]) {
       if (Object.hasOwn(request.body, field)) {
@@ -1293,6 +2498,14 @@ app.patch("/api/clients/:clientId", requireAuth, async (request, response, next)
 
     if (Object.hasOwn(request.body, "textOptOut")) {
       updates.textOptOut = cleanBoolean(request.body.textOptOut);
+    }
+
+    if (Object.hasOwn(request.body, "ycco")) {
+      updates.ycco = cleanBoolean(request.body.ycco);
+    }
+
+    if (Object.hasOwn(request.body, "hrsn")) {
+      updates.hrsn = cleanBoolean(request.body.hrsn);
     }
 
     if (Object.hasOwn(request.body, "providerLinks")) {
@@ -1506,6 +2719,7 @@ app.post("/api/referrals", requireAuth, async (request, response, next) => {
     const firstContactDate = cleanString(request.body.firstContactDate);
     const mostRecentContactDate = cleanString(request.body.mostRecentContactDate);
     const firstAppointmentDate = cleanString(request.body.firstAppointmentDate);
+    const mostRecentAppointmentDate = cleanString(request.body.mostRecentAppointmentDate);
     const lastAppointmentDate = cleanString(request.body.lastAppointmentDate);
     const addressStreet = cleanString(request.body.addressStreet);
     const addressCity = cleanString(request.body.addressCity);
@@ -1513,7 +2727,8 @@ app.post("/api/referrals", requireAuth, async (request, response, next) => {
     const addressZip = cleanString(request.body.addressZip);
     const emailOptOut = cleanBoolean(request.body.emailOptOut);
     const textOptOut = cleanBoolean(request.body.textOptOut);
-    const ycco = cleanString(request.body.ycco);
+    const ycco = cleanBoolean(request.body.ycco);
+    const hrsn = cleanBoolean(request.body.hrsn);
     const assessmentScore = cleanOptionalNumber(request.body.assessmentScore);
     const willingnessScore = cleanOptionalNumber(request.body.willingnessScore);
     const notes = cleanString(request.body.notes);
@@ -1549,6 +2764,7 @@ app.post("/api/referrals", requireAuth, async (request, response, next) => {
       firstContactDate,
       mostRecentContactDate,
       firstAppointmentDate,
+      mostRecentAppointmentDate,
       lastAppointmentDate,
       addressStreet,
       addressCity,
@@ -1557,6 +2773,7 @@ app.post("/api/referrals", requireAuth, async (request, response, next) => {
       emailOptOut,
       textOptOut,
       ycco,
+      hrsn,
       assessmentScore,
       willingnessScore,
       status: "New",
@@ -1846,12 +3063,12 @@ app.patch("/api/referrals/:referralId", requireAuth, async (request, response, n
       "firstContactDate",
       "mostRecentContactDate",
       "firstAppointmentDate",
+      "mostRecentAppointmentDate",
       "lastAppointmentDate",
       "addressStreet",
       "addressCity",
       "addressState",
       "addressZip",
-      "ycco",
       "notes"
     ]) {
       if (Object.hasOwn(request.body, field)) {
@@ -1873,6 +3090,14 @@ app.patch("/api/referrals/:referralId", requireAuth, async (request, response, n
 
     if (Object.hasOwn(request.body, "textOptOut")) {
       updates.textOptOut = cleanBoolean(request.body.textOptOut);
+    }
+
+    if (Object.hasOwn(request.body, "ycco")) {
+      updates.ycco = cleanBoolean(request.body.ycco);
+    }
+
+    if (Object.hasOwn(request.body, "hrsn")) {
+      updates.hrsn = cleanBoolean(request.body.hrsn);
     }
 
     if (Object.hasOwn(request.body, "providerLinks")) {
@@ -1989,6 +3214,7 @@ app.post("/api/referrals/:referralId/convert", requireAuth, async (request, resp
       firstContactDate: referral.firstContactDate || "",
       mostRecentContactDate: referral.mostRecentContactDate || "",
       firstAppointmentDate: referral.firstAppointmentDate || "",
+      mostRecentAppointmentDate: referral.mostRecentAppointmentDate || "",
       lastAppointmentDate: referral.lastAppointmentDate || "",
       addressStreet: referral.addressStreet || "",
       addressCity: referral.addressCity || "",
@@ -1996,7 +3222,8 @@ app.post("/api/referrals/:referralId/convert", requireAuth, async (request, resp
       addressZip: referral.addressZip || "",
       emailOptOut: Boolean(referral.emailOptOut),
       textOptOut: Boolean(referral.textOptOut),
-      ycco: referral.ycco || "",
+      ycco: cleanBoolean(referral.ycco),
+      hrsn: cleanBoolean(referral.hrsn),
       assessmentScore: referral.assessmentScore ?? null,
       willingnessScore: referral.willingnessScore ?? null,
       sourceReferralId: referralId,
@@ -2047,6 +3274,73 @@ app.use((error, _request, response, _next) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`SNACK CRM API listening on port ${port}`);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  app.listen(port, () => {
+    console.log(`SNACK CRM API listening on port ${port}`);
+  });
+}
+
+export {
+  allowedAppointmentStatuses,
+  allowedClientStatuses,
+  allowedReferralStatuses,
+  allowedReferralTypes,
+  allowedTaskPriorities,
+  allowedTaskStatuses,
+  allowedTaskTypes,
+  app,
+  appointmentBlocksSchedule,
+  appointmentClientCountFromRecord,
+  appointmentDurationMinutesFromRecord,
+  appointmentFitsSchedulingWindow,
+  appointmentRangesOverlap,
+  appointmentTimeMinutes,
+  cleanActivityLogPayload,
+  cleanAppointmentPayload,
+  cleanBoolean,
+  cleanNetworkProvider,
+  cleanOptionalInteger,
+  cleanOptionalNumber,
+  cleanOutreachContactPayload,
+  cleanOutreachEventPayload,
+  cleanPersonPayload,
+  cleanProviderLink,
+  cleanPublicBookingPayload,
+  cleanReferralNetworkPayload,
+  cleanString,
+  cleanTaskPayload,
+  daysBetweenDateStrings,
+  formatAppointmentTimeValue,
+  hasRequiredPersonFields,
+  isActiveTaskStatus,
+  isGeneratedTaskSource,
+  isPublicBookableDate,
+  normalizeActivityDirection,
+  normalizeActivityType,
+  normalizeAppointmentStatus,
+  normalizeAppointmentTimeValue,
+  normalizeStatus,
+  normalizeTaskPriority,
+  normalizeTaskStatus,
+  normalizeTaskType,
+  normalizedLookupKey,
+  normalizedTaskTitle,
+  publicAppointmentDraft,
+  publicBookingServiceFromId,
+  publicBookingServices,
+  publicBookingValidationError,
+  publicSlotValuesForDate,
+  schedulingWindowEndLabel,
+  schedulingWindowError,
+  startDayTaskIntent,
+  startDayTaskSubject,
+  tasksMatchStartDayIntent,
+  toActivityLog,
+  toAppointment,
+  toClient,
+  toOutreachContact,
+  toOutreachEvent,
+  toReferral,
+  toReferralNetworkEntry,
+  toTask
+};
