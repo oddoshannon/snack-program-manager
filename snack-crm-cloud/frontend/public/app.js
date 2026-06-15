@@ -1567,12 +1567,44 @@ function renderFormProviderLinkEditor(editor, links, onLinksChange, onAddLink) {
   editor.append(header, list, controls);
 }
 
+function firstProviderSource(links = []) {
+  return links.find((link) => String(link.providerName || "").trim())?.providerName || "";
+}
+
+function sourceMatchesAnyProvider(source, links = []) {
+  return links.some((link) => providerLinkMatchesSource(source, link));
+}
+
+function syncReferralSourceFromLinks(previousLinks = []) {
+  const currentSource = String(referralFormField("referralSource")?.value || "").trim();
+  const nextSource = firstProviderSource(editingReferralProviderLinks);
+
+  if (!currentSource || sourceMatchesAnyProvider(currentSource, previousLinks)) {
+    setReferralFormFieldValue("referralSource", nextSource);
+  }
+
+  syncReferralSourceDisplay();
+}
+
+function syncClientReferralSourceFromLinks(previousLinks = []) {
+  const currentSource = String(clientFormField("referralSource")?.value || "").trim();
+  const nextSource = firstProviderSource(editingClientProviderLinks);
+
+  if (!currentSource || sourceMatchesAnyProvider(currentSource, previousLinks)) {
+    setClientFormFieldValue("referralSource", nextSource);
+  }
+
+  syncClientReferralSourceDisplay();
+}
+
 function renderReferralProviderLinkEditor() {
   renderFormProviderLinkEditor(
     referralProviderLinkEditor,
     editingReferralProviderLinks,
     (links) => {
+      const previousLinks = editingReferralProviderLinks;
       editingReferralProviderLinks = links;
+      syncReferralSourceFromLinks(previousLinks);
       renderReferralProviderLinkEditor();
     },
     (link) => {
@@ -1586,14 +1618,14 @@ function renderClientProviderLinkEditor() {
     clientProviderLinkEditor,
     editingClientProviderLinks,
     (links) => {
+      const previousLinks = editingClientProviderLinks;
       editingClientProviderLinks = links;
+      syncClientReferralSourceFromLinks(previousLinks);
       renderClientProviderLinkEditor();
     },
     (link) => {
-      if (!String(clientFormField("referralSource")?.value || "").trim()) {
-        setClientFormFieldValue("referralSource", link.providerName || "");
-        syncClientReferralSourceDisplay();
-      }
+      setClientFormFieldValue("referralSource", link.providerName || "");
+      syncClientReferralSourceDisplay();
     }
   );
 }
@@ -9076,7 +9108,7 @@ function syncReferralSourceDisplay() {
   }
 
   const source = String(referralFormField("referralSource")?.value || "").trim();
-  referralSourceDisplay.textContent = source || "-";
+  setProfileSourceDisplay(referralSourceDisplay, source);
 }
 
 function syncReferralSourceFromProviderLink(link) {
@@ -9086,6 +9118,16 @@ function syncReferralSourceFromProviderLink(link) {
 
   setReferralFormFieldValue("referralSource", link.providerName);
   syncReferralSourceDisplay();
+}
+
+function setProfileSourceDisplay(displayElement, source) {
+  if (!displayElement) {
+    return;
+  }
+
+  const value = String(source || "").trim();
+  displayElement.textContent = value || "None linked yet";
+  displayElement.classList.toggle("is-empty", !value);
 }
 
 function syncReferralEditStatusColor() {
@@ -9432,7 +9474,7 @@ function syncClientReferralSourceDisplay() {
   }
 
   const source = String(clientFormField("referralSource")?.value || "").trim();
-  clientReferralSourceDisplay.textContent = source || "-";
+  setProfileSourceDisplay(clientReferralSourceDisplay, source);
 }
 
 function syncClientEditStatusColor() {

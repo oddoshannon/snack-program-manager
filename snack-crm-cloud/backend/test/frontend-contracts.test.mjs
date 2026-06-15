@@ -105,6 +105,20 @@ test("client edit form uses the same profile-grid shell as profile view", () => 
   assert.match(indexHtml, /id="referral-edit-sibling-summary"/);
 });
 
+test("referral edit form uses profile cards for source and appointment fields", () => {
+  const referralForm = indexHtml.slice(indexHtml.indexOf('id="referral-form"'), indexHtml.indexOf('id="client-modal"'));
+
+  assert.match(referralForm, /id="referral-source-display" class="profile-source-text is-empty">None linked yet/);
+  assert.match(referralForm, /<span>Last Appt<\/span>\s*<input id="last-appointment-date"/);
+  assert.equal(referralForm.includes("<span>Graduation Date</span>"), false);
+  assertInOrder(referralForm, [
+    "client-profile-grid",
+    "client-admin-strip",
+    "Referral Details",
+    "Provider Profiles"
+  ]);
+});
+
 test("client detail edit cards keep Referral, Contact, Insurance, and Assessment sections", () => {
   const clientForm = indexHtml.slice(indexHtml.indexOf('id="client-form"'));
 
@@ -129,6 +143,15 @@ test("insurance section exposes YCCO and HRSN as checkboxes", () => {
   assert.match(indexHtml, /id="client-hrsn" name="hrsn" type="checkbox"/);
   assert.match(indexHtml, /id="ycco" name="ycco" type="checkbox"/);
   assert.match(indexHtml, /id="hrsn" name="hrsn" type="checkbox"/);
+});
+
+test("provider profile links keep referral source displays in sync", () => {
+  assert.match(appJs, /function syncReferralSourceFromLinks/);
+  assert.match(appJs, /function syncClientReferralSourceFromLinks/);
+  assert.match(appJs, /setProfileSourceDisplay\(referralSourceDisplay, source\)/);
+  assert.match(appJs, /setProfileSourceDisplay\(clientReferralSourceDisplay, source\)/);
+  assert.match(appJs, /None linked yet/);
+  assert.match(stylesCss, /\.client-profile-field \.profile-source-text\.is-empty/);
 });
 
 test("activity log modal supports call/text direction, result, date, time, and description", () => {

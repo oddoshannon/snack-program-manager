@@ -22,6 +22,7 @@ import {
   cleanReferralNetworkPayload,
   cleanString,
   cleanTaskPayload,
+  clientPayloadFromReferral,
   daysBetweenDateStrings,
   formatAppointmentTimeValue,
   hasRequiredPersonFields,
@@ -43,6 +44,7 @@ import {
   publicBookingServices,
   publicBookingValidationError,
   publicSlotValuesForDate,
+  referralSourceFromRecord,
   schedulingWindowEndLabel,
   schedulingWindowError,
   startDayTaskIntent,
@@ -172,6 +174,64 @@ test("cleanProviderLink trims linked provider metadata", () => {
     organizationName: "Clinic",
     providerName: "Doctor"
   });
+});
+
+test("referralSourceFromRecord keeps explicit source before provider fallback", () => {
+  assert.equal(referralSourceFromRecord({
+    referralSource: " Sunrise Family Clinic ",
+    providerLinks: [{
+      providerName: "William Koenig, DO",
+      organizationName: "Physicians' Medical Center"
+    }]
+  }), "Sunrise Family Clinic");
+
+  assert.equal(referralSourceFromRecord({
+    providerLinks: [{
+      providerName: " William Koenig, DO ",
+      organizationName: " Physicians' Medical Center "
+    }]
+  }), "William Koenig, DO");
+});
+
+test("clientPayloadFromReferral carries conversion and provider-source fields", () => {
+  const payload = clientPayloadFromReferral({
+    firstName: " Andi Jo ",
+    lastName: " Smith ",
+    parentName: "Michelle",
+    phone: "(503) 560-2538",
+    preferredLanguage: "English",
+    referralType: "Internal Clinic Referral",
+    referralDate: "2026-01-22",
+    providerLinks: [{
+      networkId: " clinic ",
+      providerId: " william ",
+      organizationName: " Physicians' Medical Center ",
+      providerName: " William Koenig, DO "
+    }],
+    siblingIds: ["ref-sibling"],
+    emailOptOut: true,
+    textOptOut: false,
+    ycco: "checked",
+    hrsn: "yes",
+    assessmentScore: 8,
+    willingnessScore: 5,
+    notes: "Ready for scheduling"
+  }, "ref-1", {
+    now: "2026-06-15T16:00:00.000Z",
+    convertedSiblingClientIds: ["client-sibling", ""],
+    createdBy: " director@snackprogram.org "
+  });
+
+  assert.equal(payload.status, "Scheduled");
+  assert.equal(payload.sourceReferralId, "ref-1");
+  assert.equal(payload.referralSource, "William Koenig, DO");
+  assert.deepEqual(payload.siblingIds, ["client-sibling"]);
+  assert.equal(payload.providerLinks[0].providerName, "William Koenig, DO");
+  assert.equal(payload.providerLinks[0].organizationName, "Physicians' Medical Center");
+  assert.equal(payload.ycco, true);
+  assert.equal(payload.hrsn, true);
+  assert.equal(payload.createdBy, "director@snackprogram.org");
+  assert.equal(payload.convertedAt, "2026-06-15T16:00:00.000Z");
 });
 
 test("cleanReferralNetworkPayload filters empty providers", () => {

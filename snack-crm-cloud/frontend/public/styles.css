@@ -3041,6 +3041,10 @@ textarea {
   text-transform: none;
 }
 
+.client-profile-field .profile-source-text.is-empty {
+  color: var(--muted);
+}
+
 .profile-add-button {
   justify-self: start;
   font-size: 0.86rem;

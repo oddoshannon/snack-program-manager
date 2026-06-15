@@ -523,6 +523,64 @@ function cleanPersonPayload(body) {
   };
 }
 
+function referralSourceFromRecord(record = {}) {
+  const source = cleanString(record.referralSource);
+
+  if (source) {
+    return source;
+  }
+
+  const providerLinks = Array.isArray(record.providerLinks) ? record.providerLinks : [];
+  const primaryProvider = providerLinks.map(cleanProviderLink).find((link) => link.providerName);
+  return primaryProvider?.providerName || "";
+}
+
+function clientPayloadFromReferral(referral, referralId, options = {}) {
+  const now = options.now || new Date().toISOString();
+  const convertedSiblingClientIds = Array.isArray(options.convertedSiblingClientIds)
+    ? options.convertedSiblingClientIds.filter(Boolean)
+    : [];
+
+  return {
+    firstName: referral.firstName || "",
+    lastName: referral.lastName || "",
+    parentName: referral.parentName || "",
+    dateOfBirth: referral.dateOfBirth || "",
+    gender: referral.gender || "",
+    phone: referral.phone || "",
+    email: referral.email || "",
+    preferredLanguage: referral.preferredLanguage || "",
+    preferredContactMethod: referral.preferredContactMethod || "",
+    referralType: referral.referralType || "",
+    referralSource: referralSourceFromRecord(referral),
+    referralDate: referral.referralDate || "",
+    firstContactDate: referral.firstContactDate || "",
+    mostRecentContactDate: referral.mostRecentContactDate || "",
+    firstAppointmentDate: referral.firstAppointmentDate || "",
+    mostRecentAppointmentDate: referral.mostRecentAppointmentDate || "",
+    lastAppointmentDate: referral.lastAppointmentDate || "",
+    addressStreet: referral.addressStreet || "",
+    addressCity: referral.addressCity || "",
+    addressState: referral.addressState || "",
+    addressZip: referral.addressZip || "",
+    emailOptOut: Boolean(referral.emailOptOut),
+    textOptOut: Boolean(referral.textOptOut),
+    ycco: cleanBoolean(referral.ycco),
+    hrsn: cleanBoolean(referral.hrsn),
+    assessmentScore: referral.assessmentScore ?? null,
+    willingnessScore: referral.willingnessScore ?? null,
+    sourceReferralId: referralId,
+    siblingIds: convertedSiblingClientIds,
+    providerLinks: Array.isArray(referral.providerLinks) ? referral.providerLinks.map(cleanProviderLink).filter((link) => link.providerId || link.providerName) : [],
+    convertedAt: now,
+    status: "Scheduled",
+    notes: referral.notes || "",
+    createdAt: now,
+    updatedAt: now,
+    createdBy: cleanString(options.createdBy)
+  };
+}
+
 function cleanReferralNetworkPayload(body) {
   return {
     name: cleanString(body.name),
@@ -3198,44 +3256,13 @@ app.post("/api/referrals/:referralId/convert", requireAuth, async (request, resp
       .map((siblingSnapshot) => toReferral(siblingSnapshot).convertedClientId)
       .filter(Boolean);
     const now = new Date().toISOString();
-    const clientRef = await clients.add({
-      firstName: referral.firstName || "",
-      lastName: referral.lastName || "",
-      parentName: referral.parentName || "",
-      dateOfBirth: referral.dateOfBirth || "",
-      gender: referral.gender || "",
-      phone: referral.phone || "",
-      email: referral.email || "",
-      preferredLanguage: referral.preferredLanguage || "",
-      preferredContactMethod: referral.preferredContactMethod || "",
-      referralType: referral.referralType || "",
-      referralSource: referral.referralSource || "",
-      referralDate: referral.referralDate || "",
-      firstContactDate: referral.firstContactDate || "",
-      mostRecentContactDate: referral.mostRecentContactDate || "",
-      firstAppointmentDate: referral.firstAppointmentDate || "",
-      mostRecentAppointmentDate: referral.mostRecentAppointmentDate || "",
-      lastAppointmentDate: referral.lastAppointmentDate || "",
-      addressStreet: referral.addressStreet || "",
-      addressCity: referral.addressCity || "",
-      addressState: referral.addressState || "",
-      addressZip: referral.addressZip || "",
-      emailOptOut: Boolean(referral.emailOptOut),
-      textOptOut: Boolean(referral.textOptOut),
-      ycco: cleanBoolean(referral.ycco),
-      hrsn: cleanBoolean(referral.hrsn),
-      assessmentScore: referral.assessmentScore ?? null,
-      willingnessScore: referral.willingnessScore ?? null,
-      sourceReferralId: referralId,
-      siblingIds: convertedSiblingClientIds,
-      providerLinks: referral.providerLinks || [],
-      convertedAt: now,
-      status: "Scheduled",
-      notes: referral.notes || "",
-      createdAt: now,
-      updatedAt: now,
-      createdBy: request.user.email
-    });
+    const clientRef = await clients.add(
+      clientPayloadFromReferral(referral, referralId, {
+        now,
+        convertedSiblingClientIds,
+        createdBy: request.user.email
+      })
+    );
 
     await referralRef.update({
       status: "Scheduled",
@@ -3309,6 +3336,7 @@ export {
   cleanReferralNetworkPayload,
   cleanString,
   cleanTaskPayload,
+  clientPayloadFromReferral,
   daysBetweenDateStrings,
   formatAppointmentTimeValue,
   hasRequiredPersonFields,
@@ -3330,6 +3358,7 @@ export {
   publicBookingServices,
   publicBookingValidationError,
   publicSlotValuesForDate,
+  referralSourceFromRecord,
   schedulingWindowEndLabel,
   schedulingWindowError,
   startDayTaskIntent,
