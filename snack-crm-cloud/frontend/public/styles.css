@@ -2061,21 +2061,19 @@ h4 {
 }
 
 .flow-card-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
   font-size: 1rem;
   font-weight: 900;
 }
 
 .flow-card-detail,
 .flow-card-meta {
-  overflow: hidden;
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 750;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .flow-card-tag {
@@ -2370,6 +2368,7 @@ textarea {
 .outreach-row {
   grid-template-columns:
     minmax(220px, 1.4fr)
+    minmax(120px, 0.7fr)
     minmax(120px, 0.8fr)
     minmax(170px, 1fr)
     minmax(90px, 0.6fr);
@@ -4133,6 +4132,18 @@ dd {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.outreach-flow-card {
+  grid-column: 1 / -1;
+}
+
+.outreach-flow-card .flow-lanes {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.outreach-profile-grid {
+  align-items: stretch;
+}
+
 .grants-deadline-card {
   grid-column: 1;
 }
@@ -4315,6 +4326,69 @@ dd {
 }
 
 .grant-status-select.status-group-grant-closed {
+  border-color: var(--muted);
+  background-color: #f3f5f4;
+}
+
+.outreach-status-pill.status-group-outreach-upcoming {
+  border-color: rgba(226, 58, 77, 0.28);
+  background: var(--red-soft);
+  color: var(--brand-red);
+}
+
+.outreach-status-pill.status-group-outreach-in-progress {
+  border-color: rgba(14, 121, 69, 0.24);
+  background: var(--green-soft);
+  color: var(--brand-green);
+}
+
+.outreach-status-pill.status-group-outreach-completed {
+  border-color: rgba(33, 86, 178, 0.24);
+  background: var(--brand-blue-soft);
+  color: var(--brand-blue);
+}
+
+.outreach-status-pill.status-group-outreach-follow-up {
+  border-color: rgba(122, 51, 194, 0.24);
+  background: var(--purple-soft);
+  color: var(--brand-purple);
+}
+
+.outreach-status-pill.status-group-outreach-closed {
+  border-color: rgba(101, 116, 122, 0.28);
+  background: #f3f5f4;
+  color: var(--muted);
+}
+
+.outreach-status-select {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 28px 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.outreach-status-select.status-group-outreach-upcoming {
+  border-color: var(--brand-red);
+  background-color: var(--red-soft);
+}
+
+.outreach-status-select.status-group-outreach-in-progress {
+  border-color: var(--brand-green);
+  background-color: var(--green-soft);
+}
+
+.outreach-status-select.status-group-outreach-completed {
+  border-color: var(--brand-blue);
+  background-color: var(--brand-blue-soft);
+}
+
+.outreach-status-select.status-group-outreach-follow-up {
+  border-color: var(--brand-purple);
+  background-color: var(--purple-soft);
+}
+
+.outreach-status-select.status-group-outreach-closed {
   border-color: var(--muted);
   background-color: #f3f5f4;
 }
@@ -4590,6 +4664,7 @@ dd {
 
   .grants-list-card,
   .grant-flow-card,
+  .outreach-flow-card,
   .grant-org-card,
   .grant-question-card,
   .grants-deadline-card {
@@ -4597,7 +4672,8 @@ dd {
     grid-row: auto;
   }
 
-  .grant-flow-card .flow-lanes {
+  .grant-flow-card .flow-lanes,
+  .outreach-flow-card .flow-lanes {
     grid-template-columns: 1fr;
   }
 

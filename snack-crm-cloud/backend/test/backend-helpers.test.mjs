@@ -329,6 +329,7 @@ test("cleanOutreachEventPayload defaults type and integer counts", () => {
   });
 
   assert.equal(payload.type, "Outreach Event");
+  assert.equal(payload.status, "Scheduled");
   assert.equal(payload.name, "Cooking Class");
   assert.equal(payload.interactionsCount, 2);
 

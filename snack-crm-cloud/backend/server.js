@@ -359,6 +359,7 @@ function toOutreachEvent(snapshot) {
     id: snapshot.id,
     name: data.name,
     type: data.type,
+    status: data.status || "Scheduled",
     eventDate: data.eventDate,
     repeatPattern: data.repeatPattern,
     location: data.location,
@@ -758,6 +759,7 @@ function cleanOutreachEventPayload(body) {
   return {
     name: cleanString(body.name),
     type: cleanString(body.type) || "Outreach Event",
+    status: cleanString(body.status) || "Scheduled",
     eventDate: cleanString(body.eventDate),
     repeatPattern: cleanString(body.repeatPattern),
     location: cleanString(body.location),

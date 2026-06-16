@@ -735,7 +735,7 @@
         <section id="outreach-panel" class="referrals-panel" aria-labelledby="outreach-title" hidden>
           <div class="module-tabs" role="tablist" aria-label="Outreach views">
             <button id="outreach-tab-dashboard" class="module-tab active" type="button" role="tab" aria-selected="true">Dashboard</button>
-            <button id="outreach-tab-events" class="module-tab" type="button" role="tab" aria-selected="false">Events / Classes</button>
+            <button id="outreach-tab-events" class="module-tab" type="button" role="tab" aria-selected="false">Events &amp; Classes</button>
             <button id="outreach-tab-contacts" class="module-tab" type="button" role="tab" aria-selected="false">Interest Contacts</button>
           </div>
 
@@ -752,13 +752,30 @@
 
           <section id="outreach-dashboard-view" class="outreach-view">
             <section id="outreach-summary" class="summary-grid" aria-label="Outreach summary"></section>
-            <div class="dashboard-grid">
-              <section class="dashboard-card" aria-labelledby="outreach-upcoming-title">
-                <h3 id="outreach-upcoming-title">Upcoming Events</h3>
+            <div class="grants-layout outreach-layout">
+              <section class="dashboard-card outreach-flow-card" aria-labelledby="outreach-flow-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="outreach-flow-title">Event Flow</h3>
+                  </div>
+                </div>
+                <div id="outreach-event-flow-board" class="flow-board" aria-label="Event Flow"></div>
+              </section>
+
+              <section class="dashboard-card outreach-upcoming-card" aria-labelledby="outreach-upcoming-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="outreach-upcoming-title">Upcoming Events &amp; Classes</h3>
+                  </div>
+                </div>
                 <div id="outreach-upcoming-list" class="dashboard-list"></div>
               </section>
-              <section class="dashboard-card" aria-labelledby="outreach-contact-followup-title">
-                <h3 id="outreach-contact-followup-title">Contacts To Follow Up</h3>
+              <section class="dashboard-card outreach-followup-card" aria-labelledby="outreach-contact-followup-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="outreach-contact-followup-title">Contacts To Follow Up</h3>
+                  </div>
+                </div>
                 <div id="outreach-contact-followup-list" class="dashboard-list"></div>
               </section>
             </div>
@@ -768,7 +785,7 @@
             <section class="list-panel" aria-label="Outreach event list">
               <div class="list-toolbar">
                 <div>
-                  <h3>Outreach Events</h3>
+                  <h3>Events &amp; Classes</h3>
                   <p id="outreach-status" class="status" aria-live="polite"></p>
                 </div>
                 <div class="filters network-filters">
@@ -781,6 +798,7 @@
               <div class="table-wrap">
                 <div class="table-head outreach-table-head" role="row">
                   <span role="columnheader">Event/Class</span>
+                  <span role="columnheader">Status</span>
                   <span role="columnheader">Date</span>
                   <span role="columnheader">Contact</span>
                   <span role="columnheader">Referrals</span>
@@ -1504,6 +1522,18 @@
               <option value="Outreach Event">Outreach Event</option>
               <option value="Hosted Class">Hosted Class</option>
               <option value="Hosted Event">Hosted Event</option>
+            </select>
+          </label>
+          <label>
+            Status
+            <select id="outreach-event-status" name="status">
+              <option value="Scheduled">Scheduled</option>
+              <option value="Planning">Planning</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+              <option value="Follow Up">Follow Up</option>
+              <option value="Canceled">Canceled</option>
+              <option value="Archived">Archived</option>
             </select>
           </label>
           <label>

@@ -151,6 +151,7 @@ const closeNetworkImportButton = document.querySelector("#close-network-import")
 const confirmNetworkImportButton = document.querySelector("#confirm-network-import");
 const outreachList = document.querySelector("#outreach-list");
 const outreachSummary = document.querySelector("#outreach-summary");
+const outreachEventFlowBoard = document.querySelector("#outreach-event-flow-board");
 const outreachStatusEl = document.querySelector("#outreach-status");
 const outreachSearchInput = document.querySelector("#outreach-search");
 const outreachDashboardView = document.querySelector("#outreach-dashboard-view");
@@ -395,6 +396,21 @@ const grantFlowColumns = [
   }
 ];
 const grantStatuses = ["Researching", "Planning", "In Progress", "Submitted", "Awarded", "Reporting", "Not A Good Fit", "Declined", "Closed"];
+const outreachEventFlowColumns = [
+  { key: "upcoming", label: "Upcoming Events", statuses: ["Scheduled", "Planning"], accent: "var(--brand-red)" },
+  { key: "in-progress", label: "In Progress", statuses: ["In Progress"], accent: "var(--brand-green)" },
+  { key: "completed", label: "Completed", statuses: ["Completed"], accent: "var(--brand-blue)" },
+  { key: "follow-up", label: "Follow Up", statuses: ["Follow Up"], accent: "var(--brand-purple)" },
+  {
+    key: "closed",
+    label: "Closed Events Archive",
+    statuses: ["Canceled", "Archived"],
+    accent: "var(--brand-blue)",
+    archive: true,
+    countLabel: "closed"
+  }
+];
+const outreachEventStatuses = ["Scheduled", "Planning", "In Progress", "Completed", "Follow Up", "Canceled", "Archived"];
 const zohoClientStatusMap = {
   "Appts in Progress": "Active",
   Graduated: "Graduated",
@@ -1743,6 +1759,61 @@ function outreachEventName(event) {
   return event.name || "Unnamed outreach event";
 }
 
+function outreachEventStatus(event = {}) {
+  return event.status || "Scheduled";
+}
+
+function outreachEventStatusGroupKey(status = "Scheduled") {
+  const normalized = status || "Scheduled";
+  const column = outreachEventFlowColumns.find((item) => item.statuses.includes(normalized));
+
+  if (column?.key === "upcoming") {
+    return "outreach-upcoming";
+  }
+
+  if (column?.key) {
+    return `outreach-${column.key}`;
+  }
+
+  return "outreach-upcoming";
+}
+
+function outreachEventStatusPill(status = "Scheduled") {
+  const pill = document.createElement("span");
+  pill.className = `grant-status-pill outreach-status-pill status-group-${outreachEventStatusGroupKey(status)}`;
+  pill.textContent = status || "Scheduled";
+  return pill;
+}
+
+function applyOutreachStatusSelectColor(select, status) {
+  for (const key of ["outreach-upcoming", "outreach-in-progress", "outreach-completed", "outreach-follow-up", "outreach-closed"]) {
+    select.classList.remove(`status-group-${key}`);
+  }
+  select.classList.add("status-select", "outreach-status-select", `status-group-${outreachEventStatusGroupKey(status)}`);
+}
+
+function createOutreachEventStatusSelect(event) {
+  const select = document.createElement("select");
+  select.className = "status-select outreach-status-select";
+  select.setAttribute("aria-label", "Event status");
+
+  for (const status of outreachEventStatuses) {
+    const option = document.createElement("option");
+    option.value = status;
+    option.textContent = status;
+    option.className = `status-group-${outreachEventStatusGroupKey(status)}`;
+    select.append(option);
+  }
+
+  select.value = outreachEventStatus(event);
+  applyOutreachStatusSelectColor(select, select.value);
+  select.addEventListener("change", () => {
+    applyOutreachStatusSelectColor(select, select.value);
+    updateOutreachEventStatus(event, select.value);
+  });
+  return select;
+}
+
 function getSelectedOutreachEvent() {
   return loadedOutreachEvents.find((event) => event.id === selectedOutreachEventId) || null;
 }
@@ -1774,6 +1845,7 @@ function outreachEventMatchesSearch(event) {
   const searchable = [
     event.name,
     event.type,
+    event.status,
     event.eventDate,
     event.repeatPattern,
     event.location,
@@ -3809,6 +3881,32 @@ function renderGrantFlow(grants) {
   });
 }
 
+function renderOutreachEventFlow(events) {
+  renderFlowBoard({
+    container: outreachEventFlowBoard,
+    columns: outreachEventFlowColumns,
+    records: events,
+    statusFor: outreachEventStatus,
+    dragKind: "outreach-event-flow",
+    onColumnDrop: (payload, column) => moveOutreachEventToFlowColumn(payload.id, column),
+    cardFor: (event, column) =>
+      flowCard({
+        title: outreachEventName(event),
+        detail: [event.type, event.location].filter(Boolean).join(" | ") || "Outreach",
+        meta: [outreachEventStatus(event), formatShortDate(event.eventDate), event.repeatPattern].filter(Boolean).join(" | "),
+        tag: outreachEventStatus(event),
+        accent: column.accent,
+        dragData: { kind: "outreach-event-flow", id: event.id },
+        onOpen: () => {
+          if (!flowArchiveModal.hidden) {
+            closeFlowArchive();
+          }
+          setSelectedOutreachEvent(event.id);
+        }
+      })
+  });
+}
+
 async function moveReferralToFlowColumn(referralId, column) {
   const referral = loadedReferrals.find((item) => item.id === referralId);
   const currentStatus = normalizeStatus(referral?.status);
@@ -3843,6 +3941,18 @@ async function moveGrantToFlowColumn(grantId, column) {
   }
 
   await updateGrantStatus(grant, nextStatus);
+}
+
+async function moveOutreachEventToFlowColumn(eventId, column) {
+  const event = loadedOutreachEvents.find((item) => item.id === eventId);
+  const currentStatus = outreachEventStatus(event);
+  const nextStatus = column.statuses[0];
+
+  if (!event || !nextStatus || column.statuses.includes(currentStatus)) {
+    return;
+  }
+
+  await updateOutreachEventStatus(event, nextStatus);
 }
 
 function setSelectedReferral(referralId) {
@@ -4423,8 +4533,8 @@ function setOutreachView(viewName) {
   outreachTabDashboardButton.setAttribute("aria-selected", String(showDashboard));
   outreachTabEventsButton.setAttribute("aria-selected", String(showEvents));
   outreachTabContactsButton.setAttribute("aria-selected", String(showContacts));
-  newOutreachEventButton.hidden = !showEvents;
-  newOutreachContactButton.hidden = !showContacts;
+  newOutreachEventButton.hidden = !(showDashboard || showEvents);
+  newOutreachContactButton.hidden = !(showDashboard || showContacts);
 
   renderOutreachEvents();
   renderOutreachContacts();
@@ -4704,10 +4814,13 @@ function renderReferralNetwork() {
 function renderOutreachSummary() {
   outreachSummary.innerHTML = "";
 
+  const upcomingEvents = loadedOutreachEvents.filter((event) => ["Scheduled", "Planning"].includes(outreachEventStatus(event)));
+  const inProgressEvents = loadedOutreachEvents.filter((event) => outreachEventStatus(event) === "In Progress");
   const totals = [
     { label: "Events", value: loadedOutreachEvents.length },
+    { label: "Upcoming", value: upcomingEvents.length },
+    { label: "In Progress", value: inProgressEvents.length },
     { label: "Contacts", value: loadedOutreachContacts.length },
-    { label: "Interactions", value: loadedOutreachEvents.reduce((sum, event) => sum + numberValue(event.interactionsCount), 0) },
     { label: "Referrals", value: loadedOutreachEvents.reduce((sum, event) => sum + numberValue(event.referralsCount), 0) },
     { label: "Participants", value: loadedOutreachEvents.reduce((sum, event) => sum + numberValue(event.participantListCount), 0) }
   ];
@@ -4726,14 +4839,15 @@ function renderOutreachSummary() {
 
 function renderOutreachDashboard() {
   renderOutreachSummary();
+  renderOutreachEventFlow(loadedOutreachEvents);
 
   const today = todayDateString();
   const upcomingItems = loadedOutreachEvents
-    .filter((event) => !event.eventDate || event.eventDate >= today)
+    .filter((event) => !["Canceled", "Archived"].includes(outreachEventStatus(event)) && (!event.eventDate || event.eventDate >= today))
     .map((event) => ({
-      type: "Event",
+      type: outreachEventStatus(event),
       title: outreachEventName(event),
-      detail: [event.type, event.location].filter(Boolean).join(" | ") || "Outreach",
+      detail: [event.type, event.location, event.repeatPattern].filter(Boolean).join(" | ") || "Outreach",
       date: event.eventDate || event.createdAt || "",
       action: () => setSelectedOutreachEvent(event.id)
     }))
@@ -4780,23 +4894,30 @@ function renderOutreachEvents() {
     row.type = "button";
     row.setAttribute("role", "row");
     row.setAttribute("aria-label", `Open ${outreachEventName(event)}`);
-    row.style.gridTemplateColumns = "minmax(220px, 1.4fr) minmax(120px, 0.8fr) minmax(170px, 1fr) minmax(90px, 0.6fr)";
+    row.style.gridTemplateColumns = "minmax(220px, 1.4fr) minmax(120px, 0.7fr) minmax(120px, 0.8fr) minmax(170px, 1fr) minmax(90px, 0.6fr)";
 
     if (event.id === selectedOutreachEventId) {
       row.classList.add("selected");
       row.setAttribute("aria-current", "true");
     }
 
-    for (const value of [
+    const cells = [
       outreachEventName(event),
+      outreachEventStatusPill(outreachEventStatus(event)),
       formatListDate(event.eventDate),
       event.contactName || "-",
       String(numberValue(event.referralsCount))
-    ]) {
+    ];
+
+    for (const value of cells) {
       const cell = document.createElement("span");
       cell.className = "table-cell";
       cell.setAttribute("role", "cell");
-      cell.textContent = value;
+      if (value instanceof Node) {
+        cell.append(value);
+      } else {
+        cell.textContent = value;
+      }
       row.append(cell);
     }
 
@@ -7452,21 +7573,19 @@ function renderOutreachDetail() {
     return;
   }
 
+  const topbar = document.createElement("div");
+  topbar.className = "client-profile-topbar";
   const heading = document.createElement("div");
-  heading.className = "detail-heading";
-
-  const titleWrap = document.createElement("div");
   const eyebrow = document.createElement("p");
   eyebrow.className = "eyebrow";
-  eyebrow.textContent = event.type || "Outreach";
+  eyebrow.textContent = "Outreach Event Profile";
   const title = document.createElement("h3");
   title.textContent = outreachEventName(event);
-  titleWrap.append(eyebrow, title);
+  heading.append(eyebrow, title);
 
   const actions = document.createElement("div");
-  actions.className = "detail-actions";
+  actions.className = "detail-actions form-actions";
   const editButton = document.createElement("button");
-  editButton.className = "secondary-button";
   editButton.type = "button";
   editButton.textContent = "Edit";
   editButton.addEventListener("click", () => startEditingOutreachEvent(event));
@@ -7483,38 +7602,67 @@ function renderOutreachDetail() {
   closeButton.textContent = "Close";
   closeButton.addEventListener("click", closeOutreachModal);
   actions.append(editButton, deleteButton, closeButton);
-  heading.append(titleWrap, actions);
+  topbar.append(heading, actions);
 
-  const infoGrid = document.createElement("div");
-  infoGrid.className = "detail-grid";
-  const leftColumn = document.createElement("dl");
-  leftColumn.className = "detail-column";
-  const rightColumn = document.createElement("dl");
-  rightColumn.className = "detail-column";
+  const profileGrid = document.createElement("div");
+  profileGrid.className = "grant-profile-grid outreach-profile-grid";
 
-  addDetailField(leftColumn, "Date", formatDateOnly(event.eventDate));
-  addDetailField(leftColumn, "Repeats", displayValue(event.repeatPattern || "One-time"));
-  addDetailField(leftColumn, "Location", displayValue(event.location));
-  addDetailField(leftColumn, "Event Contact", displayValue(event.contactName));
-  addDetailField(leftColumn, "Contact Role", displayValue(event.contactRole));
-  addDetailField(leftColumn, "Phone", displayValue(formatPhone(event.phone)));
-  addDetailField(leftColumn, "Email", displayValue(event.email));
-  addDetailField(rightColumn, "People Interacted With", numberValue(event.interactionsCount));
-  addDetailField(rightColumn, "Referrals Collected", numberValue(event.referralsCount));
-  addDetailField(rightColumn, "Interest List Count", numberValue(event.interestListCount));
-  addDetailField(rightColumn, "Participant List Count", numberValue(event.participantListCount));
-  addDetailField(rightColumn, "Created Date", formatDateOnly((event.createdAt || "").slice(0, 10)));
-  infoGrid.append(leftColumn, rightColumn);
+  const overview = document.createElement("section");
+  overview.className = "grant-profile-panel";
+  const overviewHeader = document.createElement("h3");
+  overviewHeader.textContent = event.type || "Outreach Event";
+  const overviewFields = document.createElement("div");
+  overviewFields.className = "client-field-grid";
+  [
+    ["Status", createOutreachEventStatusSelect(event)],
+    ["Date", formatDateOnly(event.eventDate)],
+    ["Repeats", displayValue(event.repeatPattern || "One-time")],
+    ["Location", displayValue(event.location)],
+    ["Participants", numberValue(event.participantListCount)],
+    ["Referrals", numberValue(event.referralsCount)]
+  ].forEach(([labelText, value]) => {
+    const field = document.createElement("div");
+    field.className = "client-profile-field";
+    const label = document.createElement("span");
+    label.textContent = labelText;
+    const strong = document.createElement("strong");
+    if (value instanceof Node) {
+      strong.append(value);
+    } else {
+      strong.textContent = value;
+    }
+    field.append(label, strong);
+    overviewFields.append(field);
+  });
+  overview.append(overviewHeader, overviewFields);
 
-  const notes = document.createElement("section");
-  notes.className = "notes-panel";
-  const notesTitle = document.createElement("h4");
-  notesTitle.textContent = "Notes";
-  const notesText = document.createElement("p");
-  notesText.textContent = event.notes || "-";
-  notes.append(notesTitle, notesText);
+  const details = document.createElement("div");
+  details.className = "idea-list";
+  details.append(
+    renderProfileDetailCard("Contact", [
+      { label: "Name", value: event.contactName },
+      { label: "Role", value: event.contactRole },
+      { label: "Phone", value: formatPhone(event.phone) },
+      { label: "Email", value: event.email }
+    ], "var(--brand-teal)"),
+    renderProfileDetailCard("Outreach Counts", [
+      { label: "Interactions", value: String(numberValue(event.interactionsCount)), alwaysShow: true },
+      { label: "Interest List", value: String(numberValue(event.interestListCount)), alwaysShow: true },
+      { label: "Participants", value: String(numberValue(event.participantListCount)), alwaysShow: true },
+      { label: "Referrals", value: String(numberValue(event.referralsCount)), alwaysShow: true }
+    ], "var(--brand-blue)"),
+    renderProfileDetailCard("Schedule", [
+      { label: "Date", value: formatDateOnly(event.eventDate), alwaysShow: true },
+      { label: "Repeats", value: event.repeatPattern || "One-time", alwaysShow: true },
+      { label: "Created", value: formatDateOnly((event.createdAt || "").slice(0, 10)) }
+    ], "var(--brand-purple)"),
+    renderProfileDetailCard("Notes", [
+      { label: "Event", value: event.notes || "-", alwaysShow: true }
+    ], "var(--brand-orange)")
+  );
 
-  outreachDetail.append(heading, infoGrid, notes);
+  profileGrid.append(overview, details);
+  outreachDetail.append(topbar, profileGrid);
 }
 
 function renderOutreachEventOptions(selectedEventId = "") {
@@ -9065,6 +9213,7 @@ async function loadOutreachEvents() {
     outreachList.innerHTML = "";
     outreachDetail.innerHTML = "";
     outreachSummary.innerHTML = "";
+    outreachEventFlowBoard.innerHTML = "";
     return;
   }
 
@@ -11155,6 +11304,8 @@ async function deleteNetworkEntry(entry) {
 function setOutreachFormValues(event = {}) {
   outreachForm.elements.name.value = event.name || "";
   outreachForm.elements.type.value = event.type || "Outreach Event";
+  outreachForm.elements.status.value = outreachEventStatus(event);
+  applyOutreachStatusSelectColor(outreachForm.elements.status, outreachForm.elements.status.value);
   outreachForm.elements.eventDate.value = event.eventDate || "";
   outreachForm.elements.repeatPattern.value = event.repeatPattern || "";
   outreachForm.elements.location.value = event.location || "";
@@ -11173,7 +11324,7 @@ function startNewOutreachEvent() {
   editingOutreachEventId = null;
   selectedOutreachEventId = null;
   outreachForm.reset();
-  setOutreachFormValues({ type: "Outreach Event" });
+  setOutreachFormValues({ type: "Outreach Event", status: "Scheduled" });
   outreachFormTitle.textContent = "New Event";
   saveOutreachEventButton.textContent = "Save event";
   cancelOutreachEditButton.hidden = false;
@@ -11516,6 +11667,36 @@ async function updateGrantStatus(grant, status) {
     grantsStatusEl.textContent = error.message || "Could not update grant status yet.";
     console.error(error);
     await loadGrants();
+  }
+}
+
+async function updateOutreachEventStatus(event, status) {
+  outreachStatusEl.textContent = "Updating event status...";
+
+  try {
+    const response = await authedFetch(`/api/outreach-events/${encodeURIComponent(event.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        ...event,
+        status
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    selectedOutreachEventId = event.id;
+    outreachStatusEl.textContent = "Event status updated.";
+    await loadOutreachEvents();
+  } catch (error) {
+    outreachStatusEl.textContent = error.message || "Could not update event status yet.";
+    console.error(error);
+    await loadOutreachEvents();
   }
 }
 
@@ -12260,6 +12441,7 @@ onAuthStateChanged(auth, (user) => {
     outreachDetail.innerHTML = "";
     outreachContactDetail.innerHTML = "";
     outreachSummary.innerHTML = "";
+    outreachEventFlowBoard.innerHTML = "";
     appointmentSummary.innerHTML = "";
     schedulingCalendar.innerHTML = "";
     selectedReferralId = null;
@@ -12398,6 +12580,9 @@ clientFormField("lastName")?.addEventListener("input", syncClientEditAvatar);
 clientFormField("status")?.addEventListener("change", syncClientEditStatusColor);
 networkForm.addEventListener("submit", saveNetworkEntry);
 outreachForm.addEventListener("submit", saveOutreachEvent);
+outreachForm.elements.status?.addEventListener("change", () => {
+  applyOutreachStatusSelectColor(outreachForm.elements.status, outreachForm.elements.status.value);
+});
 outreachContactForm.addEventListener("submit", saveOutreachContact);
 appointmentForm.addEventListener("submit", saveAppointment);
 taskForm.addEventListener("submit", saveTask);

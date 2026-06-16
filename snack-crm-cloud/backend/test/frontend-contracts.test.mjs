@@ -139,6 +139,24 @@ test("grants index stays compact with profile and answer modals", () => {
   assert.match(stylesCss, /\.grant-deadline-item\s*{[^}]*border-left: 4px solid var\(--brand-red\);/s);
 });
 
+test("outreach dashboard uses grant-style flow lanes and event profiles", () => {
+  assert.match(indexHtml, /id="outreach-event-flow-board"/);
+  assert.match(indexHtml, /Event Flow/);
+  assert.match(indexHtml, /Upcoming Events &amp; Classes/);
+  assert.match(indexHtml, /Events &amp; Classes/);
+  assert.match(indexHtml, /id="outreach-event-status" name="status"/);
+  assert.match(indexHtml, /<option value="Follow Up">Follow Up<\/option>/);
+  assert.match(appJs, /const outreachEventFlowColumns = \[/);
+  assert.match(appJs, /function renderOutreachEventFlow/);
+  assert.match(appJs, /dragKind: "outreach-event-flow"/);
+  assert.match(appJs, /function createOutreachEventStatusSelect/);
+  assert.match(appJs, /function updateOutreachEventStatus/);
+  assert.match(appJs, /\["Status", createOutreachEventStatusSelect\(event\)\]/);
+  assert.match(stylesCss, /\.outreach-flow-card/);
+  assert.match(stylesCss, /\.outreach-status-select/);
+  assert.match(stylesCss, /\.outreach-status-pill\.status-group-outreach-follow-up/);
+});
+
 test("grant interactions open profiles, support question editing, and close on backdrop click", () => {
   assert.match(appJs, /function openGrantProfile/);
   assert.match(appJs, /row\.addEventListener\("click", \(\) => openGrantProfile\(grant\.id\)\)/);
