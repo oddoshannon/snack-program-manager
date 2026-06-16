@@ -6,6 +6,12 @@ import {
   signInWithPopup,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import {
+  getDownloadURL,
+  getStorage,
+  ref,
+  uploadBytes
+} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 
 const statusEl = document.querySelector("#status");
 const messageEl = document.querySelector("#message");
@@ -301,6 +307,7 @@ const cancelSiblingLinkButton = document.querySelector("#cancel-sibling-link");
 
 const app = initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
+const storage = getStorage(app);
 const provider = new GoogleAuthProvider();
 const schedulingStartMinutes = 13 * 60;
 const schedulingEndMinutes = 18 * 60;
@@ -2174,18 +2181,101 @@ function grantDocumentByType(documents = [], type) {
   return documents.find((document) => document.type === type) || null;
 }
 
-function documentsFromFixedFields(form, fields, notes = "") {
+function grantDocumentDisplayName(documentLink = {}) {
+  return documentLink.fileName || documentLink.title || documentLink.type || "Document";
+}
+
+function storageSafeSegment(value) {
+  return String(value || "document")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "document";
+}
+
+async function uploadGrantDocumentFile(file, field) {
+  if (!currentUser) {
+    throw new Error("Please sign in before uploading grant documents.");
+  }
+
+  const owner = storageSafeSegment(currentUser.uid || currentUser.email || "user");
+  const documentType = storageSafeSegment(field.type);
+  const fileName = storageSafeSegment(file.name || field.title);
+  const uploadId = typeof globalThis.crypto?.randomUUID === "function" ? globalThis.crypto.randomUUID() : `${Date.now()}`;
+  const storagePath = `grant-documents/${owner}/${documentType}/${Date.now()}-${uploadId}-${fileName}`;
+  const uploadRef = ref(storage, storagePath);
+
+  await uploadBytes(uploadRef, file, {
+    contentType: file.type || "application/octet-stream",
+    customMetadata: {
+      documentType: field.type,
+      uploadedBy: currentUser.email || ""
+    }
+  });
+
+  return {
+    url: await getDownloadURL(uploadRef),
+    storagePath
+  };
+}
+
+function updateDocumentUploadStatus(form, field, documentLink = null) {
+  const status = form.querySelector(`[data-document-status-for="${field.formName}"]`);
+  if (!status) {
+    return;
+  }
+
+  status.textContent = documentLink?.url ? `Current file: ${grantDocumentDisplayName(documentLink)}` : "No file uploaded";
+}
+
+async function documentFromUploadField(input, field, notes, existingDocument = null) {
+  const file = input?.files?.[0];
+
+  if (file) {
+    const upload = await uploadGrantDocumentFile(file, field);
+    return {
+      type: field.type,
+      title: field.title,
+      url: upload.url,
+      storagePath: upload.storagePath,
+      fileName: file.name,
+      mimeType: file.type,
+      fileSize: file.size,
+      uploadedAt: new Date().toISOString(),
+      notes
+    };
+  }
+
+  if (input?.type === "file") {
+    return existingDocument ? { ...existingDocument, notes: notes || existingDocument.notes || "" } : null;
+  }
+
+  const url = String(input?.value || "").trim();
+  if (!url) {
+    return existingDocument ? { ...existingDocument, notes: notes || existingDocument.notes || "" } : null;
+  }
+
+  return {
+    type: field.type,
+    title: field.title,
+    url,
+    notes
+  };
+}
+
+async function documentsFromFixedFields(form, fields, notes = "", existingDocuments = []) {
   const documents = [];
 
   for (const field of fields) {
-    const url = String(form.elements[field.formName]?.value || "").trim();
-    if (url) {
-      documents.push({
-        type: field.type,
-        title: field.title,
-        url,
-        notes
-      });
+    const documentLink = await documentFromUploadField(
+      form.elements[field.formName],
+      field,
+      notes,
+      grantDocumentByType(existingDocuments, field.type)
+    );
+
+    if (documentLink?.url || documentLink?.fileName || documentLink?.notes) {
+      documents.push(documentLink);
     }
   }
 
@@ -2205,7 +2295,10 @@ function fillFixedDocumentFields(form, fields, documents = []) {
   for (const field of fields) {
     const documentLink = grantDocumentByType(documents, field.type);
     if (form.elements[field.formName]) {
-      form.elements[field.formName].value = documentLink?.url || "";
+      if (form.elements[field.formName].type !== "file") {
+        form.elements[field.formName].value = documentLink?.url || "";
+      }
+      updateDocumentUploadStatus(form, field, documentLink);
     }
   }
 
@@ -2292,7 +2385,7 @@ function grantProfileValue(value, fallback = "-") {
   return hasProfileValue(value) ? value : fallback;
 }
 
-function createGrantLink(label, url) {
+function createGrantLink(label, url, downloadName = "") {
   if (!url) {
     return document.createTextNode("-");
   }
@@ -2300,8 +2393,12 @@ function createGrantLink(label, url) {
   const anchor = document.createElement("a");
   anchor.className = "grant-profile-link";
   anchor.href = url;
-  anchor.target = "_blank";
-  anchor.rel = "noreferrer";
+  if (downloadName || url.startsWith("data:")) {
+    anchor.download = downloadName || label;
+  } else {
+    anchor.target = "_blank";
+    anchor.rel = "noreferrer";
+  }
   anchor.textContent = label;
   return anchor;
 }
@@ -2315,13 +2412,13 @@ function createGrantDocumentList(grant) {
       continue;
     }
 
-    list.append(createGrantLink(documentLink.title || documentLink.type || "Document", documentLink.url));
+    list.append(createGrantLink(grantDocumentDisplayName(documentLink), documentLink.url, documentLink.fileName || ""));
   }
 
   if (!list.children.length) {
     const empty = document.createElement("span");
     empty.className = "empty-inline";
-    empty.textContent = "No document links yet.";
+    empty.textContent = "No documents uploaded yet.";
     list.append(empty);
   }
 
@@ -2603,7 +2700,23 @@ function fillGrantOrganizationForm() {
   }
 
   const info = loadedGrantOrganizationInfo;
-  for (const name of ["legalName", "dbaName", "ein", "mission", "vision", "guidingPrinciples", "organizationDescription", "populationServed", "annualBudget", "dataNotes"]) {
+  for (const name of [
+    "legalName",
+    "dbaName",
+    "ein",
+    "mailingAddress",
+    "yearFounded",
+    "websiteUrl",
+    "socialMediaLinks",
+    "fundingStructure",
+    "mission",
+    "vision",
+    "guidingPrinciples",
+    "organizationDescription",
+    "populationServed",
+    "annualBudget",
+    "dataNotes"
+  ]) {
     if (grantOrgForm.elements[name]) {
       grantOrgForm.elements[name].value = info[name] || "";
     }
@@ -11858,11 +11971,17 @@ async function deleteOutreachContact(contact) {
   }
 }
 
-function grantPayloadFromForm() {
+async function grantPayloadFromForm() {
   const formData = new FormData(grantForm);
   const payload = Object.fromEntries(formData.entries());
   payload.pastGrantReceived = Boolean(grantForm.elements.pastGrantReceived?.checked);
-  payload.documents = documentsFromFixedFields(grantForm, grantDocumentFields, grantForm.elements.documentNotes?.value || "");
+  const existingGrant = loadedGrants.find((grant) => grant.id === editingGrantId);
+  payload.documents = await documentsFromFixedFields(
+    grantForm,
+    grantDocumentFields,
+    grantForm.elements.documentNotes?.value || "",
+    existingGrant?.documents || []
+  );
   payload.brandingNotes = grantForm.elements.brandingNotes?.value || "";
   return payload;
 }
@@ -11970,12 +12089,13 @@ function startEditGrant(grantId) {
 async function saveGrant(event) {
   event.preventDefault();
 
-  const payload = grantPayloadFromForm();
   const isEditing = Boolean(editingGrantId);
-  grantsStatusEl.textContent = isEditing ? "Updating grant..." : "Saving grant...";
+  grantsStatusEl.textContent = isEditing ? "Uploading documents and updating grant..." : "Uploading documents and saving grant...";
   saveGrantButton.disabled = true;
 
   try {
+    const payload = await grantPayloadFromForm();
+    grantsStatusEl.textContent = isEditing ? "Updating grant..." : "Saving grant...";
     const response = await authedFetch(isEditing ? `/api/grants/${encodeURIComponent(editingGrantId)}` : "/api/grants", {
       method: isEditing ? "PATCH" : "POST",
       headers: {
@@ -12211,9 +12331,14 @@ async function copyGrantAnswer(answer) {
   }
 }
 
-function grantOrganizationPayloadFromForm() {
+async function grantOrganizationPayloadFromForm() {
   const payload = Object.fromEntries(new FormData(grantOrgForm).entries());
-  payload.documents = documentsFromFixedFields(grantOrgForm, grantOrgDocumentFields, grantOrgForm.elements.dataNotes?.value || "");
+  payload.documents = await documentsFromFixedFields(
+    grantOrgForm,
+    grantOrgDocumentFields,
+    grantOrgForm.elements.dataNotes?.value || "",
+    loadedGrantOrganizationInfo?.documents || []
+  );
   payload.copyBlocks = [];
   return payload;
 }
@@ -12221,16 +12346,18 @@ function grantOrganizationPayloadFromForm() {
 async function saveGrantOrganizationInfo(event) {
   event.preventDefault();
 
-  grantsStatusEl.textContent = "Saving organization info...";
+  grantsStatusEl.textContent = "Uploading documents and saving organization info...";
   saveGrantOrgButton.disabled = true;
 
   try {
+    const payload = await grantOrganizationPayloadFromForm();
+    grantsStatusEl.textContent = "Saving organization info...";
     const response = await authedFetch("/api/grant-organization-info", {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(grantOrganizationPayloadFromForm())
+      body: JSON.stringify(payload)
     });
 
     if (!response.ok) {

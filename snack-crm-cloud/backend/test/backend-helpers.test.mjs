@@ -258,12 +258,22 @@ test("cleanGrantPayload normalizes grant tracker details and document links", ()
     type: " Completed Application ",
     title: " 2025 Application ",
     url: " https://drive.example/app ",
+    storagePath: " grant-documents/user/app.pdf ",
+    fileName: " app.pdf ",
+    mimeType: " application/pdf ",
+    fileSize: "1234",
+    uploadedAt: " 2026-06-16T12:00:00.000Z ",
     notes: " Final "
   });
 
   assert.equal(documentLink.type, "Completed Application");
   assert.equal(documentLink.title, "2025 Application");
   assert.equal(documentLink.url, "https://drive.example/app");
+  assert.equal(documentLink.storagePath, "grant-documents/user/app.pdf");
+  assert.equal(documentLink.fileName, "app.pdf");
+  assert.equal(documentLink.mimeType, "application/pdf");
+  assert.equal(documentLink.fileSize, 1234);
+  assert.equal(documentLink.uploadedAt, "2026-06-16T12:00:00.000Z");
 
   const payload = cleanGrantPayload({
     foundationName: " Oregon Foundation ",
@@ -283,6 +293,7 @@ test("cleanGrantPayload normalizes grant tracker details and document links", ()
   assert.equal(payload.pastGrantAmount, 7500);
   assert.equal(payload.pastGrantYear, 2024);
   assert.equal(payload.documents.length, 1);
+  assert.equal(payload.documents[0].storagePath, "grant-documents/user/app.pdf");
 });
 
 test("grant question and organization info payloads preserve reusable grant content", () => {
@@ -305,6 +316,11 @@ test("grant question and organization info payloads preserve reusable grant cont
     legalName: " SNACK ",
     dbaName: " The SNACK Program ",
     ein: " 00-0000000 ",
+    mailingAddress: " 123 Main St ",
+    yearFounded: "2025",
+    websiteUrl: " https://snackprogram.org ",
+    socialMediaLinks: " Instagram: https://instagram.com/thesnackprogram ",
+    fundingStructure: " Reserve fund held at bank. ",
     guidingPrinciples: " Inclusive, practical, joyful. ",
     copyBlocks: [{ title: " Mission ", content: " Copy " }],
     documents: [
@@ -316,6 +332,11 @@ test("grant question and organization info payloads preserve reusable grant cont
   assert.equal(organizationInfo.legalName, "SNACK");
   assert.equal(organizationInfo.dbaName, "The SNACK Program");
   assert.equal(organizationInfo.ein, "00-0000000");
+  assert.equal(organizationInfo.mailingAddress, "123 Main St");
+  assert.equal(organizationInfo.yearFounded, 2025);
+  assert.equal(organizationInfo.websiteUrl, "https://snackprogram.org");
+  assert.equal(organizationInfo.socialMediaLinks, "Instagram: https://instagram.com/thesnackprogram");
+  assert.equal(organizationInfo.fundingStructure, "Reserve fund held at bank.");
   assert.equal(organizationInfo.guidingPrinciples, "Inclusive, practical, joyful.");
   assert.equal(organizationInfo.copyBlocks[0].title, "Mission");
   assert.equal(organizationInfo.documents[0].title, "DEI");

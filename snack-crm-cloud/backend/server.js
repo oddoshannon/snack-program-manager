@@ -529,6 +529,11 @@ function toGrantOrganizationInfo(snapshot) {
     legalName: data.legalName || "",
     dbaName: data.dbaName || "",
     ein: data.ein || "",
+    mailingAddress: data.mailingAddress || "",
+    yearFounded: data.yearFounded ?? null,
+    websiteUrl: data.websiteUrl || "",
+    socialMediaLinks: data.socialMediaLinks || "",
+    fundingStructure: data.fundingStructure || "",
     mission: data.mission || "",
     vision: data.vision || "",
     guidingPrinciples: data.guidingPrinciples || "",
@@ -569,6 +574,11 @@ function cleanGrantDocumentLink(document = {}) {
     type: cleanString(document.type) || "Other",
     title: cleanString(document.title),
     url: cleanString(document.url),
+    storagePath: cleanString(document.storagePath),
+    fileName: cleanString(document.fileName),
+    mimeType: cleanString(document.mimeType),
+    fileSize: cleanOptionalInteger(document.fileSize),
+    uploadedAt: cleanString(document.uploadedAt),
     notes: cleanString(document.notes)
   };
 }
@@ -576,7 +586,7 @@ function cleanGrantDocumentLink(document = {}) {
 function cleanGrantDocumentLinks(documents) {
   return (Array.isArray(documents) ? documents : [])
     .map(cleanGrantDocumentLink)
-    .filter((document) => document.title || document.url || document.notes);
+    .filter((document) => document.title || document.url || document.fileName || document.notes);
 }
 
 function cleanGrantCopyBlock(block = {}) {
@@ -638,6 +648,11 @@ function cleanGrantOrganizationInfoPayload(body) {
     legalName: cleanString(body.legalName),
     dbaName: cleanString(body.dbaName),
     ein: cleanString(body.ein),
+    mailingAddress: cleanString(body.mailingAddress),
+    yearFounded: cleanOptionalInteger(body.yearFounded),
+    websiteUrl: cleanString(body.websiteUrl),
+    socialMediaLinks: cleanString(body.socialMediaLinks),
+    fundingStructure: cleanString(body.fundingStructure),
     mission: cleanString(body.mission),
     vision: cleanString(body.vision),
     guidingPrinciples: cleanString(body.guidingPrinciples),

@@ -335,7 +335,27 @@
                       Annual budget
                       <input name="annualBudget">
                     </label>
+                    <label>
+                      Year founded
+                      <input name="yearFounded" type="number" inputmode="numeric" min="1800" max="2100">
+                    </label>
+                    <label>
+                      Website
+                      <input name="websiteUrl" type="url" placeholder="https://">
+                    </label>
                   </div>
+                  <label>
+                    Mailing address
+                    <textarea name="mailingAddress" rows="3"></textarea>
+                  </label>
+                  <label>
+                    Social media links
+                    <textarea name="socialMediaLinks" rows="3"></textarea>
+                  </label>
+                  <label>
+                    Fiscal sponsor / endowment / reserve fund
+                    <textarea name="fundingStructure" rows="3"></textarea>
+                  </label>
                   <label>
                     Mission
                     <textarea name="mission" rows="3"></textarea>
@@ -358,44 +378,54 @@
                   </label>
                   <div class="grant-form-grid">
                     <label>
-                      Board roster link
-                      <input name="boardRosterUrl" type="url" placeholder="https://">
+                      Board roster upload
+                      <input name="boardRosterUrl" type="file">
+                      <span class="grant-upload-status" data-document-status-for="boardRosterUrl">No file uploaded</span>
                     </label>
                     <label>
-                      DEI statement link
-                      <input name="deiStatementUrl" type="url" placeholder="https://">
+                      DEI statement upload
+                      <input name="deiStatementUrl" type="file">
+                      <span class="grant-upload-status" data-document-status-for="deiStatementUrl">No file uploaded</span>
                     </label>
                     <label>
-                      Youth Protection Policy link
-                      <input name="youthProtectionPolicyUrl" type="url" placeholder="https://">
+                      Youth Protection Policy upload
+                      <input name="youthProtectionPolicyUrl" type="file">
+                      <span class="grant-upload-status" data-document-status-for="youthProtectionPolicyUrl">No file uploaded</span>
                     </label>
                     <label>
-                      Data sheets link
-                      <input name="dataSheetUrl" type="url" placeholder="https://">
+                      Data sheets upload
+                      <input name="dataSheetUrl" type="file">
+                      <span class="grant-upload-status" data-document-status-for="dataSheetUrl">No file uploaded</span>
                     </label>
                     <label>
-                      CHA / CHIP link
-                      <input name="chaChipUrl" type="url" placeholder="https://">
+                      CHA / CHIP upload
+                      <input name="chaChipUrl" type="file">
+                      <span class="grant-upload-status" data-document-status-for="chaChipUrl">No file uploaded</span>
                     </label>
                     <label>
-                      Balance sheet link
-                      <input name="balanceSheetUrl" type="url" placeholder="https://">
+                      Balance sheet upload
+                      <input name="balanceSheetUrl" type="file">
+                      <span class="grant-upload-status" data-document-status-for="balanceSheetUrl">No file uploaded</span>
                     </label>
                     <label>
-                      Profit &amp; Loss Statement link
-                      <input name="profitLossStatementUrl" type="url" placeholder="https://">
+                      Profit &amp; Loss Statement upload
+                      <input name="profitLossStatementUrl" type="file">
+                      <span class="grant-upload-status" data-document-status-for="profitLossStatementUrl">No file uploaded</span>
                     </label>
                     <label>
-                      Annual Budget link
-                      <input name="annualBudgetDocumentUrl" type="url" placeholder="https://">
+                      Annual Budget upload
+                      <input name="annualBudgetDocumentUrl" type="file">
+                      <span class="grant-upload-status" data-document-status-for="annualBudgetDocumentUrl">No file uploaded</span>
                     </label>
                     <label>
-                      Strategic Plan link
-                      <input name="strategicPlanUrl" type="url" placeholder="https://">
+                      Strategic Plan upload
+                      <input name="strategicPlanUrl" type="file">
+                      <span class="grant-upload-status" data-document-status-for="strategicPlanUrl">No file uploaded</span>
                     </label>
                     <label>
-                      Annual Report link
-                      <input name="annualReportUrl" type="url" placeholder="https://">
+                      Annual Report upload
+                      <input name="annualReportUrl" type="file">
+                      <span class="grant-upload-status" data-document-status-for="annualReportUrl">No file uploaded</span>
                     </label>
                   </div>
                   <label>
@@ -597,26 +627,31 @@
                   <section class="idea-card profile-detail-card grant-edit-card" style="--idea-accent: var(--brand-purple);">
                     <strong>Documents</strong>
                     <div class="grant-form-grid">
-                  <label>
-                    Completed application link
-                    <input name="completedApplicationUrl" type="url" placeholder="https://">
-                  </label>
-                  <label>
-                    Grant agreement link
-                    <input name="grantAgreementUrl" type="url" placeholder="https://">
-                  </label>
-                  <label>
-                    Budget link
-                    <input name="budgetUrl" type="url" placeholder="https://">
-                  </label>
-                  <label>
-                    Final report link
-                    <input name="finalReportUrl" type="url" placeholder="https://">
-                  </label>
-                  <label>
-                    Branding / logo / press info link
-                    <input name="brandingUrl" type="url" placeholder="https://">
-                  </label>
+                      <label>
+                        Completed application upload
+                        <input name="completedApplicationUrl" type="file">
+                        <span class="grant-upload-status" data-document-status-for="completedApplicationUrl">No file uploaded</span>
+                      </label>
+                      <label>
+                        Grant agreement upload
+                        <input name="grantAgreementUrl" type="file">
+                        <span class="grant-upload-status" data-document-status-for="grantAgreementUrl">No file uploaded</span>
+                      </label>
+                      <label>
+                        Budget upload
+                        <input name="budgetUrl" type="file">
+                        <span class="grant-upload-status" data-document-status-for="budgetUrl">No file uploaded</span>
+                      </label>
+                      <label>
+                        Final report upload
+                        <input name="finalReportUrl" type="file">
+                        <span class="grant-upload-status" data-document-status-for="finalReportUrl">No file uploaded</span>
+                      </label>
+                      <label>
+                        Branding / logo / press info upload
+                        <input name="brandingUrl" type="file">
+                        <span class="grant-upload-status" data-document-status-for="brandingUrl">No file uploaded</span>
+                      </label>
                     </div>
                     <label>
                       Document notes

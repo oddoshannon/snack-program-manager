@@ -4757,6 +4757,20 @@ dd {
   min-width: 0;
 }
 
+.grant-form input[type="file"],
+.compact-form input[type="file"] {
+  min-height: auto;
+  padding: 9px 10px;
+  background: #ffffff;
+}
+
+.grant-upload-status {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
 .checkbox-line {
   display: flex !important;
   grid-template-columns: none;

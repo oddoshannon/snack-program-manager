@@ -115,18 +115,23 @@ test("fundraising grants tab exposes deadlines, grant list, reusable answers, an
   assert.match(indexHtml, /id="grant-org-form"/);
   assert.match(indexHtml, /Reusable Answers/);
   assert.match(indexHtml, /DBA name/);
+  assert.match(indexHtml, /Mailing address/);
+  assert.match(indexHtml, /Year founded/);
+  assert.match(indexHtml, /Social media links/);
+  assert.match(indexHtml, /Fiscal sponsor \/ endowment \/ reserve fund/);
   assert.match(indexHtml, /Guiding principles/);
-  assert.match(indexHtml, /Board roster link/);
-  assert.match(indexHtml, /CHA \/ CHIP link/);
-  assert.match(indexHtml, /Balance sheet link/);
-  assert.match(indexHtml, /Profit &amp; Loss Statement link/);
-  assert.match(indexHtml, /Strategic Plan link/);
-  assert.match(indexHtml, /Annual Report link/);
+  assert.match(indexHtml, /Board roster upload/);
+  assert.match(indexHtml, /CHA \/ CHIP upload/);
+  assert.match(indexHtml, /Balance sheet upload/);
+  assert.match(indexHtml, /Profit &amp; Loss Statement upload/);
+  assert.match(indexHtml, /Strategic Plan upload/);
+  assert.match(indexHtml, /Annual Report upload/);
+  assert.match(indexHtml, /name="boardRosterUrl" type="file"/);
   assert.equal(indexHtml.includes("Service area"), false);
   assert.equal(indexHtml.includes("Organization description / reusable copy"), false);
 });
 
-test("grant modal captures application details, portal info, awards, reports, and document links", () => {
+test("grant modal captures application details, portal info, awards, reports, and document uploads", () => {
   const grantModal = indexHtml.slice(indexHtml.indexOf('id="grant-modal"'), indexHtml.indexOf('id="crm-tabs"'));
 
   for (const field of [
@@ -153,6 +158,14 @@ test("grant modal captures application details, portal info, awards, reports, an
     assert.match(grantModal, new RegExp(`name="${field}"`));
   }
 
+  assert.match(grantModal, /Completed application upload/);
+  assert.match(grantModal, /name="completedApplicationUrl" type="file"/);
+  assert.match(appJs, /firebase-storage\.js/);
+  assert.match(appJs, /uploadBytes/);
+  assert.match(appJs, /getDownloadURL/);
+  assert.match(appJs, /storagePath/);
+  assert.match(appJs, /grantDocumentDisplayName/);
+  assert.match(appJs, /await documentsFromFixedFields/);
   assert.match(grantModal, /<option value="Not A Good Fit">Not A Good Fit<\/option>/);
 });
 
