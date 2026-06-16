@@ -50,6 +50,8 @@ test("workflow module includes start-day controls and a task summary", () => {
 test("admin settings surface current scheduling rules", () => {
   assert.match(indexHtml, /id="admin-tab-settings"/);
   assert.match(indexHtml, /id="admin-tab-grants"/);
+  assert.match(indexHtml, /id="admin-tab-kpi"/);
+  assert.match(indexHtml, /id="admin-tab-work-plan"/);
   assert.match(indexHtml, /Scheduling Settings/);
   assert.match(indexHtml, /Tuesday, Wednesday, Thursday/);
   assert.match(indexHtml, /1:00 PM - 6:00 PM/);
@@ -59,9 +61,33 @@ test("admin settings surface current scheduling rules", () => {
   assert.match(stylesCss, /\.admin-settings-list/);
 });
 
+test("admin KPI and Work Plan tabs expose 2026 targets and quarterly actions", () => {
+  assert.match(indexHtml, /id="admin-kpi-view"/);
+  assert.match(indexHtml, /id="kpi-summary"/);
+  assert.match(indexHtml, /2026 KPI Progress/);
+  assert.match(indexHtml, /Organization KPI Table/);
+  assert.match(indexHtml, /Revenue KPI Table/);
+  assert.match(indexHtml, /Program KPI Drafts/);
+  assert.match(indexHtml, /id="admin-work-plan-view"/);
+  assert.match(indexHtml, /2026 Work Plan Tracker/);
+  assert.match(appJs, /const organizationKpiRows = \[/);
+  assert.match(appJs, /Clinic Clients/);
+  assert.match(appJs, /Workbook Royalties/);
+  assert.match(appJs, /const workPlanItems = \[/);
+  assert.match(appJs, /Launch Curriculum Toolkit/);
+  assert.match(appJs, /function renderAdminKpi/);
+  assert.match(appJs, /function renderWorkPlan/);
+  assert.match(appJs, /activeAdminView === "kpi"/);
+  assert.match(appJs, /activeAdminView === "work-plan"/);
+  assert.match(stylesCss, /\.kpi-layout/);
+  assert.match(stylesCss, /\.kpi-table-grid/);
+  assert.match(stylesCss, /\.work-plan-list/);
+  assert.match(stylesCss, /\.work-plan-status\.status-in-progress/);
+});
+
 test("admin grants tab exposes deadlines, grant list, reusable answers, and organization info", () => {
   assert.match(indexHtml, /id="admin-grants-view"/);
-  assert.match(appJs, /dashboardTitle\.textContent = showAdminGrants \? "Grants" : "Admin"/);
+  assert.match(appJs, /dashboardTitle\.textContent = showAdminGrants \? "Grants" : showAdminKpi \? "KPI" : showAdminWorkPlan \? "Work Plan" : "Admin"/);
   assert.equal(indexHtml.includes("Grant Tracker"), false);
   assert.equal(indexHtml.includes("Funding</p>"), false);
   assertInOrder(indexHtml, [

@@ -43,9 +43,13 @@ const dashboardWorkflow = document.querySelector("#dashboard-workflow");
 const dashboardTitle = document.querySelector("#dashboard-title");
 const adminTabSettingsButton = document.querySelector("#admin-tab-settings");
 const adminTabGrantsButton = document.querySelector("#admin-tab-grants");
+const adminTabKpiButton = document.querySelector("#admin-tab-kpi");
+const adminTabWorkPlanButton = document.querySelector("#admin-tab-work-plan");
 const adminGrantsActions = document.querySelector("#admin-grants-actions");
 const adminSettingsView = document.querySelector("#admin-settings-view");
 const adminGrantsView = document.querySelector("#admin-grants-view");
+const adminKpiView = document.querySelector("#admin-kpi-view");
+const adminWorkPlanView = document.querySelector("#admin-work-plan-view");
 const grantsSummary = document.querySelector("#grants-summary");
 const grantFlowBoard = document.querySelector("#grant-flow-board");
 const grantDeadlineList = document.querySelector("#grant-deadline-list");
@@ -71,6 +75,13 @@ const cancelGrantQuestionEditButton = document.querySelector("#cancel-grant-ques
 const grantQuestionList = document.querySelector("#grant-question-list");
 const grantOrgForm = document.querySelector("#grant-org-form");
 const saveGrantOrgButton = document.querySelector("#save-grant-org");
+const kpiSummary = document.querySelector("#kpi-summary");
+const kpiProgressList = document.querySelector("#kpi-progress-list");
+const programKpiList = document.querySelector("#program-kpi-list");
+const organizationKpiTable = document.querySelector("#organization-kpi-table");
+const revenueKpiTable = document.querySelector("#revenue-kpi-table");
+const workPlanSummary = document.querySelector("#work-plan-summary");
+const workPlanList = document.querySelector("#work-plan-list");
 const referralForm = document.querySelector("#referral-form");
 const formTitle = document.querySelector("#form-title");
 const saveReferralButton = document.querySelector("#save-referral");
@@ -411,6 +422,70 @@ const outreachEventFlowColumns = [
   }
 ];
 const outreachEventStatuses = ["Scheduled", "Planning", "In Progress", "Completed", "Follow Up", "Canceled", "Archived"];
+const organizationKpiRows = [
+  { key: "clinicClients", label: "# Clinic Clients", baseline2025: "88", target2026: "90", q2Goal: "45", target2027: "143", target2028: "185" },
+  { key: "programGraduates", label: "# Program Graduates", baseline2025: "28", target2026: "45", q2Goal: "23" },
+  { key: "appointments", label: "# Appointments", baseline2025: "244", target2026: "400", q2Goal: "200", target2027: "420", target2028: "700" },
+  { key: "spanishClients", label: "Spanish-Speaking Clients", baseline2025: "11", target2026: "15", q2Goal: "4", target2027: "25", target2028: "35" },
+  { key: "retentionRate", label: "Retention Rate (%)", baseline2025: "32%", target2026: "50%", q2Goal: "50%", target2027: "60%", target2028: "70%" },
+  { key: "noShowRate", label: "No Show Rate (%)", baseline2025: "18%", target2026: "15%", q2Goal: "15%", target2027: "12%", target2028: "10%", lowerIsBetter: true },
+  { key: "classClients", label: "# Class Clients", baseline2025: "32", target2026: "120", q2Goal: "60" },
+  { key: "classes", label: "# Classes", baseline2025: "10", target2026: "11", q2Goal: "5" },
+  { key: "schoolClients", label: "# School Clients", baseline2025: "125", target2026: "125", q2Goal: "0", target2027: "250", target2028: "250" },
+  { key: "schoolPartnerships", label: "School Partnerships", baseline2025: "1", target2026: "1", q2Goal: "1", target2027: "2", target2028: "2" }
+];
+const revenueKpiRows = [
+  { key: "toolkitRevenue", label: "Toolkit Revenue ($)", baseline2025: "$0", target2026: "$1,000", actual2026: "$0", q2Goal: "$0", target2027: "$2,000", target2028: "$3,000" },
+  { key: "workbookRoyalties", label: "Workbook Royalties ($)", baseline2025: "$181", target2026: "$600", actual2026: "$648", q2Goal: "$300", target2027: "$1,200", target2028: "$2,000" },
+  { key: "sponsorsDonations", label: "Sponsors / Donations ($)", baseline2025: "$3,200", target2026: "$4,500", actual2026: "$1,800", q2Goal: "$2,200", target2027: "$6,000", target2028: "$8,000" },
+  { key: "grantsRevenue", label: "Grants ($)", baseline2025: "$85,000", target2026: "$90,000", actual2026: "$1,800", q2Goal: "$45,000", target2027: "$100,000", target2028: "$110,000" },
+  { key: "hrsnRevenue", label: "HRSN Revenue ($)", baseline2025: "$0", target2026: "$1,000", actual2026: "$0", q2Goal: "$500", target2027: "$3,000", target2028: "$5,000" },
+  { key: "merchRevenue", label: "Merch Revenue ($)", baseline2025: "$0", target2026: "$800", actual2026: "$0", q2Goal: "$400", target2027: "$1,200", target2028: "$2,000" },
+  { key: "totalRevenue", label: "Total Revenue ($)", baseline2025: "$88,381", target2026: "$97,900", actual2026: "$4,248", q2Goal: "$48,400", target2027: "$113,400", target2028: "$130,000" }
+];
+const programKpiDrafts = [
+  "% clients meeting vegetable recommendation",
+  "% clients meeting fruit recommendation",
+  "% clients meeting whole grain recommendation",
+  "% clients meeting protein recommendation",
+  "Self-reported goal achievement",
+  "Increase nutrition knowledge",
+  "% clients retaining knowledge",
+  "% clients that report positive changes",
+  "Quality of life metrics"
+];
+const workPlanItems = [
+  { quarter: "Q1", action: "Hire bilingual nutrition educator", status: "Complete" },
+  { quarter: "Q1", action: "Map new workflows + create SOPs", status: "Complete" },
+  { quarter: "Q1", action: "Submit grant applications", status: "Complete" },
+  { quarter: "Q1", action: "Begin school outreach", status: "Complete" },
+  { quarter: "Q1", action: "Create and send retention survey", status: "Complete" },
+  { quarter: "Q1", action: "Conduct retention focus group #1", status: "DNF" },
+  { quarter: "Q1", action: "Nutrition Summit event planning", status: "Complete" },
+  { quarter: "Q1", action: "Launch updated referral workflow", status: "DNF" },
+  { quarter: "Q2", action: "Analyze retention survey and focus group results", status: "Complete" },
+  { quarter: "Q2", action: "Begin website SEO updates", status: "Not Started" },
+  { quarter: "Q2", action: "Begin Amazon listing review", status: "Not Started" },
+  { quarter: "Q2", action: "Begin toolkit development", status: "In Progress" },
+  { quarter: "Q2", action: "Open BottleDrop account", status: "Complete" },
+  { quarter: "Q2", action: "Launch dropship merch", status: "In Progress" },
+  { quarter: "Q2", action: "Launch 1 school partnership and classroom instruction", status: "Complete" },
+  { quarter: "Q2", action: "Set up advertising accounts", status: "Not Started" },
+  { quarter: "Q2", action: "Prepare marketing toolkit", status: "In Progress" },
+  { quarter: "Q2", action: "Begin planning fundraising event", status: "Not Started" },
+  { quarter: "Q2", action: "Hold Nutrition Summit", status: "Complete" },
+  { quarter: "Q2", action: "Submit grant applications", status: "Complete" },
+  { quarter: "Q3", action: "Launch Curriculum Toolkit", status: "Not Started" },
+  { quarter: "Q3", action: "Start Amazon optimization + run workbook ads", status: "Not Started" },
+  { quarter: "Q3", action: "Launch digital ads for toolkit", status: "Not Started" },
+  { quarter: "Q3", action: "Begin planning Giving Tuesday", status: "Not Started" },
+  { quarter: "Q3", action: "Submit grant applications", status: "Not Started" },
+  { quarter: "Q4", action: "Run Giving Tuesday donor campaign", status: "Not Started" },
+  { quarter: "Q4", action: "Hold new annual SNACK fundraising event", status: "Not Started" },
+  { quarter: "Q4", action: "Complete year end review, including retention", status: "Not Started" },
+  { quarter: "Q4", action: "Update toolkit based on feedback", status: "Not Started" },
+  { quarter: "Q4", action: "Submit grant applications", status: "Not Started" }
+];
 const zohoClientStatusMap = {
   "Appts in Progress": "Active",
   Graduated: "Graduated",
@@ -1226,7 +1301,7 @@ function loadNavigationState() {
       activeModule: validValue(savedModule, ["workflow", "scheduling", "crm", "outreach", "admin"], defaults.activeModule),
       activeCrmView: validValue(saved.activeCrmView, ["dashboard", "referrals", "clients", "referral-network"], defaults.activeCrmView),
       activeOutreachView: validValue(saved.activeOutreachView, ["dashboard", "events", "contacts"], defaults.activeOutreachView),
-      activeAdminView: validValue(saved.activeAdminView, ["settings", "grants"], defaults.activeAdminView),
+      activeAdminView: validValue(saved.activeAdminView, ["settings", "grants", "kpi", "work-plan"], defaults.activeAdminView),
       activeReferralView: validValue(saved.activeReferralView, ["list", "flow"], defaults.activeReferralView),
       activeClientView: validValue(saved.activeClientView, ["list", "flow"], defaults.activeClientView)
     };
@@ -2649,6 +2724,253 @@ function dashboardRingGradient(segments) {
   return `conic-gradient(${stops.join(", ")})`;
 }
 
+function currentKpiActuals() {
+  const today = todayDateString();
+  const currentYear = today.slice(0, 4);
+  const nonClosedClients = loadedClients.filter((client) => (client.status || "Scheduled") !== "Closed");
+  const startedClients = loadedClients.filter((client) => {
+    const status = client.status || "Scheduled";
+    return (
+      client.firstAppointmentDate ||
+      clientAppointments(client).length ||
+      ["Active", "Needs Reschedule", "Needs Language Support", "Waiting on Family", "Graduated", "Inactive", "Closed"].includes(status)
+    );
+  });
+  const retainedClients = startedClients.filter((client) => !["Inactive", "Closed"].includes(client.status || "Scheduled"));
+  const completedAppointmentCount = loadedAppointments.filter((appointment) => appointment.status === "Completed").length;
+  const noShowAppointmentCount = loadedAppointments.filter((appointment) => appointment.status === "No-show").length;
+  const classEvents = loadedOutreachEvents.filter((event) => {
+    const type = String(event.type || "").toLowerCase();
+    const name = outreachEventName(event).toLowerCase();
+    return type.includes("class") || name.includes("class");
+  });
+  const schoolEvents = loadedOutreachEvents.filter((event) => {
+    const haystack = [event.type, event.name, event.location].join(" ").toLowerCase();
+    return haystack.includes("school") || haystack.includes("classroom");
+  });
+
+  return {
+    clinicClients: loadedClients.length,
+    programGraduates: loadedClients.filter(
+      (client) => (client.status || "Scheduled") === "Graduated" && String(client.lastAppointmentDate || "").startsWith(currentYear)
+    ).length,
+    appointments: loadedAppointments.filter((appointment) => String(appointment.appointmentDate || "").startsWith(currentYear)).length,
+    spanishClients: nonClosedClients.filter((client) => String(client.preferredLanguage || "").toLowerCase() === "spanish").length,
+    retentionRate: percentage(retainedClients.length, startedClients.length),
+    noShowRate: percentage(noShowAppointmentCount, completedAppointmentCount + noShowAppointmentCount),
+    classClients: classEvents.reduce((sum, event) => sum + numberValue(event.participantListCount), 0),
+    classes: classEvents.length,
+    schoolClients: schoolEvents.reduce((sum, event) => sum + numberValue(event.participantListCount), 0),
+    schoolPartnerships: new Set(schoolEvents.map((event) => event.location || outreachEventName(event)).filter(Boolean)).size
+  };
+}
+
+function kpiTargetNumber(value) {
+  const numeric = Number(String(value || "").replace(/[$,%\s,]/g, ""));
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function kpiProgressPercent(actual, target, lowerIsBetter = false) {
+  const actualValue = kpiTargetNumber(actual);
+  const targetValue = kpiTargetNumber(target);
+
+  if (!targetValue) {
+    return 0;
+  }
+
+  if (lowerIsBetter) {
+    return Math.min(Math.round((targetValue / Math.max(actualValue, 1)) * 100), 100);
+  }
+
+  return Math.min(Math.round((actualValue / targetValue) * 100), 100);
+}
+
+function renderKpiSummary() {
+  clearElement(kpiSummary);
+  const actuals = currentKpiActuals();
+  const metrics = [
+    { label: "Clinic Clients", value: actuals.clinicClients },
+    { label: "Graduates YTD", value: actuals.programGraduates },
+    { label: "Appointments", value: actuals.appointments },
+    { label: "Retention", value: actuals.retentionRate },
+    { label: "No Show Rate", value: actuals.noShowRate },
+    { label: "Revenue YTD", value: "$4,248" }
+  ];
+
+  for (const metric of metrics) {
+    const item = document.createElement("div");
+    item.className = "summary-item";
+    const value = document.createElement("strong");
+    value.textContent = metric.value;
+    const label = document.createElement("span");
+    label.textContent = metric.label;
+    item.append(value, label);
+    kpiSummary.append(item);
+  }
+}
+
+function renderKpiProgressList() {
+  clearElement(kpiProgressList);
+  const actuals = currentKpiActuals();
+  const progressRows = [
+    organizationKpiRows.find((row) => row.key === "clinicClients"),
+    organizationKpiRows.find((row) => row.key === "programGraduates"),
+    organizationKpiRows.find((row) => row.key === "appointments"),
+    organizationKpiRows.find((row) => row.key === "retentionRate"),
+    organizationKpiRows.find((row) => row.key === "noShowRate"),
+    revenueKpiRows.find((row) => row.key === "totalRevenue")
+  ].filter(Boolean);
+
+  for (const row of progressRows) {
+    const actual = row.actual2026 || actuals[row.key] || "0";
+    const progress = kpiProgressPercent(actual, row.target2026, row.lowerIsBetter);
+    const item = document.createElement("article");
+    item.className = "kpi-progress-item";
+
+    const copy = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = row.label;
+    const detail = document.createElement("span");
+    detail.textContent = `Current ${actual} | 2026 target ${row.target2026}`;
+    copy.append(title, detail);
+
+    const bar = document.createElement("div");
+    bar.className = "kpi-progress-bar";
+    const fill = document.createElement("span");
+    fill.style.width = `${progress}%`;
+    bar.append(fill);
+
+    const percent = document.createElement("span");
+    percent.className = "kpi-progress-percent";
+    percent.textContent = `${progress}%`;
+    item.append(copy, bar, percent);
+    kpiProgressList.append(item);
+  }
+}
+
+function renderKpiTable(container, rows, { actuals = {}, includeLiveActuals = false } = {}) {
+  clearElement(container);
+  const table = document.createElement("div");
+  table.className = "kpi-table-grid";
+  const headings = ["KPI", "2025 Baseline", "2026 Target", "Current", "Q2 Goal", "2027 Target", "2028 Target"];
+
+  for (const heading of headings) {
+    const cell = document.createElement("span");
+    cell.className = "kpi-table-heading";
+    cell.textContent = heading;
+    table.append(cell);
+  }
+
+  for (const row of rows) {
+    const actual = includeLiveActuals ? actuals[row.key] ?? row.actual2026 ?? "-" : row.actual2026 ?? "-";
+    for (const value of [
+      row.label,
+      row.baseline2025 || "-",
+      row.target2026 || "-",
+      actual,
+      row.q2Goal || "-",
+      row.target2027 || "-",
+      row.target2028 || "-"
+    ]) {
+      const cell = document.createElement("span");
+      cell.className = "kpi-table-cell";
+      cell.textContent = value;
+      table.append(cell);
+    }
+  }
+
+  container.append(table);
+}
+
+function renderProgramKpiDrafts() {
+  clearElement(programKpiList);
+  for (const label of programKpiDrafts) {
+    const item = document.createElement("article");
+    item.className = "kpi-draft-item";
+    const title = document.createElement("strong");
+    title.textContent = label;
+    const tag = document.createElement("span");
+    tag.textContent = "Needs definition";
+    item.append(title, tag);
+    programKpiList.append(item);
+  }
+}
+
+function renderAdminKpi() {
+  renderKpiSummary();
+  renderKpiProgressList();
+  renderKpiTable(organizationKpiTable, organizationKpiRows, { actuals: currentKpiActuals(), includeLiveActuals: true });
+  renderKpiTable(revenueKpiTable, revenueKpiRows);
+  renderProgramKpiDrafts();
+}
+
+function workPlanStatusClass(status) {
+  return String(status || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function renderWorkPlanSummary() {
+  clearElement(workPlanSummary);
+  const statusCounts = ["Complete", "In Progress", "Not Started", "DNF"].map((status) => ({
+    label: status,
+    value: workPlanItems.filter((item) => item.status === status).length
+  }));
+
+  for (const metric of statusCounts) {
+    const item = document.createElement("div");
+    item.className = "summary-item";
+    const value = document.createElement("strong");
+    value.textContent = metric.value;
+    const label = document.createElement("span");
+    label.textContent = metric.label;
+    item.append(value, label);
+    workPlanSummary.append(item);
+  }
+}
+
+function renderWorkPlan() {
+  renderWorkPlanSummary();
+  clearElement(workPlanList);
+
+  for (const quarter of ["Q1", "Q2", "Q3", "Q4"]) {
+    const section = document.createElement("section");
+    section.className = "work-plan-quarter";
+    const heading = document.createElement("h4");
+    heading.textContent = quarter;
+    const items = document.createElement("div");
+    items.className = "work-plan-items";
+
+    for (const workItem of workPlanItems.filter((item) => item.quarter === quarter)) {
+      const row = document.createElement("article");
+      row.className = "work-plan-item";
+      const action = document.createElement("strong");
+      action.textContent = workItem.action;
+      const status = document.createElement("span");
+      status.className = `work-plan-status status-${workPlanStatusClass(workItem.status)}`;
+      status.textContent = workItem.status;
+      row.append(action, status);
+      items.append(row);
+    }
+
+    section.append(heading, items);
+    workPlanList.append(section);
+  }
+}
+
+function renderActiveAdminComputedViews() {
+  if (activeModule !== "admin") {
+    return;
+  }
+
+  if (activeAdminView === "kpi") {
+    renderAdminKpi();
+  } else if (activeAdminView === "work-plan") {
+    renderWorkPlan();
+  }
+}
+
 function renderDashboardAppointmentWeek() {
   const today = new Date(`${todayDateString()}T00:00:00`);
   const weekDates = Array.from({ length: 5 }, (_, index) => addDays(today, index));
@@ -4004,6 +4326,8 @@ function setActiveModule(moduleName) {
   const showAdmin = moduleName === "admin";
   const showAdminSettings = showAdmin && activeAdminView === "settings";
   const showAdminGrants = showAdmin && activeAdminView === "grants";
+  const showAdminKpi = showAdmin && activeAdminView === "kpi";
+  const showAdminWorkPlan = showAdmin && activeAdminView === "work-plan";
   const showCrm = moduleName === "crm";
   const showCrmDashboard = showCrm && activeCrmView === "dashboard";
   const showReferrals = showCrm && activeCrmView === "referrals";
@@ -4022,8 +4346,10 @@ function setActiveModule(moduleName) {
   schedulingPanel.hidden = !showScheduling;
   adminSettingsView.hidden = !showAdminSettings;
   adminGrantsView.hidden = !showAdminGrants;
+  adminKpiView.hidden = !showAdminKpi;
+  adminWorkPlanView.hidden = !showAdminWorkPlan;
   adminGrantsActions.hidden = !showAdminGrants;
-  dashboardTitle.textContent = showAdminGrants ? "Grants" : "Admin";
+  dashboardTitle.textContent = showAdminGrants ? "Grants" : showAdminKpi ? "KPI" : showAdminWorkPlan ? "Work Plan" : "Admin";
   navWorkflowButton.classList.toggle("active", showWorkflow);
   navDashboardButton.classList.toggle("active", showAdmin);
   navCrmButton.classList.toggle("active", showCrm);
@@ -4040,12 +4366,16 @@ function setActiveModule(moduleName) {
   crmTabReferralNetworkButton.classList.toggle("active", showReferralNetwork);
   adminTabSettingsButton.classList.toggle("active", showAdminSettings);
   adminTabGrantsButton.classList.toggle("active", showAdminGrants);
+  adminTabKpiButton.classList.toggle("active", showAdminKpi);
+  adminTabWorkPlanButton.classList.toggle("active", showAdminWorkPlan);
   crmTabDashboardButton.setAttribute("aria-selected", String(showCrmDashboard));
   crmTabReferralsButton.setAttribute("aria-selected", String(showReferrals));
   crmTabClientsButton.setAttribute("aria-selected", String(showClients));
   crmTabReferralNetworkButton.setAttribute("aria-selected", String(showReferralNetwork));
   adminTabSettingsButton.setAttribute("aria-selected", String(showAdminSettings));
   adminTabGrantsButton.setAttribute("aria-selected", String(showAdminGrants));
+  adminTabKpiButton.setAttribute("aria-selected", String(showAdminKpi));
+  adminTabWorkPlanButton.setAttribute("aria-selected", String(showAdminWorkPlan));
 
   if (!showWorkflow) {
     closeTaskModal();
@@ -4071,6 +4401,10 @@ function setActiveModule(moduleName) {
     closeAppointmentModal();
     if (showAdminGrants) {
       renderGrants();
+    } else if (showAdminKpi) {
+      renderAdminKpi();
+    } else if (showAdminWorkPlan) {
+      renderWorkPlan();
     }
   } else if (showCrmDashboard) {
     closeReferralModal();
@@ -9164,6 +9498,7 @@ async function loadClients() {
     renderTaskRelatedOptions(taskReferralIdInput.value || taskClientIdInput.value);
     renderAppointments();
     renderWorkflowTasks();
+    renderActiveAdminComputedViews();
     if (!clientModal.hidden && selectedClientId) {
       renderClientDetail();
     }
@@ -9231,6 +9566,7 @@ async function loadOutreachEvents() {
     renderOutreachEvents();
     renderOutreachEventOptions(outreachContactEventSelect.value);
     renderOutreachDashboard();
+    renderActiveAdminComputedViews();
     if (!outreachModal.hidden && selectedOutreachEventId) {
       renderOutreachDetail();
     }
@@ -9293,6 +9629,7 @@ async function loadAppointments() {
     loadedAppointments = data.appointments;
     renderAppointments();
     renderDashboard();
+    renderActiveAdminComputedViews();
     appointmentsStatusEl.textContent = "";
   } catch (error) {
     appointmentsStatusEl.textContent = "Could not load appointments yet.";
@@ -12424,6 +12761,13 @@ onAuthStateChanged(auth, (user) => {
     grantDeadlineList.innerHTML = "";
     grantsList.innerHTML = "";
     grantQuestionList.innerHTML = "";
+    clearElement(kpiSummary);
+    clearElement(kpiProgressList);
+    clearElement(programKpiList);
+    clearElement(organizationKpiTable);
+    clearElement(revenueKpiTable);
+    clearElement(workPlanSummary);
+    clearElement(workPlanList);
     clearElement(dashboardSummary);
     clearElement(dashboardFollowups);
     clearElement(dashboardNewReferrals);
@@ -12497,6 +12841,8 @@ navOutreachButton.addEventListener("click", () => setActiveModule("outreach"));
 navSchedulingButton.addEventListener("click", () => setActiveModule("scheduling"));
 adminTabSettingsButton.addEventListener("click", () => setAdminView("settings"));
 adminTabGrantsButton.addEventListener("click", () => setAdminView("grants"));
+adminTabKpiButton.addEventListener("click", () => setAdminView("kpi"));
+adminTabWorkPlanButton.addEventListener("click", () => setAdminView("work-plan"));
 crmTabDashboardButton.addEventListener("click", () => setCrmView("dashboard"));
 crmTabReferralsButton.addEventListener("click", () => setCrmView("referrals"));
 crmTabClientsButton.addEventListener("click", () => setCrmView("clients"));

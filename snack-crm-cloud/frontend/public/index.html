@@ -80,6 +80,8 @@
           <div class="module-tabs admin-tabs" role="tablist" aria-label="Admin views">
             <button id="admin-tab-settings" class="module-tab active" type="button" role="tab" aria-selected="true">Settings</button>
             <button id="admin-tab-grants" class="module-tab" type="button" role="tab" aria-selected="false">Grants</button>
+            <button id="admin-tab-kpi" class="module-tab" type="button" role="tab" aria-selected="false">KPI</button>
+            <button id="admin-tab-work-plan" class="module-tab" type="button" role="tab" aria-selected="false">Work Plan</button>
           </div>
 
           <header class="workspace-header">
@@ -343,6 +345,63 @@
               </details>
             </div>
             <p id="grants-status" class="status" aria-live="polite"></p>
+          </section>
+
+          <section id="admin-kpi-view" class="admin-view kpi-view" hidden>
+            <section id="kpi-summary" class="summary-grid kpi-summary" aria-label="KPI summary"></section>
+
+            <div class="kpi-layout">
+              <section class="dashboard-card kpi-progress-card" aria-labelledby="kpi-progress-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="kpi-progress-title">2026 KPI Progress</h3>
+                  </div>
+                </div>
+                <div id="kpi-progress-list" class="kpi-progress-list"></div>
+              </section>
+
+              <section class="dashboard-card kpi-program-card" aria-labelledby="program-kpi-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="program-kpi-title">Program KPI Drafts</h3>
+                  </div>
+                </div>
+                <div id="program-kpi-list" class="kpi-draft-list"></div>
+              </section>
+
+              <section class="dashboard-card kpi-table-card" aria-labelledby="organization-kpi-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="organization-kpi-title">Organization KPI Table</h3>
+                  </div>
+                </div>
+                <div id="organization-kpi-table" class="kpi-table"></div>
+              </section>
+
+              <section class="dashboard-card kpi-table-card" aria-labelledby="revenue-kpi-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="revenue-kpi-title">Revenue KPI Table</h3>
+                  </div>
+                </div>
+                <div id="revenue-kpi-table" class="kpi-table"></div>
+              </section>
+            </div>
+          </section>
+
+          <section id="admin-work-plan-view" class="admin-view work-plan-view" hidden>
+            <section id="work-plan-summary" class="summary-grid work-plan-summary" aria-label="Work plan summary"></section>
+
+            <div class="work-plan-layout">
+              <section class="dashboard-card work-plan-card" aria-labelledby="work-plan-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="work-plan-title">2026 Work Plan Tracker</h3>
+                  </div>
+                </div>
+                <div id="work-plan-list" class="work-plan-list"></div>
+              </section>
+            </div>
           </section>
         </section>
 
@@ -1971,6 +2030,6 @@
       <button id="task-undo-button" class="secondary-button" type="button">Undo</button>
     </div>
     <script src="./app-config.js"></script>
-    <script type="module" src="./app.js?v=20260604-workflow-hardening"></script>
+    <script type="module" src="./app.js?v=20260615-admin-kpi"></script>
   </body>
 </html>
