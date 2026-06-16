@@ -394,6 +394,7 @@ const grantFlowColumns = [
     countLabel: "closed"
   }
 ];
+const grantStatuses = ["Researching", "Planning", "In Progress", "Submitted", "Awarded", "Reporting", "Not A Good Fit", "Declined", "Closed"];
 const zohoClientStatusMap = {
   "Appts in Progress": "Active",
   Graduated: "Graduated",
@@ -2071,11 +2072,55 @@ function grantStatusClass(status) {
     .replace(/^-|-$/g, "") || "researching";
 }
 
+function grantStatusGroupKey(status = "Researching") {
+  const normalized = status || "Researching";
+  const column = grantFlowColumns.find((item) => item.statuses.includes(normalized));
+
+  if (column?.key === "upcoming") {
+    return "grant-upcoming";
+  }
+
+  if (column?.key) {
+    return `grant-${column.key}`;
+  }
+
+  return "grant-upcoming";
+}
+
 function grantStatusPill(status) {
   const pill = document.createElement("span");
-  pill.className = `grant-status-pill status-${grantStatusClass(status)}`;
+  pill.className = `grant-status-pill status-${grantStatusClass(status)} status-group-${grantStatusGroupKey(status)}`;
   pill.textContent = status || "Researching";
   return pill;
+}
+
+function applyGrantStatusSelectColor(select, status) {
+  for (const key of ["grant-upcoming", "grant-in-progress", "grant-submitted", "grant-awarded", "grant-closed"]) {
+    select.classList.remove(`status-group-${key}`);
+  }
+  select.classList.add("status-select", "grant-status-select", `status-group-${grantStatusGroupKey(status)}`);
+}
+
+function createGrantStatusSelect(grant) {
+  const select = document.createElement("select");
+  select.className = "status-select grant-status-select";
+  select.setAttribute("aria-label", "Grant status");
+
+  for (const status of grantStatuses) {
+    const option = document.createElement("option");
+    option.value = status;
+    option.textContent = status;
+    option.className = `status-group-${grantStatusGroupKey(status)}`;
+    select.append(option);
+  }
+
+  select.value = grant.status || "Researching";
+  applyGrantStatusSelectColor(select, select.value);
+  select.addEventListener("change", () => {
+    applyGrantStatusSelectColor(select, select.value);
+    updateGrantStatus(grant, select.value);
+  });
+  return select;
 }
 
 function grantProfileValue(value, fallback = "-") {
@@ -2169,7 +2214,7 @@ function renderGrantDetail() {
   const overviewFields = document.createElement("div");
   overviewFields.className = "client-field-grid";
   [
-    ["Status", grantStatusPill(grant.status)],
+    ["Status", createGrantStatusSelect(grant)],
     ["Deadline", formatDateOnly(grant.deadlineDate)],
     ["Range", grantAmountRange(grant)],
     ["Recurs", grantProfileValue(grant.recurrence)],

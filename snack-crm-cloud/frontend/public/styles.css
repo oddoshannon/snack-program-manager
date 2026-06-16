@@ -4100,7 +4100,7 @@ dd {
 
 .grants-layout {
   display: grid;
-  grid-template-columns: minmax(260px, 0.85fr) minmax(420px, 1.35fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   align-items: stretch;
 }
@@ -4256,32 +4256,67 @@ dd {
   font-weight: 900;
 }
 
-.grant-status-pill.status-submitted {
-  border-color: rgba(33, 86, 178, 0.24);
-  background: var(--blue-soft);
-  color: var(--brand-blue);
+.grant-status-pill.status-group-grant-upcoming {
+  border-color: rgba(226, 58, 77, 0.28);
+  background: var(--red-soft);
+  color: var(--brand-red);
 }
 
-.grant-status-pill.status-awarded,
-.grant-status-pill.status-reporting {
+.grant-status-pill.status-group-grant-in-progress {
   border-color: rgba(14, 121, 69, 0.24);
   background: var(--green-soft);
   color: var(--brand-green);
 }
 
-.grant-status-pill.status-declined,
-.grant-status-pill.status-closed,
-.grant-status-pill.status-not-a-good-fit {
+.grant-status-pill.status-group-grant-submitted {
+  border-color: rgba(33, 86, 178, 0.24);
+  background: var(--brand-blue-soft);
+  color: var(--brand-blue);
+}
+
+.grant-status-pill.status-group-grant-awarded {
+  border-color: rgba(122, 51, 194, 0.24);
+  background: var(--purple-soft);
+  color: var(--brand-purple);
+}
+
+.grant-status-pill.status-group-grant-closed {
   border-color: rgba(101, 116, 122, 0.28);
   background: #f3f5f4;
   color: var(--muted);
 }
 
-.grant-status-pill.status-in-progress,
-.grant-status-pill.status-planning {
-  border-color: rgba(208, 122, 77, 0.28);
-  background: var(--orange-soft);
-  color: var(--brand-orange);
+.grant-status-select {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 28px 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.grant-status-select.status-group-grant-upcoming {
+  border-color: var(--brand-red);
+  background-color: var(--red-soft);
+}
+
+.grant-status-select.status-group-grant-in-progress {
+  border-color: var(--brand-green);
+  background-color: var(--green-soft);
+}
+
+.grant-status-select.status-group-grant-submitted {
+  border-color: var(--brand-blue);
+  background-color: var(--brand-blue-soft);
+}
+
+.grant-status-select.status-group-grant-awarded {
+  border-color: var(--brand-purple);
+  background-color: var(--purple-soft);
+}
+
+.grant-status-select.status-group-grant-closed {
+  border-color: var(--muted);
+  background-color: #f3f5f4;
 }
 
 .grant-card-header p,

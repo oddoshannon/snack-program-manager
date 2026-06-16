@@ -73,6 +73,8 @@ test("admin grants tab exposes deadlines, grant list, reusable answers, and orga
   ]);
   assert.match(indexHtml, /id="grant-deadline-list"/);
   assert.match(indexHtml, /id="grants-list"/);
+  assert.match(indexHtml, /Grant Opportunities/);
+  assert.equal(indexHtml.includes("Grant Applications"), false);
   assert.match(indexHtml, /id="grant-org-card"/);
   assert.match(indexHtml, /id="grant-question-card"/);
   assert.match(indexHtml, /id="grant-question-form"/);
@@ -131,6 +133,7 @@ test("grants index stays compact with profile and answer modals", () => {
   assert.match(stylesCss, /\.grant-edit-profile-grid/);
   assert.match(stylesCss, /\.grant-form > \.grant-edit-profile-grid\s*{\s*grid-column: 1 \/ -1;/);
   assert.match(stylesCss, /\.grant-reference-card/);
+  assert.match(stylesCss, /\.grants-layout\s*{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/s);
   assert.match(stylesCss, /#grant-search\s*{[^}]*width: min\(240px, 36vw\);/s);
   assert.match(stylesCss, /\.grant-question-card \.grant-reference-actions\s*{[^}]*margin-bottom: 10px;/s);
   assert.match(stylesCss, /\.grant-deadline-item\s*{[^}]*border-left: 4px solid var\(--brand-red\);/s);
@@ -147,6 +150,9 @@ test("grant interactions open profiles, support question editing, and close on b
   assert.match(appJs, /function grantDisclosureStateKey/);
   assert.match(appJs, /bindGrantDisclosureState\(grantOrgCard, "organization-info"\)/);
   assert.match(appJs, /bindGrantDisclosureState\(grantQuestionCard, "reusable-answers"\)/);
+  assert.match(appJs, /function createGrantStatusSelect/);
+  assert.match(appJs, /\["Status", createGrantStatusSelect\(grant\)\]/);
+  assert.match(appJs, /updateGrantStatus\(grant, select\.value\)/);
 });
 
 test("scheduling module keeps calendar, today board, and bottom list views", () => {
@@ -359,6 +365,11 @@ test("grant tracker includes a draggable colored flow board and closed archive",
   assert.match(appJs, /function updateGrantStatus/);
   assert.match(stylesCss, /\.grant-flow-card\s*{\s*grid-column: 1 \/ -1;/);
   assert.match(stylesCss, /\.grant-flow-card \.flow-lanes\s*{\s*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);/);
+  assert.match(stylesCss, /\.grant-status-pill\.status-group-grant-upcoming\s*{[^}]*var\(--brand-red\)/s);
+  assert.match(stylesCss, /\.grant-status-pill\.status-group-grant-in-progress\s*{[^}]*var\(--brand-green\)/s);
+  assert.match(stylesCss, /\.grant-status-pill\.status-group-grant-submitted\s*{[^}]*var\(--brand-blue\)/s);
+  assert.match(stylesCss, /\.grant-status-pill\.status-group-grant-awarded\s*{[^}]*var\(--brand-purple\)/s);
+  assert.match(stylesCss, /\.grant-status-select\.status-group-grant-awarded\s*{[^}]*var\(--brand-purple\)/s);
 });
 
 test("archive cards hover like flow cards instead of turning solid green", () => {
