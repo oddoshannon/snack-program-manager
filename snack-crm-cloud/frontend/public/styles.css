@@ -665,8 +665,12 @@ h4 {
 }
 
 .module-tabs {
-  display: inline-flex;
+  display: flex;
   gap: 6px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  box-sizing: border-box;
   margin-bottom: 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -681,6 +685,7 @@ h4 {
 .module-tab {
   --module-tab-accent: var(--brand-red);
   --module-tab-soft: var(--red-soft);
+  flex: 0 0 auto;
   min-height: 34px;
   border: 1px solid transparent;
   border-radius: 6px;
@@ -4639,6 +4644,13 @@ dd {
 
 .grant-deadline-item {
   border-left: 4px solid var(--brand-red);
+}
+
+.grant-deadline-item:hover,
+.grant-deadline-item:focus-visible {
+  border-color: rgba(226, 58, 77, 0.32);
+  border-left-color: var(--brand-red);
+  background: var(--red-soft);
 }
 
 .grant-detail {

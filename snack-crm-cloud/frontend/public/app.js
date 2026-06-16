@@ -21,11 +21,13 @@ const referralsPanel = document.querySelector("#referrals-panel");
 const clientsPanel = document.querySelector("#clients-panel");
 const referralNetworkPanel = document.querySelector("#referral-network-panel");
 const outreachPanel = document.querySelector("#outreach-panel");
+const fundraisingPanel = document.querySelector("#fundraising-panel");
 const schedulingPanel = document.querySelector("#scheduling-panel");
 const navDashboardButton = document.querySelector("#nav-dashboard");
 const navWorkflowButton = document.querySelector("#nav-workflow");
 const navCrmButton = document.querySelector("#nav-crm");
 const navOutreachButton = document.querySelector("#nav-outreach");
+const navFundraisingButton = document.querySelector("#nav-fundraising");
 const navSchedulingButton = document.querySelector("#nav-scheduling");
 const crmTabs = document.querySelector("#crm-tabs");
 const crmTabDashboardButton = document.querySelector("#crm-tab-dashboard");
@@ -42,14 +44,23 @@ const dashboardAttention = document.querySelector("#dashboard-attention");
 const dashboardWorkflow = document.querySelector("#dashboard-workflow");
 const dashboardTitle = document.querySelector("#dashboard-title");
 const adminTabSettingsButton = document.querySelector("#admin-tab-settings");
-const adminTabGrantsButton = document.querySelector("#admin-tab-grants");
 const adminTabKpiButton = document.querySelector("#admin-tab-kpi");
 const adminTabWorkPlanButton = document.querySelector("#admin-tab-work-plan");
-const adminGrantsActions = document.querySelector("#admin-grants-actions");
 const adminSettingsView = document.querySelector("#admin-settings-view");
-const adminGrantsView = document.querySelector("#admin-grants-view");
 const adminKpiView = document.querySelector("#admin-kpi-view");
 const adminWorkPlanView = document.querySelector("#admin-work-plan-view");
+const fundraisingTitle = document.querySelector("#fundraising-title");
+const fundraisingTabGrantsButton = document.querySelector("#fundraising-tab-grants");
+const fundraisingTabSalesButton = document.querySelector("#fundraising-tab-sales");
+const fundraisingTabIndividualGivingButton = document.querySelector("#fundraising-tab-individual-giving");
+const fundraisingTabCorporatePartnershipsButton = document.querySelector("#fundraising-tab-corporate-partnerships");
+const fundraisingTabEventsButton = document.querySelector("#fundraising-tab-events");
+const fundraisingGrantsActions = document.querySelector("#fundraising-grants-actions");
+const fundraisingGrantsView = document.querySelector("#fundraising-grants-view");
+const fundraisingSalesView = document.querySelector("#fundraising-sales-view");
+const fundraisingIndividualGivingView = document.querySelector("#fundraising-individual-giving-view");
+const fundraisingCorporatePartnershipsView = document.querySelector("#fundraising-corporate-partnerships-view");
+const fundraisingEventsView = document.querySelector("#fundraising-events-view");
 const grantsSummary = document.querySelector("#grants-summary");
 const grantFlowBoard = document.querySelector("#grant-flow-board");
 const grantDeadlineList = document.querySelector("#grant-deadline-list");
@@ -642,6 +653,7 @@ let latestNetworkImportAnalysis = null;
 const expandedNetworkEntryIds = new Set();
 let activeOutreachView = "dashboard";
 let activeAdminView = "settings";
+let activeFundraisingView = "grants";
 let activeReferralView = "flow";
 let activeClientView = "flow";
 const savedNavigationState = loadNavigationState();
@@ -649,6 +661,7 @@ let activeModule = savedNavigationState.activeModule;
 let activeCrmView = savedNavigationState.activeCrmView;
 activeOutreachView = savedNavigationState.activeOutreachView;
 activeAdminView = savedNavigationState.activeAdminView;
+activeFundraisingView = savedNavigationState.activeFundraisingView;
 activeReferralView = savedNavigationState.activeReferralView;
 activeClientView = savedNavigationState.activeClientView;
 
@@ -1290,18 +1303,22 @@ function loadNavigationState() {
     activeCrmView: "dashboard",
     activeOutreachView: "dashboard",
     activeAdminView: "settings",
+    activeFundraisingView: "grants",
     activeReferralView: "flow",
     activeClientView: "flow"
   };
 
   try {
     const saved = JSON.parse(localStorage.getItem(navigationStateKey()) || "null") || {};
-    const savedModule = saved.activeModule === "dashboard" ? "admin" : saved.activeModule;
+    const legacyModule = saved.activeModule === "dashboard" ? "admin" : saved.activeModule;
+    const savedModule = legacyModule === "admin" && saved.activeAdminView === "grants" ? "fundraising" : legacyModule;
+    const savedFundraisingView = saved.activeAdminView === "grants" ? "grants" : saved.activeFundraisingView;
     return {
-      activeModule: validValue(savedModule, ["workflow", "scheduling", "crm", "outreach", "admin"], defaults.activeModule),
+      activeModule: validValue(savedModule, ["workflow", "scheduling", "crm", "outreach", "fundraising", "admin"], defaults.activeModule),
       activeCrmView: validValue(saved.activeCrmView, ["dashboard", "referrals", "clients", "referral-network"], defaults.activeCrmView),
       activeOutreachView: validValue(saved.activeOutreachView, ["dashboard", "events", "contacts"], defaults.activeOutreachView),
-      activeAdminView: validValue(saved.activeAdminView, ["settings", "grants", "kpi", "work-plan"], defaults.activeAdminView),
+      activeAdminView: validValue(saved.activeAdminView, ["settings", "kpi", "work-plan"], defaults.activeAdminView),
+      activeFundraisingView: validValue(savedFundraisingView, ["grants", "sales", "individual-giving", "corporate-partnerships", "events"], defaults.activeFundraisingView),
       activeReferralView: validValue(saved.activeReferralView, ["list", "flow"], defaults.activeReferralView),
       activeClientView: validValue(saved.activeClientView, ["list", "flow"], defaults.activeClientView)
     };
@@ -1316,6 +1333,7 @@ function saveNavigationState() {
     activeCrmView,
     activeOutreachView,
     activeAdminView,
+    activeFundraisingView,
     activeReferralView,
     activeClientView
   }));
@@ -4325,9 +4343,14 @@ function setActiveModule(moduleName) {
   const showWorkflow = moduleName === "workflow";
   const showAdmin = moduleName === "admin";
   const showAdminSettings = showAdmin && activeAdminView === "settings";
-  const showAdminGrants = showAdmin && activeAdminView === "grants";
   const showAdminKpi = showAdmin && activeAdminView === "kpi";
   const showAdminWorkPlan = showAdmin && activeAdminView === "work-plan";
+  const showFundraising = moduleName === "fundraising";
+  const showFundraisingGrants = showFundraising && activeFundraisingView === "grants";
+  const showFundraisingSales = showFundraising && activeFundraisingView === "sales";
+  const showFundraisingIndividualGiving = showFundraising && activeFundraisingView === "individual-giving";
+  const showFundraisingCorporatePartnerships = showFundraising && activeFundraisingView === "corporate-partnerships";
+  const showFundraisingEvents = showFundraising && activeFundraisingView === "events";
   const showCrm = moduleName === "crm";
   const showCrmDashboard = showCrm && activeCrmView === "dashboard";
   const showReferrals = showCrm && activeCrmView === "referrals";
@@ -4337,6 +4360,7 @@ function setActiveModule(moduleName) {
   const showScheduling = moduleName === "scheduling";
   workflowPanel.hidden = !showWorkflow;
   dashboardPanel.hidden = !showAdmin;
+  fundraisingPanel.hidden = !showFundraising;
   crmTabs.hidden = !showCrm;
   crmDashboardPanel.hidden = !showCrmDashboard;
   referralsPanel.hidden = !showReferrals;
@@ -4345,42 +4369,61 @@ function setActiveModule(moduleName) {
   outreachPanel.hidden = !showOutreach;
   schedulingPanel.hidden = !showScheduling;
   adminSettingsView.hidden = !showAdminSettings;
-  adminGrantsView.hidden = !showAdminGrants;
   adminKpiView.hidden = !showAdminKpi;
   adminWorkPlanView.hidden = !showAdminWorkPlan;
-  adminGrantsActions.hidden = !showAdminGrants;
-  dashboardTitle.textContent = showAdminGrants ? "Grants" : showAdminKpi ? "KPI" : showAdminWorkPlan ? "Work Plan" : "Admin";
+  fundraisingGrantsView.hidden = !showFundraisingGrants;
+  fundraisingSalesView.hidden = !showFundraisingSales;
+  fundraisingIndividualGivingView.hidden = !showFundraisingIndividualGiving;
+  fundraisingCorporatePartnershipsView.hidden = !showFundraisingCorporatePartnerships;
+  fundraisingEventsView.hidden = !showFundraisingEvents;
+  fundraisingGrantsActions.hidden = !showFundraisingGrants;
+  dashboardTitle.textContent = showAdminKpi ? "KPI" : showAdminWorkPlan ? "Work Plan" : "Admin";
+  fundraisingTitle.textContent = showFundraisingSales ? "Sales"
+    : showFundraisingIndividualGiving ? "Individual Giving"
+      : showFundraisingCorporatePartnerships ? "Corporate Partnerships"
+        : showFundraisingEvents ? "Events"
+          : "Grants";
   navWorkflowButton.classList.toggle("active", showWorkflow);
   navDashboardButton.classList.toggle("active", showAdmin);
   navCrmButton.classList.toggle("active", showCrm);
   navOutreachButton.classList.toggle("active", showOutreach);
+  navFundraisingButton.classList.toggle("active", showFundraising);
   navSchedulingButton.classList.toggle("active", showScheduling);
   navWorkflowButton.setAttribute("aria-current", showWorkflow ? "page" : "false");
   navDashboardButton.setAttribute("aria-current", showAdmin ? "page" : "false");
   navCrmButton.setAttribute("aria-current", showCrm ? "page" : "false");
   navOutreachButton.setAttribute("aria-current", showOutreach ? "page" : "false");
+  navFundraisingButton.setAttribute("aria-current", showFundraising ? "page" : "false");
   navSchedulingButton.setAttribute("aria-current", showScheduling ? "page" : "false");
   crmTabDashboardButton.classList.toggle("active", showCrmDashboard);
   crmTabReferralsButton.classList.toggle("active", showReferrals);
   crmTabClientsButton.classList.toggle("active", showClients);
   crmTabReferralNetworkButton.classList.toggle("active", showReferralNetwork);
   adminTabSettingsButton.classList.toggle("active", showAdminSettings);
-  adminTabGrantsButton.classList.toggle("active", showAdminGrants);
   adminTabKpiButton.classList.toggle("active", showAdminKpi);
   adminTabWorkPlanButton.classList.toggle("active", showAdminWorkPlan);
+  fundraisingTabGrantsButton.classList.toggle("active", showFundraisingGrants);
+  fundraisingTabSalesButton.classList.toggle("active", showFundraisingSales);
+  fundraisingTabIndividualGivingButton.classList.toggle("active", showFundraisingIndividualGiving);
+  fundraisingTabCorporatePartnershipsButton.classList.toggle("active", showFundraisingCorporatePartnerships);
+  fundraisingTabEventsButton.classList.toggle("active", showFundraisingEvents);
   crmTabDashboardButton.setAttribute("aria-selected", String(showCrmDashboard));
   crmTabReferralsButton.setAttribute("aria-selected", String(showReferrals));
   crmTabClientsButton.setAttribute("aria-selected", String(showClients));
   crmTabReferralNetworkButton.setAttribute("aria-selected", String(showReferralNetwork));
   adminTabSettingsButton.setAttribute("aria-selected", String(showAdminSettings));
-  adminTabGrantsButton.setAttribute("aria-selected", String(showAdminGrants));
   adminTabKpiButton.setAttribute("aria-selected", String(showAdminKpi));
   adminTabWorkPlanButton.setAttribute("aria-selected", String(showAdminWorkPlan));
+  fundraisingTabGrantsButton.setAttribute("aria-selected", String(showFundraisingGrants));
+  fundraisingTabSalesButton.setAttribute("aria-selected", String(showFundraisingSales));
+  fundraisingTabIndividualGivingButton.setAttribute("aria-selected", String(showFundraisingIndividualGiving));
+  fundraisingTabCorporatePartnershipsButton.setAttribute("aria-selected", String(showFundraisingCorporatePartnerships));
+  fundraisingTabEventsButton.setAttribute("aria-selected", String(showFundraisingEvents));
 
   if (!showWorkflow) {
     closeTaskModal();
   }
-  if (!showAdmin) {
+  if (!showFundraising || !showFundraisingGrants) {
     closeGrantModal();
   }
   closeActivityLogModal();
@@ -4399,12 +4442,19 @@ function setActiveModule(moduleName) {
     closeNetworkModal();
     closeOutreachModal();
     closeAppointmentModal();
-    if (showAdminGrants) {
-      renderGrants();
-    } else if (showAdminKpi) {
+    if (showAdminKpi) {
       renderAdminKpi();
     } else if (showAdminWorkPlan) {
       renderWorkPlan();
+    }
+  } else if (showFundraising) {
+    closeReferralModal();
+    closeClientModal();
+    closeNetworkModal();
+    closeOutreachModal();
+    closeAppointmentModal();
+    if (showFundraisingGrants) {
+      renderGrants();
     }
   } else if (showCrmDashboard) {
     closeReferralModal();
@@ -4456,6 +4506,12 @@ function setAdminView(viewName) {
   activeAdminView = viewName;
   saveNavigationState();
   setActiveModule("admin");
+}
+
+function setFundraisingView(viewName) {
+  activeFundraisingView = viewName;
+  saveNavigationState();
+  setActiveModule("fundraising");
 }
 
 function openClientModal() {
@@ -12720,6 +12776,7 @@ onAuthStateChanged(auth, (user) => {
   clientsPanel.hidden = true;
   referralNetworkPanel.hidden = true;
   outreachPanel.hidden = true;
+  fundraisingPanel.hidden = true;
   schedulingPanel.hidden = true;
   userEl.textContent = signedIn ? `Signed in as ${user.email}` : "Please sign in with your SNACK Google account.";
 
@@ -12838,11 +12895,16 @@ navWorkflowButton.addEventListener("click", () => setActiveModule("workflow"));
 navDashboardButton.addEventListener("click", () => setActiveModule("admin"));
 navCrmButton.addEventListener("click", () => setActiveModule("crm"));
 navOutreachButton.addEventListener("click", () => setActiveModule("outreach"));
+navFundraisingButton.addEventListener("click", () => setActiveModule("fundraising"));
 navSchedulingButton.addEventListener("click", () => setActiveModule("scheduling"));
 adminTabSettingsButton.addEventListener("click", () => setAdminView("settings"));
-adminTabGrantsButton.addEventListener("click", () => setAdminView("grants"));
 adminTabKpiButton.addEventListener("click", () => setAdminView("kpi"));
 adminTabWorkPlanButton.addEventListener("click", () => setAdminView("work-plan"));
+fundraisingTabGrantsButton.addEventListener("click", () => setFundraisingView("grants"));
+fundraisingTabSalesButton.addEventListener("click", () => setFundraisingView("sales"));
+fundraisingTabIndividualGivingButton.addEventListener("click", () => setFundraisingView("individual-giving"));
+fundraisingTabCorporatePartnershipsButton.addEventListener("click", () => setFundraisingView("corporate-partnerships"));
+fundraisingTabEventsButton.addEventListener("click", () => setFundraisingView("events"));
 crmTabDashboardButton.addEventListener("click", () => setCrmView("dashboard"));
 crmTabReferralsButton.addEventListener("click", () => setCrmView("referrals"));
 crmTabClientsButton.addEventListener("click", () => setCrmView("clients"));

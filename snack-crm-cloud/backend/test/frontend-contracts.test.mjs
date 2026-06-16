@@ -26,6 +26,7 @@ test("main shell exposes the primary modules in the left nav", () => {
     'id="nav-scheduling"',
     'id="nav-crm"',
     'id="nav-outreach"',
+    'id="nav-fundraising"',
     'id="nav-dashboard"'
   ]);
 
@@ -49,7 +50,7 @@ test("workflow module includes start-day controls and a task summary", () => {
 
 test("admin settings surface current scheduling rules", () => {
   assert.match(indexHtml, /id="admin-tab-settings"/);
-  assert.match(indexHtml, /id="admin-tab-grants"/);
+  assert.equal(indexHtml.includes('id="admin-tab-grants"'), false);
   assert.match(indexHtml, /id="admin-tab-kpi"/);
   assert.match(indexHtml, /id="admin-tab-work-plan"/);
   assert.match(indexHtml, /Scheduling Settings/);
@@ -85,17 +86,24 @@ test("admin KPI and Work Plan tabs expose 2026 targets and quarterly actions", (
   assert.match(stylesCss, /\.work-plan-status\.status-in-progress/);
 });
 
-test("admin grants tab exposes deadlines, grant list, reusable answers, and organization info", () => {
-  assert.match(indexHtml, /id="admin-grants-view"/);
-  assert.match(appJs, /dashboardTitle\.textContent = showAdminGrants \? "Grants" : showAdminKpi \? "KPI" : showAdminWorkPlan \? "Work Plan" : "Admin"/);
+test("fundraising grants tab exposes deadlines, grant list, reusable answers, and organization info", () => {
+  assert.match(indexHtml, /id="fundraising-panel"/);
+  assert.match(indexHtml, /id="fundraising-tab-grants"/);
+  assert.match(indexHtml, /id="fundraising-tab-sales"/);
+  assert.match(indexHtml, /id="fundraising-tab-individual-giving"/);
+  assert.match(indexHtml, /id="fundraising-tab-corporate-partnerships"/);
+  assert.match(indexHtml, /id="fundraising-tab-events"/);
+  assert.match(indexHtml, /id="fundraising-grants-view"/);
+  assert.match(appJs, /activeFundraisingView/);
+  assert.match(appJs, /function setFundraisingView/);
+  assert.match(appJs, /saved\.activeAdminView === "grants" \? "grants" : saved\.activeFundraisingView/);
   assert.equal(indexHtml.includes("Grant Tracker"), false);
   assert.equal(indexHtml.includes("Funding</p>"), false);
   assertInOrder(indexHtml, [
-    'id="admin-grants-actions"',
+    'id="fundraising-grants-actions"',
     'id="grant-search"',
     'id="new-grant"',
-    'id="admin-settings-view"',
-    'id="admin-grants-view"'
+    'id="fundraising-grants-view"'
   ]);
   assert.match(indexHtml, /id="grant-deadline-list"/);
   assert.match(indexHtml, /id="grants-list"/);
@@ -163,6 +171,7 @@ test("grants index stays compact with profile and answer modals", () => {
   assert.match(stylesCss, /#grant-search\s*{[^}]*width: min\(240px, 36vw\);/s);
   assert.match(stylesCss, /\.grant-question-card \.grant-reference-actions\s*{[^}]*margin-bottom: 10px;/s);
   assert.match(stylesCss, /\.grant-deadline-item\s*{[^}]*border-left: 4px solid var\(--brand-red\);/s);
+  assert.match(stylesCss, /\.grant-deadline-item:hover,\s*\.grant-deadline-item:focus-visible\s*{[^}]*var\(--red-soft\)/s);
 });
 
 test("outreach dashboard uses grant-style flow lanes and event profiles", () => {
@@ -361,6 +370,7 @@ test("SNACK brand variables are present in the app stylesheet", () => {
   for (const color of ["#e23a4d", "#d27354", "#f4c753", "#078b4d", "#039cbb", "#004aad", "#7a33c2"]) {
     assert.match(stylesCss, new RegExp(color.replace("#", "#")));
   }
+  assert.match(stylesCss, /\.module-tabs\s*{[^}]*max-width: 100%;[^}]*overflow-x: auto;/s);
 });
 
 test("summary cards keep rainbow order for six-card modules", () => {
@@ -379,9 +389,10 @@ test("workflow task summary uses the shared counter-card system", () => {
   assert.match(indexHtml, /class="summary-grid task-summary"/);
 });
 
-test("frontend script wires grants API resources and Admin Grants navigation", () => {
-  assert.match(appJs, /activeAdminView/);
-  assert.match(appJs, /function setAdminView/);
+test("frontend script wires grants API resources and Fundraising navigation", () => {
+  assert.match(appJs, /activeFundraisingView/);
+  assert.match(appJs, /function setFundraisingView/);
+  assert.match(appJs, /setActiveModule\("fundraising"\)/);
   assert.match(appJs, /\/api\/grants/);
   assert.match(appJs, /\/api\/grant-questions/);
   assert.match(appJs, /\/api\/grant-organization-info/);

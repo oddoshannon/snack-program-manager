@@ -24,6 +24,7 @@
           <button id="nav-scheduling" class="nav-item" type="button">Scheduling</button>
           <button id="nav-crm" class="nav-item" type="button">CRM</button>
           <button id="nav-outreach" class="nav-item" type="button">Outreach</button>
+          <button id="nav-fundraising" class="nav-item" type="button">Fundraising</button>
           <button id="nav-dashboard" class="nav-item" type="button">Admin</button>
         </nav>
         <div class="sidebar-footer">
@@ -79,7 +80,6 @@
         <section id="dashboard-panel" class="referrals-panel dashboard-panel" aria-labelledby="dashboard-title" hidden>
           <div class="module-tabs admin-tabs" role="tablist" aria-label="Admin views">
             <button id="admin-tab-settings" class="module-tab active" type="button" role="tab" aria-selected="true">Settings</button>
-            <button id="admin-tab-grants" class="module-tab" type="button" role="tab" aria-selected="false">Grants</button>
             <button id="admin-tab-kpi" class="module-tab" type="button" role="tab" aria-selected="false">KPI</button>
             <button id="admin-tab-work-plan" class="module-tab" type="button" role="tab" aria-selected="false">Work Plan</button>
           </div>
@@ -88,13 +88,6 @@
             <div>
               <p class="eyebrow">Admin</p>
               <h2 id="dashboard-title">Admin</h2>
-            </div>
-            <div id="admin-grants-actions" class="header-actions grants-toolbar" hidden>
-              <label class="grants-search-field">
-                <span class="sr-only">Search grants</span>
-                <input id="grant-search" type="search" placeholder="Search grants">
-              </label>
-              <button id="new-grant" type="button">New Grant</button>
             </div>
           </header>
 
@@ -206,7 +199,88 @@
             </div>
           </section>
 
-          <section id="admin-grants-view" class="admin-view grants-view" hidden>
+          <section id="admin-kpi-view" class="admin-view kpi-view" hidden>
+            <section id="kpi-summary" class="summary-grid kpi-summary" aria-label="KPI summary"></section>
+
+            <div class="kpi-layout">
+              <section class="dashboard-card kpi-progress-card" aria-labelledby="kpi-progress-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="kpi-progress-title">2026 KPI Progress</h3>
+                  </div>
+                </div>
+                <div id="kpi-progress-list" class="kpi-progress-list"></div>
+              </section>
+
+              <section class="dashboard-card kpi-program-card" aria-labelledby="program-kpi-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="program-kpi-title">Program KPI Drafts</h3>
+                  </div>
+                </div>
+                <div id="program-kpi-list" class="kpi-draft-list"></div>
+              </section>
+
+              <section class="dashboard-card kpi-table-card" aria-labelledby="organization-kpi-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="organization-kpi-title">Organization KPI Table</h3>
+                  </div>
+                </div>
+                <div id="organization-kpi-table" class="kpi-table"></div>
+              </section>
+
+              <section class="dashboard-card kpi-table-card" aria-labelledby="revenue-kpi-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="revenue-kpi-title">Revenue KPI Table</h3>
+                  </div>
+                </div>
+                <div id="revenue-kpi-table" class="kpi-table"></div>
+              </section>
+            </div>
+          </section>
+
+          <section id="admin-work-plan-view" class="admin-view work-plan-view" hidden>
+            <section id="work-plan-summary" class="summary-grid work-plan-summary" aria-label="Work plan summary"></section>
+
+            <div class="work-plan-layout">
+              <section class="dashboard-card work-plan-card" aria-labelledby="work-plan-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="work-plan-title">2026 Work Plan Tracker</h3>
+                  </div>
+                </div>
+                <div id="work-plan-list" class="work-plan-list"></div>
+              </section>
+            </div>
+          </section>
+        </section>
+
+        <section id="fundraising-panel" class="referrals-panel dashboard-panel" aria-labelledby="fundraising-title" hidden>
+          <div class="module-tabs fundraising-tabs" role="tablist" aria-label="Fundraising views">
+            <button id="fundraising-tab-grants" class="module-tab active" type="button" role="tab" aria-selected="true">Grants</button>
+            <button id="fundraising-tab-sales" class="module-tab" type="button" role="tab" aria-selected="false">Sales</button>
+            <button id="fundraising-tab-individual-giving" class="module-tab" type="button" role="tab" aria-selected="false">Individual Giving</button>
+            <button id="fundraising-tab-corporate-partnerships" class="module-tab" type="button" role="tab" aria-selected="false">Corporate Partnerships</button>
+            <button id="fundraising-tab-events" class="module-tab" type="button" role="tab" aria-selected="false">Events</button>
+          </div>
+
+          <header class="workspace-header">
+            <div>
+              <p class="eyebrow">Fundraising</p>
+              <h2 id="fundraising-title">Grants</h2>
+            </div>
+            <div id="fundraising-grants-actions" class="header-actions grants-toolbar">
+              <label class="grants-search-field">
+                <span class="sr-only">Search grants</span>
+                <input id="grant-search" type="search" placeholder="Search grants">
+              </label>
+              <button id="new-grant" type="button">New Grant</button>
+            </div>
+          </header>
+
+          <section id="fundraising-grants-view" class="fundraising-view grants-view">
             <section id="grants-summary" class="summary-grid grants-summary" aria-label="Grant summary"></section>
 
             <div class="grants-layout">
@@ -347,61 +421,48 @@
             <p id="grants-status" class="status" aria-live="polite"></p>
           </section>
 
-          <section id="admin-kpi-view" class="admin-view kpi-view" hidden>
-            <section id="kpi-summary" class="summary-grid kpi-summary" aria-label="KPI summary"></section>
-
-            <div class="kpi-layout">
-              <section class="dashboard-card kpi-progress-card" aria-labelledby="kpi-progress-title">
-                <div class="dashboard-card-header">
-                  <div>
-                    <h3 id="kpi-progress-title">2026 KPI Progress</h3>
-                  </div>
+          <section id="fundraising-sales-view" class="fundraising-view" hidden>
+            <section class="dashboard-card empty-module-card" aria-labelledby="fundraising-sales-title">
+              <div class="dashboard-card-header">
+                <div>
+                  <h3 id="fundraising-sales-title">Sales</h3>
                 </div>
-                <div id="kpi-progress-list" class="kpi-progress-list"></div>
-              </section>
-
-              <section class="dashboard-card kpi-program-card" aria-labelledby="program-kpi-title">
-                <div class="dashboard-card-header">
-                  <div>
-                    <h3 id="program-kpi-title">Program KPI Drafts</h3>
-                  </div>
-                </div>
-                <div id="program-kpi-list" class="kpi-draft-list"></div>
-              </section>
-
-              <section class="dashboard-card kpi-table-card" aria-labelledby="organization-kpi-title">
-                <div class="dashboard-card-header">
-                  <div>
-                    <h3 id="organization-kpi-title">Organization KPI Table</h3>
-                  </div>
-                </div>
-                <div id="organization-kpi-table" class="kpi-table"></div>
-              </section>
-
-              <section class="dashboard-card kpi-table-card" aria-labelledby="revenue-kpi-title">
-                <div class="dashboard-card-header">
-                  <div>
-                    <h3 id="revenue-kpi-title">Revenue KPI Table</h3>
-                  </div>
-                </div>
-                <div id="revenue-kpi-table" class="kpi-table"></div>
-              </section>
-            </div>
+              </div>
+              <p class="empty-state">Nothing here yet.</p>
+            </section>
           </section>
 
-          <section id="admin-work-plan-view" class="admin-view work-plan-view" hidden>
-            <section id="work-plan-summary" class="summary-grid work-plan-summary" aria-label="Work plan summary"></section>
-
-            <div class="work-plan-layout">
-              <section class="dashboard-card work-plan-card" aria-labelledby="work-plan-title">
-                <div class="dashboard-card-header">
-                  <div>
-                    <h3 id="work-plan-title">2026 Work Plan Tracker</h3>
-                  </div>
+          <section id="fundraising-individual-giving-view" class="fundraising-view" hidden>
+            <section class="dashboard-card empty-module-card" aria-labelledby="fundraising-individual-giving-title">
+              <div class="dashboard-card-header">
+                <div>
+                  <h3 id="fundraising-individual-giving-title">Individual Giving</h3>
                 </div>
-                <div id="work-plan-list" class="work-plan-list"></div>
-              </section>
-            </div>
+              </div>
+              <p class="empty-state">Nothing here yet.</p>
+            </section>
+          </section>
+
+          <section id="fundraising-corporate-partnerships-view" class="fundraising-view" hidden>
+            <section class="dashboard-card empty-module-card" aria-labelledby="fundraising-corporate-partnerships-title">
+              <div class="dashboard-card-header">
+                <div>
+                  <h3 id="fundraising-corporate-partnerships-title">Corporate Partnerships</h3>
+                </div>
+              </div>
+              <p class="empty-state">Nothing here yet.</p>
+            </section>
+          </section>
+
+          <section id="fundraising-events-view" class="fundraising-view" hidden>
+            <section class="dashboard-card empty-module-card" aria-labelledby="fundraising-events-title">
+              <div class="dashboard-card-header">
+                <div>
+                  <h3 id="fundraising-events-title">Events</h3>
+                </div>
+              </div>
+              <p class="empty-state">Nothing here yet.</p>
+            </section>
           </section>
         </section>
 
@@ -2030,6 +2091,6 @@
       <button id="task-undo-button" class="secondary-button" type="button">Undo</button>
     </div>
     <script src="./app-config.js"></script>
-    <script type="module" src="./app.js?v=20260615-admin-kpi"></script>
+    <script type="module" src="./app.js?v=20260615-fundraising-module"></script>
   </body>
 </html>
