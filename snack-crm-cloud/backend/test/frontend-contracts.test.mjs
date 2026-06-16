@@ -137,11 +137,15 @@ test("grant modal captures application details, portal info, awards, reports, an
   for (const field of [
     "foundationName",
     "grantName",
+    "openDate",
     "deadlineDate",
+    "deadlineTime",
+    "awardExpectedDate",
     "focusAreas",
     "recurrence",
-    "applicationFrequency",
     "contactName",
+    "secondaryContactName",
+    "secondaryContactEmail",
     "websiteUrl",
     "portalUrl",
     "portalLoginNotes",
@@ -149,6 +153,7 @@ test("grant modal captures application details, portal info, awards, reports, an
     "amountMax",
     "reportingRequirements",
     "pastGrantReceived",
+    "previousAwardDate",
     "completedApplicationUrl",
     "grantAgreementUrl",
     "budgetUrl",
@@ -160,6 +165,10 @@ test("grant modal captures application details, portal info, awards, reports, an
 
   assert.match(grantModal, /Completed application upload/);
   assert.match(grantModal, /name="completedApplicationUrl" type="file"/);
+  assert.match(grantModal, /<select name="recurrence">/);
+  assert.equal(grantModal.includes("How often we can apply"), false);
+  assert.equal(grantModal.includes("Contact role"), false);
+  assert.equal(grantModal.includes("Contact phone"), false);
   assert.match(appJs, /firebase-storage\.js/);
   assert.match(appJs, /uploadBytes/);
   assert.match(appJs, /getDownloadURL/);

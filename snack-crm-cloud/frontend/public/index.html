@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SNACK Program Manager</title>
     <link rel="icon" type="image/png" href="./favicon.png">
-    <link rel="stylesheet" href="./styles.css?v=20260604-workflow-hardening">
+    <link rel="stylesheet" href="./styles.css?v=20260616-grant-fields">
   </head>
   <body>
     <div class="app-shell">
@@ -539,8 +539,20 @@
                       </select>
                     </label>
                     <label>
-                      Deadline
+                      Grant opens
+                      <input name="openDate" type="date">
+                    </label>
+                    <label>
+                      Deadline date
                       <input name="deadlineDate" type="date">
+                    </label>
+                    <label>
+                      Deadline time
+                      <input name="deadlineTime" type="time">
+                    </label>
+                    <label>
+                      Award expected
+                      <input name="awardExpectedDate" type="date">
                     </label>
                     <label>
                       Grant range min
@@ -552,11 +564,18 @@
                     </label>
                     <label>
                       Recurrence
-                      <input name="recurrence" placeholder="Annual, rolling, invitation only...">
-                    </label>
-                    <label>
-                      How often we can apply
-                      <input name="applicationFrequency" placeholder="Every year, every 2 years...">
+                      <select name="recurrence">
+                        <option value=""></option>
+                        <option value="Annual">Annual</option>
+                        <option value="Semiannual">Semiannual</option>
+                        <option value="Quarterly">Quarterly</option>
+                        <option value="Monthly">Monthly</option>
+                        <option value="Rolling">Rolling</option>
+                        <option value="Invitation only">Invitation only</option>
+                        <option value="One-time">One-time</option>
+                        <option value="Every two years">Every two years</option>
+                        <option value="Other / varies">Other / varies</option>
+                      </select>
                     </label>
                     <label class="checkbox-line">
                       <input name="pastGrantReceived" type="checkbox">
@@ -567,21 +586,34 @@
                       <input name="pastGrantAmount" type="number" min="0" step="1">
                     </label>
                     <label>
-                      Past year
-                      <input name="pastGrantYear" type="number" min="1900" max="2100" step="1">
+                      Previous award date
+                      <input name="previousAwardDate" type="date">
                     </label>
+                  </div>
+                  <div class="idea-list grant-edit-left-list">
+                    <section class="idea-card profile-detail-card grant-edit-card" style="--idea-accent: var(--brand-blue);">
+                      <strong>Reporting</strong>
+                      <label>
+                        Reporting requirements
+                        <textarea name="reportingRequirements" rows="4"></textarea>
+                      </label>
+                    </section>
+
+                    <section class="idea-card profile-detail-card grant-edit-card" style="--idea-accent: var(--brand-orange);">
+                      <strong>Notes</strong>
+                      <label>
+                        Grant notes
+                        <textarea name="notes" rows="4"></textarea>
+                      </label>
+                      <label>
+                        Past grant notes
+                        <textarea name="pastGrantNotes" rows="2"></textarea>
+                      </label>
+                    </section>
                   </div>
                 </section>
 
                 <div class="idea-list grant-edit-detail-list">
-                  <section class="idea-card profile-detail-card grant-edit-card" style="--idea-accent: var(--brand-green);">
-                    <strong>Focus</strong>
-                    <label>
-                      Funding focus areas
-                      <textarea name="focusAreas" rows="4"></textarea>
-                    </label>
-                  </section>
-
                   <section class="idea-card profile-detail-card grant-edit-card" style="--idea-accent: var(--brand-teal);">
                     <strong>Contact and Portal</strong>
                     <div class="grant-form-grid">
@@ -590,16 +622,16 @@
                         <input name="contactName">
                       </label>
                       <label>
-                        Contact role
-                        <input name="contactRole">
+                        Secondary contact
+                        <input name="secondaryContactName">
                       </label>
                       <label>
                         Contact email
                         <input name="contactEmail" type="email">
                       </label>
                       <label>
-                        Contact phone
-                        <input name="contactPhone" type="tel">
+                        Secondary contact email
+                        <input name="secondaryContactEmail" type="email">
                       </label>
                       <label>
                         Website
@@ -612,15 +644,15 @@
                     </div>
                     <label>
                       Portal login notes
-                      <textarea name="portalLoginNotes" rows="3" placeholder="Do not store passwords here unless you intend staff with access to see them."></textarea>
+                      <textarea name="portalLoginNotes" rows="4" placeholder="Do not store passwords here unless you intend staff with access to see them."></textarea>
                     </label>
                   </section>
 
-                  <section class="idea-card profile-detail-card grant-edit-card" style="--idea-accent: var(--brand-blue);">
-                    <strong>Reporting</strong>
+                  <section class="idea-card profile-detail-card grant-edit-card" style="--idea-accent: var(--brand-green);">
+                    <strong>Focus</strong>
                     <label>
-                      Reporting requirements
-                      <textarea name="reportingRequirements" rows="4"></textarea>
+                      Funding focus areas
+                      <textarea name="focusAreas" rows="5"></textarea>
                     </label>
                   </section>
 
@@ -660,18 +692,6 @@
                     <label>
                       Branding notes
                       <textarea name="brandingNotes" rows="2"></textarea>
-                    </label>
-                  </section>
-
-                  <section class="idea-card profile-detail-card grant-edit-card" style="--idea-accent: var(--brand-orange);">
-                    <strong>Notes</strong>
-                    <label>
-                      Grant notes
-                      <textarea name="notes" rows="4"></textarea>
-                    </label>
-                    <label>
-                      Past grant notes
-                      <textarea name="pastGrantNotes" rows="2"></textarea>
                     </label>
                   </section>
                 </div>
@@ -2126,6 +2146,6 @@
       <button id="task-undo-button" class="secondary-button" type="button">Undo</button>
     </div>
     <script src="./app-config.js"></script>
-    <script type="module" src="./app.js?v=20260615-fundraising-module"></script>
+    <script type="module" src="./app.js?v=20260616-grant-fields"></script>
   </body>
 </html>

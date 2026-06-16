@@ -4447,7 +4447,7 @@ dd {
 .grant-list-row p {
   color: var(--muted);
   font-size: 0.84rem;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .grant-status-pill {
@@ -4624,6 +4624,7 @@ dd {
   display: block;
   margin-top: 3px;
   color: var(--ink);
+  font-weight: 650;
   overflow-wrap: anywhere;
 }
 
@@ -4666,7 +4667,7 @@ dd {
 
 .grant-edit-profile-grid {
   display: grid;
-  grid-template-columns: minmax(300px, 0.95fr) minmax(420px, 1.2fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -4755,6 +4756,7 @@ dd {
 .compact-form select {
   width: 100%;
   min-width: 0;
+  font-weight: 600;
 }
 
 .grant-form input[type="file"],
@@ -4800,8 +4802,22 @@ dd {
   align-content: start;
 }
 
+.grant-edit-left-list {
+  align-content: start;
+}
+
 .grant-edit-card {
   gap: 12px;
+}
+
+.grant-detail .client-profile-field strong,
+.grant-detail .profile-detail-line > strong {
+  font-weight: 600;
+}
+
+.grant-flow-card .flow-card-detail,
+.grant-flow-card .flow-card-meta {
+  font-weight: 600;
 }
 
 .grant-question-item {

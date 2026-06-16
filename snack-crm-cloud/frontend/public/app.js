@@ -2173,6 +2173,37 @@ function grantDaysUntil(deadlineDate) {
   return Math.ceil((deadline.getTime() - today.getTime()) / 86400000);
 }
 
+function grantDeadlineSortValue(grant) {
+  if (!grant.deadlineDate) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const time = normalizeAppointmentTime(grant.deadlineTime) || "00:00";
+  const deadline = new Date(`${grant.deadlineDate}T${time}:00`);
+  return Number.isNaN(deadline.getTime()) ? Number.POSITIVE_INFINITY : deadline.getTime();
+}
+
+function grantDeadlineLabel(grant, { short = false } = {}) {
+  const date = short ? formatShortDate(grant.deadlineDate) : formatDateOnly(grant.deadlineDate);
+  const time = formatAppointmentTime(grant.deadlineTime);
+
+  if (date && time) {
+    return `${date} at ${time}`;
+  }
+
+  return date || time || "";
+}
+
+function grantPreviousAwardLabel(grant) {
+  if (!grant.pastGrantReceived) {
+    return "-";
+  }
+
+  const amount = formatGrantCurrency(grant.pastGrantAmount) || "Yes";
+  const date = formatDateOnly(grant.previousAwardDate) || (grant.pastGrantYear ? String(grant.pastGrantYear) : "");
+  return date ? `${amount} (${date})` : amount;
+}
+
 function grantIsOpen(grant) {
   return !["Awarded", "Reporting", "Not A Good Fit", "Declined", "Closed"].includes(grant.status || "Researching");
 }
@@ -2477,11 +2508,12 @@ function renderGrantDetail() {
   overviewFields.className = "client-field-grid";
   [
     ["Status", createGrantStatusSelect(grant)],
-    ["Deadline", formatDateOnly(grant.deadlineDate)],
+    ["Opens", formatDateOnly(grant.openDate)],
+    ["Deadline", grantDeadlineLabel(grant)],
+    ["Award Expected", formatDateOnly(grant.awardExpectedDate)],
     ["Range", grantAmountRange(grant)],
     ["Recurs", grantProfileValue(grant.recurrence)],
-    ["Apply", grantProfileValue(grant.applicationFrequency)],
-    ["Past Award", grant.pastGrantReceived ? `${formatGrantCurrency(grant.pastGrantAmount) || "Yes"}${grant.pastGrantYear ? ` (${grant.pastGrantYear})` : ""}` : "-"]
+    ["Past Award", grantPreviousAwardLabel(grant)]
   ].forEach(([labelText, value]) => {
     const field = document.createElement("div");
     field.className = "client-profile-field";
@@ -2502,9 +2534,9 @@ function renderGrantDetail() {
   details.className = "idea-list";
   const contactRows = [
     { label: "Name", value: grant.contactName },
-    { label: "Role", value: grant.contactRole },
     { label: "Email", value: grant.contactEmail },
-    { label: "Phone", value: grant.contactPhone },
+    { label: "Secondary", value: grant.secondaryContactName },
+    { label: "Secondary Email", value: grant.secondaryContactEmail },
     { label: "Website", value: createGrantLink("Website", grant.websiteUrl), alwaysShow: true },
     { label: "Portal", value: createGrantLink("Portal", grant.portalUrl), alwaysShow: true }
   ];
@@ -2576,7 +2608,7 @@ function renderGrantDeadlines() {
   clearElement(grantDeadlineList);
   const upcoming = loadedGrants
     .filter((grant) => grantIsOpen(grant) && grant.deadlineDate)
-    .sort((first, second) => grantDaysUntil(first.deadlineDate) - grantDaysUntil(second.deadlineDate))
+    .sort((first, second) => grantDeadlineSortValue(first) - grantDeadlineSortValue(second))
     .slice(0, 10);
 
   if (!upcoming.length) {
@@ -2603,7 +2635,7 @@ function renderGrantDeadlines() {
 
     const date = document.createElement("span");
     date.className = "dashboard-item-date";
-    date.textContent = formatDateOnly(grant.deadlineDate);
+    date.textContent = grantDeadlineLabel(grant, { short: true });
     row.append(content, date);
     grantDeadlineList.append(row);
   }
@@ -2613,7 +2645,7 @@ function renderGrantList() {
   clearElement(grantsList);
   const grants = loadedGrants
     .filter(grantMatchesSearch)
-    .sort((first, second) => grantDaysUntil(first.deadlineDate) - grantDaysUntil(second.deadlineDate) || grantTitle(first).localeCompare(grantTitle(second)));
+    .sort((first, second) => grantDeadlineSortValue(first) - grantDeadlineSortValue(second) || grantTitle(first).localeCompare(grantTitle(second)));
 
   if (!grants.length) {
     const empty = document.createElement("p");
@@ -4320,7 +4352,7 @@ function renderGrantFlow(grants) {
       flowCard({
         title: grantTitle(grant),
         detail: grantSubtitle(grant),
-        meta: [grant.status || "Researching", formatShortDate(grant.deadlineDate), grantAmountRange(grant)].filter(Boolean).join(" | "),
+        meta: [grant.status || "Researching", grantDeadlineLabel(grant, { short: true }), grantAmountRange(grant)].filter(Boolean).join(" | "),
         tag: grant.status || "Researching",
         accent: column.accent,
         dragData: { kind: "grant-flow", id: grant.id },
@@ -11986,21 +12018,37 @@ async function grantPayloadFromForm() {
   return payload;
 }
 
+function setGrantSelectValue(name, value) {
+  const select = grantForm.elements[name];
+  if (!select) {
+    return;
+  }
+
+  const text = String(value || "");
+  if (text && !Array.from(select.options).some((option) => option.value === text)) {
+    const option = document.createElement("option");
+    option.value = text;
+    option.textContent = text;
+    select.append(option);
+  }
+  select.value = text;
+}
+
 function setGrantFormValues(grant = {}) {
   grantForm.reset();
 
   for (const name of [
     "foundationName",
     "grantName",
-    "status",
+    "openDate",
     "deadlineDate",
+    "deadlineTime",
+    "awardExpectedDate",
     "focusAreas",
-    "recurrence",
-    "applicationFrequency",
     "contactName",
-    "contactRole",
     "contactEmail",
-    "contactPhone",
+    "secondaryContactName",
+    "secondaryContactEmail",
     "websiteUrl",
     "portalUrl",
     "portalLoginNotes",
@@ -12008,7 +12056,7 @@ function setGrantFormValues(grant = {}) {
     "amountMax",
     "reportingRequirements",
     "pastGrantAmount",
-    "pastGrantYear",
+    "previousAwardDate",
     "pastGrantNotes",
     "brandingNotes",
     "notes"
@@ -12018,7 +12066,8 @@ function setGrantFormValues(grant = {}) {
     }
   }
 
-  grantForm.elements.status.value = grant.status || "Researching";
+  setGrantSelectValue("status", grant.status || "Researching");
+  setGrantSelectValue("recurrence", grant.recurrence || "");
   grantForm.elements.pastGrantReceived.checked = Boolean(grant.pastGrantReceived);
   grantForm.elements.documentNotes.value = fillFixedDocumentFields(grantForm, grantDocumentFields, grant.documents || []);
 }

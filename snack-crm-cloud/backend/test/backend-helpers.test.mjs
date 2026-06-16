@@ -278,20 +278,36 @@ test("cleanGrantPayload normalizes grant tracker details and document links", ()
   const payload = cleanGrantPayload({
     foundationName: " Oregon Foundation ",
     grantName: " Community Health ",
+    openDate: " 2026-05-01 ",
+    deadlineDate: " 2026-06-15 ",
+    deadlineTime: " 4:30 PM ",
+    awardExpectedDate: " 2026-09-01 ",
+    recurrence: " Annual ",
+    contactName: " Primary Contact ",
+    secondaryContactName: " Second Contact ",
+    secondaryContactEmail: " second@example.org ",
     amountMin: "5000",
     amountMax: " 15000 ",
     pastGrantReceived: "checked",
     pastGrantAmount: "7500",
-    pastGrantYear: "2024",
+    previousAwardDate: " 2024-08-05 ",
     documents: [documentLink, { title: " " }]
   });
 
   assert.equal(payload.foundationName, "Oregon Foundation");
+  assert.equal(payload.openDate, "2026-05-01");
+  assert.equal(payload.deadlineDate, "2026-06-15");
+  assert.equal(payload.deadlineTime, "16:30");
+  assert.equal(payload.awardExpectedDate, "2026-09-01");
+  assert.equal(payload.recurrence, "Annual");
+  assert.equal(payload.contactName, "Primary Contact");
+  assert.equal(payload.secondaryContactName, "Second Contact");
+  assert.equal(payload.secondaryContactEmail, "second@example.org");
   assert.equal(payload.amountMin, 5000);
   assert.equal(payload.amountMax, 15000);
   assert.equal(payload.pastGrantReceived, true);
   assert.equal(payload.pastGrantAmount, 7500);
-  assert.equal(payload.pastGrantYear, 2024);
+  assert.equal(payload.previousAwardDate, "2024-08-05");
   assert.equal(payload.documents.length, 1);
   assert.equal(payload.documents[0].storagePath, "grant-documents/user/app.pdf");
 });
