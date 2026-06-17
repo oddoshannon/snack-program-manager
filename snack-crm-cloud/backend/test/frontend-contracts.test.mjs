@@ -440,6 +440,7 @@ test("grant tracker includes a draggable colored flow board and closed archive",
   assert.match(appJs, /dragKind: "grant-flow"/);
   assert.match(appJs, /function moveGrantToFlowColumn/);
   assert.match(appJs, /function updateGrantStatus/);
+  assert.doesNotMatch(appJs, /meta: \[grant\.status \|\| "Researching"/);
   assert.match(stylesCss, /\.grant-flow-card\s*{\s*grid-column: 1 \/ -1;/);
   assert.match(stylesCss, /\.grant-flow-card \.flow-lanes\s*{\s*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);/);
   assert.match(stylesCss, /\.grant-status-pill\.status-group-grant-upcoming\s*{[^}]*var\(--brand-red\)/s);

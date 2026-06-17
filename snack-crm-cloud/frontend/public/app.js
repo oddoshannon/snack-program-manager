@@ -4352,7 +4352,7 @@ function renderGrantFlow(grants) {
       flowCard({
         title: grantTitle(grant),
         detail: grantSubtitle(grant),
-        meta: [grant.status || "Researching", grantDeadlineLabel(grant, { short: true }), grantAmountRange(grant)].filter(Boolean).join(" | "),
+        meta: [grantDeadlineLabel(grant, { short: true }), grantAmountRange(grant)].filter(Boolean).join(" | "),
         tag: grant.status || "Researching",
         accent: column.accent,
         dragData: { kind: "grant-flow", id: grant.id },
