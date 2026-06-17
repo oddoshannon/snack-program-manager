@@ -2158,6 +2158,32 @@ function grantAmountRange(grant) {
   return min || max || "Range not set";
 }
 
+function grantAmountRequestedLabel(grant) {
+  return formatGrantCurrency(grant.amountRequested);
+}
+
+function grantPreviewAmount(grant) {
+  const status = grant.status || "Researching";
+  const requested = grantAmountRequestedLabel(grant);
+
+  if (requested && !["Researching", "Planning"].includes(status)) {
+    return requested;
+  }
+
+  return grantAmountRange(grant);
+}
+
+function grantPreviewDate(grant) {
+  const status = grant.status || "Researching";
+
+  if (["Submitted", "Awarded", "Reporting"].includes(status)) {
+    const awardDate = formatShortDate(grant.awardExpectedDate);
+    return awardDate ? `Award expected ${awardDate}` : "";
+  }
+
+  return grantDeadlineLabel(grant, { short: true });
+}
+
 function grantDaysUntil(deadlineDate) {
   if (!deadlineDate) {
     return Number.POSITIVE_INFINITY;
@@ -2208,6 +2234,10 @@ function grantIsOpen(grant) {
   return !["Awarded", "Reporting", "Not A Good Fit", "Declined", "Closed"].includes(grant.status || "Researching");
 }
 
+function grantHasUpcomingDeadline(grant) {
+  return grantIsOpen(grant) && (grant.status || "Researching") !== "Submitted" && Boolean(grant.deadlineDate);
+}
+
 function grantDocumentByType(documents = [], type) {
   return documents.find((document) => document.type === type) || null;
 }
@@ -2256,7 +2286,24 @@ function updateDocumentUploadStatus(form, field, documentLink = null) {
     return;
   }
 
-  status.textContent = documentLink?.url ? `Current file: ${grantDocumentDisplayName(documentLink)}` : "No file uploaded";
+  status.textContent = documentLink?.url ? `Current: ${grantDocumentDisplayName(documentLink)}` : "";
+}
+
+function bindGrantDocumentFileStatus(form, fields) {
+  for (const field of fields) {
+    const input = form.elements[field.formName];
+    if (!input || input.dataset.statusBound === "true") {
+      continue;
+    }
+
+    input.dataset.statusBound = "true";
+    input.addEventListener("change", () => {
+      const status = form.querySelector(`[data-document-status-for="${field.formName}"]`);
+      if (status) {
+        status.textContent = input.files?.[0] ? `Selected: ${input.files[0].name}` : "";
+      }
+    });
+  }
 }
 
 async function documentFromUploadField(input, field, notes, existingDocument = null) {
@@ -2416,6 +2463,19 @@ function grantProfileValue(value, fallback = "-") {
   return hasProfileValue(value) ? value : fallback;
 }
 
+function legacyPortalLoginPart(notes, label) {
+  const pattern = new RegExp(`${label}:\\s*([^\\n]+)`, "i");
+  return String(notes || "").match(pattern)?.[1]?.trim() || "";
+}
+
+function grantPortalLoginEmail(grant) {
+  return grant.portalLoginEmail || legacyPortalLoginPart(grant.portalLoginNotes, "Email");
+}
+
+function grantPortalLoginPassword(grant) {
+  return grant.portalLoginPassword || legacyPortalLoginPart(grant.portalLoginNotes, "Password");
+}
+
 function createGrantLink(label, url, downloadName = "") {
   if (!url) {
     return document.createTextNode("-");
@@ -2511,6 +2571,7 @@ function renderGrantDetail() {
     ["Opens", formatDateOnly(grant.openDate)],
     ["Deadline", grantDeadlineLabel(grant)],
     ["Award Expected", formatDateOnly(grant.awardExpectedDate)],
+    ["Amount Requested", grantAmountRequestedLabel(grant)],
     ["Range", grantAmountRange(grant)],
     ["Recurs", grantProfileValue(grant.recurrence)],
     ["Past Award", grantPreviousAwardLabel(grant)]
@@ -2538,7 +2599,9 @@ function renderGrantDetail() {
     { label: "Secondary", value: grant.secondaryContactName },
     { label: "Secondary Email", value: grant.secondaryContactEmail },
     { label: "Website", value: createGrantLink("Website", grant.websiteUrl), alwaysShow: true },
-    { label: "Portal", value: createGrantLink("Portal", grant.portalUrl), alwaysShow: true }
+    { label: "Portal", value: createGrantLink("Portal", grant.portalUrl), alwaysShow: true },
+    { label: "Login Email", value: grantPortalLoginEmail(grant) },
+    { label: "Password", value: grantPortalLoginPassword(grant) }
   ];
   details.append(
     renderProfileDetailCard("Focus", [
@@ -2546,8 +2609,7 @@ function renderGrantDetail() {
     ], "var(--brand-green)"),
     renderProfileDetailCard("Contact and Portal", contactRows, "var(--brand-teal)"),
     renderProfileDetailCard("Reporting", [
-      { label: "Requirements", value: grantProfileValue(grant.reportingRequirements), alwaysShow: true },
-      { label: "Portal notes", value: grant.portalLoginNotes }
+      { label: "Requirements", value: grantProfileValue(grant.reportingRequirements), alwaysShow: true }
     ], "var(--brand-blue)"),
     renderProfileDetailCard("Documents", [
       { label: "Links", value: createGrantDocumentList(grant), alwaysShow: true },
@@ -2555,8 +2617,7 @@ function renderGrantDetail() {
       { label: "Notes", value: (grant.documents || []).find((documentLink) => documentLink.notes)?.notes }
     ], "var(--brand-purple)"),
     renderProfileDetailCard("Notes", [
-      { label: "Grant", value: grantProfileValue(grant.notes), alwaysShow: true },
-      { label: "Past award", value: grant.pastGrantNotes }
+      { label: "Grant", value: grantProfileValue(grant.notes), alwaysShow: true }
     ], "var(--brand-orange)")
   );
 
@@ -2579,7 +2640,10 @@ function renderGrants() {
 function renderGrantsSummary() {
   clearElement(grantsSummary);
   const openGrants = loadedGrants.filter(grantIsOpen);
-  const dueSoon = openGrants.filter((grant) => {
+  const dueSoon = loadedGrants.filter((grant) => {
+    if (!grantHasUpcomingDeadline(grant)) {
+      return false;
+    }
     const days = grantDaysUntil(grant.deadlineDate);
     return days >= 0 && days <= 45;
   });
@@ -2607,7 +2671,7 @@ function renderGrantsSummary() {
 function renderGrantDeadlines() {
   clearElement(grantDeadlineList);
   const upcoming = loadedGrants
-    .filter((grant) => grantIsOpen(grant) && grant.deadlineDate)
+    .filter(grantHasUpcomingDeadline)
     .sort((first, second) => grantDeadlineSortValue(first) - grantDeadlineSortValue(second))
     .slice(0, 10);
 
@@ -2630,7 +2694,7 @@ function renderGrantDeadlines() {
     title.textContent = grantTitle(grant);
     const detail = document.createElement("span");
     const days = grantDaysUntil(grant.deadlineDate);
-    detail.textContent = `${grantSubtitle(grant)} | ${days < 0 ? "Past due" : `${days} day${days === 1 ? "" : "s"}`} | ${grantAmountRange(grant)}`;
+    detail.textContent = `${grantSubtitle(grant)} | ${days < 0 ? "Past due" : `${days} day${days === 1 ? "" : "s"}`} | ${grantPreviewAmount(grant)}`;
     content.append(title, detail);
 
     const date = document.createElement("span");
@@ -4352,7 +4416,7 @@ function renderGrantFlow(grants) {
       flowCard({
         title: grantTitle(grant),
         detail: grantSubtitle(grant),
-        meta: [grantDeadlineLabel(grant, { short: true }), grantAmountRange(grant)].filter(Boolean).join(" | "),
+        meta: [grantPreviewDate(grant), grantPreviewAmount(grant)].filter(Boolean).join(" | "),
         tag: grant.status || "Researching",
         accent: column.accent,
         dragData: { kind: "grant-flow", id: grant.id },
@@ -12015,6 +12079,8 @@ async function grantPayloadFromForm() {
     existingGrant?.documents || []
   );
   payload.brandingNotes = grantForm.elements.brandingNotes?.value || "";
+  payload.portalLoginNotes = "";
+  payload.pastGrantNotes = "";
   return payload;
 }
 
@@ -12051,13 +12117,14 @@ function setGrantFormValues(grant = {}) {
     "secondaryContactEmail",
     "websiteUrl",
     "portalUrl",
-    "portalLoginNotes",
+    "portalLoginEmail",
+    "portalLoginPassword",
+    "amountRequested",
     "amountMin",
     "amountMax",
     "reportingRequirements",
     "pastGrantAmount",
     "previousAwardDate",
-    "pastGrantNotes",
     "brandingNotes",
     "notes"
   ]) {
@@ -12068,6 +12135,12 @@ function setGrantFormValues(grant = {}) {
 
   setGrantSelectValue("status", grant.status || "Researching");
   setGrantSelectValue("recurrence", grant.recurrence || "");
+  if (grantForm.elements.portalLoginEmail) {
+    grantForm.elements.portalLoginEmail.value = grantPortalLoginEmail(grant);
+  }
+  if (grantForm.elements.portalLoginPassword) {
+    grantForm.elements.portalLoginPassword.value = grantPortalLoginPassword(grant);
+  }
   grantForm.elements.pastGrantReceived.checked = Boolean(grant.pastGrantReceived);
   grantForm.elements.documentNotes.value = fillFixedDocumentFields(grantForm, grantDocumentFields, grant.documents || []);
 }
@@ -13063,6 +13136,8 @@ onAuthStateChanged(auth, (user) => {
 renderAppointmentTimeOptions();
 bindGrantDisclosureState(grantOrgCard, "organization-info");
 bindGrantDisclosureState(grantQuestionCard, "reusable-answers");
+bindGrantDocumentFileStatus(grantForm, grantDocumentFields);
+bindGrantDocumentFileStatus(grantOrgForm, grantOrgDocumentFields);
 
 signInButton.addEventListener("click", signIn);
 signOutButton.addEventListener("click", signOutUser);

@@ -9,6 +9,8 @@ const appJs = await readFile(new URL("app.js", publicDir), "utf8");
 const bookingJs = await readFile(new URL("booking.js", publicDir), "utf8");
 const stylesCss = await readFile(new URL("styles.css", publicDir), "utf8");
 const appConfigJs = await readFile(new URL("app-config.js", publicDir), "utf8");
+const firebaseJson = await readFile(new URL("../../firebase.json", import.meta.url), "utf8");
+const storageRules = await readFile(new URL("../../storage.rules", import.meta.url), "utf8");
 
 function assertInOrder(source, values) {
   let cursor = -1;
@@ -120,13 +122,14 @@ test("fundraising grants tab exposes deadlines, grant list, reusable answers, an
   assert.match(indexHtml, /Social media links/);
   assert.match(indexHtml, /Fiscal sponsor \/ endowment \/ reserve fund/);
   assert.match(indexHtml, /Guiding principles/);
-  assert.match(indexHtml, /Board roster upload/);
-  assert.match(indexHtml, /CHA \/ CHIP upload/);
-  assert.match(indexHtml, /Balance sheet upload/);
-  assert.match(indexHtml, /Profit &amp; Loss Statement upload/);
-  assert.match(indexHtml, /Strategic Plan upload/);
-  assert.match(indexHtml, /Annual Report upload/);
+  assert.match(indexHtml, /Board roster/);
+  assert.match(indexHtml, /CHA \/ CHIP/);
+  assert.match(indexHtml, /Balance sheet/);
+  assert.match(indexHtml, /Profit &amp; Loss Statement/);
+  assert.match(indexHtml, /Strategic Plan/);
+  assert.match(indexHtml, /Annual Report/);
   assert.match(indexHtml, /name="boardRosterUrl" type="file"/);
+  assert.equal(indexHtml.includes("No file uploaded"), false);
   assert.equal(indexHtml.includes("Service area"), false);
   assert.equal(indexHtml.includes("Organization description / reusable copy"), false);
 });
@@ -144,11 +147,14 @@ test("grant modal captures application details, portal info, awards, reports, an
     "focusAreas",
     "recurrence",
     "contactName",
+    "contactEmail",
     "secondaryContactName",
     "secondaryContactEmail",
     "websiteUrl",
     "portalUrl",
-    "portalLoginNotes",
+    "portalLoginEmail",
+    "portalLoginPassword",
+    "amountRequested",
     "amountMin",
     "amountMax",
     "reportingRequirements",
@@ -163,9 +169,13 @@ test("grant modal captures application details, portal info, awards, reports, an
     assert.match(grantModal, new RegExp(`name="${field}"`));
   }
 
-  assert.match(grantModal, /Completed application upload/);
+  assert.match(grantModal, /Completed application/);
   assert.match(grantModal, /name="completedApplicationUrl" type="file"/);
   assert.match(grantModal, /<select name="recurrence">/);
+  assert.equal(grantModal.includes("Completed application upload"), false);
+  assert.equal(grantModal.includes("Portal login notes"), false);
+  assert.equal(grantModal.includes("Past grant notes"), false);
+  assert.equal(grantModal.includes("Do not store passwords here"), false);
   assert.equal(grantModal.includes("How often we can apply"), false);
   assert.equal(grantModal.includes("Contact role"), false);
   assert.equal(grantModal.includes("Contact phone"), false);
@@ -175,7 +185,18 @@ test("grant modal captures application details, portal info, awards, reports, an
   assert.match(appJs, /storagePath/);
   assert.match(appJs, /grantDocumentDisplayName/);
   assert.match(appJs, /await documentsFromFixedFields/);
+  assert.match(appJs, /function grantPreviewAmount/);
+  assert.match(appJs, /function grantPreviewDate/);
+  assert.match(appJs, /function grantHasUpcomingDeadline/);
+  assert.match(appJs, /grantPortalLoginEmail/);
+  assert.match(appJs, /grantPortalLoginPassword/);
   assert.match(grantModal, /<option value="Not A Good Fit">Not A Good Fit<\/option>/);
+});
+
+test("grant document uploads are backed by Firebase Storage rules", () => {
+  assert.match(firebaseJson, /"storage"\s*:\s*{\s*"rules"\s*:\s*"storage\.rules"\s*}/s);
+  assert.match(storageRules, /match \/grant-documents\/\{allPaths=\*\*\}/);
+  assert.equal(storageRules.includes("request.auth.token.email.matches('.*@snackprogram\\\\.org$')"), true);
 });
 
 test("grants index stays compact with profile and answer modals", () => {

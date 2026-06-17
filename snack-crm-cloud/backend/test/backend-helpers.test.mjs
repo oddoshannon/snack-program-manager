@@ -286,6 +286,9 @@ test("cleanGrantPayload normalizes grant tracker details and document links", ()
     contactName: " Primary Contact ",
     secondaryContactName: " Second Contact ",
     secondaryContactEmail: " second@example.org ",
+    portalLoginEmail: " grants@example.org ",
+    portalLoginPassword: " pass phrase ",
+    amountRequested: "9000",
     amountMin: "5000",
     amountMax: " 15000 ",
     pastGrantReceived: "checked",
@@ -303,6 +306,9 @@ test("cleanGrantPayload normalizes grant tracker details and document links", ()
   assert.equal(payload.contactName, "Primary Contact");
   assert.equal(payload.secondaryContactName, "Second Contact");
   assert.equal(payload.secondaryContactEmail, "second@example.org");
+  assert.equal(payload.portalLoginEmail, "grants@example.org");
+  assert.equal(payload.portalLoginPassword, "pass phrase");
+  assert.equal(payload.amountRequested, 9000);
   assert.equal(payload.amountMin, 5000);
   assert.equal(payload.amountMax, 15000);
   assert.equal(payload.pastGrantReceived, true);

@@ -378,54 +378,54 @@
                   </label>
                   <div class="grant-form-grid">
                     <label>
-                      Board roster upload
+                      Board roster
                       <input name="boardRosterUrl" type="file">
-                      <span class="grant-upload-status" data-document-status-for="boardRosterUrl">No file uploaded</span>
+                      <span class="grant-upload-status" data-document-status-for="boardRosterUrl"></span>
                     </label>
                     <label>
-                      DEI statement upload
+                      DEI statement
                       <input name="deiStatementUrl" type="file">
-                      <span class="grant-upload-status" data-document-status-for="deiStatementUrl">No file uploaded</span>
+                      <span class="grant-upload-status" data-document-status-for="deiStatementUrl"></span>
                     </label>
                     <label>
-                      Youth Protection Policy upload
+                      Youth Protection Policy
                       <input name="youthProtectionPolicyUrl" type="file">
-                      <span class="grant-upload-status" data-document-status-for="youthProtectionPolicyUrl">No file uploaded</span>
+                      <span class="grant-upload-status" data-document-status-for="youthProtectionPolicyUrl"></span>
                     </label>
                     <label>
-                      Data sheets upload
+                      Data sheets
                       <input name="dataSheetUrl" type="file">
-                      <span class="grant-upload-status" data-document-status-for="dataSheetUrl">No file uploaded</span>
+                      <span class="grant-upload-status" data-document-status-for="dataSheetUrl"></span>
                     </label>
                     <label>
-                      CHA / CHIP upload
+                      CHA / CHIP
                       <input name="chaChipUrl" type="file">
-                      <span class="grant-upload-status" data-document-status-for="chaChipUrl">No file uploaded</span>
+                      <span class="grant-upload-status" data-document-status-for="chaChipUrl"></span>
                     </label>
                     <label>
-                      Balance sheet upload
+                      Balance sheet
                       <input name="balanceSheetUrl" type="file">
-                      <span class="grant-upload-status" data-document-status-for="balanceSheetUrl">No file uploaded</span>
+                      <span class="grant-upload-status" data-document-status-for="balanceSheetUrl"></span>
                     </label>
                     <label>
-                      Profit &amp; Loss Statement upload
+                      Profit &amp; Loss Statement
                       <input name="profitLossStatementUrl" type="file">
-                      <span class="grant-upload-status" data-document-status-for="profitLossStatementUrl">No file uploaded</span>
+                      <span class="grant-upload-status" data-document-status-for="profitLossStatementUrl"></span>
                     </label>
                     <label>
-                      Annual Budget upload
+                      Annual Budget
                       <input name="annualBudgetDocumentUrl" type="file">
-                      <span class="grant-upload-status" data-document-status-for="annualBudgetDocumentUrl">No file uploaded</span>
+                      <span class="grant-upload-status" data-document-status-for="annualBudgetDocumentUrl"></span>
                     </label>
                     <label>
-                      Strategic Plan upload
+                      Strategic Plan
                       <input name="strategicPlanUrl" type="file">
-                      <span class="grant-upload-status" data-document-status-for="strategicPlanUrl">No file uploaded</span>
+                      <span class="grant-upload-status" data-document-status-for="strategicPlanUrl"></span>
                     </label>
                     <label>
-                      Annual Report upload
+                      Annual Report
                       <input name="annualReportUrl" type="file">
-                      <span class="grant-upload-status" data-document-status-for="annualReportUrl">No file uploaded</span>
+                      <span class="grant-upload-status" data-document-status-for="annualReportUrl"></span>
                     </label>
                   </div>
                   <label>
@@ -499,7 +499,7 @@
         <div id="grant-modal" class="modal-backdrop" hidden>
           <section class="modal-card grants-modal-card" role="dialog" aria-modal="true" aria-label="Grant application">
             <div id="grant-detail" class="grant-detail" hidden></div>
-            <form id="grant-form" class="referral-form grant-form">
+            <form id="grant-form" class="referral-form grant-form" novalidate>
               <div class="client-profile-topbar">
                 <div>
                   <p class="eyebrow">Grant</p>
@@ -555,6 +555,10 @@
                       <input name="awardExpectedDate" type="date">
                     </label>
                     <label>
+                      Amount requested
+                      <input name="amountRequested" type="number" min="0" step="1">
+                    </label>
+                    <label>
                       Grant range min
                       <input name="amountMin" type="number" min="0" step="1">
                     </label>
@@ -590,30 +594,17 @@
                       <input name="previousAwardDate" type="date">
                     </label>
                   </div>
-                  <div class="idea-list grant-edit-left-list">
-                    <section class="idea-card profile-detail-card grant-edit-card" style="--idea-accent: var(--brand-blue);">
-                      <strong>Reporting</strong>
-                      <label>
-                        Reporting requirements
-                        <textarea name="reportingRequirements" rows="4"></textarea>
-                      </label>
-                    </section>
-
-                    <section class="idea-card profile-detail-card grant-edit-card" style="--idea-accent: var(--brand-orange);">
-                      <strong>Notes</strong>
-                      <label>
-                        Grant notes
-                        <textarea name="notes" rows="4"></textarea>
-                      </label>
-                      <label>
-                        Past grant notes
-                        <textarea name="pastGrantNotes" rows="2"></textarea>
-                      </label>
-                    </section>
-                  </div>
                 </section>
 
                 <div class="idea-list grant-edit-detail-list">
+                  <section class="idea-card profile-detail-card grant-edit-card" style="--idea-accent: var(--brand-green);">
+                    <strong>Focus</strong>
+                    <label>
+                      Funding focus areas
+                      <textarea name="focusAreas" rows="5"></textarea>
+                    </label>
+                  </section>
+
                   <section class="idea-card profile-detail-card grant-edit-card" style="--idea-accent: var(--brand-teal);">
                     <strong>Contact and Portal</strong>
                     <div class="grant-form-grid">
@@ -627,32 +618,36 @@
                       </label>
                       <label>
                         Contact email
-                        <input name="contactEmail" type="email">
+                        <input name="contactEmail">
                       </label>
                       <label>
                         Secondary contact email
-                        <input name="secondaryContactEmail" type="email">
+                        <input name="secondaryContactEmail">
                       </label>
                       <label>
                         Website
-                        <input name="websiteUrl" type="url" placeholder="https://">
+                        <input name="websiteUrl" placeholder="https://">
                       </label>
                       <label>
                         Portal link
-                        <input name="portalUrl" type="url" placeholder="https://">
+                        <input name="portalUrl" placeholder="https://">
+                      </label>
+                      <label>
+                        Portal login email
+                        <input name="portalLoginEmail">
+                      </label>
+                      <label>
+                        Portal login password
+                        <input name="portalLoginPassword" type="password" autocomplete="off">
                       </label>
                     </div>
-                    <label>
-                      Portal login notes
-                      <textarea name="portalLoginNotes" rows="4" placeholder="Do not store passwords here unless you intend staff with access to see them."></textarea>
-                    </label>
                   </section>
 
-                  <section class="idea-card profile-detail-card grant-edit-card" style="--idea-accent: var(--brand-green);">
-                    <strong>Focus</strong>
+                  <section class="idea-card profile-detail-card grant-edit-card" style="--idea-accent: var(--brand-blue);">
+                    <strong>Reporting</strong>
                     <label>
-                      Funding focus areas
-                      <textarea name="focusAreas" rows="5"></textarea>
+                      Reporting requirements
+                      <textarea name="reportingRequirements" rows="4"></textarea>
                     </label>
                   </section>
 
@@ -660,29 +655,29 @@
                     <strong>Documents</strong>
                     <div class="grant-form-grid">
                       <label>
-                        Completed application upload
+                        Completed application
                         <input name="completedApplicationUrl" type="file">
-                        <span class="grant-upload-status" data-document-status-for="completedApplicationUrl">No file uploaded</span>
+                        <span class="grant-upload-status" data-document-status-for="completedApplicationUrl"></span>
                       </label>
                       <label>
-                        Grant agreement upload
+                        Grant agreement
                         <input name="grantAgreementUrl" type="file">
-                        <span class="grant-upload-status" data-document-status-for="grantAgreementUrl">No file uploaded</span>
+                        <span class="grant-upload-status" data-document-status-for="grantAgreementUrl"></span>
                       </label>
                       <label>
-                        Budget upload
+                        Budget
                         <input name="budgetUrl" type="file">
-                        <span class="grant-upload-status" data-document-status-for="budgetUrl">No file uploaded</span>
+                        <span class="grant-upload-status" data-document-status-for="budgetUrl"></span>
                       </label>
                       <label>
-                        Final report upload
+                        Final report
                         <input name="finalReportUrl" type="file">
-                        <span class="grant-upload-status" data-document-status-for="finalReportUrl">No file uploaded</span>
+                        <span class="grant-upload-status" data-document-status-for="finalReportUrl"></span>
                       </label>
                       <label>
-                        Branding / logo / press info upload
+                        Branding / logo / press info
                         <input name="brandingUrl" type="file">
-                        <span class="grant-upload-status" data-document-status-for="brandingUrl">No file uploaded</span>
+                        <span class="grant-upload-status" data-document-status-for="brandingUrl"></span>
                       </label>
                     </div>
                     <label>
@@ -692,6 +687,14 @@
                     <label>
                       Branding notes
                       <textarea name="brandingNotes" rows="2"></textarea>
+                    </label>
+                  </section>
+
+                  <section class="idea-card profile-detail-card grant-edit-card" style="--idea-accent: var(--brand-orange);">
+                    <strong>Notes</strong>
+                    <label>
+                      Grant notes
+                      <textarea name="notes" rows="4"></textarea>
                     </label>
                   </section>
                 </div>
@@ -2146,6 +2149,6 @@
       <button id="task-undo-button" class="secondary-button" type="button">Undo</button>
     </div>
     <script src="./app-config.js"></script>
-    <script type="module" src="./app.js?v=20260617-grant-card-meta"></script>
+    <script type="module" src="./app.js?v=20260617-grant-edit-profile"></script>
   </body>
 </html>
