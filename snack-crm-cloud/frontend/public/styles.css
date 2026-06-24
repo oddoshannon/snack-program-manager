@@ -750,6 +750,78 @@ h4 {
   font-weight: 700;
 }
 
+.data-tools-view {
+  display: grid;
+  gap: 16px;
+}
+
+.data-tools-card {
+  display: grid;
+  gap: 12px;
+}
+
+.data-tools-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.data-tool-card {
+  --data-tool-accent: var(--brand-green);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--data-tool-accent);
+  border-radius: 8px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.data-tool-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.data-tool-copy h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.data-tool-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.data-tool-count {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+.data-tool-count strong {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.data-tool-count span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.data-tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
 .dashboard-legend {
   display: flex;
   flex-wrap: wrap;
@@ -4985,6 +5057,7 @@ dd {
   .grant-form-grid,
   .grant-org-form > .grant-form-grid,
   .grant-fact-grid,
+  .data-tools-list,
   .kpi-layout,
   .work-plan-list {
     grid-template-columns: 1fr;

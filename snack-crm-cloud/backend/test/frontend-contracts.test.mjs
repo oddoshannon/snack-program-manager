@@ -11,6 +11,7 @@ const stylesCss = await readFile(new URL("styles.css", publicDir), "utf8");
 const appConfigJs = await readFile(new URL("app-config.js", publicDir), "utf8");
 const firebaseJson = await readFile(new URL("../../firebase.json", import.meta.url), "utf8");
 const storageRules = await readFile(new URL("../../storage.rules", import.meta.url), "utf8");
+const serverJs = await readFile(new URL("../server.js", import.meta.url), "utf8");
 
 function assertInOrder(source, values) {
   let cursor = -1;
@@ -62,6 +63,39 @@ test("admin settings surface current scheduling rules", () => {
   assert.match(indexHtml, /15 minutes/);
   assert.match(indexHtml, /45 minutes for 3\+ clients/);
   assert.match(stylesCss, /\.admin-settings-list/);
+});
+
+test("admin data tools centralize operational import export and deletion", () => {
+  assertInOrder(indexHtml, [
+    'id="admin-tab-settings"',
+    'id="admin-tab-data-tools"',
+    'id="admin-tab-kpi"',
+    'id="admin-tab-work-plan"'
+  ]);
+  assert.match(indexHtml, /id="admin-data-tools-view"/);
+  assert.match(indexHtml, /id="data-tools-list"/);
+  assert.match(indexHtml, /id="refresh-data-tools"/);
+  assert.match(indexHtml, /id="appointment-csv-input"/);
+  assert.match(indexHtml, /id="appointment-import-modal"/);
+  assert.match(indexHtml, /id="confirm-appointment-import"/);
+  assert.match(appJs, /const adminDataToolDefinitions = \[/);
+  assert.match(appJs, /key: "referrals"/);
+  assert.match(appJs, /key: "clients"/);
+  assert.match(appJs, /key: "referral-network"/);
+  assert.match(appJs, /key: "appointments"/);
+  assert.match(appJs, /key: "tasks"/);
+  assert.match(appJs, /key: "activity-logs"/);
+  assert.match(appJs, /DELETE TEST DATA/);
+  assert.match(appJs, /\/api\/admin\/data-counts/);
+  assert.match(appJs, /\/api\/admin\/bulk-delete/);
+  assert.match(appJs, /\/api\/appointments\/import/);
+  assert.match(stylesCss, /\.data-tools-list/);
+  assert.match(stylesCss, /\.data-tool-card/);
+  assert.match(serverJs, /app\.get\("\/api\/admin\/data-counts"/);
+  assert.match(serverJs, /app\.get\("\/api\/admin\/export\/:collectionKey"/);
+  assert.match(serverJs, /app\.post\("\/api\/admin\/bulk-delete"/);
+  assert.match(serverJs, /app\.post\("\/api\/appointments\/import"/);
+  assert.match(serverJs, /confirmation !== "DELETE TEST DATA"/);
 });
 
 test("admin KPI and Work Plan tabs expose 2026 targets and quarterly actions", () => {

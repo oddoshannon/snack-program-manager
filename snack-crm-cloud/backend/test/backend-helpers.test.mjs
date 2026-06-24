@@ -49,6 +49,7 @@ import {
   publicBookingValidationError,
   publicSlotValuesForDate,
   referralSourceFromRecord,
+  resolveAppointmentImportClients,
   schedulingWindowEndLabel,
   schedulingWindowError,
   startDayTaskIntent,
@@ -473,6 +474,28 @@ test("cleanAppointmentPayload supports CSV-like client fields and public duratio
   assert.equal(payload.appointmentTime, "14:15");
   assert.equal(payload.durationMinutes, 15);
   assert.equal(payload.publicBookingServiceId, "sibling-enrollment");
+});
+
+test("resolveAppointmentImportClients matches CSV client names to existing clients", async () => {
+  const payload = cleanAppointmentPayload({
+    clientName: "Andi Jo Smith",
+    appointmentDate: "2026-06-10",
+    appointmentTime: "2:15 PM"
+  });
+  const clientsByName = new Map([
+    [normalizedLookupKey("Andi Jo Smith"), {
+      id: "client-1",
+      firstName: "Andi Jo",
+      lastName: "Smith"
+    }]
+  ]);
+
+  const error = await resolveAppointmentImportClients(payload, clientsByName);
+
+  assert.equal(error, "");
+  assert.deepEqual(payload.clientIds, ["client-1"]);
+  assert.equal(payload.clientId, "client-1");
+  assert.deepEqual(payload.clientNames, ["Andi Jo Smith"]);
 });
 
 test("cleanTaskPayload normalizes task defaults", () => {

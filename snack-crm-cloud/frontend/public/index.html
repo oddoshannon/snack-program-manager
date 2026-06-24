@@ -80,6 +80,7 @@
         <section id="dashboard-panel" class="referrals-panel dashboard-panel" aria-labelledby="dashboard-title" hidden>
           <div class="module-tabs admin-tabs" role="tablist" aria-label="Admin views">
             <button id="admin-tab-settings" class="module-tab active" type="button" role="tab" aria-selected="true">Settings</button>
+            <button id="admin-tab-data-tools" class="module-tab" type="button" role="tab" aria-selected="false">Data Tools</button>
             <button id="admin-tab-kpi" class="module-tab" type="button" role="tab" aria-selected="false">KPI</button>
             <button id="admin-tab-work-plan" class="module-tab" type="button" role="tab" aria-selected="false">Work Plan</button>
           </div>
@@ -197,6 +198,20 @@
               </div>
             </section>
             </div>
+          </section>
+
+          <section id="admin-data-tools-view" class="admin-view data-tools-view" hidden>
+            <section class="dashboard-card data-tools-card" aria-labelledby="admin-data-tools-title">
+              <div class="dashboard-card-header">
+                <div>
+                  <h3 id="admin-data-tools-title">Data Tools</h3>
+                </div>
+                <button id="refresh-data-tools" class="secondary-button compact-button" type="button">Refresh Counts</button>
+              </div>
+              <div id="data-tools-list" class="data-tools-list"></div>
+              <p id="data-tools-status" class="status" aria-live="polite"></p>
+              <input id="appointment-csv-input" type="file" accept=".csv,text/csv" hidden>
+            </section>
           </section>
 
           <section id="admin-kpi-view" class="admin-view kpi-view" hidden>
@@ -1672,6 +1687,24 @@
         </div>
         <div id="network-import-detail" class="import-preview-detail">
           <p class="empty-state">Choose a Zoho providers CSV to preview it here.</p>
+        </div>
+      </section>
+    </div>
+
+    <div id="appointment-import-modal" class="modal-backdrop" hidden>
+      <section class="modal-card import-modal-card" role="dialog" aria-modal="true" aria-label="Appointment import preview">
+        <div class="detail-heading">
+          <div>
+            <p class="eyebrow">Appointment Import</p>
+            <h3>CSV Preview</h3>
+          </div>
+          <div class="form-actions">
+            <button id="confirm-appointment-import" type="button" hidden>Import Appointments</button>
+            <button id="close-appointment-import" class="secondary-button" type="button">Close</button>
+          </div>
+        </div>
+        <div id="appointment-import-detail" class="import-preview-detail">
+          <p class="empty-state">Choose an appointment CSV from Admin Data Tools to preview it here.</p>
         </div>
       </section>
     </div>

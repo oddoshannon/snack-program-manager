@@ -146,6 +146,14 @@ const activityLogs = firestore.collection("activityLogs");
 const grants = firestore.collection("grants");
 const grantQuestions = firestore.collection("grantQuestions");
 const adminSettings = firestore.collection("adminSettings");
+const adminDataCollections = {
+  referrals: { label: "Referrals", collection: referrals, serializer: toReferral },
+  clients: { label: "Clients", collection: clients, serializer: toClient },
+  "referral-network": { label: "Referral Network", collection: referralNetwork, serializer: toReferralNetworkEntry },
+  appointments: { label: "Appointments", collection: appointments, serializer: toAppointment },
+  tasks: { label: "Tasks", collection: tasks, serializer: toTask },
+  "activity-logs": { label: "Activity Logs", collection: activityLogs, serializer: toActivityLog }
+};
 const firebaseJwtKeys = createRemoteJWKSet(
   new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
 );
@@ -158,6 +166,39 @@ app.use(
   })
 );
 app.use(express.json());
+
+async function collectionCount(collectionRef) {
+  if (typeof collectionRef.count === "function") {
+    const snapshot = await collectionRef.count().get();
+    return snapshot.data().count || 0;
+  }
+
+  const snapshot = await collectionRef.get();
+  return snapshot.size;
+}
+
+async function deleteCollectionDocuments(collectionRef) {
+  let deletedCount = 0;
+
+  while (true) {
+    const snapshot = await collectionRef.limit(450).get();
+
+    if (snapshot.empty) {
+      break;
+    }
+
+    const batch = firestore.batch();
+    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+    deletedCount += snapshot.size;
+
+    if (snapshot.size < 450) {
+      break;
+    }
+  }
+
+  return deletedCount;
+}
 
 async function requireAuth(request, response, next) {
   const authHeader = request.get("Authorization") || "";
@@ -903,6 +944,47 @@ function cleanAppointmentPayload(body) {
   }
 
   return payload;
+}
+
+async function resolveAppointmentImportClients(payload, clientsByName) {
+  if (payload.clientIds.length) {
+    if (!payload.clientNames.length) {
+      const clientNames = [];
+      for (const clientId of payload.clientIds) {
+        const clientSnapshot = await clients.doc(clientId).get();
+        if (clientSnapshot.exists) {
+          const client = toClient(clientSnapshot);
+          clientNames.push(`${client.firstName || ""} ${client.lastName || ""}`.trim());
+        }
+      }
+      payload.clientNames = clientNames;
+      payload.clientName = clientNames[0] || "";
+    }
+    return "";
+  }
+
+  if (!payload.clientNames.length) {
+    return "Client name or client ID is required.";
+  }
+
+  const matchedClients = [];
+
+  for (const name of payload.clientNames) {
+    const match = clientsByName.get(normalizedLookupKey(name));
+
+    if (!match) {
+      return `No client match found for ${name}.`;
+    }
+
+    matchedClients.push(match);
+  }
+
+  payload.clientIds = matchedClients.map((client) => client.id);
+  payload.clientId = payload.clientIds[0] || "";
+  payload.clientNames = matchedClients.map((client) => `${client.firstName || ""} ${client.lastName || ""}`.trim()).filter(Boolean);
+  payload.clientName = payload.clientNames[0] || "";
+
+  return "";
 }
 
 function normalizeAppointmentTimeValue(value) {
@@ -1665,6 +1747,92 @@ app.get("/api/message", requireAuth, async (_request, response, next) => {
   }
 });
 
+app.get("/api/admin/data-counts", requireAuth, async (_request, response, next) => {
+  try {
+    const counts = {};
+
+    for (const [key, config] of Object.entries(adminDataCollections)) {
+      counts[key] = await collectionCount(config.collection);
+    }
+
+    response.json({ counts });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/admin/export/:collectionKey", requireAuth, async (request, response, next) => {
+  try {
+    const collectionKey = cleanString(request.params.collectionKey);
+    const config = adminDataCollections[collectionKey];
+
+    if (!config) {
+      response.status(400).json({
+        error: "Data collection is not available for export."
+      });
+      return;
+    }
+
+    const snapshot = await config.collection.limit(2000).get();
+
+    response.json({
+      collection: collectionKey,
+      label: config.label,
+      exportedAt: new Date().toISOString(),
+      records: snapshot.docs.map(config.serializer)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/admin/bulk-delete", requireAuth, async (request, response, next) => {
+  try {
+    const collectionKeys = Array.isArray(request.body.collections)
+      ? request.body.collections.map(cleanString).filter(Boolean)
+      : [];
+    const confirmation = cleanString(request.body.confirmation);
+    const uniqueCollectionKeys = [...new Set(collectionKeys)];
+
+    if (confirmation !== "DELETE TEST DATA") {
+      response.status(400).json({
+        error: "Type DELETE TEST DATA to confirm this reset."
+      });
+      return;
+    }
+
+    if (!uniqueCollectionKeys.length) {
+      response.status(400).json({
+        error: "Choose at least one data collection to delete."
+      });
+      return;
+    }
+
+    const invalidCollection = uniqueCollectionKeys.find((key) => !adminDataCollections[key]);
+
+    if (invalidCollection) {
+      response.status(400).json({
+        error: "One or more data collections cannot be deleted from this tool."
+      });
+      return;
+    }
+
+    const deleted = {};
+
+    for (const key of uniqueCollectionKeys) {
+      deleted[key] = await deleteCollectionDocuments(adminDataCollections[key].collection);
+    }
+
+    response.json({
+      deleted,
+      deletedAt: new Date().toISOString(),
+      deletedBy: request.user.email
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/api/referrals", requireAuth, async (_request, response, next) => {
   try {
     const snapshot = await referrals.orderBy("createdAt", "desc").limit(200).get();
@@ -1754,6 +1922,97 @@ app.post("/api/appointments", requireAuth, async (request, response, next) => {
     response.status(201).json({
       appointment: toAppointment(created),
       completedRescheduleTasks
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/appointments/import", requireAuth, async (request, response, next) => {
+  try {
+    const appointmentRows = Array.isArray(request.body.appointments) ? request.body.appointments : [];
+
+    if (!appointmentRows.length) {
+      response.status(400).json({
+        error: "No appointments were provided for import."
+      });
+      return;
+    }
+
+    if (appointmentRows.length > 450) {
+      response.status(400).json({
+        error: "Import is limited to 450 appointments at a time."
+      });
+      return;
+    }
+
+    const clientSnapshot = await clients.limit(1000).get();
+    const clientsByName = new Map();
+
+    clientSnapshot.docs.forEach((doc) => {
+      const client = toClient(doc);
+      const key = normalizedLookupKey(`${client.firstName || ""} ${client.lastName || ""}`);
+      if (key && !clientsByName.has(key)) {
+        clientsByName.set(key, client);
+      }
+    });
+
+    const now = new Date().toISOString();
+    const batch = firestore.batch();
+    const skipped = [];
+    let importedCount = 0;
+
+    for (const [index, row] of appointmentRows.entries()) {
+      const payload = cleanAppointmentPayload(row);
+      const rowNumber = Number(row.rowNumber) || index + 1;
+
+      const clientError = await resolveAppointmentImportClients(payload, clientsByName);
+
+      if (clientError || !payload.appointmentDate || !payload.appointmentTime) {
+        skipped.push({
+          rowNumber,
+          reason: clientError || "Appointment date and time are required."
+        });
+        continue;
+      }
+
+      if (!appointmentFitsSchedulingWindow(payload)) {
+        skipped.push({
+          rowNumber,
+          reason: schedulingWindowError(payload)
+        });
+        continue;
+      }
+
+      const conflict = await findAppointmentConflict(payload);
+
+      if (conflict) {
+        skipped.push({
+          rowNumber,
+          reason: `Overlaps ${conflict.clientName || "another appointment"} at ${formatAppointmentTimeValue(conflict.appointmentTime)}.`
+        });
+        continue;
+      }
+
+      const docRef = appointments.doc();
+      batch.set(docRef, {
+        ...payload,
+        importedFrom: cleanString(row.importSource) || "Appointments CSV",
+        importedAt: now,
+        createdAt: now,
+        updatedAt: now,
+        createdBy: request.user.email
+      });
+      importedCount += 1;
+    }
+
+    if (importedCount) {
+      await batch.commit();
+    }
+
+    response.status(201).json({
+      importedCount,
+      skipped
     });
   } catch (error) {
     next(error);
@@ -3787,6 +4046,7 @@ export {
   publicBookingValidationError,
   publicSlotValuesForDate,
   referralSourceFromRecord,
+  resolveAppointmentImportClients,
   schedulingWindowEndLabel,
   schedulingWindowError,
   startDayTaskIntent,

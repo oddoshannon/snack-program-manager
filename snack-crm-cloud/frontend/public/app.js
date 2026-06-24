@@ -50,11 +50,17 @@ const dashboardAttention = document.querySelector("#dashboard-attention");
 const dashboardWorkflow = document.querySelector("#dashboard-workflow");
 const dashboardTitle = document.querySelector("#dashboard-title");
 const adminTabSettingsButton = document.querySelector("#admin-tab-settings");
+const adminTabDataToolsButton = document.querySelector("#admin-tab-data-tools");
 const adminTabKpiButton = document.querySelector("#admin-tab-kpi");
 const adminTabWorkPlanButton = document.querySelector("#admin-tab-work-plan");
 const adminSettingsView = document.querySelector("#admin-settings-view");
+const adminDataToolsView = document.querySelector("#admin-data-tools-view");
 const adminKpiView = document.querySelector("#admin-kpi-view");
 const adminWorkPlanView = document.querySelector("#admin-work-plan-view");
+const dataToolsList = document.querySelector("#data-tools-list");
+const dataToolsStatusEl = document.querySelector("#data-tools-status");
+const refreshDataToolsButton = document.querySelector("#refresh-data-tools");
+const appointmentCsvInput = document.querySelector("#appointment-csv-input");
 const fundraisingTitle = document.querySelector("#fundraising-title");
 const fundraisingTabGrantsButton = document.querySelector("#fundraising-tab-grants");
 const fundraisingTabSalesButton = document.querySelector("#fundraising-tab-sales");
@@ -177,6 +183,10 @@ const networkImportModal = document.querySelector("#network-import-modal");
 const networkImportDetail = document.querySelector("#network-import-detail");
 const closeNetworkImportButton = document.querySelector("#close-network-import");
 const confirmNetworkImportButton = document.querySelector("#confirm-network-import");
+const appointmentImportModal = document.querySelector("#appointment-import-modal");
+const appointmentImportDetail = document.querySelector("#appointment-import-detail");
+const closeAppointmentImportButton = document.querySelector("#close-appointment-import");
+const confirmAppointmentImportButton = document.querySelector("#confirm-appointment-import");
 const outreachList = document.querySelector("#outreach-list");
 const outreachSummary = document.querySelector("#outreach-summary");
 const outreachEventFlowBoard = document.querySelector("#outreach-event-flow-board");
@@ -616,6 +626,55 @@ const columnOptionContainers = {
   referrals: referralColumnOptions,
   clients: clientColumnOptions
 };
+const adminDeleteConfirmationPhrase = "DELETE TEST DATA";
+const adminDataToolDefinitions = [
+  {
+    key: "referrals",
+    label: "Referrals",
+    detail: "CRM referrals",
+    accent: "var(--brand-red)",
+    getRecords: () => loadedReferrals,
+    onImport: () => referralCsvInput.click()
+  },
+  {
+    key: "clients",
+    label: "Clients",
+    detail: "Client profiles",
+    accent: "var(--brand-orange)",
+    getRecords: () => loadedClients,
+    onImport: () => clientCsvInput.click()
+  },
+  {
+    key: "referral-network",
+    label: "Referral Network",
+    detail: "Organizations and providers",
+    accent: "var(--brand-yellow)",
+    getRecords: () => loadedNetworkEntries,
+    onImport: () => networkCsvInput.click()
+  },
+  {
+    key: "appointments",
+    label: "Appointments",
+    detail: "Schedule records",
+    accent: "var(--brand-green)",
+    getRecords: () => loadedAppointments,
+    onImport: () => appointmentCsvInput.click()
+  },
+  {
+    key: "tasks",
+    label: "Tasks",
+    detail: "Workflow queue",
+    accent: "var(--brand-teal)",
+    getRecords: () => loadedTasks
+  },
+  {
+    key: "activity-logs",
+    label: "Activity Logs",
+    detail: "Calls, texts, and notes",
+    accent: "var(--brand-blue)",
+    getRecords: () => loadedActivityLogs
+  }
+];
 
 let currentUser = null;
 let editingReferralId = null;
@@ -657,6 +716,8 @@ let loadedGrantOrganizationInfo = null;
 let latestClientImportAnalysis = null;
 let latestReferralImportAnalysis = null;
 let latestNetworkImportAnalysis = null;
+let latestAppointmentImportAnalysis = null;
+let dataToolsCounts = null;
 const expandedNetworkEntryIds = new Set();
 let activeOutreachView = "dashboard";
 let activeAdminView = "settings";
@@ -1161,6 +1222,10 @@ function normalizePhoneKey(value) {
   return digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
 }
 
+function normalizedLookupKey(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 function displayValue(value) {
   return value === null || value === undefined || value === "" ? "-" : value;
 }
@@ -1324,7 +1389,7 @@ function loadNavigationState() {
       activeModule: validValue(savedModule, ["workflow", "scheduling", "crm", "outreach", "fundraising", "admin"], defaults.activeModule),
       activeCrmView: validValue(saved.activeCrmView, ["dashboard", "referrals", "clients", "referral-network"], defaults.activeCrmView),
       activeOutreachView: validValue(saved.activeOutreachView, ["dashboard", "events", "contacts"], defaults.activeOutreachView),
-      activeAdminView: validValue(saved.activeAdminView, ["settings", "kpi", "work-plan"], defaults.activeAdminView),
+      activeAdminView: validValue(saved.activeAdminView, ["settings", "data-tools", "kpi", "work-plan"], defaults.activeAdminView),
       activeFundraisingView: validValue(savedFundraisingView, ["grants", "sales", "individual-giving", "corporate-partnerships", "events"], defaults.activeFundraisingView),
       activeReferralView: validValue(saved.activeReferralView, ["list", "flow"], defaults.activeReferralView),
       activeClientView: validValue(saved.activeClientView, ["list", "flow"], defaults.activeClientView)
@@ -3131,6 +3196,177 @@ function renderAdminKpi() {
   renderProgramKpiDrafts();
 }
 
+function adminDataCount(definition) {
+  if (dataToolsCounts && Number.isFinite(Number(dataToolsCounts[definition.key]))) {
+    return Number(dataToolsCounts[definition.key]);
+  }
+
+  return definition.getRecords().length;
+}
+
+function renderAdminDataTools() {
+  clearElement(dataToolsList);
+
+  for (const definition of adminDataToolDefinitions) {
+    const card = document.createElement("article");
+    card.className = "data-tool-card";
+    card.style.setProperty("--data-tool-accent", definition.accent);
+
+    const copy = document.createElement("div");
+    copy.className = "data-tool-copy";
+    const title = document.createElement("h3");
+    title.textContent = definition.label;
+    const detail = document.createElement("p");
+    detail.textContent = definition.detail;
+    const count = document.createElement("strong");
+    count.textContent = String(adminDataCount(definition));
+    const countLabel = document.createElement("span");
+    countLabel.textContent = "records";
+    copy.append(title, detail);
+
+    const countWrap = document.createElement("div");
+    countWrap.className = "data-tool-count";
+    countWrap.append(count, countLabel);
+
+    const actions = document.createElement("div");
+    actions.className = "data-tool-actions";
+
+    if (definition.onImport) {
+      const importButton = document.createElement("button");
+      importButton.className = "secondary-button compact-button";
+      importButton.type = "button";
+      importButton.textContent = "Import CSV";
+      importButton.addEventListener("click", definition.onImport);
+      actions.append(importButton);
+    }
+
+    const exportButton = document.createElement("button");
+    exportButton.className = "secondary-button compact-button";
+    exportButton.type = "button";
+    exportButton.textContent = "Export JSON";
+    exportButton.addEventListener("click", () => exportAdminData(definition));
+
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "danger-button compact-button";
+    deleteButton.type = "button";
+    deleteButton.textContent = "Delete All";
+    deleteButton.addEventListener("click", () => deleteAdminDataCollection(definition));
+
+    actions.append(exportButton, deleteButton);
+    card.append(copy, countWrap, actions);
+    dataToolsList.append(card);
+  }
+}
+
+async function loadDataToolsCounts() {
+  if (!currentUser) {
+    return;
+  }
+
+  refreshDataToolsButton.disabled = true;
+  dataToolsStatusEl.textContent = "Refreshing counts...";
+
+  try {
+    const response = await authedFetch("/api/admin/data-counts");
+
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    dataToolsCounts = data.counts || {};
+    renderAdminDataTools();
+    dataToolsStatusEl.textContent = "Counts refreshed.";
+  } catch (error) {
+    dataToolsStatusEl.textContent = "Could not refresh counts.";
+    console.error(error);
+  } finally {
+    refreshDataToolsButton.disabled = false;
+  }
+}
+
+function downloadJsonFile(fileName, data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function exportAdminData(definition) {
+  dataToolsStatusEl.textContent = `Exporting ${definition.label.toLowerCase()}...`;
+
+  try {
+    const response = await authedFetch(`/api/admin/export/${definition.key}`);
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    const date = todayDateString();
+    downloadJsonFile(`snack-${definition.key}-${date}.json`, data);
+    dataToolsStatusEl.textContent = `Exported ${definition.label.toLowerCase()}.`;
+  } catch (error) {
+    dataToolsStatusEl.textContent = error.message || `Could not export ${definition.label.toLowerCase()}.`;
+    console.error(error);
+  }
+}
+
+async function reloadOperationalData() {
+  await Promise.all([
+    loadReferrals(),
+    loadClients(),
+    loadReferralNetwork(),
+    loadAppointments(),
+    loadTasks(),
+    loadActivityLogs()
+  ]);
+}
+
+async function deleteAdminDataCollection(definition) {
+  const recordCount = adminDataCount(definition);
+  const confirmation = window.prompt(
+    `Delete all ${definition.label.toLowerCase()} (${recordCount} records)? Type ${adminDeleteConfirmationPhrase} to confirm.`
+  );
+
+  if (confirmation !== adminDeleteConfirmationPhrase) {
+    dataToolsStatusEl.textContent = "Delete canceled.";
+    return;
+  }
+
+  dataToolsStatusEl.textContent = `Deleting ${definition.label.toLowerCase()}...`;
+
+  try {
+    const response = await authedFetch("/api/admin/bulk-delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        collections: [definition.key],
+        confirmation
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `API returned ${response.status}`);
+    }
+
+    const result = await response.json();
+    await reloadOperationalData();
+    await loadDataToolsCounts();
+    dataToolsStatusEl.textContent = `Deleted ${result.deleted?.[definition.key] || 0} ${definition.label.toLowerCase()} records.`;
+  } catch (error) {
+    dataToolsStatusEl.textContent = error.message || `Could not delete ${definition.label.toLowerCase()}.`;
+    console.error(error);
+  }
+}
+
 function workPlanStatusClass(status) {
   return String(status || "")
     .toLowerCase()
@@ -3195,6 +3431,8 @@ function renderActiveAdminComputedViews() {
     renderAdminKpi();
   } else if (activeAdminView === "work-plan") {
     renderWorkPlan();
+  } else if (activeAdminView === "data-tools") {
+    renderAdminDataTools();
   }
 }
 
@@ -4552,6 +4790,7 @@ function setActiveModule(moduleName) {
   const showWorkflow = moduleName === "workflow";
   const showAdmin = moduleName === "admin";
   const showAdminSettings = showAdmin && activeAdminView === "settings";
+  const showAdminDataTools = showAdmin && activeAdminView === "data-tools";
   const showAdminKpi = showAdmin && activeAdminView === "kpi";
   const showAdminWorkPlan = showAdmin && activeAdminView === "work-plan";
   const showFundraising = moduleName === "fundraising";
@@ -4578,6 +4817,7 @@ function setActiveModule(moduleName) {
   outreachPanel.hidden = !showOutreach;
   schedulingPanel.hidden = !showScheduling;
   adminSettingsView.hidden = !showAdminSettings;
+  adminDataToolsView.hidden = !showAdminDataTools;
   adminKpiView.hidden = !showAdminKpi;
   adminWorkPlanView.hidden = !showAdminWorkPlan;
   fundraisingGrantsView.hidden = !showFundraisingGrants;
@@ -4586,7 +4826,7 @@ function setActiveModule(moduleName) {
   fundraisingCorporatePartnershipsView.hidden = !showFundraisingCorporatePartnerships;
   fundraisingEventsView.hidden = !showFundraisingEvents;
   fundraisingGrantsActions.hidden = !showFundraisingGrants;
-  dashboardTitle.textContent = showAdminKpi ? "KPI" : showAdminWorkPlan ? "Work Plan" : "Admin";
+  dashboardTitle.textContent = showAdminDataTools ? "Data Tools" : showAdminKpi ? "KPI" : showAdminWorkPlan ? "Work Plan" : "Admin";
   fundraisingTitle.textContent = showFundraisingSales ? "Sales"
     : showFundraisingIndividualGiving ? "Individual Giving"
       : showFundraisingCorporatePartnerships ? "Corporate Partnerships"
@@ -4609,6 +4849,7 @@ function setActiveModule(moduleName) {
   crmTabClientsButton.classList.toggle("active", showClients);
   crmTabReferralNetworkButton.classList.toggle("active", showReferralNetwork);
   adminTabSettingsButton.classList.toggle("active", showAdminSettings);
+  adminTabDataToolsButton.classList.toggle("active", showAdminDataTools);
   adminTabKpiButton.classList.toggle("active", showAdminKpi);
   adminTabWorkPlanButton.classList.toggle("active", showAdminWorkPlan);
   fundraisingTabGrantsButton.classList.toggle("active", showFundraisingGrants);
@@ -4621,6 +4862,7 @@ function setActiveModule(moduleName) {
   crmTabClientsButton.setAttribute("aria-selected", String(showClients));
   crmTabReferralNetworkButton.setAttribute("aria-selected", String(showReferralNetwork));
   adminTabSettingsButton.setAttribute("aria-selected", String(showAdminSettings));
+  adminTabDataToolsButton.setAttribute("aria-selected", String(showAdminDataTools));
   adminTabKpiButton.setAttribute("aria-selected", String(showAdminKpi));
   adminTabWorkPlanButton.setAttribute("aria-selected", String(showAdminWorkPlan));
   fundraisingTabGrantsButton.setAttribute("aria-selected", String(showFundraisingGrants));
@@ -4651,7 +4893,10 @@ function setActiveModule(moduleName) {
     closeNetworkModal();
     closeOutreachModal();
     closeAppointmentModal();
-    if (showAdminKpi) {
+    if (showAdminDataTools) {
+      renderAdminDataTools();
+      loadDataToolsCounts();
+    } else if (showAdminKpi) {
       renderAdminKpi();
     } else if (showAdminWorkPlan) {
       renderWorkPlan();
@@ -9085,6 +9330,88 @@ function analyzeNetworkImport(rows, columns) {
   };
 }
 
+function csvFirstValue(row, columnNames) {
+  for (const columnName of columnNames) {
+    const value = csvValue(row, columnName);
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return "";
+}
+
+function splitCsvList(value) {
+  return String(value || "")
+    .split(/;|\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function mapAppointmentImportRow(row, index) {
+  const clientIds = splitCsvList(csvFirstValue(row, ["Client IDs", "Client Ids", "Client ID", "ClientId", "clientIds", "clientId"]));
+  const clientNames = splitCsvList(csvFirstValue(row, ["Client Names", "Client Name", "Child Name", "Full Name", "Name", "Client"]));
+  const appointmentType = csvFirstValue(row, ["Appointment Type", "Type", "Service"]);
+  const lesson = csvFirstValue(row, ["Lesson", "Lesson Number"]);
+
+  return {
+    rowNumber: index + 2,
+    clientIds,
+    clientId: clientIds[0] || "",
+    clientNames,
+    clientName: clientNames[0] || "",
+    appointmentDate: normalizeCsvDate(csvFirstValue(row, ["Appointment Date", "Date", "Scheduled Date"])),
+    appointmentTime: csvFirstValue(row, ["Appointment Time", "Time", "Scheduled Time"]),
+    appointmentType,
+    durationMinutes: csvFirstValue(row, ["Duration", "Duration Minutes", "Minutes"]),
+    status: csvFirstValue(row, ["Status"]) || "Scheduled",
+    lesson,
+    goal: csvFirstValue(row, ["Goal", "Goals"]),
+    staffMember: csvFirstValue(row, ["Staff", "Staff Member", "Provider"]),
+    notes: csvFirstValue(row, ["Notes", "Note"]),
+    importSource: "Appointments CSV"
+  };
+}
+
+function analyzeAppointmentImport(rows, columns) {
+  const mapped = rows.map(mapAppointmentImportRow);
+  const clientLookup = new Set(loadedClients.map((client) => normalizedLookupKey(clientName(client))).filter(Boolean));
+  const missingRows = [];
+  const unmatchedRows = [];
+
+  for (const appointment of mapped) {
+    if ((!appointment.clientIds.length && !appointment.clientNames.length) || !appointment.appointmentDate || !appointment.appointmentTime) {
+      missingRows.push({
+        rowNumber: appointment.rowNumber,
+        reason: "Client, appointment date, and appointment time are required."
+      });
+      continue;
+    }
+
+    if (!appointment.clientIds.length) {
+      const missingName = appointment.clientNames.find((name) => !clientLookup.has(normalizedLookupKey(name)));
+
+      if (missingName) {
+        unmatchedRows.push({
+          rowNumber: appointment.rowNumber,
+          reason: `No current client named ${missingName}.`
+        });
+      }
+    }
+  }
+
+  const blockedRows = new Set([...missingRows, ...unmatchedRows].map((warning) => warning.rowNumber));
+
+  return {
+    columns,
+    appointments: mapped,
+    missingRows,
+    unmatchedRows,
+    importableAppointments: mapped.filter((appointment) => !blockedRows.has(appointment.rowNumber))
+  };
+}
+
 function appendImportSection(parent, titleText) {
   const section = document.createElement("section");
   section.className = "import-preview-section";
@@ -9373,6 +9700,75 @@ function renderNetworkImportPreview(analysis, fileName) {
   previewSection.append(previewTable);
 }
 
+function renderAppointmentImportPreview(analysis, fileName) {
+  appointmentImportDetail.innerHTML = "";
+  confirmAppointmentImportButton.hidden = false;
+  confirmAppointmentImportButton.disabled = !analysis.importableAppointments.length;
+  confirmAppointmentImportButton.textContent = `Import ${analysis.importableAppointments.length} Appointments`;
+
+  const summary = document.createElement("div");
+  summary.className = "import-summary-grid";
+  for (const [label, value] of [
+    ["File", fileName],
+    ["Total rows found", analysis.appointments.length],
+    ["Ready to import", analysis.importableAppointments.length],
+    ["Columns detected", analysis.columns.length],
+    ["Missing required rows", analysis.missingRows.length],
+    ["Unmatched clients", analysis.unmatchedRows.length]
+  ]) {
+    const item = document.createElement("div");
+    item.className = "summary-item import-summary-item";
+    const valueEl = document.createElement("strong");
+    valueEl.textContent = value;
+    const labelEl = document.createElement("span");
+    labelEl.textContent = label;
+    item.append(valueEl, labelEl);
+    summary.append(item);
+  }
+  appointmentImportDetail.append(summary);
+
+  const columnsSection = appendImportSection(appointmentImportDetail, "Columns Detected");
+  appendSimpleList(columnsSection, analysis.columns, "No columns detected.");
+
+  const missingSection = appendImportSection(appointmentImportDetail, "Rows With Missing Required Values");
+  appendSimpleList(
+    missingSection,
+    analysis.missingRows.map((warning) => `Row ${warning.rowNumber}: ${warning.reason}`),
+    "No missing required values found."
+  );
+
+  const unmatchedSection = appendImportSection(appointmentImportDetail, "Rows With Unmatched Clients");
+  appendSimpleList(
+    unmatchedSection,
+    analysis.unmatchedRows.map((warning) => `Row ${warning.rowNumber}: ${warning.reason}`),
+    "All named clients matched current client profiles."
+  );
+
+  const previewSection = appendImportSection(appointmentImportDetail, "Preview of First 10 Appointments");
+  const previewTable = document.createElement("div");
+  previewTable.className = "import-preview-table";
+  for (const header of ["Client", "Date", "Time", "Type", "Status", "Lesson"]) {
+    const cell = document.createElement("strong");
+    cell.textContent = header;
+    previewTable.append(cell);
+  }
+  for (const appointment of analysis.appointments.slice(0, 10)) {
+    for (const value of [
+      displayValue(appointment.clientNames.join(", ") || appointment.clientIds.join(", ")),
+      displayValue(appointment.appointmentDate),
+      displayValue(appointment.appointmentTime),
+      displayValue(appointment.appointmentType),
+      displayValue(appointment.status),
+      displayValue(appointment.lesson)
+    ]) {
+      const cell = document.createElement("span");
+      cell.textContent = value;
+      previewTable.append(cell);
+    }
+  }
+  previewSection.append(previewTable);
+}
+
 function openClientImportModal() {
   clientImportModal.hidden = false;
   document.body.classList.add("modal-open");
@@ -9400,6 +9796,16 @@ function openNetworkImportModal() {
 
 function closeNetworkImportModal() {
   networkImportModal.hidden = true;
+  document.body.classList.remove("modal-open");
+}
+
+function openAppointmentImportModal() {
+  appointmentImportModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeAppointmentImportModal() {
+  appointmentImportModal.hidden = true;
   document.body.classList.remove("modal-open");
 }
 
@@ -9468,6 +9874,9 @@ async function importPreviewedClients() {
     latestClientImportAnalysis = null;
     confirmClientImportButton.hidden = true;
     await loadClients();
+    if (activeAdminView === "data-tools") {
+      await loadDataToolsCounts();
+    }
     closeClientImportModal();
   } catch (error) {
     clientsStatusEl.textContent = error.message || "Could not import clients yet.";
@@ -9562,6 +9971,9 @@ async function importPreviewedReferrals() {
     latestReferralImportAnalysis = null;
     confirmReferralImportButton.hidden = true;
     await loadReferrals();
+    if (activeAdminView === "data-tools") {
+      await loadDataToolsCounts();
+    }
     closeReferralImportModal();
   } catch (error) {
     referralsStatusEl.textContent = error.message || "Could not import referrals yet.";
@@ -9653,6 +10065,9 @@ async function importPreviewedNetworkEntries() {
     latestNetworkImportAnalysis = null;
     confirmNetworkImportButton.hidden = true;
     await loadReferralNetwork();
+    if (activeAdminView === "data-tools") {
+      await loadDataToolsCounts();
+    }
     closeNetworkImportModal();
   } catch (error) {
     networkStatusEl.textContent = error.message || "Could not import providers yet.";
@@ -9699,6 +10114,97 @@ async function previewNetworkCsv(file) {
     console.error(error);
   } finally {
     networkCsvInput.value = "";
+  }
+}
+
+async function importPreviewedAppointments() {
+  if (!latestAppointmentImportAnalysis) {
+    dataToolsStatusEl.textContent = "Preview a CSV before importing appointments.";
+    return;
+  }
+
+  const appointmentsToImport = latestAppointmentImportAnalysis.importableAppointments;
+
+  if (!appointmentsToImport.length) {
+    dataToolsStatusEl.textContent = "No valid appointment rows are ready to import.";
+    return;
+  }
+
+  const confirmed = window.confirm(`Import ${appointmentsToImport.length} appointments now? Conflicts and out-of-window rows will be skipped.`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  confirmAppointmentImportButton.disabled = true;
+  dataToolsStatusEl.textContent = "Importing appointments...";
+
+  try {
+    const response = await authedFetch("/api/appointments/import", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ appointments: appointmentsToImport })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    const result = await response.json();
+    latestAppointmentImportAnalysis = null;
+    confirmAppointmentImportButton.hidden = true;
+    await loadAppointments();
+    await loadDataToolsCounts();
+    closeAppointmentImportModal();
+    dataToolsStatusEl.textContent = `Imported ${result.importedCount} appointments${result.skipped?.length ? `; skipped ${result.skipped.length}` : ""}.`;
+  } catch (error) {
+    dataToolsStatusEl.textContent = error.message || "Could not import appointments yet.";
+    console.error(error);
+  } finally {
+    confirmAppointmentImportButton.disabled = false;
+  }
+}
+
+async function previewAppointmentCsv(file) {
+  if (!file) {
+    return;
+  }
+
+  dataToolsStatusEl.textContent = `Previewing ${file.name}...`;
+
+  try {
+    const text = await file.text();
+    const parsed = parseCsv(text);
+
+    if (parsed.length < 2) {
+      throw new Error("The CSV does not contain any appointment rows.");
+    }
+
+    const columns = parsed[0].map((column) => column.trim());
+    const rows = parsed.slice(1).map((values) =>
+      Object.fromEntries(columns.map((column, index) => [column, values[index] || ""]))
+    );
+    const analysis = analyzeAppointmentImport(rows, columns);
+    latestAppointmentImportAnalysis = analysis;
+    renderAppointmentImportPreview(analysis, file.name);
+    openAppointmentImportModal();
+    dataToolsStatusEl.textContent = "Appointment import preview ready.";
+  } catch (error) {
+    latestAppointmentImportAnalysis = null;
+    confirmAppointmentImportButton.hidden = true;
+    dataToolsStatusEl.textContent = error.message || "Could not preview this CSV.";
+    appointmentImportDetail.innerHTML = "";
+    const message = document.createElement("p");
+    message.className = "empty-state";
+    message.textContent = error.message || "Could not preview this CSV.";
+    appointmentImportDetail.append(message);
+    openAppointmentImportModal();
+    console.error(error);
+  } finally {
+    appointmentCsvInput.value = "";
   }
 }
 
@@ -13054,6 +13560,7 @@ onAuthStateChanged(auth, (user) => {
     appointmentsStatusEl.textContent = "";
     tasksStatusEl.textContent = "";
     grantsStatusEl.textContent = "";
+    dataToolsStatusEl.textContent = "";
     referralsList.innerHTML = "";
     clientsList.innerHTML = "";
     networkList.innerHTML = "";
@@ -13074,6 +13581,7 @@ onAuthStateChanged(auth, (user) => {
     clearElement(revenueKpiTable);
     clearElement(workPlanSummary);
     clearElement(workPlanList);
+    clearElement(dataToolsList);
     clearElement(dashboardSummary);
     clearElement(dashboardFollowups);
     clearElement(dashboardNewReferrals);
@@ -13112,12 +13620,15 @@ onAuthStateChanged(auth, (user) => {
     loadedGrants = [];
     loadedGrantQuestions = [];
     loadedGrantOrganizationInfo = null;
+    dataToolsCounts = null;
+    latestAppointmentImportAnalysis = null;
     referralForm.reset();
     appointmentForm.reset();
     taskForm.reset();
     closeReferralModal();
     closeReferralImportModal();
     closeClientModal();
+    closeAppointmentImportModal();
     closeNetworkImportModal();
     closeNetworkModal();
     closeOutreachModal();
@@ -13149,6 +13660,7 @@ navOutreachButton.addEventListener("click", () => setActiveModule("outreach"));
 navFundraisingButton.addEventListener("click", () => setActiveModule("fundraising"));
 navSchedulingButton.addEventListener("click", () => setActiveModule("scheduling"));
 adminTabSettingsButton.addEventListener("click", () => setAdminView("settings"));
+adminTabDataToolsButton.addEventListener("click", () => setAdminView("data-tools"));
 adminTabKpiButton.addEventListener("click", () => setAdminView("kpi"));
 adminTabWorkPlanButton.addEventListener("click", () => setAdminView("work-plan"));
 fundraisingTabGrantsButton.addEventListener("click", () => setFundraisingView("grants"));
@@ -13180,6 +13692,9 @@ confirmClientImportButton.addEventListener("click", importPreviewedClients);
 importNetworkButton.addEventListener("click", () => networkCsvInput.click());
 networkCsvInput.addEventListener("change", () => previewNetworkCsv(networkCsvInput.files?.[0]));
 confirmNetworkImportButton.addEventListener("click", importPreviewedNetworkEntries);
+appointmentCsvInput.addEventListener("change", () => previewAppointmentCsv(appointmentCsvInput.files?.[0]));
+confirmAppointmentImportButton.addEventListener("click", importPreviewedAppointments);
+refreshDataToolsButton.addEventListener("click", loadDataToolsCounts);
 newNetworkEntryButton.addEventListener("click", startNewNetworkEntry);
 newOutreachEventButton.addEventListener("click", startNewOutreachEvent);
 newOutreachContactButton.addEventListener("click", startNewOutreachContact);
@@ -13381,6 +13896,7 @@ closeReferralModalButton.addEventListener("click", closeReferralModal);
 closeReferralImportButton.addEventListener("click", closeReferralImportModal);
 closeClientImportButton.addEventListener("click", closeClientImportModal);
 closeNetworkImportButton.addEventListener("click", closeNetworkImportModal);
+closeAppointmentImportButton.addEventListener("click", closeAppointmentImportModal);
 
 function bindBackdropClose(modal, closeFn) {
   modal.addEventListener("click", (event) => {
@@ -13396,6 +13912,7 @@ function bindBackdropClose(modal, closeFn) {
   [clientImportModal, closeClientImportModal],
   [referralImportModal, closeReferralImportModal],
   [networkImportModal, closeNetworkImportModal],
+  [appointmentImportModal, closeAppointmentImportModal],
   [networkModal, closeNetworkModal],
   [outreachModal, closeOutreachModal],
   [outreachContactModal, closeOutreachContactModal],
