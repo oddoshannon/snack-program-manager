@@ -2522,9 +2522,10 @@ textarea {
   min-height: 48px;
   display: grid;
   grid-template-columns:
-    minmax(190px, 1.25fr)
-    minmax(160px, 1fr)
-    minmax(140px, 0.9fr);
+    minmax(160px, 1.15fr)
+    minmax(180px, 1.25fr)
+    minmax(120px, 0.8fr)
+    minmax(110px, 0.75fr);
   gap: 12px;
   align-items: center;
   width: 100%;

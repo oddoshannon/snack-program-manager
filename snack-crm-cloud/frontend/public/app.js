@@ -1733,6 +1733,17 @@ function networkProviderKey(provider, index) {
   return provider.id || `provider-${index}`;
 }
 
+function compareNetworkProviders(first, second) {
+  return networkProviderName(first.provider).localeCompare(networkProviderName(second.provider), undefined, { sensitivity: "base" }) ||
+    (first.provider.email || "").localeCompare(second.provider.email || "", undefined, { sensitivity: "base" });
+}
+
+function sortedNetworkProviders(providers = []) {
+  return providers
+    .map((provider, originalIndex) => ({ provider, originalIndex }))
+    .sort(compareNetworkProviders);
+}
+
 function getSelectedNetworkEntry() {
   return loadedNetworkEntries.find((entry) => entry.id === selectedNetworkEntryId) || null;
 }
@@ -5635,7 +5646,7 @@ function renderReferralNetwork() {
         networkList.append(emptyProviderRow);
       }
 
-      for (const provider of providers) {
+      for (const { provider } of sortedNetworkProviders(providers)) {
         const providerRow = document.createElement("button");
         providerRow.className = "network-provider-inline-row";
         providerRow.type = "button";
@@ -5645,8 +5656,9 @@ function renderReferralNetwork() {
 
         for (const value of [
           networkProviderName(provider),
-          "Provider",
-          formatPhone(provider.phone)
+          provider.email || "-",
+          formatPhone(provider.phone),
+          provider.notes || "-"
         ]) {
           const cell = document.createElement("span");
           cell.className = "table-cell";
@@ -8215,8 +8227,8 @@ function renderNetworkProvidersSection(entry) {
     const list = document.createElement("div");
     list.className = "network-provider-list";
 
-    providers.forEach((provider, providerIndex) => {
-      const providerKey = networkProviderKey(provider, providerIndex);
+    sortedNetworkProviders(providers).forEach(({ provider, originalIndex }) => {
+      const providerKey = networkProviderKey(provider, originalIndex);
       const item = document.createElement("div");
       item.className = "network-provider-item";
 

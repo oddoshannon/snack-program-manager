@@ -388,10 +388,12 @@ test("provider profile links keep referral source displays in sync", () => {
 
 test("referral network providers can be edited inline", () => {
   assert.match(appJs, /let editingNetworkProviderId = null/);
+  assert.match(appJs, /function sortedNetworkProviders/);
   assert.match(appJs, /function updateNetworkProvider/);
   assert.match(appJs, /network-provider-edit-form/);
   assert.match(appJs, /name="website" type="url"/);
   assert.match(appJs, /textarea name="notes"/);
+  assert.match(appJs, /provider\.email \|\| "-"/);
   assert.match(stylesCss, /\.network-provider-actions/);
   assert.match(stylesCss, /\.network-provider-edit-form/);
 });
