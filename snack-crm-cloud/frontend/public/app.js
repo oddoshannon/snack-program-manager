@@ -20,6 +20,7 @@ const signInButton = document.querySelector("#sign-in");
 const signOutButton = document.querySelector("#sign-out");
 const userEl = document.querySelector("#user");
 const signedOutPanel = document.querySelector("#signed-out-panel");
+const printRoot = document.querySelector("#print-root");
 const workflowPanel = document.querySelector("#workflow-panel");
 const dashboardPanel = document.querySelector("#dashboard-panel");
 const crmDashboardPanel = document.querySelector("#crm-dashboard-panel");
@@ -6621,185 +6622,42 @@ function appointmentPrintCard(appointment, { includePrep = false, includeNotePro
   `;
 }
 
-function printableDocumentHtml(title, subtitle, content) {
-  return `<!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <title>${escapeHtml(title)}</title>
-        <style>
-          :root {
-            color-scheme: light;
-            --ink: #172126;
-            --muted: #66757c;
-            --line: #d9e0da;
-            --green: #078b4d;
-            --red: #e23a4d;
-            --yellow: #f4c753;
-            font-family: "Public Sans", Arial, sans-serif;
-          }
-          body {
-            margin: 0;
-            padding: 28px;
-            color: var(--ink);
-            background: #ffffff;
-          }
-          .print-header {
-            display: flex;
-            justify-content: space-between;
-            gap: 24px;
-            align-items: flex-start;
-            border-bottom: 3px solid var(--green);
-            padding-bottom: 14px;
-            margin-bottom: 18px;
-          }
-          .print-header p {
-            margin: 0 0 4px;
-            color: var(--green);
-            font-size: 12px;
-            font-weight: 900;
-            letter-spacing: 0;
-            text-transform: uppercase;
-          }
-          h1 {
-            margin: 0;
-            font-size: 28px;
-          }
-          .print-date {
-            color: var(--muted);
-            font-weight: 850;
-            text-align: right;
-          }
-          .print-card {
-            break-inside: avoid;
-            border: 1px solid var(--line);
-            border-left: 5px solid var(--green);
-            border-radius: 8px;
-            padding: 14px;
-            margin-bottom: 14px;
-          }
-          .print-card-header {
-            display: flex;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 12px;
-          }
-          .print-card-header p {
-            margin: 0 0 3px;
-            color: var(--green);
-            font-weight: 900;
-          }
-          .print-card-header h2,
-          .print-clients h2,
-          .print-prep h2,
-          .print-note-prompts h2 {
-            margin: 0;
-            font-size: 18px;
-          }
-          .print-card-header > span {
-            border: 1px solid var(--line);
-            border-radius: 999px;
-            padding: 5px 10px;
-            align-self: flex-start;
-            font-size: 12px;
-            font-weight: 900;
-          }
-          .print-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 9px;
-          }
-          .print-field {
-            border: 1px solid var(--line);
-            border-radius: 7px;
-            padding: 9px;
-          }
-          .print-field span {
-            display: block;
-            margin-bottom: 4px;
-            color: var(--muted);
-            font-size: 11px;
-            font-weight: 900;
-            text-transform: uppercase;
-          }
-          .print-field strong {
-            white-space: pre-line;
-          }
-          .print-clients,
-          .print-prep,
-          .print-note-prompts {
-            margin-top: 12px;
-          }
-          .print-note-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-            margin-top: 8px;
-          }
-          .print-note-grid > div {
-            border: 1px solid var(--line);
-            border-radius: 7px;
-            padding: 9px;
-          }
-          .print-note-grid span {
-            color: var(--muted);
-            font-size: 11px;
-            font-weight: 900;
-            text-transform: uppercase;
-          }
-          .print-lines {
-            height: 78px;
-            margin-top: 8px;
-            background: repeating-linear-gradient(#ffffff 0 23px, var(--line) 24px);
-          }
-          ul {
-            margin: 8px 0 0;
-            padding-left: 20px;
-          }
-          li + li {
-            margin-top: 5px;
-          }
-          .print-clients li span {
-            display: block;
-            color: var(--muted);
-            font-weight: 750;
-          }
-          @media print {
-            body {
-              padding: 0;
-            }
-            .print-card {
-              box-shadow: none;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <header class="print-header">
-          <div>
-            <p>The SNACK Program</p>
-            <h1>${escapeHtml(title)}</h1>
-          </div>
-          <div class="print-date">${escapeHtml(subtitle)}</div>
-        </header>
-        ${content}
-      </body>
-    </html>`;
+function printableDocumentContent(title, subtitle, content) {
+  return `
+    <header class="print-header">
+      <div>
+        <p>The SNACK Program</p>
+        <h1>${escapeHtml(title)}</h1>
+      </div>
+      <div class="print-date">${escapeHtml(subtitle)}</div>
+    </header>
+    ${content}
+  `;
 }
 
-function openPrintableDocument(title, subtitle, content) {
-  const printWindow = window.open("", "_blank");
-
-  if (!printWindow) {
-    appointmentsStatusEl.textContent = "Allow pop-ups to open the printable sheet.";
+function printPreparedDocument(title, subtitle, content) {
+  if (!printRoot) {
+    appointmentsStatusEl.textContent = "Could not find the printable area.";
     return false;
   }
 
-  printWindow.document.open();
-  printWindow.document.write(printableDocumentHtml(title, subtitle, content));
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.setTimeout(() => printWindow.print(), 250);
+  const cleanup = () => {
+    printRoot.innerHTML = "";
+    printRoot.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("printing");
+    window.removeEventListener("afterprint", cleanup);
+  };
+
+  printRoot.innerHTML = printableDocumentContent(title, subtitle, content);
+  printRoot.setAttribute("aria-hidden", "false");
+  document.body.classList.add("printing");
+  window.addEventListener("afterprint", cleanup, { once: true });
+  window.print();
+  window.setTimeout(() => {
+    if (document.body.classList.contains("printing")) {
+      cleanup();
+    }
+  }, 30000);
   return true;
 }
 
@@ -6814,8 +6672,8 @@ function printTodaySchedule() {
   const subtitle = formatDateOnly(todayDateString());
   const content = appointments.map((appointment) => appointmentPrintCard(appointment)).join("");
 
-  if (openPrintableDocument("Daily Schedule", subtitle, content)) {
-    appointmentsStatusEl.textContent = "Printable daily schedule opened.";
+  if (printPreparedDocument("Daily Schedule", subtitle, content)) {
+    appointmentsStatusEl.textContent = "Print dialog opened for today's schedule.";
   }
 }
 
@@ -6830,8 +6688,8 @@ function printPrepSheets() {
   const subtitle = formatDateOnly(todayDateString());
   const content = appointments.map((appointment) => appointmentPrintCard(appointment, { includePrep: true })).join("");
 
-  if (openPrintableDocument("Appointment Prep Sheets", subtitle, content)) {
-    appointmentsStatusEl.textContent = "Printable prep sheets opened.";
+  if (printPreparedDocument("Appointment Prep Sheets", subtitle, content)) {
+    appointmentsStatusEl.textContent = "Print dialog opened for prep sheets.";
   }
 }
 
@@ -6846,8 +6704,8 @@ function printAppointmentNoteSheets() {
   const subtitle = formatDateOnly(todayDateString());
   const content = appointments.map((appointment) => appointmentPrintCard(appointment, { includeNotePrompts: true })).join("");
 
-  if (openPrintableDocument("Appointment Note Sheets", subtitle, content)) {
-    appointmentsStatusEl.textContent = "Printable appointment note sheets opened.";
+  if (printPreparedDocument("Appointment Note Sheets", subtitle, content)) {
+    appointmentsStatusEl.textContent = "Print dialog opened for appointment note sheets.";
   }
 }
 

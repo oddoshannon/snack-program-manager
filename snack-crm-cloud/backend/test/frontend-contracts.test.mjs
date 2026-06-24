@@ -296,10 +296,14 @@ test("scheduling module exposes printable daily schedule and prep sheets", () =>
   assert.match(indexHtml, /id="print-today-schedule"/);
   assert.match(indexHtml, /id="print-prep-sheets"/);
   assert.match(indexHtml, /id="print-note-sheets"/);
+  assert.match(indexHtml, /id="print-root"/);
   assert.match(appJs, /function printTodaySchedule/);
   assert.match(appJs, /function printPrepSheets/);
   assert.match(appJs, /function printAppointmentNoteSheets/);
-  assert.match(appJs, /window\.open\("", "_blank"\)/);
+  assert.match(appJs, /function printPreparedDocument/);
+  assert.match(appJs, /window\.print\(\)/);
+  assert.match(stylesCss, /@media print/);
+  assert.match(stylesCss, /body > :not\(\.print-root\)/);
   assert.match(appJs, /Appointment Prep Sheets/);
   assert.match(appJs, /Appointment Note Sheets/);
 });

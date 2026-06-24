@@ -322,6 +322,10 @@ body.modal-open {
   overflow: hidden;
 }
 
+.print-root {
+  display: none;
+}
+
 button,
 input,
 select,
@@ -5123,5 +5127,169 @@ dd {
 
   .table-cell {
     white-space: normal;
+  }
+}
+
+@media print {
+  @page {
+    margin: 0.45in;
+  }
+
+  body {
+    min-height: auto;
+    background: #ffffff;
+  }
+
+  body > :not(.print-root) {
+    display: none !important;
+  }
+
+  .print-root {
+    display: block !important;
+    color: var(--ink);
+    background: #ffffff;
+  }
+
+  .print-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    align-items: flex-start;
+    border-bottom: 3px solid var(--brand-green);
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+  }
+
+  .print-header p {
+    margin: 0 0 4px;
+    color: var(--brand-green);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .print-header h1 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.1;
+  }
+
+  .print-date {
+    color: var(--muted);
+    font-weight: 850;
+    text-align: right;
+  }
+
+  .print-card {
+    break-inside: avoid;
+    border: 1px solid var(--line);
+    border-left: 5px solid var(--brand-green);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 14px;
+    background: #ffffff;
+  }
+
+  .print-card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+
+  .print-card-header p {
+    margin: 0 0 3px;
+    color: var(--brand-green);
+    font-weight: 900;
+  }
+
+  .print-card-header h2,
+  .print-clients h2,
+  .print-prep h2,
+  .print-note-prompts h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  .print-card-header > span {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 5px 10px;
+    align-self: flex-start;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .print-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .print-field {
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 9px;
+  }
+
+  .print-field span {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .print-field strong {
+    white-space: pre-line;
+  }
+
+  .print-clients,
+  .print-prep,
+  .print-note-prompts {
+    margin-top: 12px;
+  }
+
+  .print-note-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .print-note-grid > div {
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 9px;
+  }
+
+  .print-note-grid span {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .print-lines {
+    height: 78px;
+    margin-top: 8px;
+    background: repeating-linear-gradient(#ffffff 0 23px, var(--line) 24px);
+  }
+
+  .print-root ul {
+    margin: 8px 0 0;
+    padding-left: 20px;
+  }
+
+  .print-root li + li {
+    margin-top: 5px;
+  }
+
+  .print-clients li span {
+    display: block;
+    color: var(--muted);
+    font-weight: 750;
   }
 }
