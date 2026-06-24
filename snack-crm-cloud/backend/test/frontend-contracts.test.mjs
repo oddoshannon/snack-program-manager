@@ -353,11 +353,25 @@ test("referral edit form uses profile cards for source and appointment fields", 
 });
 
 test("referral profile keeps progress concise and actionable", () => {
+  const referralFlow = appJs.slice(appJs.indexOf("function renderReferralFlow"), appJs.indexOf("function renderClientFlow"));
+  const referralHero = appJs.slice(appJs.indexOf("function renderReferralProfileHero"), appJs.indexOf("function referralProgressIndex"));
+  const referralProgress = appJs.slice(appJs.indexOf("function renderReferralProgressPanel"), appJs.indexOf("function renderReferralDetailsPanel"));
+
   assert.match(appJs, /Waiting-on-family referrals land here/);
+  assert.match(referralFlow, /Referral \$\{formatShortDate\(referral\.referralDate\)\}/);
+  assert.match(referralFlow, /Contact \$\{formatShortDate\(referral\.mostRecentContactDate\)\}/);
+  assert.doesNotMatch(referralFlow, /meta: \[normalizeStatus\(referral\.status\)/);
+  assert.doesNotMatch(referralHero, /title\.textContent = statusLabel/);
+  assertInOrder(referralHero, [
+    "[\"Referral date\", profileDate(referral.referralDate)]",
+    "[\"Date of birth\", profileDate(referral.dateOfBirth)]",
+    "[\"First appointment\", profileDate(referral.firstAppointmentDate)]"
+  ]);
   assert.match(appJs, /\{ label: "Contacted", status: "Texted"/);
   assert.match(appJs, /\{ label: "Scheduled", status: "Scheduled"/);
   assert.match(appJs, /\{ label: "Closed", status: "Closed \/ No Further Outreach"/);
   assert.match(appJs, /dot\.addEventListener\("click", \(\) => updateReferralStatus\(referral, item\.status\)\)/);
+  assert.doesNotMatch(referralProgress, /client-current-lesson/);
   assert.doesNotMatch(appJs, /renderProfileSection\("Key dates"/);
   assert.doesNotMatch(appJs, /"Recent appt", profileDate\(referral\.mostRecentAppointmentDate\)/);
 });

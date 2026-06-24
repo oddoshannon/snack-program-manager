@@ -4619,7 +4619,10 @@ function renderReferralFlow(referrals) {
       flowCard({
         title: referralName(referral),
         detail: referral.referralSource || displayValue(referral.referralType),
-        meta: [normalizeStatus(referral.status), formatShortDate(referral.mostRecentContactDate || referral.referralDate)].filter(Boolean).join(" | "),
+        meta: [
+          formatShortDate(referral.referralDate) ? `Referral ${formatShortDate(referral.referralDate)}` : "",
+          formatShortDate(referral.mostRecentContactDate) ? `Contact ${formatShortDate(referral.mostRecentContactDate)}` : ""
+        ].filter(Boolean).join(" | ") || "No dates yet",
         tag: normalizeStatus(referral.status),
         accent: column.accent,
         dragData: { kind: "referral-flow", id: referral.id },
@@ -7633,7 +7636,7 @@ function renderClientActivityRow(titleText, detailText, dateValueText) {
   return row;
 }
 
-function renderReferralProfileHero(referral, statusLabel) {
+function renderReferralProfileHero(referral) {
   const hero = document.createElement("section");
   hero.className = "panel client-profile-hero";
 
@@ -7645,9 +7648,6 @@ function renderReferralProfileHero(referral, statusLabel) {
   avatar.textContent = recordInitials(referralName(referral));
 
   const copy = document.createElement("div");
-  const title = document.createElement("h3");
-  title.textContent = statusLabel;
-
   const lines = document.createElement("div");
   lines.className = "client-contact-lines";
   for (const value of [
@@ -7660,15 +7660,15 @@ function renderReferralProfileHero(referral, statusLabel) {
     lines.append(line);
   }
 
-  copy.append(title, lines);
+  copy.append(lines);
   top.append(avatar, copy);
 
   const fields = document.createElement("div");
   fields.className = "client-field-grid";
   for (const [label, value] of [
     ["Referral date", profileDate(referral.referralDate)],
-    ["First appointment", profileDate(referral.firstAppointmentDate)],
     ["Date of birth", profileDate(referral.dateOfBirth)],
+    ["First appointment", profileDate(referral.firstAppointmentDate)],
     ["Language", displayValue(referral.preferredLanguage)]
   ]) {
     fields.append(renderClientProfileField(label, value));
@@ -7699,10 +7699,6 @@ function referralProgressIndex(referral) {
   return 0;
 }
 
-function referralProgressState(referral) {
-  return referral.convertedClientId ? "Converted" : normalizeStatus(referral.status);
-}
-
 function renderReferralProgressPanel(referral) {
   const section = document.createElement("section");
   section.className = "panel client-program-panel referral-progress-panel";
@@ -7711,10 +7707,7 @@ function renderReferralProgressPanel(referral) {
   header.className = "client-program-header";
   const title = document.createElement("h3");
   title.textContent = "Referral Progress";
-  const current = document.createElement("span");
-  current.className = "client-current-lesson";
-  current.textContent = referralProgressState(referral);
-  header.append(title, current);
+  header.append(title);
 
   const steps = document.createElement("div");
   steps.className = "lesson-dots referral-progress-dots";
@@ -7766,8 +7759,7 @@ function renderReferralDetailsPanel(referral) {
   list.className = "idea-list";
   const ideas = [
     renderProfileDetailCard("Referral", [
-      { label: "Type", value: referral.referralType },
-      { label: "Referral date", value: profileDate(referral.referralDate) }
+      { label: "Type", value: referral.referralType }
     ], "var(--brand-green)"),
     renderProfileDetailCard("Contact", [
       { label: "Preferred", value: referral.preferredContactMethod },
@@ -7940,7 +7932,7 @@ function renderReferralDetail() {
   const profileGrid = document.createElement("div");
   profileGrid.className = "client-profile-grid";
   profileGrid.append(
-    renderReferralProfileHero(referral, normalizeStatus(referral.status)),
+    renderReferralProfileHero(referral),
     renderReferralProgressPanel(referral)
   );
 
