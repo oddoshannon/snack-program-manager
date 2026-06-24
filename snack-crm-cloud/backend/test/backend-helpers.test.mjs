@@ -157,13 +157,12 @@ test("cleanNetworkProvider preserves provided ids and trims values", () => {
     id: "p1",
     name: " William Koenig, DO ",
     phone: " 503 ",
-    email: " doc@example.com "
+    email: " doc@example.com ",
+    website: " https://example.com "
   }), {
     id: "p1",
     name: "William Koenig, DO",
-    phone: "503",
     email: "doc@example.com",
-    website: "",
     notes: ""
   });
 

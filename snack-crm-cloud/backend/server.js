@@ -602,9 +602,7 @@ function cleanNetworkProvider(provider) {
   return {
     id,
     name: cleanString(provider?.name),
-    phone: cleanString(provider?.phone),
     email: cleanString(provider?.email),
-    website: cleanString(provider?.website),
     notes: cleanString(provider?.notes)
   };
 }

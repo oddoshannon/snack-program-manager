@@ -5657,7 +5657,6 @@ function renderReferralNetwork() {
         for (const value of [
           networkProviderName(provider),
           provider.email || "-",
-          formatPhone(provider.phone),
           provider.notes || "-"
         ]) {
           const cell = document.createElement("span");
@@ -8244,7 +8243,7 @@ function renderNetworkProvidersSection(entry) {
       const name = document.createElement("strong");
       name.textContent = networkProviderName(provider);
       const contact = document.createElement("span");
-      contact.textContent = [formatPhone(provider.phone), provider.email, provider.website].filter(Boolean).join(" | ") || "-";
+      contact.textContent = provider.email || "-";
       details.append(name, contact);
       if (provider.notes) {
         const notes = document.createElement("span");
@@ -8285,16 +8284,8 @@ function renderNetworkProvidersSection(entry) {
       <input name="name" required>
     </label>
     <label>
-      Phone
-      <input name="phone" autocomplete="tel">
-    </label>
-    <label>
       Email
       <input name="email" type="email" autocomplete="email">
-    </label>
-    <label>
-      Website
-      <input name="website" type="url" autocomplete="url">
     </label>
     <label class="network-provider-notes-field">
       Notes
@@ -8317,16 +8308,8 @@ function renderNetworkProviderEditForm(entry, provider, providerKey) {
       <input name="name" required>
     </label>
     <label>
-      Phone
-      <input name="phone" autocomplete="tel">
-    </label>
-    <label>
       Email
       <input name="email" type="email" autocomplete="email">
-    </label>
-    <label>
-      Website
-      <input name="website" type="url" autocomplete="url">
     </label>
     <label class="network-provider-notes-field">
       Notes
@@ -8339,9 +8322,7 @@ function renderNetworkProviderEditForm(entry, provider, providerKey) {
   `;
 
   form.elements.namedItem("name").value = provider.name || "";
-  form.elements.namedItem("phone").value = provider.phone || "";
   form.elements.namedItem("email").value = provider.email || "";
-  form.elements.namedItem("website").value = provider.website || "";
   form.elements.namedItem("notes").value = provider.notes || "";
 
   form.addEventListener("submit", (event) => updateNetworkProvider(event, entry, providerKey));
@@ -8999,9 +8980,7 @@ function mapProviderImportRows(rows) {
     if (providerName) {
       group.providers.push({
         name: providerName,
-        phone: csvValue(row, "Phone"),
         email: csvValue(row, "Email"),
-        website: csvValue(row, "Website"),
         notes: csvValue(row, "Tag")
       });
     }
@@ -12254,6 +12233,15 @@ async function applyAppointmentClientEffects(appointment, status, options = {}) 
   }
 }
 
+function providerPayloadForSave(provider) {
+  return {
+    id: provider.id,
+    name: provider.name || "",
+    email: provider.email || "",
+    notes: provider.notes || ""
+  };
+}
+
 async function saveNetworkProviders(entry, providers) {
   networkStatusEl.textContent = "Updating providers...";
 
@@ -12263,7 +12251,7 @@ async function saveNetworkProviders(entry, providers) {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ providers })
+      body: JSON.stringify({ providers: providers.map(providerPayloadForSave) })
     });
 
     if (!response.ok) {
