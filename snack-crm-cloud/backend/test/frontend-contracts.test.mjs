@@ -356,6 +356,8 @@ test("referral profile keeps progress concise and actionable", () => {
   const referralFlow = appJs.slice(appJs.indexOf("function renderReferralFlow"), appJs.indexOf("function renderClientFlow"));
   const referralHero = appJs.slice(appJs.indexOf("function renderReferralProfileHero"), appJs.indexOf("function referralProgressIndex"));
   const referralProgress = appJs.slice(appJs.indexOf("function renderReferralProgressPanel"), appJs.indexOf("function renderReferralDetailsPanel"));
+  const referralDetails = appJs.slice(appJs.indexOf("function renderReferralDetailsPanel"), appJs.indexOf("function renderReferralRecentActivity"));
+  const referralDetailShell = appJs.slice(appJs.indexOf("function renderReferralDetail"), appJs.indexOf("function renderNetworkDetail"));
 
   assert.match(appJs, /Waiting-on-family referrals land here/);
   assert.match(referralFlow, /Referral \$\{formatShortDate\(referral\.referralDate\)\}/);
@@ -372,8 +374,38 @@ test("referral profile keeps progress concise and actionable", () => {
   assert.match(appJs, /\{ label: "Closed", status: "Closed \/ No Further Outreach"/);
   assert.match(appJs, /dot\.addEventListener\("click", \(\) => updateReferralStatus\(referral, item\.status\)\)/);
   assert.doesNotMatch(referralProgress, /client-current-lesson/);
+  assert.match(referralDetails, /\{ label: "Referral date", value: profileDate\(referral\.referralDate\) \}/);
+  assert.match(referralDetailShell, /newAppointmentFromReferralButton\.textContent = "New Appt"/);
+  assert.match(referralDetailShell, /renderReferralAppointmentsPanel\(referral\)/);
   assert.doesNotMatch(appJs, /renderProfileSection\("Key dates"/);
   assert.doesNotMatch(appJs, /"Recent appt", profileDate\(referral\.mostRecentAppointmentDate\)/);
+});
+
+test("flow cards and appointment scheduling avoid duplicate status text", () => {
+  const statusSort = appJs.slice(appJs.indexOf("function statusSortIndex"), appJs.indexOf("function clientStatusGroupKey"));
+  const clientFlow = appJs.slice(appJs.indexOf("function renderClientFlow"), appJs.indexOf("function renderGrantFlow"));
+  const clientHero = appJs.slice(appJs.indexOf("function renderClientProfileHero"), appJs.indexOf("function renderClientProfileField"));
+  const appointmentSave = appJs.slice(appJs.indexOf("async function saveAppointment"), appJs.indexOf("function nextLessonNumberForAppointment"));
+
+  assert.match(statusSort, /\["new", "in-contact", "referral-scheduled", "watch", "closed"\]/);
+  assert.doesNotMatch(clientFlow, /meta: \[client\.status \|\| "Scheduled"/);
+  assert.match(clientFlow, /`Appt \$\{profileDate\(clientFlowAppointmentDate\(client\)\)\}`/);
+  assert.match(clientFlow, /`Contact \$\{profileDate\(client\.mostRecentContactDate\)\}`/);
+  assertInOrder(clientHero, [
+    "[\"First appointment\", profileDate(client.firstAppointmentDate)]",
+    "[\"Date of birth\", profileDate(client.dateOfBirth)]",
+    "[\"Graduation date\", profileDate(client.lastAppointmentDate, \"Not graduated\")]"
+  ]);
+  assert.doesNotMatch(clientHero, /Most recent appt/);
+  assert.match(appointmentSave, /Add a client or type a referral name before saving/);
+  assert.match(appointmentSave, /appointment\.clientNames = \[typedClientName\]/);
+  assert.match(stylesCss, /grid-template-columns: repeat\(8, minmax\(0, 1fr\)\)/);
+  assert.match(stylesCss, /grid-template-columns: repeat\(auto-fit, minmax\(54px, 1fr\)\)/);
+});
+
+test("appointment API can save referral name-only appointments", () => {
+  assert.match(serverJs, /\(!payload\.clientIds\.length && !payload\.clientNames\.length\)/);
+  assert.match(serverJs, /Client or referral name, appointment date, and appointment time are required/);
 });
 
 test("client detail edit cards keep Referral, Contact, Insurance, and Assessment sections", () => {

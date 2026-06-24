@@ -2144,7 +2144,7 @@ function compareNames(firstReferral, secondReferral) {
 
 function statusSortIndex(referral) {
   const key = statusGroupKey(referral.status);
-  const order = ["new", "follow-up", "scheduled", "closed"];
+  const order = ["new", "in-contact", "referral-scheduled", "watch", "closed"];
   const index = order.indexOf(key);
   return index === -1 ? order.length : index;
 }
@@ -2174,7 +2174,7 @@ function sortReferrals(referrals) {
 
   return sorted.sort((first, second) =>
     statusSortIndex(first) - statusSortIndex(second) ||
-    dateValue(first.mostRecentContactDate) - dateValue(second.mostRecentContactDate) ||
+    dateValue(second.mostRecentContactDate, -1) - dateValue(first.mostRecentContactDate, -1) ||
     compareNames(first, second)
   );
 }
@@ -4648,7 +4648,10 @@ function renderClientFlow(clients) {
       flowCard({
         title: clientName(client),
         detail: [client.parentName, formatPhone(client.phone)].filter(Boolean).join(" | ") || "No contact info yet",
-        meta: [client.status || "Scheduled", formatShortDate(client.mostRecentContactDate || client.lastAppointmentDate)].filter(Boolean).join(" | "),
+        meta: [
+          `Appt ${profileDate(clientFlowAppointmentDate(client))}`,
+          `Contact ${profileDate(client.mostRecentContactDate)}`
+        ].join(" | "),
         tag: client.status || "Scheduled",
         accent: column.accent,
         dragData: { kind: "client-flow", id: client.id },
@@ -6984,6 +6987,27 @@ function mostRecentAppointmentDate(client) {
   return client.mostRecentAppointmentDate || "";
 }
 
+function clientFlowAppointmentDate(client) {
+  return mostRecentAppointmentDate(client) || client.lastAppointmentDate || client.firstAppointmentDate || "";
+}
+
+function referralAppointments(referral) {
+  const targetName = referralName(referral).trim().toLowerCase();
+  if (!targetName) {
+    return [];
+  }
+
+  return loadedAppointments
+    .filter((appointment) =>
+      appointmentClientNames(appointment).some((name) => name.trim().toLowerCase() === targetName)
+    )
+    .sort(
+      (first, second) =>
+        dateValue(first.appointmentDate, 1) - dateValue(second.appointmentDate, 1) ||
+        appointmentTimeValue(first.appointmentTime) - appointmentTimeValue(second.appointmentTime)
+    );
+}
+
 function renderClientProfileHero(client, statusLabel) {
   const hero = document.createElement("section");
   hero.className = "panel client-profile-hero";
@@ -7016,10 +7040,9 @@ function renderClientProfileHero(client, statusLabel) {
 
   const fields = document.createElement("div");
   fields.className = "client-field-grid";
-  const recentAppointment = mostRecentAppointmentDate(client);
   const fieldItems = [
     ["First appointment", profileDate(client.firstAppointmentDate)],
-    ["Most recent appt", profileDate(recentAppointment)],
+    ["Date of birth", profileDate(client.dateOfBirth)],
     ["Graduation date", profileDate(client.lastAppointmentDate, "Not graduated")],
     ["Language", displayValue(client.preferredLanguage)]
   ];
@@ -7455,7 +7478,7 @@ function renderClientDetailsPanel(client) {
   const convertedDate = client.convertedAt || (client.sourceReferralId ? client.createdAt : "");
   const ideas = [
     renderProfileDetailCard("Referral", [
-      { label: "Type", value: client.referralType },
+      { label: "Type", value: client.referralType, alwaysShow: true },
       { label: "Referral date", value: profileDate(client.referralDate) },
       { label: "Converted date", value: formatDateOnly(String(convertedDate || "").slice(0, 10)), alwaysShow: true }
     ], "var(--brand-green)"),
@@ -7541,6 +7564,14 @@ function renderClientRecentActivity(client) {
 }
 
 function renderClientAppointmentsPanel(client) {
+  return renderProfileAppointmentsPanel(clientAppointments(client));
+}
+
+function renderReferralAppointmentsPanel(referral) {
+  return renderProfileAppointmentsPanel(referralAppointments(referral));
+}
+
+function renderProfileAppointmentsPanel(appointments) {
   const section = document.createElement("section");
   section.className = "panel client-appointments-panel";
 
@@ -7550,11 +7581,10 @@ function renderClientAppointmentsPanel(client) {
   title.textContent = "Appointments";
   const count = document.createElement("span");
   count.className = "client-current-lesson";
-  count.textContent = `${clientAppointments(client).length} total`;
+  count.textContent = `${appointments.length} total`;
   header.append(title, count);
 
   const today = todayDateString();
-  const appointments = clientAppointments(client);
   const upcoming = appointments
     .filter((appointment) => appointment.appointmentDate >= today && appointment.status === "Scheduled")
     .slice(0, 3);
@@ -7759,7 +7789,8 @@ function renderReferralDetailsPanel(referral) {
   list.className = "idea-list";
   const ideas = [
     renderProfileDetailCard("Referral", [
-      { label: "Type", value: referral.referralType }
+      { label: "Type", value: referral.referralType },
+      { label: "Referral date", value: profileDate(referral.referralDate) }
     ], "var(--brand-green)"),
     renderProfileDetailCard("Contact", [
       { label: "Preferred", value: referral.preferredContactMethod },
@@ -7796,6 +7827,19 @@ function renderReferralRecentActivity(referral) {
 
   const list = document.createElement("div");
   list.className = "mini-list";
+  const appointmentItems = [...referralAppointments(referral)]
+    .sort(
+      (first, second) =>
+        dateValue(second.appointmentDate, -1) - dateValue(first.appointmentDate, -1) ||
+        appointmentTimeValue(second.appointmentTime) - appointmentTimeValue(first.appointmentTime)
+    )
+    .slice(0, 2)
+    .map((appointment) => ({
+      title: appointment.status === "Completed" ? "Appointment completed" : "Appointment scheduled",
+      detail: appointmentGoalText(appointment) || (appointment.lesson ? `Lesson ${appointment.lesson}` : "Enrollment appointment"),
+      date: appointment.appointmentDate,
+      sortKey: `${appointment.appointmentDate || ""}T${appointment.appointmentTime || "00:00"}`
+    }));
   const fallbackItems = [
     {
       title: "Referral status",
@@ -7811,15 +7855,15 @@ function renderReferralRecentActivity(referral) {
     },
     {
       title: "Appointment activity",
-      detail: referral.firstAppointmentDate ? "First appointment scheduled" : "No appointment yet",
-      date: referral.mostRecentAppointmentDate || referral.firstAppointmentDate,
-      sortKey: referral.mostRecentAppointmentDate || referral.firstAppointmentDate || ""
+      detail: appointmentItems.length || referral.firstAppointmentDate ? "First appointment scheduled" : "No appointment yet",
+      date: appointmentItems[0]?.date || referral.mostRecentAppointmentDate || referral.firstAppointmentDate,
+      sortKey: appointmentItems[0]?.sortKey || referral.mostRecentAppointmentDate || referral.firstAppointmentDate || ""
     }
   ];
   const activityItems = profileActivityLogs(referral, "referrals");
   const items = activityItems.length
-    ? [...activityItems, ...fallbackItems].sort((first, second) => String(second.sortKey || "").localeCompare(String(first.sortKey || ""))).slice(0, 5)
-    : fallbackItems;
+    ? [...activityItems, ...appointmentItems, ...fallbackItems].sort((first, second) => String(second.sortKey || "").localeCompare(String(first.sortKey || ""))).slice(0, 5)
+    : [...fallbackItems.slice(0, 2), ...(appointmentItems.length ? appointmentItems : [fallbackItems[2]])];
 
   for (const item of items) {
     list.append(renderClientActivityRow(item.title, item.detail, item.date));
@@ -7875,6 +7919,18 @@ function renderReferralDetail() {
   logTextButton.textContent = "Log Text";
   logTextButton.addEventListener("click", () => openActivityLogModal(referral, "referrals", "Text"));
 
+  const newAppointmentFromReferralButton = document.createElement("button");
+  newAppointmentFromReferralButton.className = "secondary-button";
+  newAppointmentFromReferralButton.type = "button";
+  newAppointmentFromReferralButton.textContent = "New Appt";
+  newAppointmentFromReferralButton.addEventListener("click", () => {
+    startNewAppointment({
+      clientName: referralName(referral),
+      clientNames: [referralName(referral)],
+      appointmentType: referral.firstAppointmentDate ? "Nutrition Education" : "Enrollment"
+    });
+  });
+
   const deleteButton = document.createElement("button");
   deleteButton.className = "danger-button";
   deleteButton.type = "button";
@@ -7889,7 +7945,7 @@ function renderReferralDetail() {
     actions.append(convertButton);
   }
 
-  actions.append(logCallButton, logTextButton, editButton, deleteButton, closeReferralModalButton);
+  actions.append(newAppointmentFromReferralButton, logCallButton, logTextButton, editButton, deleteButton, closeReferralModalButton);
   syncModalCloseButton();
 
   const statusLabel = document.createElement("label");
@@ -7954,6 +8010,7 @@ function renderReferralDetail() {
     profileGrid,
     adminStrip,
     splitGrid,
+    renderReferralAppointmentsPanel(referral),
     renderProfileNotes(referral.notes)
   );
 
@@ -11645,23 +11702,29 @@ async function saveAppointment(event) {
   appointment.clientIds = [...selectedAppointmentClientIds];
   appointment.clientId = appointment.clientIds[0] || "";
   appointment.appointmentTime = normalizeAppointmentTime(appointment.appointmentTime);
+  const typedClientName = appointmentClientSearchInput.value.trim();
 
   if (appointment.appointmentType === "Enrollment") {
     appointment.lesson = "";
     appointment.goal = "";
   }
 
-  if (!appointment.clientIds.length) {
-    setAppointmentFeedback("Add at least one client before saving.");
+  if (!appointment.clientIds.length && !typedClientName) {
+    setAppointmentFeedback("Add a client or type a referral name before saving.");
     appointmentClientSearchInput.focus();
     return;
   }
 
-  const selectedClients = appointment.clientIds
-    .map((clientId) => loadedClients.find((client) => client.id === clientId))
-    .filter(Boolean);
-  appointment.clientNames = selectedClients.map(clientName);
-  appointment.clientName = appointment.clientNames[0] || "";
+  if (appointment.clientIds.length) {
+    const selectedClients = appointment.clientIds
+      .map((clientId) => loadedClients.find((client) => client.id === clientId))
+      .filter(Boolean);
+    appointment.clientNames = selectedClients.map(clientName);
+    appointment.clientName = appointment.clientNames[0] || "";
+  } else {
+    appointment.clientNames = [typedClientName];
+    appointment.clientName = typedClientName;
+  }
   const isEditing = Boolean(editingAppointmentId);
 
   if (!appointmentFitsSchedulingWindow(appointment)) {
@@ -12946,7 +13009,7 @@ function setAppointmentFormValues(appointment = {}) {
   clientIds.forEach((clientId) => selectedAppointmentClientIds.add(clientId));
   renderAppointmentClientOptions(clientIds[0] || "");
   renderSelectedAppointmentClients();
-  appointmentClientSearchInput.value = "";
+  appointmentClientSearchInput.value = clientIds.length ? "" : appointmentClientNames(appointment)[0] || "";
   appointmentForm.elements.appointmentDate.value = appointment.appointmentDate || todayDateString();
   appointmentForm.elements.appointmentType.value = appointment.appointmentType || (appointment.lesson ? "Nutrition Education" : "Enrollment");
   appointmentForm.elements.status.value = appointment.status || "Scheduled";

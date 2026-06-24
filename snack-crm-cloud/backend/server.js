@@ -1891,9 +1891,9 @@ app.post("/api/appointments", requireAuth, async (request, response, next) => {
     const payload = cleanAppointmentPayload(request.body);
     const now = new Date().toISOString();
 
-    if (!payload.clientIds.length || !payload.appointmentDate || !payload.appointmentTime) {
+    if ((!payload.clientIds.length && !payload.clientNames.length) || !payload.appointmentDate || !payload.appointmentTime) {
       response.status(400).json({
-        error: "At least one client, appointment date, and appointment time are required."
+        error: "Client or referral name, appointment date, and appointment time are required."
       });
       return;
     }
@@ -2059,9 +2059,9 @@ app.patch("/api/appointments/:appointmentId", requireAuth, async (request, respo
 
     const payload = cleanAppointmentPayload(request.body);
 
-    if (!payload.clientIds.length || !payload.appointmentDate || !payload.appointmentTime) {
+    if ((!payload.clientIds.length && !payload.clientNames.length) || !payload.appointmentDate || !payload.appointmentTime) {
       response.status(400).json({
-        error: "At least one client, appointment date, and appointment time are required."
+        error: "Client or referral name, appointment date, and appointment time are required."
       });
       return;
     }
