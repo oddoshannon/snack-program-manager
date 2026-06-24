@@ -3416,7 +3416,7 @@ dd {
   background: #fbfcfb;
 }
 
-.network-provider-item div {
+.network-provider-summary {
   display: grid;
   gap: 2px;
 }
@@ -3426,9 +3426,21 @@ dd {
   font-size: 0.84rem;
 }
 
+.network-provider-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.network-provider-item.is-editing {
+  display: block;
+  padding: 12px;
+}
+
 .network-provider-form {
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) minmax(130px, 0.75fr) minmax(190px, 1fr) auto;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
   gap: 8px;
   align-items: end;
 }
@@ -3438,6 +3450,29 @@ dd {
   min-height: 36px;
   padding-top: 0;
   padding-bottom: 0;
+}
+
+.network-provider-form textarea {
+  min-height: 62px;
+  resize: vertical;
+}
+
+.network-provider-edit-form {
+  width: 100%;
+}
+
+.network-provider-notes-field {
+  grid-column: span 3;
+}
+
+.network-provider-edit-actions {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+
+.network-provider-edit-actions button {
+  flex: 1;
 }
 
 .siblings-header {
@@ -5054,8 +5089,21 @@ dd {
   .client-profile-split-grid,
   .form-link-row,
   .form-link-controls,
+  .network-provider-form,
   .referral-form {
     grid-template-columns: 1fr;
+  }
+
+  .network-provider-item {
+    display: grid;
+  }
+
+  .network-provider-actions {
+    justify-content: flex-start;
+  }
+
+  .network-provider-notes-field {
+    grid-column: auto;
   }
 
   .grant-form-grid,

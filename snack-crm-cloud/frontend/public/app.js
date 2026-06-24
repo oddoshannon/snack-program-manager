@@ -684,6 +684,7 @@ let selectedClientId = null;
 let editingClientId = null;
 let selectedNetworkEntryId = null;
 let editingNetworkEntryId = null;
+let editingNetworkProviderId = null;
 let selectedOutreachEventId = null;
 let editingOutreachEventId = null;
 let selectedOutreachContactId = null;
@@ -1726,6 +1727,10 @@ function normalizeNetworkType(type) {
 
 function networkProviderName(provider) {
   return provider.name || "Unnamed provider";
+}
+
+function networkProviderKey(provider, index) {
+  return provider.id || `provider-${index}`;
 }
 
 function getSelectedNetworkEntry() {
@@ -8210,24 +8215,52 @@ function renderNetworkProvidersSection(entry) {
     const list = document.createElement("div");
     list.className = "network-provider-list";
 
-    for (const provider of providers) {
+    providers.forEach((provider, providerIndex) => {
+      const providerKey = networkProviderKey(provider, providerIndex);
       const item = document.createElement("div");
       item.className = "network-provider-item";
+
+      if (editingNetworkProviderId === providerKey) {
+        item.classList.add("is-editing");
+        item.append(renderNetworkProviderEditForm(entry, provider, providerKey));
+        list.append(item);
+        return;
+      }
+
       const details = document.createElement("div");
+      details.className = "network-provider-summary";
       const name = document.createElement("strong");
       name.textContent = networkProviderName(provider);
       const contact = document.createElement("span");
-      contact.textContent = [formatPhone(provider.phone), provider.email].filter(Boolean).join(" | ") || "-";
+      contact.textContent = [formatPhone(provider.phone), provider.email, provider.website].filter(Boolean).join(" | ") || "-";
       details.append(name, contact);
+      if (provider.notes) {
+        const notes = document.createElement("span");
+        notes.textContent = provider.notes;
+        details.append(notes);
+      }
+
+      const actions = document.createElement("div");
+      actions.className = "network-provider-actions";
+
+      const edit = document.createElement("button");
+      edit.className = "secondary-button compact-button";
+      edit.type = "button";
+      edit.textContent = "Edit";
+      edit.addEventListener("click", () => {
+        editingNetworkProviderId = providerKey;
+        renderNetworkDetail();
+      });
 
       const remove = document.createElement("button");
       remove.className = "secondary-button compact-button";
       remove.type = "button";
       remove.textContent = "Remove";
-      remove.addEventListener("click", () => removeNetworkProvider(entry, provider.id));
-      item.append(details, remove);
+      remove.addEventListener("click", () => removeNetworkProvider(entry, providerKey));
+      actions.append(edit, remove);
+      item.append(details, actions);
       list.append(item);
-    }
+    });
 
     section.append(list);
   }
@@ -8247,12 +8280,65 @@ function renderNetworkProvidersSection(entry) {
       Email
       <input name="email" type="email" autocomplete="email">
     </label>
+    <label>
+      Website
+      <input name="website" type="url" autocomplete="url">
+    </label>
+    <label class="network-provider-notes-field">
+      Notes
+      <textarea name="notes" rows="2"></textarea>
+    </label>
     <button type="submit">Add Provider</button>
   `;
   form.addEventListener("submit", (event) => addNetworkProvider(event, entry));
   section.append(form);
 
   return section;
+}
+
+function renderNetworkProviderEditForm(entry, provider, providerKey) {
+  const form = document.createElement("form");
+  form.className = "network-provider-form network-provider-edit-form";
+  form.innerHTML = `
+    <label>
+      Provider
+      <input name="name" required>
+    </label>
+    <label>
+      Phone
+      <input name="phone" autocomplete="tel">
+    </label>
+    <label>
+      Email
+      <input name="email" type="email" autocomplete="email">
+    </label>
+    <label>
+      Website
+      <input name="website" type="url" autocomplete="url">
+    </label>
+    <label class="network-provider-notes-field">
+      Notes
+      <textarea name="notes" rows="2"></textarea>
+    </label>
+    <div class="network-provider-edit-actions">
+      <button type="submit">Save</button>
+      <button class="secondary-button" type="button">Cancel</button>
+    </div>
+  `;
+
+  form.elements.namedItem("name").value = provider.name || "";
+  form.elements.namedItem("phone").value = provider.phone || "";
+  form.elements.namedItem("email").value = provider.email || "";
+  form.elements.namedItem("website").value = provider.website || "";
+  form.elements.namedItem("notes").value = provider.notes || "";
+
+  form.addEventListener("submit", (event) => updateNetworkProvider(event, entry, providerKey));
+  form.querySelector("button[type='button']").addEventListener("click", () => {
+    editingNetworkProviderId = null;
+    renderNetworkDetail();
+  });
+
+  return form;
 }
 
 function renderOutreachDetail() {
@@ -12174,6 +12260,7 @@ async function saveNetworkProviders(entry, providers) {
     }
 
     selectedNetworkEntryId = entry.id;
+    editingNetworkProviderId = null;
     networkStatusEl.textContent = "Providers updated.";
     await loadReferralNetwork();
     renderNetworkDetail();
@@ -12193,8 +12280,27 @@ function addNetworkProvider(event, entry) {
   saveNetworkProviders(entry, providers);
 }
 
-function removeNetworkProvider(entry, providerId) {
-  const providers = (entry.providers || []).filter((provider) => provider.id !== providerId);
+function updateNetworkProvider(event, entry, providerKey) {
+  event.preventDefault();
+  const formData = new FormData(event.currentTarget);
+  const updates = Object.fromEntries(formData.entries());
+  const providers = (entry.providers || []).map((provider, index) => {
+    if (networkProviderKey(provider, index) !== providerKey) {
+      return provider;
+    }
+
+    return {
+      ...provider,
+      ...updates,
+      id: provider.id
+    };
+  });
+
+  saveNetworkProviders(entry, providers);
+}
+
+function removeNetworkProvider(entry, providerKey) {
+  const providers = (entry.providers || []).filter((provider, index) => networkProviderKey(provider, index) !== providerKey);
   saveNetworkProviders(entry, providers);
 }
 

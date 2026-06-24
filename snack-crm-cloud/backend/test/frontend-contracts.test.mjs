@@ -386,6 +386,16 @@ test("provider profile links keep referral source displays in sync", () => {
   assert.match(stylesCss, /\.client-profile-field \.profile-source-text\.is-empty/);
 });
 
+test("referral network providers can be edited inline", () => {
+  assert.match(appJs, /let editingNetworkProviderId = null/);
+  assert.match(appJs, /function updateNetworkProvider/);
+  assert.match(appJs, /network-provider-edit-form/);
+  assert.match(appJs, /name="website" type="url"/);
+  assert.match(appJs, /textarea name="notes"/);
+  assert.match(stylesCss, /\.network-provider-actions/);
+  assert.match(stylesCss, /\.network-provider-edit-form/);
+});
+
 test("activity log modal supports call/text direction, result, date, time, and description", () => {
   assert.match(indexHtml, /id="activity-log-direction"/);
   assert.match(indexHtml, /id="activity-log-result"/);
