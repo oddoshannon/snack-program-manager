@@ -350,7 +350,7 @@ const summaryGroups = [
   {
     key: "follow-up",
     label: "Follow Up",
-    statuses: ["Texted", "Left Voicemail", "Emailed", "Requested Call Back", "Caregiver Will Call Back"]
+    statuses: ["Texted", "Left Voicemail", "Emailed", "Requested Call Back"]
   },
   { key: "scheduled", label: "Scheduled", statuses: ["Scheduled"] },
   { key: "closed", label: "Closed", statuses: ["Not Interested", "Closed / No Further Outreach"] }
@@ -360,11 +360,11 @@ const referralFlowColumns = [
   {
     key: "contacted",
     label: "In Contact",
-    statuses: ["Texted", "Left Voicemail", "Emailed", "Requested Call Back", "Caregiver Will Call Back"],
+    statuses: ["Texted", "Left Voicemail", "Emailed", "Requested Call Back"],
     accent: "var(--brand-green)"
   },
   { key: "scheduled", label: "Scheduled", statuses: ["Scheduled"], accent: "var(--brand-blue)" },
-  { key: "watch", label: "Watch List", statuses: [], accent: "var(--brand-purple)", emptyText: "Language support and waiting-on-family referrals can land here later." },
+  { key: "watch", label: "Watch List", statuses: ["Caregiver Will Call Back"], accent: "var(--brand-purple)", emptyText: "Waiting-on-family referrals land here." },
   {
     key: "closed",
     label: "Closed Referrals Archive",
@@ -7668,7 +7668,7 @@ function renderReferralProfileHero(referral, statusLabel) {
   for (const [label, value] of [
     ["Referral date", profileDate(referral.referralDate)],
     ["First appointment", profileDate(referral.firstAppointmentDate)],
-    ["Recent appt", profileDate(referral.mostRecentAppointmentDate)],
+    ["Date of birth", profileDate(referral.dateOfBirth)],
     ["Language", displayValue(referral.preferredLanguage)]
   ]) {
     fields.append(renderClientProfileField(label, value));
@@ -7684,15 +7684,23 @@ function referralProgressIndex(referral) {
   }
 
   const status = normalizeStatus(referral.status);
+  if (["Not Interested", "Closed / No Further Outreach"].includes(status)) {
+    return 3;
+  }
+
   if (status === "Scheduled") {
     return 2;
   }
 
-  if (summaryGroups.find((group) => group.key === "follow-up")?.statuses.includes(status)) {
+  if (["Texted", "Left Voicemail", "Emailed", "Requested Call Back", "Caregiver Will Call Back"].includes(status)) {
     return 1;
   }
 
   return 0;
+}
+
+function referralProgressState(referral) {
+  return referral.convertedClientId ? "Converted" : normalizeStatus(referral.status);
 }
 
 function renderReferralProgressPanel(referral) {
@@ -7705,22 +7713,23 @@ function renderReferralProgressPanel(referral) {
   title.textContent = "Referral Progress";
   const current = document.createElement("span");
   current.className = "client-current-lesson";
-  current.textContent = referral.convertedClientId ? "Converted" : normalizeStatus(referral.status);
+  current.textContent = referralProgressState(referral);
   header.append(title, current);
 
   const steps = document.createElement("div");
   steps.className = "lesson-dots referral-progress-dots";
   const currentIndex = referralProgressIndex(referral);
   const items = [
-    { label: "New", accent: "var(--brand-red)" },
-    { label: "Contact", accent: "var(--brand-green)" },
-    { label: "Scheduled", accent: "var(--brand-blue)" },
-    { label: "Converted", accent: "var(--brand-purple)" }
+    { label: "New", status: "New", accent: "var(--brand-red)" },
+    { label: "Contacted", status: "Texted", accent: "var(--brand-green)" },
+    { label: "Scheduled", status: "Scheduled", accent: "var(--brand-blue)" },
+    { label: "Closed", status: "Closed / No Further Outreach", accent: "var(--muted)" }
   ];
 
   items.forEach((item, index) => {
-    const dot = document.createElement("div");
+    const dot = document.createElement("button");
     dot.className = "lesson-dot referral-progress-dot";
+    dot.type = "button";
     dot.style.setProperty("--lesson-accent", item.accent);
     if (index < currentIndex || (index === currentIndex && currentIndex === items.length - 1)) {
       dot.classList.add("done");
@@ -7737,32 +7746,12 @@ function renderReferralProgressPanel(referral) {
         ? "Current"
         : "";
     dot.append(label, state);
+    dot.disabled = Boolean(referral.convertedClientId);
+    dot.addEventListener("click", () => updateReferralStatus(referral, item.status));
     steps.append(dot);
   });
 
-  const summary = document.createElement("div");
-  summary.className = "goals-list referral-progress-summary";
-  const rows = [
-    ["Referral source", displayValue(referral.referralSource)],
-    ["Referral type", displayValue(referral.referralType)],
-    ["Preferred contact", displayValue(referral.preferredContactMethod)]
-  ];
-  if (referral.convertedClientId) {
-    rows.push(["Conversion", "Converted to client"]);
-  }
-
-  for (const item of rows) {
-    const row = document.createElement("div");
-    row.className = "goal-row";
-    const labelEl = document.createElement("span");
-    labelEl.textContent = item[0];
-    const valueEl = document.createElement("strong");
-    valueEl.textContent = item[1];
-    row.append(labelEl, valueEl);
-    summary.append(row);
-  }
-
-  section.append(header, steps, summary);
+  section.append(header, steps);
   return section;
 }
 
@@ -7968,23 +7957,11 @@ function renderReferralDetail() {
   splitGrid.className = "client-profile-split-grid";
   splitGrid.append(renderReferralDetailsPanel(referral), renderReferralRecentActivity(referral));
 
-  const datesSection = renderProfileSection("Key dates", [
-    ["Date of Birth", renderProfileDateInput("Date of Birth", referral.dateOfBirth, referral, "referrals", "dateOfBirth")],
-    ["Referral Date", renderProfileDateInput("Referral Date", referral.referralDate, referral, "referrals", "referralDate")],
-    ["First Contact", renderProfileDateInput("First Contact Date", referral.firstContactDate, referral, "referrals", "firstContactDate")],
-    ["Recent Contact", renderProfileDateInput("Most Recent Contact Date", referral.mostRecentContactDate, referral, "referrals", "mostRecentContactDate")],
-    ["First Appointment", renderProfileDateInput("First Appointment Date", referral.firstAppointmentDate, referral, "referrals", "firstAppointmentDate")],
-    ["Recent Appointment", displayValue(formatShortDate(referral.mostRecentAppointmentDate))],
-    ["Graduation Date", renderProfileDateInput("Graduation Date", referral.lastAppointmentDate, referral, "referrals", "lastAppointmentDate")],
-    ["Created", formatDateOnly((referral.createdAt || "").slice(0, 10))]
-  ]);
-
   shell.append(
     topbar,
     profileGrid,
     adminStrip,
     splitGrid,
-    datesSection,
     renderProfileNotes(referral.notes)
   );
 
@@ -8850,6 +8827,7 @@ function mapZohoClientRow(row) {
     addressZip: csvValue(row, "Mailing Zip"),
     notes: csvValue(row, "Note"),
     zohoRecordId: csvValue(row, "Record Id"),
+    siblingZohoRecordIds: [csvValue(row, "Sibling.id"), csvValue(row, "Sibling 2.id")].filter(Boolean),
     rawStatus: csvValue(row, "Status")
   };
 }
@@ -8898,6 +8876,7 @@ function mapZohoReferralRow(row, sourceType) {
     addressZip: csvValue(row, "Zip Code"),
     notes,
     zohoRecordId: csvValue(row, "Record Id"),
+    siblingZohoRecordIds: [csvValue(row, "Sibling.id"), csvValue(row, "Sibling 2.id")].filter(Boolean),
     importSource: isAssessment ? "Zoho Assessment CSV" : "Zoho Referral CSV",
     rawStatus
   };
@@ -11086,9 +11065,9 @@ function syncReferralEditProgress() {
   const currentIndex = referralEditStageIndex(status);
   const steps = [
     { label: "New", accent: "var(--brand-red)" },
-    { label: "Contact", accent: "var(--brand-green)" },
-    { label: "Schedule", accent: "var(--brand-blue)" },
-    { label: "Close", accent: "var(--muted)" }
+    { label: "Contacted", accent: "var(--brand-green)" },
+    { label: "Scheduled", accent: "var(--brand-blue)" },
+    { label: "Closed", accent: "var(--muted)" }
   ];
 
   referralEditLessonDots.innerHTML = "";

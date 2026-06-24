@@ -1343,6 +1343,25 @@ function hasRequiredPersonFields(payload) {
   return Boolean(payload.firstName && payload.lastName && payload.parentName && payload.phone && payload.preferredLanguage);
 }
 
+function cleanSiblingZohoRecordIds(row = {}) {
+  return Array.isArray(row.siblingZohoRecordIds)
+    ? row.siblingZohoRecordIds.map(cleanString).filter(Boolean)
+    : [];
+}
+
+function siblingIdsForImportedRecord(record, recordsByZohoId, allRecords = []) {
+  const directSiblingIds = cleanSiblingZohoRecordIds(record.row)
+    .map((zohoRecordId) => recordsByZohoId.get(zohoRecordId)?.docRef.id)
+    .filter(Boolean);
+  const reciprocalSiblingIds = record.zohoRecordId
+    ? allRecords
+      .filter((otherRecord) => otherRecord !== record && cleanSiblingZohoRecordIds(otherRecord.row).includes(record.zohoRecordId))
+      .map((otherRecord) => otherRecord.docRef.id)
+    : [];
+
+  return [...new Set([...directSiblingIds, ...reciprocalSiblingIds])];
+}
+
 function todayDateString() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -3096,12 +3115,14 @@ app.post("/api/clients/import", requireAuth, async (request, response, next) => 
     const now = new Date().toISOString();
     const batch = firestore.batch();
     const skipped = [];
-    let importedCount = 0;
+    const recordsToImport = [];
+    const recordsByZohoId = new Map();
 
     clientRows.forEach((row, index) => {
       const payload = cleanPersonPayload(row);
       const status = cleanString(row.status) || "Scheduled";
       const rowNumber = Number(row.rowNumber) || index + 1;
+      const zohoRecordId = cleanString(row.zohoRecordId);
 
       if (!hasRequiredPersonFields(payload)) {
         skipped.push({
@@ -3128,25 +3149,40 @@ app.post("/api/clients/import", requireAuth, async (request, response, next) => 
       }
 
       const docRef = clients.doc();
-      batch.set(docRef, {
-        ...payload,
+      const record = {
+        docRef,
+        payload,
+        row,
         status,
-        zohoRecordId: cleanString(row.zohoRecordId),
+        zohoRecordId
+      };
+      recordsToImport.push(record);
+
+      if (zohoRecordId) {
+        recordsByZohoId.set(zohoRecordId, record);
+      }
+    });
+
+    recordsToImport.forEach((record) => {
+      batch.set(record.docRef, {
+        ...record.payload,
+        status: record.status,
+        siblingIds: siblingIdsForImportedRecord(record, recordsByZohoId, recordsToImport),
+        zohoRecordId: record.zohoRecordId,
         importedFrom: "Zoho CSV",
         importedAt: now,
         createdAt: now,
         updatedAt: now,
         createdBy: request.user.email
       });
-      importedCount += 1;
     });
 
-    if (importedCount > 0) {
+    if (recordsToImport.length > 0) {
       await batch.commit();
     }
 
     response.status(201).json({
-      importedCount,
+      importedCount: recordsToImport.length,
       skipped
     });
   } catch (error) {
@@ -3552,12 +3588,14 @@ app.post("/api/referrals/import", requireAuth, async (request, response, next) =
     const now = new Date().toISOString();
     const batch = firestore.batch();
     const skipped = [];
-    let importedCount = 0;
+    const recordsToImport = [];
+    const recordsByZohoId = new Map();
 
     referralRows.forEach((row, index) => {
       const payload = cleanPersonPayload(row);
       const status = normalizeStatus(row.status);
       const rowNumber = Number(row.rowNumber) || index + 1;
+      const zohoRecordId = cleanString(row.zohoRecordId);
 
       if (!hasRequiredPersonFields(payload) || !payload.referralType) {
         skipped.push({
@@ -3584,26 +3622,42 @@ app.post("/api/referrals/import", requireAuth, async (request, response, next) =
       }
 
       const docRef = referrals.doc();
-      batch.set(docRef, {
-        ...payload,
+      const record = {
+        docRef,
+        payload,
+        row,
         status,
-        referralDate: payload.referralDate || now.slice(0, 10),
-        zohoRecordId: cleanString(row.zohoRecordId),
-        importedFrom: cleanString(row.importSource) || "Zoho CSV",
+        zohoRecordId,
+        importedFrom: cleanString(row.importSource) || "Zoho CSV"
+      };
+      recordsToImport.push(record);
+
+      if (zohoRecordId) {
+        recordsByZohoId.set(zohoRecordId, record);
+      }
+    });
+
+    recordsToImport.forEach((record) => {
+      batch.set(record.docRef, {
+        ...record.payload,
+        status: record.status,
+        referralDate: record.payload.referralDate || now.slice(0, 10),
+        siblingIds: siblingIdsForImportedRecord(record, recordsByZohoId, recordsToImport),
+        zohoRecordId: record.zohoRecordId,
+        importedFrom: record.importedFrom,
         importedAt: now,
         createdAt: now,
         updatedAt: now,
         createdBy: request.user.email
       });
-      importedCount += 1;
     });
 
-    if (importedCount > 0) {
+    if (recordsToImport.length > 0) {
       await batch.commit();
     }
 
     response.status(201).json({
-      importedCount,
+      importedCount: recordsToImport.length,
       skipped
     });
   } catch (error) {
@@ -4019,6 +4073,7 @@ export {
   cleanProviderLink,
   cleanPublicBookingPayload,
   cleanReferralNetworkPayload,
+  cleanSiblingZohoRecordIds,
   cleanString,
   cleanTaskPayload,
   clientPayloadFromReferral,
@@ -4047,6 +4102,7 @@ export {
   resolveAppointmentImportClients,
   schedulingWindowEndLabel,
   schedulingWindowError,
+  siblingIdsForImportedRecord,
   startDayTaskIntent,
   startDayTaskSubject,
   tasksMatchStartDayIntent,

@@ -24,6 +24,7 @@ import {
   cleanProviderLink,
   cleanPublicBookingPayload,
   cleanReferralNetworkPayload,
+  cleanSiblingZohoRecordIds,
   cleanString,
   cleanTaskPayload,
   clientPayloadFromReferral,
@@ -52,6 +53,7 @@ import {
   resolveAppointmentImportClients,
   schedulingWindowEndLabel,
   schedulingWindowError,
+  siblingIdsForImportedRecord,
   startDayTaskIntent,
   startDayTaskSubject,
   tasksMatchStartDayIntent,
@@ -182,6 +184,31 @@ test("cleanProviderLink trims linked provider metadata", () => {
     organizationName: "Clinic",
     providerName: "Doctor"
   });
+});
+
+test("sibling import helpers link rows by explicit Zoho sibling ids", () => {
+  const currentRecord = {
+    docRef: { id: "current-id" },
+    zohoRecordId: "zcrm-current",
+    row: {
+      siblingZohoRecordIds: [" zcrm-sibling ", "", "missing-sibling"]
+    }
+  };
+  const reciprocalRecord = {
+    docRef: { id: "reciprocal-id" },
+    zohoRecordId: "zcrm-reciprocal",
+    row: {
+      siblingZohoRecordIds: ["zcrm-current"]
+    }
+  };
+  const recordsByZohoId = new Map([
+    ["zcrm-current", currentRecord],
+    ["zcrm-reciprocal", reciprocalRecord],
+    ["zcrm-sibling", { docRef: { id: "new-sibling-id" } }]
+  ]);
+
+  assert.deepEqual(cleanSiblingZohoRecordIds(currentRecord.row), ["zcrm-sibling", "missing-sibling"]);
+  assert.deepEqual(siblingIdsForImportedRecord(currentRecord, recordsByZohoId, [currentRecord, reciprocalRecord]), ["new-sibling-id", "reciprocal-id"]);
 });
 
 test("referralSourceFromRecord keeps explicit source before provider fallback", () => {

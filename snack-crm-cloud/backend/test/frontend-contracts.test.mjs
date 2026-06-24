@@ -343,12 +343,23 @@ test("referral edit form uses profile cards for source and appointment fields", 
   assert.match(referralForm, /id="referral-source-display" class="profile-source-text is-empty">None linked yet/);
   assert.match(referralForm, /<span>Last Appt<\/span>\s*<input id="last-appointment-date"/);
   assert.equal(referralForm.includes("<span>Graduation Date</span>"), false);
+  assert.match(appJs, /siblingZohoRecordIds/);
   assertInOrder(referralForm, [
     "client-profile-grid",
     "client-admin-strip",
     "Referral Details",
     "Provider Profiles"
   ]);
+});
+
+test("referral profile keeps progress concise and actionable", () => {
+  assert.match(appJs, /Waiting-on-family referrals land here/);
+  assert.match(appJs, /\{ label: "Contacted", status: "Texted"/);
+  assert.match(appJs, /\{ label: "Scheduled", status: "Scheduled"/);
+  assert.match(appJs, /\{ label: "Closed", status: "Closed \/ No Further Outreach"/);
+  assert.match(appJs, /dot\.addEventListener\("click", \(\) => updateReferralStatus\(referral, item\.status\)\)/);
+  assert.doesNotMatch(appJs, /renderProfileSection\("Key dates"/);
+  assert.doesNotMatch(appJs, /"Recent appt", profileDate\(referral\.mostRecentAppointmentDate\)/);
 });
 
 test("client detail edit cards keep Referral, Contact, Insurance, and Assessment sections", () => {
