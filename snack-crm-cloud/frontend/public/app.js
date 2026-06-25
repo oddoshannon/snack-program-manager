@@ -6905,16 +6905,18 @@ function appointmentPreviousGoalText(appointment) {
 
 function appointmentSchedulePrintCard(appointment) {
   const familySummary = appointmentPrintClientSummary(appointment)
-    .map((client) => [client.caregiver ? `Caregiver: ${client.caregiver}` : "", client.language].filter(Boolean).join(" | "))
+    .map((client) => [client.caregiver, client.language].filter(Boolean).join(" | "))
     .filter(Boolean)
     .join("; ");
+  const staffFirstName = String(appointment.staffMember || "").trim().split(/\s+/)[0] || "";
+  const details = [familySummary, staffFirstName ? `Staff: ${staffFirstName}` : ""].filter(Boolean).join(" | ");
 
   return `
     <section class="print-schedule-row">
       <div class="print-schedule-time">${escapeHtml(formatAppointmentTime(appointment.appointmentTime) || "Time TBD")}</div>
       <div>
         <h2>${escapeHtml(appointmentClientName(appointment))}</h2>
-        <p>${escapeHtml([appointment.staffMember || "", familySummary].filter(Boolean).join(" | ") || "-")}</p>
+        <p>${escapeHtml(details || "-")}</p>
       </div>
     </section>
   `;
@@ -6956,10 +6958,21 @@ function printPromptBlock(prompt) {
     `;
   }
 
+  if (item.type === "nextAppointment") {
+    return `
+      <div class="print-next-appt-row">
+        <span>Next appt scheduled</span>
+        <i></i>
+        <strong>Date</strong>
+        <em></em>
+      </div>
+    `;
+  }
+
   return `
     <div>
       <span>${escapeHtml(item.label)}</span>
-      <div class="print-lines" style="--print-lines-height: ${Number(item.lines) * 28}px;"></div>
+      <div class="print-lines" style="--print-lines-height: ${Number(item.lines) * 22}px;"></div>
     </div>
   `;
 }
@@ -6968,7 +6981,7 @@ function appointmentNotePromptSections(appointment) {
   if (appointmentTypeLabel(appointment) === "Enrollment") {
     return [
       {
-        title: "Visit Notes",
+        title: "Visit Note",
         prompts: [
           ["Program interest / what they know", 3],
           ["Healthy habits and strengths", 2],
@@ -6995,9 +7008,9 @@ function appointmentNotePromptSections(appointment) {
   if (isCheckIn) {
     return [
       {
-        title: "Visit Notes",
+        title: "Visit Note",
         prompts: [
-          ["How did the previous goal go? What helped or made it harder?", 3],
+          ["How did the previous goal go? What helped or made it harder? Other updates or wins?", 3],
           ["Anything you would like to talk about today?", 3],
           ["One thing you would like help or support with", 2],
           ["New Goal", 2],
@@ -7007,46 +7020,59 @@ function appointmentNotePromptSections(appointment) {
     ];
   }
 
-  return [
-    {
-      title: "Visit Notes",
-      prompts: [
-        ["How did the previous goal go? What helped or made it harder?", 3],
-        ["Updates or wins", 2],
-        ["Activities practiced", 3],
-        ["Client response / observations", 3],
-        ["Goal set today", 2],
-        ["Follow-up / to-do", 2]
-      ]
-    },
-    ...(retentionPrompts[lesson]?.length ? [{
+  const retentionSection = retentionPrompts[lesson]?.length
+    ? {
       title: "Knowledge Retention",
       prompts: retentionPrompts[lesson].map((prompt) => ({ label: prompt, type: "check" }))
-    }] : [])
-  ];
+    }
+    : null;
+
+  return [
+    {
+      title: "Visit Note",
+      prompts: [
+        ["How did the previous goal go? What helped or made it harder? Other updates or wins?", 3]
+      ]
+    },
+    retentionSection,
+    {
+      title: "Activities Practiced",
+      prompts: [
+        ["Activities practiced / client response", 4]
+      ]
+    },
+    {
+      title: "Goal and Follow Up",
+      prompts: [
+        ["Goal set today", 2],
+        { type: "nextAppointment" },
+        ["Follow-up needed?", 2]
+      ]
+    }
+  ].filter(Boolean);
 }
 
 function appointmentNoteTitle(appointment) {
   if (appointmentTypeLabel(appointment) === "Enrollment") {
-    return "Enrollment Appointment Notes";
+    return "Enrollment Appointment Note";
   }
 
   if (String(appointment.lesson || "").toLowerCase() === "check in") {
-    return "Check In Appointment Notes";
+    return "Check In Appointment Note";
   }
 
   const lesson = appointmentLessonNumber(appointment);
   const titles = {
-    1: "Nutrient Density Appointment Notes",
-    2: "Sugar Appointment Notes",
-    3: "Food Groups Appointment Notes",
-    4: "Macronutrients Appointment Notes",
-    5: "Micronutrients Appointment Notes",
-    6: "Mindful Eating Appointment Notes",
-    7: "Healthy Habits Appointment Notes"
+    1: "Nutrient Density Appointment Note",
+    2: "Sugar Appointment Note",
+    3: "Food Groups Appointment Note",
+    4: "Macronutrients Appointment Note",
+    5: "Micronutrients Appointment Note",
+    6: "Mindful Eating Appointment Note",
+    7: "Healthy Habits Appointment Note"
   };
 
-  return titles[lesson] || "Appointment Note Sheet";
+  return titles[lesson] || "Appointment Note";
 }
 
 function appointmentNotePrintCard(appointment) {

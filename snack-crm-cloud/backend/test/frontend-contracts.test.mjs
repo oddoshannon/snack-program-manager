@@ -330,17 +330,19 @@ test("appointment prep checklist mirrors the When to Give What guide", () => {
 });
 
 test("printable appointment note sheets include handwritten visit note prompts", () => {
-  assert.match(appJs, /Visit Notes/);
-  assert.match(appJs, /Food Groups Appointment Notes/);
+  assert.match(appJs, /Visit Note/);
+  assert.match(appJs, /Food Groups Appointment Note/);
   assert.match(appJs, /Age/);
   assert.match(appJs, /Interval since last appointment/);
   assert.match(appJs, /Goal:/);
-  assert.match(appJs, /Activities practiced/);
-  assert.match(appJs, /Client response \/ observations/);
+  assert.match(appJs, /Other updates or wins/);
+  assert.match(appJs, /Activities practiced \/ client response/);
   assert.match(appJs, /Goal set today/);
-  assert.match(appJs, /Follow-up \/ to-do/);
+  assert.match(appJs, /Next appt scheduled/);
+  assert.match(appJs, /Follow-up needed/);
   assert.match(appJs, /Knowledge Retention/);
   assert.match(appJs, /print-checkbox-row/);
+  assert.match(appJs, /print-next-appt-row/);
   assert.match(appJs, /print-lines/);
 });
 
