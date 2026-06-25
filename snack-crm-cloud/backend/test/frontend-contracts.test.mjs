@@ -304,6 +304,17 @@ test("scheduling module keeps calendar, today board, and bottom list views", () 
   assert.match(indexHtml, /id="appointments-list"/);
 });
 
+test("scheduling module exposes a non-destructive v2 preview shell", () => {
+  assert.match(indexHtml, /id="scheduling-classic-view-button"/);
+  assert.match(indexHtml, /id="scheduling-v2-view-button"/);
+  assert.match(indexHtml, /id="scheduling-v2-preview"/);
+  assert.match(appJs, /function setSchedulingDesign/);
+  assert.match(appJs, /function renderSchedulingV2Preview/);
+  assert.match(appJs, /function renderSchedulingV2Sidebar/);
+  assert.match(appJs, /activeSchedulingDesign/);
+  assert.match(stylesCss, /scheduling-v2-shell/);
+});
+
 test("scheduling module exposes printable daily schedule and prep sheets", () => {
   assert.match(indexHtml, /id="print-today-schedule"/);
   assert.match(indexHtml, /id="print-prep-sheets"/);
@@ -312,12 +323,15 @@ test("scheduling module exposes printable daily schedule and prep sheets", () =>
   assert.match(appJs, /function printTodaySchedule/);
   assert.match(appJs, /function printPrepSheets/);
   assert.match(appJs, /function printAppointmentNoteSheets/);
+  assert.match(appJs, /function printScheduleForDate/);
+  assert.match(appJs, /function printPrepSheetsForDate/);
+  assert.match(appJs, /function printAppointmentNoteSheetsForDate/);
   assert.match(appJs, /function printPreparedDocument/);
   assert.match(appJs, /window\.print\(\)/);
   assert.match(stylesCss, /@media print/);
   assert.match(stylesCss, /body > :not\(\.print-root\)/);
   assert.match(appJs, /Appointment Prep Sheets/);
-  assert.match(appJs, /No appointments scheduled today for note sheets/);
+  assert.match(appJs, /No appointments scheduled on \$\{formatDateOnly\(dateKey\)\} for note sheets/);
 });
 
 test("appointment prep checklist mirrors the When to Give What guide", () => {

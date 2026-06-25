@@ -232,6 +232,10 @@ const newAppointmentButton = document.querySelector("#new-appointment");
 const printTodayScheduleButton = document.querySelector("#print-today-schedule");
 const printPrepSheetsButton = document.querySelector("#print-prep-sheets");
 const printNoteSheetsButton = document.querySelector("#print-note-sheets");
+const schedulingClassicView = document.querySelector("#scheduling-classic-view");
+const schedulingV2Preview = document.querySelector("#scheduling-v2-preview");
+const schedulingClassicViewButton = document.querySelector("#scheduling-classic-view-button");
+const schedulingV2ViewButton = document.querySelector("#scheduling-v2-view-button");
 const appointmentModal = document.querySelector("#appointment-modal");
 const appointmentDetail = document.querySelector("#appointment-detail");
 const appointmentDetailTitle = document.querySelector("#appointment-detail-title");
@@ -740,6 +744,9 @@ let editingAppointmentId = null;
 let completingAppointmentId = null;
 let appointmentCompletionMode = "complete";
 let visibleSchedulingWeekStart = null;
+let visibleSchedulingPreviewDate = todayDateString();
+let activeSchedulingPreviewView = "day";
+let selectedSchedulingPreviewAppointmentId = null;
 const selectedAppointmentClientIds = new Set();
 let editingTaskId = null;
 let editingGrantId = null;
@@ -772,6 +779,7 @@ let activeAdminView = "settings";
 let activeFundraisingView = "grants";
 let activeReferralView = "flow";
 let activeClientView = "flow";
+let activeSchedulingDesign = "classic";
 const savedNavigationState = loadNavigationState();
 let activeModule = savedNavigationState.activeModule;
 let activeCrmView = savedNavigationState.activeCrmView;
@@ -780,6 +788,7 @@ activeAdminView = savedNavigationState.activeAdminView;
 activeFundraisingView = savedNavigationState.activeFundraisingView;
 activeReferralView = savedNavigationState.activeReferralView;
 activeClientView = savedNavigationState.activeClientView;
+activeSchedulingDesign = savedNavigationState.activeSchedulingDesign;
 
 async function authedFetch(path, options = {}) {
   const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL;
@@ -1565,7 +1574,8 @@ function loadNavigationState() {
     activeAdminView: "settings",
     activeFundraisingView: "grants",
     activeReferralView: "flow",
-    activeClientView: "flow"
+    activeClientView: "flow",
+    activeSchedulingDesign: "classic"
   };
 
   try {
@@ -1580,7 +1590,8 @@ function loadNavigationState() {
       activeAdminView: validValue(saved.activeAdminView, ["settings", "data-tools", "kpi", "work-plan"], defaults.activeAdminView),
       activeFundraisingView: validValue(savedFundraisingView, ["grants", "sales", "individual-giving", "corporate-partnerships", "events"], defaults.activeFundraisingView),
       activeReferralView: validValue(saved.activeReferralView, ["list", "flow"], defaults.activeReferralView),
-      activeClientView: validValue(saved.activeClientView, ["list", "flow"], defaults.activeClientView)
+      activeClientView: validValue(saved.activeClientView, ["list", "flow"], defaults.activeClientView),
+      activeSchedulingDesign: validValue(saved.activeSchedulingDesign, ["classic", "v2"], defaults.activeSchedulingDesign)
     };
   } catch (_error) {
     return defaults;
@@ -1595,7 +1606,8 @@ function saveNavigationState() {
     activeAdminView,
     activeFundraisingView,
     activeReferralView,
-    activeClientView
+    activeClientView,
+    activeSchedulingDesign
   }));
 }
 
@@ -6643,11 +6655,481 @@ function renderSchedulingCard(appointment, showActions) {
   return card;
 }
 
+function setSchedulingDesign(design) {
+  activeSchedulingDesign = validValue(design, ["classic", "v2"], "classic");
+  saveNavigationState();
+  renderAppointments();
+}
+
+function moveSchedulingPreviewDate(dayOffset) {
+  visibleSchedulingPreviewDate = toDateString(addDays(new Date(`${visibleSchedulingPreviewDate}T00:00:00`), dayOffset));
+  selectedSchedulingPreviewAppointmentId = null;
+  renderSchedulingV2Preview();
+}
+
+function setSchedulingPreviewDate(value) {
+  if (!value) {
+    return;
+  }
+
+  visibleSchedulingPreviewDate = value;
+  selectedSchedulingPreviewAppointmentId = null;
+  renderSchedulingV2Preview();
+}
+
+function setSchedulingPreviewView(viewName) {
+  activeSchedulingPreviewView = validValue(viewName, ["day", "week", "month", "list"], "day");
+  renderSchedulingV2Preview();
+}
+
+function schedulingPreviewAppointmentsForDate(dateKey = visibleSchedulingPreviewDate) {
+  return loadedAppointments
+    .filter((appointment) => appointment.appointmentDate === dateKey && appointment.status !== "Canceled")
+    .sort(
+      (first, second) =>
+        appointmentTimeValue(first.appointmentTime) - appointmentTimeValue(second.appointmentTime) ||
+        appointmentClientName(first).localeCompare(appointmentClientName(second))
+    );
+}
+
+function schedulingPreviewSelectedAppointment(appointments) {
+  const selected = appointments.find((appointment) => appointment.id === selectedSchedulingPreviewAppointmentId);
+
+  if (selected) {
+    return selected;
+  }
+
+  selectedSchedulingPreviewAppointmentId = appointments[0]?.id || null;
+  return appointments[0] || null;
+}
+
+function appointmentClientRecords(appointment) {
+  return appointmentClientIds(appointment)
+    .map((clientId) => loadedClients.find((client) => client.id === clientId))
+    .filter(Boolean);
+}
+
+function appointmentPreviewClientRows(appointment) {
+  const clients = appointmentClientRecords(appointment);
+
+  if (clients.length) {
+    return clients.map((client) => ({
+      id: client.id,
+      name: clientName(client),
+      caregiver: client.parentName || "",
+      phone: formatPhone(client.phone),
+      language: client.preferredLanguage || "",
+      address: formatAddress(client),
+      dateOfBirth: profileDate(client.dateOfBirth)
+    }));
+  }
+
+  return appointmentClientNames(appointment).map((name) => ({
+    id: "",
+    name,
+    caregiver: "",
+    phone: "",
+    language: "",
+    address: "-",
+    dateOfBirth: "-"
+  }));
+}
+
+function appointmentPreviewPrimaryClient(appointment) {
+  return appointmentPreviewClientRows(appointment)[0] || {
+    id: "",
+    name: appointmentClientName(appointment),
+    caregiver: "",
+    phone: "",
+    language: "",
+    address: "-",
+    dateOfBirth: "-"
+  };
+}
+
+function schedulingPreviewCounterItems(dateAppointments) {
+  return [
+    { label: "Today", value: dateAppointments.filter((appointment) => appointment.status !== "Canceled").length },
+    { label: "Completed", value: dateAppointments.filter((appointment) => appointment.status === "Completed").length },
+    { label: "No Show", value: dateAppointments.filter((appointment) => appointment.status === "No-show").length },
+    { label: "Needs Reschedule", value: dateAppointments.filter((appointment) => appointment.status === "Rescheduled").length }
+  ];
+}
+
+function renderSchedulingV2Sidebar() {
+  const navGroups = [
+    {
+      label: "Overview",
+      items: [
+        { icon: "H", label: "Dashboard" }
+      ]
+    },
+    {
+      label: "Workflow",
+      items: [
+        { icon: "S", label: "Scheduling", active: true },
+        { icon: "G", label: "Grants" },
+        { icon: "O", label: "Outreach" }
+      ]
+    },
+    {
+      label: "CRM",
+      items: [
+        { icon: "R", label: "Referrals" },
+        { icon: "C", label: "Clients" },
+        { icon: "N", label: "Referral Network" }
+      ]
+    },
+    {
+      label: "Fundraising",
+      items: [
+        { icon: "$", label: "Grants" },
+        { icon: "E", label: "Events" },
+        { icon: "D", label: "Donors" }
+      ]
+    },
+    {
+      label: "Admin",
+      items: [
+        { icon: "R", label: "Reports" },
+        { icon: "A", label: "Settings" }
+      ]
+    }
+  ];
+
+  return `
+    <aside class="scheduling-v2-sidebar" aria-label="Scheduling preview navigation">
+      <div class="scheduling-v2-brand">
+        <span aria-hidden="true">S</span>
+        <div>
+          <strong>SNACK</strong>
+          <small>Program Manager</small>
+        </div>
+      </div>
+      <nav class="scheduling-v2-nav" aria-label="Preview navigation">
+        ${navGroups.map((group) => `
+          <section>
+            <p>${escapeHtml(group.label)}</p>
+            ${group.items.map((item) => `
+              <button class="${item.active ? "active" : ""}" type="button">
+                <span aria-hidden="true">${escapeHtml(item.icon)}</span>
+                ${escapeHtml(item.label)}
+              </button>
+            `).join("")}
+          </section>
+        `).join("")}
+      </nav>
+      <section class="scheduling-v2-quick-actions" aria-label="Quick actions">
+        <h3>Quick Actions</h3>
+        <button data-scheduling-action="new" type="button">New Appointment</button>
+        <button data-scheduling-action="print-schedule" type="button">Print Schedule</button>
+        <button data-scheduling-action="print-notes" type="button">Print Notes</button>
+        <button data-scheduling-action="print-prep" type="button">Print Prep Sheets</button>
+      </section>
+      <div class="scheduling-v2-account">
+        <span aria-hidden="true">SO</span>
+        <div>
+          <strong>Shannon Oddo</strong>
+          <small>director@snackprogram.org</small>
+        </div>
+      </div>
+    </aside>
+  `;
+}
+
+function renderSchedulingV2Controls(dateAppointments) {
+  return `
+    <header class="scheduling-v2-content-header">
+      <div>
+        <p class="eyebrow">Scheduling</p>
+        <h2>Scheduling</h2>
+      </div>
+      <div class="scheduling-v2-search">
+        <span aria-hidden="true">Search</span>
+        <input type="search" value="" placeholder="Search clients, referrals, appointments..." aria-label="Search clients, referrals, appointments">
+      </div>
+      <button class="scheduling-v2-primary" data-scheduling-action="new" type="button">New Appointment</button>
+    </header>
+    <section class="scheduling-v2-date-card" aria-label="Scheduling preview date controls">
+      <div class="scheduling-v2-date-row">
+        <button data-scheduling-date="today" type="button">Today</button>
+        <button data-scheduling-date="previous" type="button" aria-label="Previous day">&lt;</button>
+        <button data-scheduling-date="next" type="button" aria-label="Next day">&gt;</button>
+        <label>
+          <span>Choose date</span>
+          <input data-scheduling-date-input type="date" value="${escapeHtml(visibleSchedulingPreviewDate)}">
+        </label>
+        <div class="scheduling-v2-view-switch" role="group" aria-label="Scheduling preview views">
+          ${["day", "week", "month", "list"].map((view) => `
+            <button class="${activeSchedulingPreviewView === view ? "active" : ""}" data-scheduling-preview-view="${view}" type="button">${escapeHtml(titleCase(view))}</button>
+          `).join("")}
+        </div>
+      </div>
+      <div class="scheduling-v2-counters">
+        ${schedulingPreviewCounterItems(dateAppointments).map((item) => `
+          <article>
+            <strong>${escapeHtml(item.value)}</strong>
+            <span>${escapeHtml(item.label)}</span>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderSchedulingV2Agenda(dateAppointments) {
+  const startHour = 8;
+  const endHour = 17;
+
+  return `
+    <section class="scheduling-v2-agenda-card" aria-label="Day agenda">
+      <div class="scheduling-v2-agenda-title">
+        <div>
+          <h3>${escapeHtml(formatPrintDayTitle(visibleSchedulingPreviewDate))}</h3>
+          <p>${escapeHtml(dateAppointments.length ? `${dateAppointments.length} appointment${dateAppointments.length === 1 ? "" : "s"}` : "Nothing scheduled.")}</p>
+        </div>
+      </div>
+      <div class="scheduling-v2-agenda">
+        ${Array.from({ length: endHour - startHour + 1 }, (_, index) => startHour + index).map((hour) => {
+          const hourAppointments = dateAppointments.filter((appointment) => Math.floor(appointmentTimeValue(appointment.appointmentTime) / 60) === hour);
+          return `
+            <div class="scheduling-v2-hour-row">
+              <time>${escapeHtml(formatAppointmentTime(`${String(hour).padStart(2, "0")}:00`))}</time>
+              <div>
+                ${hourAppointments.length ? hourAppointments.map((appointment) => `
+                  <button
+                    class="scheduling-v2-appointment-card ${appointment.id === selectedSchedulingPreviewAppointmentId ? "selected" : ""}"
+                    type="button"
+                    data-scheduling-preview-appointment="${escapeHtml(appointment.id)}"
+                    style="--appointment-accent: ${escapeHtml(appointmentLessonAccent(appointment))};"
+                  >
+                    <strong>${escapeHtml(formatAppointmentTime(appointment.appointmentTime) || "Time TBD")}</strong>
+                    <span>${escapeHtml(appointmentClientName(appointment))}</span>
+                    <small>${escapeHtml([appointment.status || "Scheduled", appointmentLessonLabel(appointment) || appointmentTypeLabel(appointment)].filter(Boolean).join(" | "))}</small>
+                    <em>${escapeHtml(appointmentClientCount(appointment) > 1 ? `${appointmentClientCount(appointment)} clients` : "")}</em>
+                  </button>
+                `).join("") : "<span class=\"scheduling-v2-empty-slot\">Open</span>"}
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function schedulingV2InfoRow(label, value) {
+  return `
+    <div class="scheduling-v2-info-row">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value || "-")}</strong>
+    </div>
+  `;
+}
+
+function renderSchedulingV2Detail(appointment) {
+  if (!appointment) {
+    return `
+      <section class="scheduling-v2-detail-card scheduling-v2-empty-detail" aria-label="Appointment preview">
+        <p class="eyebrow">Appointment</p>
+        <h3>No appointment selected</h3>
+        <p>Choose an appointment from the agenda to preview the new detail layout.</p>
+      </section>
+    `;
+  }
+
+  const clients = appointmentPreviewClientRows(appointment);
+  const primaryClient = appointmentPreviewPrimaryClient(appointment);
+  const prepItems = appointmentPrepItems(appointment);
+  const goalText = appointmentGoalText(appointment);
+
+  return `
+    <section class="scheduling-v2-detail-card" aria-label="Selected appointment preview">
+      <div class="scheduling-v2-detail-left">
+        <div class="scheduling-v2-selected-status">
+          <span class="status-badge status-${escapeHtml(cssToken(appointment.status || "Scheduled"))}">${escapeHtml(appointment.status || "Scheduled")}</span>
+          <button data-scheduling-action="check-in" type="button">Check In</button>
+        </div>
+        <h3>${escapeHtml(appointmentClientName(appointment))}</h3>
+        <div class="scheduling-v2-detail-meta">
+          ${schedulingV2InfoRow("Date", formatDateOnly(appointment.appointmentDate))}
+          ${schedulingV2InfoRow("Time", `${formatAppointmentTime(appointment.appointmentTime) || "Time TBD"} (${formatDuration(appointmentDurationMinutes(appointment))})`)}
+          ${schedulingV2InfoRow("Staff", appointment.staffMember || "-")}
+          ${schedulingV2InfoRow("Type", [appointmentTypeLabel(appointment), appointmentLessonLabel(appointment)].filter(Boolean).join(" | "))}
+        </div>
+        <section class="scheduling-v2-family-card">
+          <h4>Family</h4>
+          ${schedulingV2InfoRow("Caregiver", primaryClient.caregiver || "-")}
+          ${schedulingV2InfoRow("Phone", primaryClient.phone || "-")}
+          ${schedulingV2InfoRow("Children", clients.map((client) => client.name).join(", ") || "-")}
+          ${schedulingV2InfoRow("Language", [...new Set(clients.map((client) => client.language).filter(Boolean))].join(", ") || "-")}
+          ${schedulingV2InfoRow("Address", primaryClient.address || "-")}
+          ${primaryClient.id ? `<button data-scheduling-client="${escapeHtml(primaryClient.id)}" type="button">View Family Profile</button>` : ""}
+        </section>
+      </div>
+      <div class="scheduling-v2-detail-main">
+        <div class="scheduling-v2-detail-tabs" role="tablist" aria-label="Appointment preview tabs">
+          ${["Visit Note", "Prep", "History", "Files"].map((tab, index) => `
+            <button class="${index === 0 ? "active" : ""}" type="button" role="tab" aria-selected="${index === 0 ? "true" : "false"}">${escapeHtml(tab)}</button>
+          `).join("")}
+        </div>
+        <section class="scheduling-v2-visit-card">
+          <div>
+            <h4>Lesson</h4>
+            <button data-scheduling-action="edit" type="button">Edit</button>
+          </div>
+          <dl>
+            <div><dt>Type</dt><dd>${escapeHtml(appointmentTypeLabel(appointment))}</dd></div>
+            <div><dt>Lesson</dt><dd>${escapeHtml(appointmentLessonLabel(appointment) || "-")}</dd></div>
+            <div><dt>Goal</dt><dd>${escapeHtml(goalText || "-")}</dd></div>
+            <div><dt>Notes</dt><dd>${escapeHtml(appointmentNotesText(appointment) || "-")}</dd></div>
+          </dl>
+        </section>
+        <section class="scheduling-v2-visit-card scheduling-v2-prep-card">
+          <div>
+            <h4>Prep</h4>
+          </div>
+          ${prepItems.length ? `
+            <ul>
+              ${prepItems.slice(0, 6).map((item) => `
+                <li>
+                  <label>
+                    <input type="checkbox">
+                    <span>${escapeHtml(item)}</span>
+                  </label>
+                </li>
+              `).join("")}
+            </ul>
+          ` : "<p>No prep items for this appointment.</p>"}
+        </section>
+        <section class="scheduling-v2-check-in-card">
+          <div>
+            <h4>Check In</h4>
+            <button data-scheduling-action="check-in" type="button">Edit</button>
+          </div>
+          <div class="scheduling-v2-check-grid">
+            ${schedulingV2InfoRow("Caregiver Mood", "Good")}
+            ${schedulingV2InfoRow("Confidence", "High")}
+            ${schedulingV2InfoRow("Participation", "Engaged")}
+            ${schedulingV2InfoRow("Barriers", "None reported")}
+          </div>
+        </section>
+        <div class="scheduling-v2-actions">
+          <button data-scheduling-action="complete" type="button">Mark Complete</button>
+          <button data-scheduling-action="reschedule" type="button">Reschedule</button>
+          <button data-scheduling-action="no-show" type="button">No Show</button>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function bindSchedulingV2PreviewActions(selectedAppointment) {
+  schedulingV2Preview.querySelectorAll("[data-scheduling-date]").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (button.dataset.schedulingDate === "today") {
+        setSchedulingPreviewDate(todayDateString());
+      } else if (button.dataset.schedulingDate === "previous") {
+        moveSchedulingPreviewDate(-1);
+      } else if (button.dataset.schedulingDate === "next") {
+        moveSchedulingPreviewDate(1);
+      }
+    });
+  });
+
+  const dateInput = schedulingV2Preview.querySelector("[data-scheduling-date-input]");
+  dateInput?.addEventListener("change", () => setSchedulingPreviewDate(dateInput.value));
+
+  schedulingV2Preview.querySelectorAll("[data-scheduling-preview-view]").forEach((button) => {
+    button.addEventListener("click", () => setSchedulingPreviewView(button.dataset.schedulingPreviewView));
+  });
+
+  schedulingV2Preview.querySelectorAll("[data-scheduling-preview-appointment]").forEach((button) => {
+    button.addEventListener("click", () => {
+      selectedSchedulingPreviewAppointmentId = button.dataset.schedulingPreviewAppointment;
+      selectedAppointmentId = selectedSchedulingPreviewAppointmentId;
+      renderSchedulingV2Preview();
+    });
+  });
+
+  schedulingV2Preview.querySelectorAll("[data-scheduling-client]").forEach((button) => {
+    button.addEventListener("click", () => setSelectedClient(button.dataset.schedulingClient));
+  });
+
+  schedulingV2Preview.querySelectorAll("[data-scheduling-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const action = button.dataset.schedulingAction;
+
+      if (action === "new") {
+        startNewAppointment({ appointmentDate: visibleSchedulingPreviewDate });
+      } else if (action === "print-schedule") {
+        printScheduleForDate(visibleSchedulingPreviewDate);
+      } else if (action === "print-notes") {
+        printAppointmentNoteSheetsForDate(visibleSchedulingPreviewDate);
+      } else if (action === "print-prep") {
+        printPrepSheetsForDate(visibleSchedulingPreviewDate);
+      } else if (action === "edit" && selectedAppointment) {
+        selectedAppointmentId = selectedAppointment.id;
+        startEditingAppointment(selectedAppointment);
+        openAppointmentModal();
+      } else if (action === "complete" && selectedAppointment) {
+        startCompletingAppointment(selectedAppointment);
+      } else if (action === "reschedule" && selectedAppointment) {
+        startReschedulingAppointment(selectedAppointment);
+      } else if (action === "no-show" && selectedAppointment) {
+        updateAppointmentStatus(selectedAppointment, "No-show");
+      } else if (action === "check-in") {
+        appointmentsStatusEl.textContent = "Check-in workflow will be wired after the preview layout is approved.";
+      }
+    });
+  });
+}
+
+function renderSchedulingV2Preview() {
+  if (!schedulingV2Preview) {
+    return;
+  }
+
+  const dateAppointments = schedulingPreviewAppointmentsForDate();
+  const selectedAppointment = schedulingPreviewSelectedAppointment(dateAppointments);
+
+  schedulingV2Preview.innerHTML = `
+    <div class="scheduling-v2-shell">
+      ${renderSchedulingV2Sidebar()}
+      <div class="scheduling-v2-main">
+        ${renderSchedulingV2Controls(dateAppointments)}
+        <div class="scheduling-v2-workspace">
+          ${renderSchedulingV2Agenda(dateAppointments)}
+          ${renderSchedulingV2Detail(selectedAppointment)}
+        </div>
+      </div>
+    </div>
+  `;
+
+  bindSchedulingV2PreviewActions(selectedAppointment);
+}
+
+function renderSchedulingDesign() {
+  const showPreview = activeSchedulingDesign === "v2";
+  schedulingClassicView.hidden = showPreview;
+  schedulingV2Preview.hidden = !showPreview;
+  schedulingClassicViewButton.classList.toggle("active", !showPreview);
+  schedulingV2ViewButton.classList.toggle("active", showPreview);
+  schedulingPanel.classList.toggle("scheduling-v2-active", showPreview);
+  schedulingClassicViewButton.setAttribute("aria-pressed", String(!showPreview));
+  schedulingV2ViewButton.setAttribute("aria-pressed", String(showPreview));
+
+  if (showPreview) {
+    renderSchedulingV2Preview();
+  }
+}
+
 function renderAppointments() {
   appointmentsList.innerHTML = "";
   renderAppointmentSummary();
   renderSchedulingCalendar();
   renderSchedulingTodayBoard();
+  renderSchedulingDesign();
   const appointments = loadedAppointments
     .filter(appointmentMatchesFilters)
     .sort(
@@ -6717,16 +7199,24 @@ function escapeHtml(value) {
   })[character]);
 }
 
-function todayPrintableAppointments({ prepOnly = false } = {}) {
-  const today = todayDateString();
+function titleCase(value) {
+  const text = String(value || "");
+  return text ? `${text.charAt(0).toUpperCase()}${text.slice(1)}` : "";
+}
+
+function printableAppointmentsForDate(dateKey, { prepOnly = false } = {}) {
   return loadedAppointments
-    .filter((appointment) => appointment.appointmentDate === today && appointment.status !== "Canceled")
+    .filter((appointment) => appointment.appointmentDate === dateKey && appointment.status !== "Canceled")
     .filter((appointment) => !prepOnly || appointmentPrepItems(appointment).length)
     .sort(
       (first, second) =>
         appointmentTimeValue(first.appointmentTime) - appointmentTimeValue(second.appointmentTime) ||
         appointmentClientName(first).localeCompare(appointmentClientName(second))
     );
+}
+
+function todayPrintableAppointments(options = {}) {
+  return printableAppointmentsForDate(todayDateString(), options);
 }
 
 function appointmentPrintClientSummary(appointment) {
@@ -7205,30 +7695,34 @@ function printPreparedDocument(title, subtitle, content) {
   return true;
 }
 
-function printTodaySchedule() {
-  const appointments = todayPrintableAppointments();
+function printScheduleForDate(dateKey = todayDateString()) {
+  const appointments = printableAppointmentsForDate(dateKey);
 
   if (!appointments.length) {
-    appointmentsStatusEl.textContent = "No appointments scheduled today to print.";
+    appointmentsStatusEl.textContent = `No appointments scheduled on ${formatDateOnly(dateKey)} to print.`;
     return;
   }
 
   const content = appointments.map((appointment) => appointmentSchedulePrintCard(appointment)).join("");
 
-  if (printPreparedDocument(formatPrintDayTitle(todayDateString()), "", content)) {
-    appointmentsStatusEl.textContent = "Print dialog opened for today's schedule.";
+  if (printPreparedDocument(formatPrintDayTitle(dateKey), "", content)) {
+    appointmentsStatusEl.textContent = `Print dialog opened for ${formatDateOnly(dateKey)} schedule.`;
   }
 }
 
-function printPrepSheets() {
-  const appointments = todayPrintableAppointments({ prepOnly: true });
+function printTodaySchedule() {
+  printScheduleForDate(todayDateString());
+}
+
+function printPrepSheetsForDate(dateKey = todayDateString()) {
+  const appointments = printableAppointmentsForDate(dateKey, { prepOnly: true });
 
   if (!appointments.length) {
-    appointmentsStatusEl.textContent = "No appointment prep sheets needed today.";
+    appointmentsStatusEl.textContent = `No appointment prep sheets needed on ${formatDateOnly(dateKey)}.`;
     return;
   }
 
-  const subtitle = formatDateOnly(todayDateString());
+  const subtitle = formatDateOnly(dateKey);
   const content = appointments.map((appointment) => appointmentPrepPrintCard(appointment)).join("");
 
   if (printPreparedDocument("Appointment Prep Sheets", subtitle, content)) {
@@ -7236,20 +7730,28 @@ function printPrepSheets() {
   }
 }
 
-function printAppointmentNoteSheets() {
-  const appointments = todayPrintableAppointments();
+function printPrepSheets() {
+  printPrepSheetsForDate(todayDateString());
+}
+
+function printAppointmentNoteSheetsForDate(dateKey = todayDateString()) {
+  const appointments = printableAppointmentsForDate(dateKey);
 
   if (!appointments.length) {
-    appointmentsStatusEl.textContent = "No appointments scheduled today for note sheets.";
+    appointmentsStatusEl.textContent = `No appointments scheduled on ${formatDateOnly(dateKey)} for note sheets.`;
     return;
   }
 
-  const subtitle = formatDateOnly(todayDateString());
+  const subtitle = formatDateOnly(dateKey);
   const content = appointments.map((appointment) => appointmentNotePrintCard(appointment)).join("");
 
   if (printPreparedDocument("", subtitle, content)) {
     appointmentsStatusEl.textContent = "Print dialog opened for appointment note sheets.";
   }
+}
+
+function printAppointmentNoteSheets() {
+  printAppointmentNoteSheetsForDate(todayDateString());
 }
 
 function renderClientSummary() {
@@ -14394,6 +14896,8 @@ newAppointmentButton.addEventListener("click", startNewAppointment);
 printTodayScheduleButton.addEventListener("click", printTodaySchedule);
 printPrepSheetsButton.addEventListener("click", printPrepSheets);
 printNoteSheetsButton.addEventListener("click", printAppointmentNoteSheets);
+schedulingClassicViewButton.addEventListener("click", () => setSchedulingDesign("classic"));
+schedulingV2ViewButton.addEventListener("click", () => setSchedulingDesign("v2"));
 newTaskButton.addEventListener("click", () => startNewTask());
 newGrantButton.addEventListener("click", startNewGrant);
 grantSearchInput.addEventListener("input", renderGrantList);

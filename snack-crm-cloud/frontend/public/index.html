@@ -1036,6 +1036,10 @@
               <h2 id="scheduling-title">Appointments</h2>
             </div>
             <div class="header-actions">
+              <div class="view-toggle scheduling-design-toggle" role="group" aria-label="Scheduling design preview">
+                <button id="scheduling-classic-view-button" class="active" type="button">Classic</button>
+                <button id="scheduling-v2-view-button" type="button">V2 Preview</button>
+              </div>
               <button id="print-today-schedule" class="secondary-button" type="button" title="Print today's non-canceled appointments.">Print Today</button>
               <button id="print-prep-sheets" class="secondary-button" type="button" title="Print prep checklists for today's appointments.">Print Prep Sheets</button>
               <button id="print-note-sheets" class="secondary-button" type="button" title="Print handwritten note sheets for today's appointments.">Print Note Sheets</button>
@@ -1043,55 +1047,59 @@
             </div>
           </header>
 
-          <section id="appointment-summary" class="summary-grid" aria-label="Appointment summary"></section>
-          <section id="scheduling-calendar" class="scheduling-calendar" aria-label="Scheduling calendar"></section>
-          <section id="scheduling-today-board" class="scheduling-today-board" aria-label="Today's appointment workflow"></section>
+          <section id="scheduling-v2-preview" class="scheduling-v2-preview" aria-label="Scheduling v2 preview" hidden></section>
 
-          <div class="referrals-layout">
-            <section class="list-panel" aria-label="Appointment list">
-              <div class="list-toolbar">
-                <div>
-                  <h3>Appointments</h3>
-                  <p id="appointments-status" class="status" aria-live="polite"></p>
+          <div id="scheduling-classic-view">
+            <section id="appointment-summary" class="summary-grid" aria-label="Appointment summary"></section>
+            <section id="scheduling-calendar" class="scheduling-calendar" aria-label="Scheduling calendar"></section>
+            <section id="scheduling-today-board" class="scheduling-today-board" aria-label="Today's appointment workflow"></section>
+
+            <div class="referrals-layout">
+              <section class="list-panel" aria-label="Appointment list">
+                <div class="list-toolbar">
+                  <div>
+                    <h3>Appointments</h3>
+                    <p id="appointments-status" class="status" aria-live="polite"></p>
+                  </div>
+                  <div class="filters appointment-filters">
+                    <label>
+                      Search
+                      <input id="appointment-search" type="search" autocomplete="off">
+                    </label>
+                    <label>
+                      Date
+                      <select id="appointment-date-filter">
+                        <option value="today">Today</option>
+                        <option value="upcoming">Upcoming</option>
+                        <option value="past">Past</option>
+                        <option value="all">All dates</option>
+                      </select>
+                    </label>
+                    <label>
+                      Status
+                      <select id="appointment-status-filter">
+                        <option value="all">All statuses</option>
+                        <option value="Scheduled">Scheduled</option>
+                        <option value="Completed">Completed</option>
+                        <option value="No-show">No-show</option>
+                        <option value="Rescheduled">Rescheduled</option>
+                        <option value="Canceled">Canceled</option>
+                      </select>
+                    </label>
+                  </div>
                 </div>
-                <div class="filters appointment-filters">
-                  <label>
-                    Search
-                    <input id="appointment-search" type="search" autocomplete="off">
-                  </label>
-                  <label>
-                    Date
-                    <select id="appointment-date-filter">
-                      <option value="today">Today</option>
-                      <option value="upcoming">Upcoming</option>
-                      <option value="past">Past</option>
-                      <option value="all">All dates</option>
-                    </select>
-                  </label>
-                  <label>
-                    Status
-                    <select id="appointment-status-filter">
-                      <option value="all">All statuses</option>
-                      <option value="Scheduled">Scheduled</option>
-                      <option value="Completed">Completed</option>
-                      <option value="No-show">No-show</option>
-                      <option value="Rescheduled">Rescheduled</option>
-                      <option value="Canceled">Canceled</option>
-                    </select>
-                  </label>
+                <div class="table-wrap">
+                  <div class="table-head appointment-table-head" role="row">
+                    <span role="columnheader">Date/Time</span>
+                    <span role="columnheader">Client</span>
+                    <span role="columnheader">Status</span>
+                    <span role="columnheader">Lesson</span>
+                    <span role="columnheader">Staff</span>
+                  </div>
+                  <div id="appointments-list" class="referrals-list" role="rowgroup"></div>
                 </div>
-              </div>
-              <div class="table-wrap">
-                <div class="table-head appointment-table-head" role="row">
-                  <span role="columnheader">Date/Time</span>
-                  <span role="columnheader">Client</span>
-                  <span role="columnheader">Status</span>
-                  <span role="columnheader">Lesson</span>
-                  <span role="columnheader">Staff</span>
-                </div>
-                <div id="appointments-list" class="referrals-list" role="rowgroup"></div>
-              </div>
-            </section>
+              </section>
+            </div>
           </div>
         </section>
       </main>
