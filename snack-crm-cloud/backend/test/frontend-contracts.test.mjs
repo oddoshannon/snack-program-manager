@@ -38,10 +38,14 @@ test("main shell exposes the primary modules in the left nav", () => {
   assert.match(indexHtml, /SNACK Google account/);
 });
 
-test("CRM dashboard focuses on metrics and clients without next appointments", () => {
-  assert.match(indexHtml, /id="dashboard-summary"/);
-  assert.match(indexHtml, /Program Metrics/);
-  assert.match(indexHtml, /Clients Without Next Appointment/);
+test("CRM module stays focused on operational tabs", () => {
+  assert.equal(indexHtml.includes('id="crm-tab-dashboard"'), false);
+  assert.equal(indexHtml.includes('id="crm-dashboard-panel"'), false);
+  assertInOrder(indexHtml, [
+    'id="crm-tab-referrals"',
+    'id="crm-tab-clients"',
+    'id="crm-tab-referral-network"'
+  ]);
 });
 
 test("workflow module includes start-day controls and a task summary", () => {
@@ -105,6 +109,10 @@ test("admin data tools centralize operational import export and deletion", () =>
 test("admin KPI and Work Plan tabs expose 2026 targets and quarterly actions", () => {
   assert.match(indexHtml, /id="admin-kpi-view"/);
   assert.match(indexHtml, /id="kpi-summary"/);
+  assert.match(indexHtml, /Clinic Snapshot/);
+  assert.match(indexHtml, /id="clinic-snapshot-summary"/);
+  assert.match(indexHtml, /Program Metrics/);
+  assert.match(indexHtml, /Clients Without Next Appointment/);
   assert.match(indexHtml, /2026 KPI Progress/);
   assert.match(indexHtml, /Organization KPI Table/);
   assert.match(indexHtml, /Revenue KPI Table/);

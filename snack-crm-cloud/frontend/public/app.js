@@ -23,7 +23,6 @@ const signedOutPanel = document.querySelector("#signed-out-panel");
 const printRoot = document.querySelector("#print-root");
 const workflowPanel = document.querySelector("#workflow-panel");
 const dashboardPanel = document.querySelector("#dashboard-panel");
-const crmDashboardPanel = document.querySelector("#crm-dashboard-panel");
 const referralsPanel = document.querySelector("#referrals-panel");
 const clientsPanel = document.querySelector("#clients-panel");
 const referralNetworkPanel = document.querySelector("#referral-network-panel");
@@ -37,10 +36,12 @@ const navOutreachButton = document.querySelector("#nav-outreach");
 const navFundraisingButton = document.querySelector("#nav-fundraising");
 const navSchedulingButton = document.querySelector("#nav-scheduling");
 const crmTabs = document.querySelector("#crm-tabs");
-const crmTabDashboardButton = document.querySelector("#crm-tab-dashboard");
 const crmTabReferralsButton = document.querySelector("#crm-tab-referrals");
 const crmTabClientsButton = document.querySelector("#crm-tab-clients");
 const crmTabReferralNetworkButton = document.querySelector("#crm-tab-referral-network");
+const clinicSnapshotSummary = document.querySelector("#clinic-snapshot-summary");
+const clinicSnapshotMetrics = document.querySelector("#clinic-snapshot-metrics");
+const clinicSnapshotNoNext = document.querySelector("#clinic-snapshot-no-next");
 const dashboardSummary = document.querySelector("#dashboard-summary");
 const dashboardFollowups = document.querySelector("#dashboard-followups");
 const dashboardNewReferrals = document.querySelector("#dashboard-new-referrals");
@@ -1428,7 +1429,7 @@ function validValue(value, allowed, fallback) {
 function loadNavigationState() {
   const defaults = {
     activeModule: "workflow",
-    activeCrmView: "dashboard",
+    activeCrmView: "referrals",
     activeOutreachView: "dashboard",
     activeAdminView: "settings",
     activeFundraisingView: "grants",
@@ -1443,7 +1444,7 @@ function loadNavigationState() {
     const savedFundraisingView = saved.activeAdminView === "grants" ? "grants" : saved.activeFundraisingView;
     return {
       activeModule: validValue(savedModule, ["workflow", "scheduling", "crm", "outreach", "fundraising", "admin"], defaults.activeModule),
-      activeCrmView: validValue(saved.activeCrmView, ["dashboard", "referrals", "clients", "referral-network"], defaults.activeCrmView),
+      activeCrmView: validValue(saved.activeCrmView, ["referrals", "clients", "referral-network"], defaults.activeCrmView),
       activeOutreachView: validValue(saved.activeOutreachView, ["dashboard", "events", "contacts"], defaults.activeOutreachView),
       activeAdminView: validValue(saved.activeAdminView, ["settings", "data-tools", "kpi", "work-plan"], defaults.activeAdminView),
       activeFundraisingView: validValue(savedFundraisingView, ["grants", "sales", "individual-giving", "corporate-partnerships", "events"], defaults.activeFundraisingView),
@@ -2956,15 +2957,10 @@ function fillGrantOrganizationForm() {
   fillFixedDocumentFields(grantOrgForm, grantOrgDocumentFields, info.documents || []);
 }
 
-function renderDashboard() {
-  clearElement(dashboardSummary);
-  clearElement(dashboardFollowups);
-  clearElement(dashboardNewReferrals);
-  clearElement(dashboardScheduled);
-  clearElement(dashboardNoNext);
-  clearElement(dashboardAppointmentsWeek);
-  clearElement(dashboardAttention);
-  clearElement(dashboardWorkflow);
+function renderClinicSnapshot() {
+  clearElement(clinicSnapshotSummary);
+  clearElement(clinicSnapshotMetrics);
+  clearElement(clinicSnapshotNoNext);
 
   const today = todayDateString();
   const currentYear = today.slice(0, 4);
@@ -3008,10 +3004,10 @@ function renderDashboard() {
     const label = document.createElement("span");
     label.textContent = metric.label;
     item.append(value, label);
-    dashboardSummary.append(item);
+    clinicSnapshotSummary.append(item);
   }
 
-  dashboardAttention.append(
+  clinicSnapshotMetrics.append(
     renderDashboardMetricCard({
       title: "YCCO",
       center: `${percentageNumber(yccoClients.length, nonClosedClients.length)}%`,
@@ -3045,7 +3041,7 @@ function renderDashboard() {
     }))
     .sort((first, second) => dateValue(first.date) - dateValue(second.date) || first.title.localeCompare(second.title));
 
-  renderDashboardList(dashboardNoNext, noNextItems, "No active clients missing an appointment.");
+  renderDashboardList(clinicSnapshotNoNext, noNextItems, "No active clients missing an appointment.");
 }
 
 function renderDashboardMetricCard({ title, center, detail, segments }) {
@@ -3261,6 +3257,7 @@ function renderProgramKpiDrafts() {
 
 function renderAdminKpi() {
   renderKpiSummary();
+  renderClinicSnapshot();
   renderKpiProgressList();
   renderKpiTable(organizationKpiTable, organizationKpiRows, { actuals: currentKpiActuals(), includeLiveActuals: true });
   renderKpiTable(revenueKpiTable, revenueKpiRows);
@@ -4857,9 +4854,21 @@ function closeReferralModal() {
 }
 
 function setActiveModule(moduleName) {
-  if (["crm-dashboard", "referrals", "clients", "referral-network"].includes(moduleName)) {
-    activeCrmView = moduleName === "crm-dashboard" ? "dashboard" : moduleName;
+  if (moduleName === "crm-dashboard") {
+    activeModule = "admin";
+    activeAdminView = "kpi";
+    saveNavigationState();
+    setActiveModule("admin");
+    return;
+  }
+
+  if (["referrals", "clients", "referral-network"].includes(moduleName)) {
+    activeCrmView = moduleName;
     moduleName = "crm";
+  }
+
+  if (moduleName === "crm" && !["referrals", "clients", "referral-network"].includes(activeCrmView)) {
+    activeCrmView = "referrals";
   }
 
   activeModule = moduleName;
@@ -4877,7 +4886,6 @@ function setActiveModule(moduleName) {
   const showFundraisingCorporatePartnerships = showFundraising && activeFundraisingView === "corporate-partnerships";
   const showFundraisingEvents = showFundraising && activeFundraisingView === "events";
   const showCrm = moduleName === "crm";
-  const showCrmDashboard = showCrm && activeCrmView === "dashboard";
   const showReferrals = showCrm && activeCrmView === "referrals";
   const showClients = showCrm && activeCrmView === "clients";
   const showReferralNetwork = showCrm && activeCrmView === "referral-network";
@@ -4887,7 +4895,6 @@ function setActiveModule(moduleName) {
   dashboardPanel.hidden = !showAdmin;
   fundraisingPanel.hidden = !showFundraising;
   crmTabs.hidden = !showCrm;
-  crmDashboardPanel.hidden = !showCrmDashboard;
   referralsPanel.hidden = !showReferrals;
   clientsPanel.hidden = !showClients;
   referralNetworkPanel.hidden = !showReferralNetwork;
@@ -4921,7 +4928,6 @@ function setActiveModule(moduleName) {
   navOutreachButton.setAttribute("aria-current", showOutreach ? "page" : "false");
   navFundraisingButton.setAttribute("aria-current", showFundraising ? "page" : "false");
   navSchedulingButton.setAttribute("aria-current", showScheduling ? "page" : "false");
-  crmTabDashboardButton.classList.toggle("active", showCrmDashboard);
   crmTabReferralsButton.classList.toggle("active", showReferrals);
   crmTabClientsButton.classList.toggle("active", showClients);
   crmTabReferralNetworkButton.classList.toggle("active", showReferralNetwork);
@@ -4934,7 +4940,6 @@ function setActiveModule(moduleName) {
   fundraisingTabIndividualGivingButton.classList.toggle("active", showFundraisingIndividualGiving);
   fundraisingTabCorporatePartnershipsButton.classList.toggle("active", showFundraisingCorporatePartnerships);
   fundraisingTabEventsButton.classList.toggle("active", showFundraisingEvents);
-  crmTabDashboardButton.setAttribute("aria-selected", String(showCrmDashboard));
   crmTabReferralsButton.setAttribute("aria-selected", String(showReferrals));
   crmTabClientsButton.setAttribute("aria-selected", String(showClients));
   crmTabReferralNetworkButton.setAttribute("aria-selected", String(showReferralNetwork));
@@ -4987,13 +4992,6 @@ function setActiveModule(moduleName) {
     if (showFundraisingGrants) {
       renderGrants();
     }
-  } else if (showCrmDashboard) {
-    closeReferralModal();
-    closeClientModal();
-    closeNetworkModal();
-    closeOutreachModal();
-    closeAppointmentModal();
-    renderDashboard();
   } else if (showClients) {
     closeReferralModal();
     closeNetworkModal();
@@ -10430,7 +10428,7 @@ async function loadReferrals() {
     loadedReferrals = data.referrals.filter((referral) => !referral.convertedClientId);
     renderReferralSummary();
     renderReferrals();
-    renderDashboard();
+    renderActiveAdminComputedViews();
     renderReferralSourceOptions();
     renderTaskRelatedOptions(taskReferralIdInput.value || taskClientIdInput.value);
     renderWorkflowTasks();
@@ -10465,7 +10463,7 @@ async function loadClients() {
     loadedClients = data.clients;
     renderClientSummary();
     renderClients();
-    renderDashboard();
+    renderActiveAdminComputedViews();
     renderAppointmentClientOptions(appointmentClientSelect.value);
     renderTaskRelatedOptions(taskReferralIdInput.value || taskClientIdInput.value);
     renderAppointments();
@@ -10600,7 +10598,6 @@ async function loadAppointments() {
     const data = await response.json();
     loadedAppointments = data.appointments;
     renderAppointments();
-    renderDashboard();
     renderActiveAdminComputedViews();
     appointmentsStatusEl.textContent = "";
   } catch (error) {
@@ -13762,7 +13759,6 @@ onAuthStateChanged(auth, (user) => {
   workflowPanel.hidden = !signedIn;
   dashboardPanel.hidden = true;
   crmTabs.hidden = true;
-  crmDashboardPanel.hidden = true;
   referralsPanel.hidden = true;
   clientsPanel.hidden = true;
   referralNetworkPanel.hidden = true;
@@ -13811,6 +13807,9 @@ onAuthStateChanged(auth, (user) => {
     grantsList.innerHTML = "";
     grantQuestionList.innerHTML = "";
     clearElement(kpiSummary);
+    clearElement(clinicSnapshotSummary);
+    clearElement(clinicSnapshotMetrics);
+    clearElement(clinicSnapshotNoNext);
     clearElement(kpiProgressList);
     clearElement(programKpiList);
     clearElement(organizationKpiTable);
@@ -13904,7 +13903,6 @@ fundraisingTabSalesButton.addEventListener("click", () => setFundraisingView("sa
 fundraisingTabIndividualGivingButton.addEventListener("click", () => setFundraisingView("individual-giving"));
 fundraisingTabCorporatePartnershipsButton.addEventListener("click", () => setFundraisingView("corporate-partnerships"));
 fundraisingTabEventsButton.addEventListener("click", () => setFundraisingView("events"));
-crmTabDashboardButton.addEventListener("click", () => setCrmView("dashboard"));
 crmTabReferralsButton.addEventListener("click", () => setCrmView("referrals"));
 crmTabClientsButton.addEventListener("click", () => setCrmView("clients"));
 crmTabReferralNetworkButton.addEventListener("click", () => setCrmView("referral-network"));

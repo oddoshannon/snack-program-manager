@@ -218,6 +218,32 @@
             <section id="kpi-summary" class="summary-grid kpi-summary" aria-label="KPI summary"></section>
 
             <div class="kpi-layout">
+              <section class="dashboard-card clinic-snapshot-card" aria-labelledby="clinic-snapshot-title">
+                <div class="dashboard-card-header">
+                  <div>
+                    <h3 id="clinic-snapshot-title">Clinic Snapshot</h3>
+                    <p class="dashboard-card-note">Operational CRM metrics held here for KPI review</p>
+                  </div>
+                </div>
+                <section id="clinic-snapshot-summary" class="summary-grid dashboard-summary-grid clinic-snapshot-summary" aria-label="Clinic snapshot summary"></section>
+                <div class="dashboard-feature-grid dashboard-crm-grid">
+                  <section class="dashboard-card dashboard-attention-card" aria-labelledby="clinic-snapshot-metrics-title">
+                    <div class="dashboard-card-header">
+                      <div>
+                        <h3 id="clinic-snapshot-metrics-title">Program Metrics</h3>
+                        <p class="dashboard-card-note">Current client mix and program retention</p>
+                      </div>
+                    </div>
+                    <div id="clinic-snapshot-metrics" class="dashboard-metric-grid"></div>
+                  </section>
+
+                  <section class="dashboard-card" aria-labelledby="clinic-snapshot-no-next-title">
+                    <h3 id="clinic-snapshot-no-next-title">Clients Without Next Appointment</h3>
+                    <div id="clinic-snapshot-no-next" class="dashboard-list"></div>
+                  </section>
+                </div>
+              </section>
+
               <section class="dashboard-card kpi-progress-card" aria-labelledby="kpi-progress-title">
                 <div class="dashboard-card-header">
                   <div>
@@ -758,39 +784,10 @@
         </div>
 
         <div id="crm-tabs" class="module-tabs crm-tabs" role="tablist" aria-label="CRM views" hidden>
-          <button id="crm-tab-dashboard" class="module-tab active" type="button" role="tab" aria-selected="true">Dashboard</button>
-          <button id="crm-tab-referrals" class="module-tab" type="button" role="tab" aria-selected="false">Referrals</button>
+          <button id="crm-tab-referrals" class="module-tab active" type="button" role="tab" aria-selected="true">Referrals</button>
           <button id="crm-tab-clients" class="module-tab" type="button" role="tab" aria-selected="false">Clients</button>
           <button id="crm-tab-referral-network" class="module-tab" type="button" role="tab" aria-selected="false">Referral Network</button>
         </div>
-
-        <section id="crm-dashboard-panel" class="referrals-panel dashboard-panel" aria-labelledby="crm-dashboard-title" hidden>
-          <header class="workspace-header">
-            <div>
-              <p class="eyebrow">CRM</p>
-              <h2 id="crm-dashboard-title">Dashboard</h2>
-            </div>
-          </header>
-
-          <section id="dashboard-summary" class="summary-grid dashboard-summary-grid" aria-label="CRM summary"></section>
-
-          <div class="dashboard-feature-grid dashboard-crm-grid">
-            <section class="dashboard-card dashboard-attention-card" aria-labelledby="dashboard-attention-title">
-              <div class="dashboard-card-header">
-                <div>
-                  <h3 id="dashboard-attention-title">Program Metrics</h3>
-                  <p class="dashboard-card-note">Current client mix and program retention</p>
-                </div>
-              </div>
-              <div id="dashboard-attention" class="dashboard-metric-grid"></div>
-            </section>
-
-            <section class="dashboard-card" aria-labelledby="dashboard-no-next-title">
-              <h3 id="dashboard-no-next-title">Clients Without Next Appointment</h3>
-              <div id="dashboard-no-next" class="dashboard-list"></div>
-            </section>
-          </div>
-        </section>
 
         <section id="referrals-panel" class="referrals-panel" aria-labelledby="referrals-title" hidden>
           <header class="workspace-header">
