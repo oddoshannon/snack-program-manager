@@ -47,6 +47,16 @@ const allowedTaskPriorities = new Set(["Low", "Normal", "Urgent"]);
 const allowedTaskTypes = new Set(["Call", "Text", "Form", "Task"]);
 const allowedActivityTypes = new Set(["Call", "Text"]);
 const allowedActivityDirections = new Set(["Outbound", "Inbound"]);
+const appointmentLessonKeywords = [
+  { value: "Check In", patterns: [/\bcheck\s*in\b/i] },
+  { value: "7", patterns: [/\blesson\s*7\b/i, /\bhealthy\s+habits?\b/i, /\bHH\b/] },
+  { value: "6", patterns: [/\blesson\s*6\b/i, /\bmindful\s+eating\b/i, /\bME\b/] },
+  { value: "5", patterns: [/\blesson\s*5\b/i, /\bmicronutrients?\b/i, /\bmicros?\b/i] },
+  { value: "4", patterns: [/\blesson\s*4\b/i, /\bmacronutrients?\b/i, /\bmacros?\b/i, /\bmacro\b/i] },
+  { value: "3", patterns: [/\blesson\s*3\b/i, /\bfood\s+groups?\b/i, /\bFG\b/] },
+  { value: "2", patterns: [/\blesson\s*2\b/i, /\bsugar\b/i] },
+  { value: "1", patterns: [/\blesson\s*1\b/i, /\bnutrient\s+density\b/i, /\bnutrient\s+dense\b/i, /\bND\b/] }
+];
 const defaultAppointmentDurationMinutes = 30;
 const schedulingStartMinutes = 13 * 60;
 const schedulingEndMinutes = 18 * 60;
@@ -254,6 +264,68 @@ async function ensureHelloMessage() {
 
 function cleanString(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function stripSetmoreBookingIdFromNotes(notes) {
+  return cleanString(notes)
+    .replace(/^\s*Setmore booking ID:\s*\S+\s*$/gim, "")
+    .replace(/\bSetmore booking ID:\s*\S+/gi, "")
+    .replace(/\s+\|?\s*$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function inferAppointmentLessonFromNotes(notes, appointmentType = "") {
+  const noteText = stripSetmoreBookingIdFromNotes(notes);
+
+  if (!noteText || cleanString(appointmentType).toLowerCase() === "enrollment") {
+    return "";
+  }
+
+  const numericMatch = noteText.match(/\blesson\s*:?\s*(\d)\b/i);
+  if (numericMatch) {
+    return numericMatch[1] === "8" ? "Check In" : numericMatch[1];
+  }
+
+  for (const item of appointmentLessonKeywords) {
+    if (item.patterns.some((pattern) => pattern.test(noteText))) {
+      return item.value;
+    }
+  }
+
+  return "";
+}
+
+function cleanInferredGoalText(value) {
+  return cleanString(value)
+    .replace(/\bSetmore booking ID:\s*\S+/gi, "")
+    .replace(/\bLesson\s*:?\s*(?:\d|ND|Sugar|Food Groups?|FG|Macro(?:nutrients?)?|Micros?|Micronutrients?|Mindful Eating|ME|Healthy Habits?|HH|Check In)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/^[\s:;|,-]+|[\s:;|,-]+$/g, "")
+    .trim();
+}
+
+function inferAppointmentGoalFromNotes(notes, lesson = "") {
+  const noteText = stripSetmoreBookingIdFromNotes(notes);
+
+  if (!noteText) {
+    return "";
+  }
+
+  const flattened = noteText.replace(/\s*\|\s*/g, " ").replace(/\s+/g, " ").trim();
+  const explicitGoal = flattened.match(/\bgoal\s*:?\s*(.+?)(?=\s+\bLesson\b\s*:|\s+\bSetmore\b|$)/i);
+  if (explicitGoal?.[1]) {
+    return cleanInferredGoalText(explicitGoal[1]);
+  }
+
+  const firstLine = noteText.split(/\r?\n/).map((line) => line.trim()).find(Boolean) || "";
+  const lessonFromNotes = lesson || inferAppointmentLessonFromNotes(noteText, "Nutrition Education");
+  const lessonPattern = lessonFromNotes === "Check In"
+    ? /^(check\s*in)\s*[:|-]\s*(.+)$/i
+    : /^(nutrient density|nutrient dense|sugar|food groups?|fg|macros?|macronutrients?|micros?|micronutrients?|mindful eating|healthy habits?)\s*[:|-]\s*(.+)$/i;
+  const lessonPrefix = firstLine.match(lessonPattern);
+
+  return lessonPrefix?.[2] ? cleanInferredGoalText(lessonPrefix[2]) : "";
 }
 
 function cleanOptionalNumber(value) {
@@ -912,6 +984,10 @@ function cleanAppointmentPayload(body) {
         ? [cleanString(body.clientName)]
         : [];
   const durationMinutes = cleanOptionalInteger(body.durationMinutes);
+  const appointmentType = cleanString(body.appointmentType) || (cleanString(body.lesson) ? "Nutrition Education" : "Enrollment");
+  const notes = stripSetmoreBookingIdFromNotes(body.notes);
+  const inferredLesson = inferAppointmentLessonFromNotes(notes, appointmentType);
+  const lesson = cleanString(body.lesson) || inferredLesson;
   const payload = {
     clientId: clientIds[0] || "",
     clientIds,
@@ -919,12 +995,12 @@ function cleanAppointmentPayload(body) {
     clientNames,
     appointmentDate: cleanString(body.appointmentDate),
     appointmentTime: normalizeAppointmentTimeValue(body.appointmentTime),
-    appointmentType: cleanString(body.appointmentType) || (cleanString(body.lesson) ? "Nutrition Education" : "Enrollment"),
+    appointmentType,
     status: normalizeAppointmentStatus(body.status),
-    lesson: cleanString(body.lesson),
-    goal: cleanString(body.goal),
+    lesson,
+    goal: cleanString(body.goal) || inferAppointmentGoalFromNotes(notes, lesson),
     staffMember: cleanString(body.staffMember),
-    notes: cleanString(body.notes)
+    notes
   };
   const publicBookingServiceId = cleanString(body.publicBookingServiceId);
   const publicBookingServiceLabel = cleanString(body.publicBookingServiceLabel);

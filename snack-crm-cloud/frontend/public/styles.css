@@ -5267,6 +5267,40 @@ dd {
     background: #ffffff;
   }
 
+  .print-note-card {
+    break-after: page;
+  }
+
+  .print-note-card:last-child {
+    break-after: auto;
+  }
+
+  .print-schedule-row {
+    break-inside: avoid;
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 14px;
+    border-bottom: 1px solid var(--line);
+    padding: 12px 0;
+  }
+
+  .print-schedule-time {
+    color: var(--brand-green);
+    font-size: 18px;
+    font-weight: 900;
+  }
+
+  .print-schedule-row h2 {
+    margin: 0 0 5px;
+    font-size: 19px;
+  }
+
+  .print-schedule-row p {
+    margin: 0;
+    color: var(--muted);
+    font-weight: 750;
+  }
+
   .print-card-header {
     display: flex;
     justify-content: space-between;
@@ -5301,6 +5335,14 @@ dd {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 9px;
+  }
+
+  .print-note-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .print-note-summary .print-field:last-child {
+    grid-column: 1 / -1;
   }
 
   .print-field {
@@ -5349,9 +5391,14 @@ dd {
   }
 
   .print-lines {
-    height: 78px;
+    height: var(--print-lines-height, 78px);
     margin-top: 8px;
     background: repeating-linear-gradient(#ffffff 0 23px, var(--line) 24px);
+  }
+
+  .print-visit-notes-title {
+    border-top: 2px solid var(--line);
+    padding-top: 10px;
   }
 
   .print-root ul {
