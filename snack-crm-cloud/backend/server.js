@@ -944,7 +944,7 @@ function cleanAppointmentPayload(body) {
   return payload;
 }
 
-async function resolveAppointmentImportClients(payload, clientsByName) {
+async function resolveAppointmentImportClients(payload, clientsByName, options = {}) {
   if (payload.clientIds.length) {
     if (!payload.clientNames.length) {
       const clientNames = [];
@@ -971,6 +971,9 @@ async function resolveAppointmentImportClients(payload, clientsByName) {
     const match = clientsByName.get(normalizedLookupKey(name));
 
     if (!match) {
+      if (options.allowNameOnly) {
+        continue;
+      }
       return `No client match found for ${name}.`;
     }
 
@@ -979,7 +982,6 @@ async function resolveAppointmentImportClients(payload, clientsByName) {
 
   payload.clientIds = matchedClients.map((client) => client.id);
   payload.clientId = payload.clientIds[0] || "";
-  payload.clientNames = matchedClients.map((client) => `${client.firstName || ""} ${client.lastName || ""}`.trim()).filter(Boolean);
   payload.clientName = payload.clientNames[0] || "";
 
   return "";
@@ -1325,7 +1327,10 @@ async function completeRescheduleTasksForAppointment(appointment, userEmail, now
 }
 
 function normalizedLookupKey(value) {
-  return cleanString(value).toLowerCase();
+  return cleanString(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 function validateRequiredPersonFields(payload, response) {
@@ -1983,7 +1988,7 @@ app.post("/api/appointments/import", requireAuth, async (request, response, next
       const payload = cleanAppointmentPayload(row);
       const rowNumber = Number(row.rowNumber) || index + 1;
 
-      const clientError = await resolveAppointmentImportClients(payload, clientsByName);
+      const clientError = await resolveAppointmentImportClients(payload, clientsByName, { allowNameOnly: true });
 
       if (clientError || !payload.appointmentDate || !payload.appointmentTime) {
         skipped.push({

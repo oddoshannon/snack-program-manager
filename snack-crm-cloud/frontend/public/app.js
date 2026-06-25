@@ -385,6 +385,41 @@ const clientStatuses = [
   "Closed"
 ];
 const appointmentStatuses = ["Scheduled", "Completed", "No-show", "Rescheduled", "Canceled"];
+const setmoreAppointmentServices = new Map([
+  ["enrollment appointment", "Enrollment"],
+  ["sibling enrollment appointment", "Enrollment"],
+  ["cita de inscripción en español", "Enrollment"],
+  ["nutrition education appointment", "Nutrition Education"],
+  ["sibling nutrition education appointment", "Nutrition Education"],
+  ["cita de educación nutricional en español", "Nutrition Education"],
+  ["virtual nutrition education appointment", "Nutrition Education"]
+]);
+const importedMonthNames = new Map([
+  ["jan", "01"],
+  ["january", "01"],
+  ["feb", "02"],
+  ["february", "02"],
+  ["mar", "03"],
+  ["march", "03"],
+  ["apr", "04"],
+  ["april", "04"],
+  ["may", "05"],
+  ["jun", "06"],
+  ["june", "06"],
+  ["jul", "07"],
+  ["july", "07"],
+  ["aug", "08"],
+  ["august", "08"],
+  ["sep", "09"],
+  ["sept", "09"],
+  ["september", "09"],
+  ["oct", "10"],
+  ["october", "10"],
+  ["nov", "11"],
+  ["november", "11"],
+  ["dec", "12"],
+  ["december", "12"]
+]);
 const clientSummaryGroups = [
   { key: "all", label: "Total", statuses: clientStatuses },
   { key: "scheduled", label: "Scheduled", statuses: ["Scheduled"] },
@@ -1158,16 +1193,30 @@ function normalizeCsvDate(value) {
     return raw;
   }
 
-  const match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+  const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
 
-  if (!match) {
-    return "";
+  if (slashMatch) {
+    const year = slashMatch[3].length === 2 ? `20${slashMatch[3]}` : slashMatch[3];
+    const month = slashMatch[1].padStart(2, "0");
+    const day = slashMatch[2].padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
 
-  const year = match[3].length === 2 ? `20${match[3]}` : match[3];
-  const month = match[1].padStart(2, "0");
-  const day = match[2].padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  const dayMonthMatch = raw.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})(?:\s+\d{1,2}:\d{2}\s*[AP]M)?$/i);
+
+  if (dayMonthMatch) {
+    const month = importedMonthNames.get(dayMonthMatch[2].toLowerCase());
+    return month ? `${dayMonthMatch[3]}-${month}-${dayMonthMatch[1].padStart(2, "0")}` : "";
+  }
+
+  const monthDayMatch = raw.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})$/i);
+
+  if (monthDayMatch) {
+    const month = importedMonthNames.get(monthDayMatch[1].toLowerCase());
+    return month ? `${monthDayMatch[3]}-${month}-${monthDayMatch[2].padStart(2, "0")}` : "";
+  }
+
+  return "";
 }
 
 function formatShortDate(value) {
@@ -1225,7 +1274,12 @@ function normalizePhoneKey(value) {
 }
 
 function normalizedLookupKey(value) {
-  return String(value || "").trim().replace(/\s+/g, " ").toLowerCase();
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
 }
 
 function displayValue(value) {
@@ -6062,8 +6116,14 @@ function renderAppointmentSummary() {
   ];
 
   for (const total of totals) {
-    const item = document.createElement("div");
-    item.className = "summary-item";
+    const item = document.createElement("button");
+    item.className = "summary-item summary-button";
+    item.type = "button";
+    item.addEventListener("click", () => {
+      appointmentDateFilterSelect.value = total.date;
+      appointmentStatusFilterSelect.value = total.status;
+      renderAppointments();
+    });
     const value = document.createElement("strong");
     value.textContent = total.value;
     const label = document.createElement("span");
@@ -6103,8 +6163,8 @@ function renderSchedulingTodayBoard() {
     ? futureScheduledAppointments.filter((appointment) => appointment.appointmentDate === nextAppointmentDate)
     : [];
   schedulingTodayBoard.append(
-    renderSchedulingColumn("Today", "", todayAppointments, "No appointments scheduled today.", true),
-    renderSchedulingColumn("Upcoming Day", "", nextAppointments, "No upcoming scheduled appointments.", true)
+    renderSchedulingColumn("Today", formatDateOnly(today), todayAppointments, "No appointments scheduled today.", true),
+    renderSchedulingColumn("Next Scheduled Day", nextAppointmentDate ? formatDateOnly(nextAppointmentDate) : "", nextAppointments, "No upcoming scheduled appointments.", true)
   );
 }
 
@@ -6544,8 +6604,23 @@ function appointmentPrintClientSummary(appointment) {
   const clients = appointmentClientIds(appointment)
     .map((clientId) => loadedClients.find((client) => client.id === clientId))
     .filter(Boolean);
+  const clientRows = clients.map((client) => ({
+    name: clientName(client),
+    caregiver: client.parentName || "",
+    phone: client.phone ? formatPhone(client.phone) : "",
+    language: client.preferredLanguage || ""
+  }));
+  const matchedNames = new Set(clientRows.map((client) => normalizedLookupKey(client.name)));
+  const fallbackRows = appointmentClientNames(appointment)
+    .filter((name) => !matchedNames.has(normalizedLookupKey(name)))
+    .map((name) => ({
+      name,
+      caregiver: "",
+      phone: "",
+      language: ""
+    }));
 
-  if (!clients.length) {
+  if (!clientRows.length && !fallbackRows.length) {
     return [
       {
         name: appointmentClientName(appointment),
@@ -6556,12 +6631,7 @@ function appointmentPrintClientSummary(appointment) {
     ];
   }
 
-  return clients.map((client) => ({
-    name: clientName(client),
-    caregiver: client.parentName || "",
-    phone: client.phone ? formatPhone(client.phone) : "",
-    language: client.preferredLanguage || ""
-  }));
+  return [...clientRows, ...fallbackRows];
 }
 
 function printField(label, value) {
@@ -8836,7 +8906,13 @@ function parseCsv(text) {
 }
 
 function csvValue(row, columnName) {
-  return String(row[columnName] || "").trim();
+  if (Object.prototype.hasOwnProperty.call(row, columnName)) {
+    return String(row[columnName] || "").trim();
+  }
+
+  const target = String(columnName || "").trim().toLowerCase();
+  const matchedColumn = Object.keys(row).find((key) => key.trim().toLowerCase() === target);
+  return matchedColumn ? String(row[matchedColumn] || "").trim() : "";
 }
 
 function normalizeZohoClientStatus(status) {
@@ -9312,7 +9388,104 @@ function splitCsvList(value) {
     .filter(Boolean);
 }
 
+function isSetmoreAppointmentRow(row) {
+  return Boolean(
+    csvFirstValue(row, ["Service/class/event", "Meeting Type", "Booking ID", "Customer name", "Booked via"])
+  );
+}
+
+function setmoreAppointmentSkipReason(row) {
+  if (!isSetmoreAppointmentRow(row)) {
+    return "";
+  }
+
+  const service = csvFirstValue(row, ["Service/class/event", "Service"]).toLowerCase();
+  const meetingType = csvFirstValue(row, ["Meeting Type"]).toLowerCase();
+
+  if (service.includes("wellness day")) {
+    return "Wellness Day will live outside appointment scheduling.";
+  }
+
+  if (meetingType === "class" || service.includes("cooking class")) {
+    return "Classes will be handled in a separate classes/events workflow.";
+  }
+
+  if (service.includes("hold for reschedule")) {
+    return "Calendar hold skipped.";
+  }
+
+  if (!setmoreAppointmentServices.has(service)) {
+    return "Setmore service is not mapped as a client appointment.";
+  }
+
+  return "";
+}
+
+function importedAppointmentStatus(value) {
+  const status = String(value || "").trim();
+  const normalized = status.toLowerCase();
+
+  if (normalized === "confirmed") {
+    return "Scheduled";
+  }
+
+  if (normalized === "cancelled" || normalized === "canceled") {
+    return "Canceled";
+  }
+
+  return appointmentStatuses.includes(status) ? status : "Scheduled";
+}
+
+function importedAppointmentStartTime(value) {
+  return String(value || "").split(/\s+-\s+/)[0]?.trim() || "";
+}
+
+function importedAppointmentDuration(value) {
+  const [startText, endText] = String(value || "").split(/\s+-\s+/);
+  const start = appointmentTimeMinutes(startText);
+  const end = appointmentTimeMinutes(endText);
+
+  if (start === null || end === null || end <= start) {
+    return "";
+  }
+
+  return String(end - start);
+}
+
+function mappedSetmoreAppointmentRow(row, index) {
+  const service = csvFirstValue(row, ["Service/class/event", "Service"]);
+  const appointmentType = setmoreAppointmentServices.get(service.toLowerCase()) || service;
+  const comments = csvFirstValue(row, ["Comments", "Comments "]);
+  const bookingId = csvFirstValue(row, ["Booking ID"]);
+  const notes = [comments, bookingId ? `Setmore booking ID: ${bookingId}` : ""].filter(Boolean).join("\n");
+  const clientNames = splitCsvList(csvFirstValue(row, ["Customer name", "Customer Name", "Client Name", "Name"]));
+
+  return {
+    rowNumber: index + 2,
+    clientIds: [],
+    clientId: "",
+    clientNames,
+    clientName: clientNames[0] || "",
+    appointmentDate: normalizeCsvDate(csvFirstValue(row, ["Appointment date", "Appointment Date", "Date", "Scheduled Date"])),
+    appointmentTime: importedAppointmentStartTime(csvFirstValue(row, ["Appointment time", "Appointment Time", "Time", "Scheduled Time"])),
+    appointmentType,
+    durationMinutes: importedAppointmentDuration(csvFirstValue(row, ["Appointment time", "Appointment Time", "Time", "Scheduled Time"])),
+    status: importedAppointmentStatus(csvFirstValue(row, ["Status"])),
+    lesson: "",
+    goal: "",
+    staffMember: csvFirstValue(row, ["Team member", "Team Member", "Staff", "Staff Member", "Provider"]),
+    notes,
+    publicBookingServiceLabel: service,
+    importSource: "Setmore appointment export",
+    skipReason: setmoreAppointmentSkipReason(row)
+  };
+}
+
 function mapAppointmentImportRow(row, index) {
+  if (isSetmoreAppointmentRow(row)) {
+    return mappedSetmoreAppointmentRow(row, index);
+  }
+
   const clientIds = splitCsvList(csvFirstValue(row, ["Client IDs", "Client Ids", "Client ID", "ClientId", "clientIds", "clientId"]));
   const clientNames = splitCsvList(csvFirstValue(row, ["Client Names", "Client Name", "Child Name", "Full Name", "Name", "Client"]));
   const appointmentType = csvFirstValue(row, ["Appointment Type", "Type", "Service"]);
@@ -9337,8 +9510,62 @@ function mapAppointmentImportRow(row, index) {
   };
 }
 
+function groupedAppointmentImports(appointments) {
+  const groups = new Map();
+
+  for (const appointment of appointments) {
+    if (appointment.skipReason) {
+      continue;
+    }
+
+    const key = [
+      appointment.appointmentDate,
+      normalizeAppointmentTime(appointment.appointmentTime),
+      appointment.appointmentType,
+      appointment.publicBookingServiceLabel || "",
+      appointment.status,
+      appointment.staffMember,
+      appointment.durationMinutes || ""
+    ].join("|");
+    const existing = groups.get(key);
+
+    if (!existing) {
+      groups.set(key, {
+        ...appointment,
+        appointmentTime: normalizeAppointmentTime(appointment.appointmentTime),
+        rowNumbers: [appointment.rowNumber]
+      });
+      continue;
+    }
+
+    existing.rowNumbers.push(appointment.rowNumber);
+    for (const name of appointment.clientNames) {
+      if (!existing.clientNames.some((currentName) => normalizedLookupKey(currentName) === normalizedLookupKey(name))) {
+        existing.clientNames.push(name);
+      }
+    }
+    existing.clientName = existing.clientNames[0] || existing.clientName;
+
+    if (appointment.notes && !existing.notes.includes(appointment.notes)) {
+      existing.notes = [existing.notes, `${appointment.clientName || `Row ${appointment.rowNumber}`}: ${appointment.notes}`]
+        .filter(Boolean)
+        .join("\n");
+    }
+  }
+
+  return [...groups.values()];
+}
+
 function analyzeAppointmentImport(rows, columns) {
-  const mapped = rows.map(mapAppointmentImportRow);
+  const mappedRows = rows.map(mapAppointmentImportRow);
+  const skippedRows = mappedRows
+    .filter((appointment) => appointment.skipReason)
+    .map((appointment) => ({
+      rowNumber: appointment.rowNumber,
+      clientName: appointment.clientName,
+      reason: appointment.skipReason
+    }));
+  const mapped = groupedAppointmentImports(mappedRows);
   const clientLookup = new Set(loadedClients.map((client) => normalizedLookupKey(clientName(client))).filter(Boolean));
   const missingRows = [];
   const unmatchedRows = [];
@@ -9353,22 +9580,24 @@ function analyzeAppointmentImport(rows, columns) {
     }
 
     if (!appointment.clientIds.length) {
-      const missingName = appointment.clientNames.find((name) => !clientLookup.has(normalizedLookupKey(name)));
+      const unmatchedNames = appointment.clientNames.filter((name) => !clientLookup.has(normalizedLookupKey(name)));
 
-      if (missingName) {
+      if (unmatchedNames.length) {
         unmatchedRows.push({
           rowNumber: appointment.rowNumber,
-          reason: `No current client named ${missingName}.`
+          reason: `Will import as name-only: ${unmatchedNames.join(", ")}.`
         });
       }
     }
   }
 
-  const blockedRows = new Set([...missingRows, ...unmatchedRows].map((warning) => warning.rowNumber));
+  const blockedRows = new Set(missingRows.map((warning) => warning.rowNumber));
 
   return {
     columns,
+    sourceRowCount: mappedRows.length,
     appointments: mapped,
+    skippedRows,
     missingRows,
     unmatchedRows,
     importableAppointments: mapped.filter((appointment) => !blockedRows.has(appointment.rowNumber))
@@ -9673,9 +9902,11 @@ function renderAppointmentImportPreview(analysis, fileName) {
   summary.className = "import-summary-grid";
   for (const [label, value] of [
     ["File", fileName],
-    ["Total rows found", analysis.appointments.length],
+    ["Total rows found", analysis.sourceRowCount || analysis.appointments.length],
+    ["Grouped appointments", analysis.appointments.length],
     ["Ready to import", analysis.importableAppointments.length],
     ["Columns detected", analysis.columns.length],
+    ["Skipped non-appointments", analysis.skippedRows.length],
     ["Missing required rows", analysis.missingRows.length],
     ["Unmatched clients", analysis.unmatchedRows.length]
   ]) {
@@ -9698,6 +9929,13 @@ function renderAppointmentImportPreview(analysis, fileName) {
     missingSection,
     analysis.missingRows.map((warning) => `Row ${warning.rowNumber}: ${warning.reason}`),
     "No missing required values found."
+  );
+
+  const skippedSection = appendImportSection(appointmentImportDetail, "Skipped Non-Appointment Rows");
+  appendSimpleList(
+    skippedSection,
+    analysis.skippedRows.map((warning) => `Row ${warning.rowNumber}: ${warning.clientName || "Unnamed row"} - ${warning.reason}`),
+    "No classes, events, or holds were skipped."
   );
 
   const unmatchedSection = appendImportSection(appointmentImportDetail, "Rows With Unmatched Clients");
@@ -10082,7 +10320,7 @@ async function previewNetworkCsv(file) {
 
 async function importPreviewedAppointments() {
   if (!latestAppointmentImportAnalysis) {
-    dataToolsStatusEl.textContent = "Preview a CSV before importing appointments.";
+    dataToolsStatusEl.textContent = "Preview a CSV export before importing appointments.";
     return;
   }
 
@@ -10143,7 +10381,7 @@ async function previewAppointmentCsv(file) {
     const parsed = parseCsv(text);
 
     if (parsed.length < 2) {
-      throw new Error("The CSV does not contain any appointment rows.");
+      throw new Error("The CSV export does not contain any appointment rows.");
     }
 
     const columns = parsed[0].map((column) => column.trim());
@@ -10158,11 +10396,11 @@ async function previewAppointmentCsv(file) {
   } catch (error) {
     latestAppointmentImportAnalysis = null;
     confirmAppointmentImportButton.hidden = true;
-    dataToolsStatusEl.textContent = error.message || "Could not preview this CSV.";
+    dataToolsStatusEl.textContent = error.message || "Could not preview this appointment export.";
     appointmentImportDetail.innerHTML = "";
     const message = document.createElement("p");
     message.className = "empty-state";
-    message.textContent = error.message || "Could not preview this CSV.";
+    message.textContent = error.message || "Could not preview this appointment export.";
     appointmentImportDetail.append(message);
     openAppointmentImportModal();
     console.error(error);

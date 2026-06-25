@@ -524,6 +524,27 @@ test("resolveAppointmentImportClients matches CSV client names to existing clien
   assert.deepEqual(payload.clientNames, ["Andi Jo Smith"]);
 });
 
+test("resolveAppointmentImportClients can preserve unmatched appointment names on import", async () => {
+  const payload = cleanAppointmentPayload({
+    clientNames: "Rafael De Jesús Hernández García, Aaliyah Martinez Nambo",
+    appointmentDate: "2026-06-30",
+    appointmentTime: "2:30 PM"
+  });
+  const clientsByName = new Map([
+    [normalizedLookupKey("Rafael de Jesus Hernandez Garcia"), {
+      id: "client-1",
+      firstName: "Rafael de Jesús",
+      lastName: "Hernández García"
+    }]
+  ]);
+
+  const error = await resolveAppointmentImportClients(payload, clientsByName, { allowNameOnly: true });
+
+  assert.equal(error, "");
+  assert.deepEqual(payload.clientIds, ["client-1"]);
+  assert.deepEqual(payload.clientNames, ["Rafael De Jesús Hernández García", "Aaliyah Martinez Nambo"]);
+});
+
 test("cleanTaskPayload normalizes task defaults", () => {
   const payload = cleanTaskPayload({
     title: " Reschedule Andi ",

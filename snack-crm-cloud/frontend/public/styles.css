@@ -606,6 +606,17 @@ h4 {
   box-shadow: 0 1px 0 rgba(23, 33, 38, 0.02);
 }
 
+.summary-button {
+  cursor: pointer;
+}
+
+.summary-button:hover,
+.summary-button:focus-visible {
+  background: #fbfdfb;
+  outline: 2px solid color-mix(in srgb, var(--summary-accent) 34%, transparent);
+  outline-offset: 2px;
+}
+
 .summary-item:nth-child(1) { --summary-accent: var(--brand-red); }
 .summary-item:nth-child(2) { --summary-accent: var(--brand-orange); }
 .summary-item:nth-child(3) { --summary-accent: var(--brand-yellow); }

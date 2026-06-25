@@ -85,6 +85,10 @@ test("admin data tools centralize operational import export and deletion", () =>
   assert.match(appJs, /key: "appointments"/);
   assert.match(appJs, /key: "tasks"/);
   assert.match(appJs, /key: "activity-logs"/);
+  assert.match(appJs, /Setmore appointment export/);
+  assert.match(appJs, /Skipped Non-Appointment Rows/);
+  assert.match(appJs, /Wellness Day will live outside appointment scheduling/);
+  assert.match(appJs, /Classes will be handled in a separate classes\/events workflow/);
   assert.match(appJs, /DELETE TEST DATA/);
   assert.match(appJs, /\/api\/admin\/data-counts/);
   assert.match(appJs, /\/api\/admin\/bulk-delete/);
