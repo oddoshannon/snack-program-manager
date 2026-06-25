@@ -5311,8 +5311,7 @@ dd {
 
   .print-note-info {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px 12px;
+    gap: 2px;
     margin-bottom: 7px;
     font-size: 11px;
     line-height: 1.25;
@@ -5320,11 +5319,6 @@ dd {
 
   .print-note-info p {
     margin: 0;
-  }
-
-  .print-note-info p:first-child,
-  .print-note-info p:last-child {
-    grid-column: 1 / -1;
   }
 
   .print-note-goal {
@@ -5369,6 +5363,15 @@ dd {
   .print-prep-row ul {
     margin-top: 5px;
     columns: auto;
+    padding-left: 18px;
+  }
+
+  .print-prep-row li {
+    margin: 2px 0;
+  }
+
+  .print-prep-row li ul {
+    margin-top: 2px;
     padding-left: 18px;
   }
 

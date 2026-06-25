@@ -6925,6 +6925,33 @@ function appointmentSchedulePrintCard(appointment) {
 function appointmentPrepPrintCard(appointment) {
   const prepItems = appointmentPrepItems(appointment);
 
+  const listItem = (item, children = []) => `
+    <li>
+      ${escapeHtml(item)}
+      ${children.length ? `<ul>${children.join("")}</ul>` : ""}
+    </li>
+  `;
+  const prepList = appointmentTypeLabel(appointment) === "Enrollment"
+    ? [
+      listItem("Place paperwork at reception before the appointment.", [
+        listItem("Enrollment form (file cabinet); siblings can share one form."),
+        listItem("Questionnaire for each child (file cabinet); each child needs their own.", [
+          listItem("Write client name in the top right corner, initial code on the back, and circle PRE.")
+        ]),
+        ...(prepItems.includes("HRSN screener for YCCO client (file cabinet).") ? [listItem("HRSN screener for YCCO client (file cabinet).")] : [])
+      ]),
+      ...prepItems
+        .filter((item) => ![
+          "Place paperwork at reception before the appointment.",
+          "Enrollment form (file cabinet); siblings can share one form.",
+          "Questionnaire for each child (file cabinet); each child needs their own.",
+          "Write client name in the top right corner, initial code on the back, and circle PRE.",
+          "HRSN screener for YCCO client (file cabinet)."
+        ].includes(item))
+        .map((item) => listItem(item))
+    ].join("")
+    : prepItems.map((item) => listItem(item)).join("");
+
   return `
     <section class="print-prep-row">
       <div class="print-prep-row-header">
@@ -6932,7 +6959,7 @@ function appointmentPrepPrintCard(appointment) {
         <span>${escapeHtml(appointmentLessonLabel(appointment) || appointmentTypeLabel(appointment))}</span>
         <h2>${escapeHtml(appointmentClientName(appointment))}</h2>
       </div>
-      <ul>${prepItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+      <ul>${prepList}</ul>
     </section>
   `;
 }
@@ -7086,29 +7113,27 @@ function appointmentNotePrintCard(appointment) {
       </div>
     `)
     .join("");
-  const noteMeta = [
-    ["Client", appointmentClientName(appointment)],
-    ["Caregiver", uniqueAppointmentPrintValues(appointment, "caregiver").join("; ") || "-"],
-    ["Language", uniqueAppointmentPrintValues(appointment, "language").join("; ") || "-"],
-    ["Age", appointmentAgeText(appointment)],
-    ["Time", formatAppointmentTime(appointment.appointmentTime) || "Time TBD"],
-    ["Interval since last appointment", appointmentIntervalText(appointment)]
+  const caregiverText = uniqueAppointmentPrintValues(appointment, "caregiver").join("; ") || "-";
+  const languageText = uniqueAppointmentPrintValues(appointment, "language").join("; ") || "-";
+  const ageText = appointmentAgeText(appointment);
+  const noteMetaRows = [
+    `Client: ${appointmentClientName(appointment)}`,
+    [`Caregiver: ${caregiverText}`, `Language: ${languageText}`, `Age: ${ageText}`].join(" | "),
+    `Time: ${formatAppointmentTime(appointment.appointmentTime) || "Time TBD"}`,
+    `Interval since last appointment: ${appointmentIntervalText(appointment)}`
   ];
-  const goalText = appointmentGoalText(appointment) || "-";
+  const goalText = appointmentGoalText(appointment);
 
   return `
     <section class="print-card print-note-card">
       <div class="print-note-sheet-header">
-        <p>The SNACK Program</p>
         <h2>${escapeHtml(appointmentNoteTitle(appointment))}</h2>
         <span>${escapeHtml(appointmentLessonLabel(appointment) || appointmentTypeLabel(appointment))}</span>
       </div>
       <div class="print-note-info">
-        ${noteMeta.map(([label, value]) => `
-          <p><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value || "-")}</p>
-        `).join("")}
+        ${noteMetaRows.map((row) => `<p>${escapeHtml(row)}</p>`).join("")}
       </div>
-      <div class="print-note-goal"><strong>Goal:</strong> ${escapeHtml(goalText)}</div>
+      <div class="print-note-goal"><strong>Goal:</strong> ${goalText ? ` ${escapeHtml(goalText)}` : ""}</div>
       ${sections}
     </section>
   `;
