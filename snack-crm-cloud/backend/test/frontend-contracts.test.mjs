@@ -331,10 +331,14 @@ test("appointment prep checklist mirrors the When to Give What guide", () => {
 
 test("printable appointment note sheets include handwritten visit note prompts", () => {
   assert.match(appJs, /Visit Notes/);
-  assert.match(appJs, /Lesson \/ Topics Covered/);
-  assert.match(appJs, /Client Response \/ Observations/);
-  assert.match(appJs, /Goal Set Today/);
-  assert.match(appJs, /Follow-Up \/ Chart Note To-Do/);
+  assert.match(appJs, /Food Groups Appointment Notes/);
+  assert.match(appJs, /Interval since last appointment/);
+  assert.match(appJs, /Previous goal/);
+  assert.match(appJs, /Lesson \/ topics covered/);
+  assert.match(appJs, /Client response \/ observations/);
+  assert.match(appJs, /Goal set today/);
+  assert.match(appJs, /Knowledge Retention/);
+  assert.match(appJs, /print-checkbox-row/);
   assert.match(appJs, /print-lines/);
 });
 

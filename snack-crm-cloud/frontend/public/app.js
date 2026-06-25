@@ -6804,6 +6804,61 @@ function appointmentClientPrintRows(appointment) {
   return clientRows;
 }
 
+function appointmentNoteClientSummary(appointment) {
+  return appointmentPrintClientSummary(appointment)
+    .map((client) => [
+      client.name || "Client",
+      client.caregiver ? `Caregiver: ${client.caregiver}` : "",
+      client.language
+    ].filter(Boolean).join(" | "))
+    .join("; ");
+}
+
+function appointmentDateTimeSortValue(appointment) {
+  return dateValue(appointment.appointmentDate, 1) + appointmentTimeValue(appointment.appointmentTime) * 60000;
+}
+
+function appointmentsShareClient(first, second) {
+  const firstIds = appointmentClientIds(first);
+  const secondIds = appointmentClientIds(second);
+
+  if (firstIds.length && secondIds.length) {
+    return firstIds.some((clientId) => secondIds.includes(clientId));
+  }
+
+  return normalizedLookupKey(appointmentClientName(first)) === normalizedLookupKey(appointmentClientName(second));
+}
+
+function previousAppointmentsForPrint(appointment) {
+  const currentValue = appointmentDateTimeSortValue(appointment);
+
+  return loadedAppointments
+    .filter((item) => item.id !== appointment.id)
+    .filter((item) => item.status !== "Canceled")
+    .filter((item) => appointmentsShareClient(item, appointment))
+    .filter((item) => appointmentDateTimeSortValue(item) < currentValue)
+    .sort((first, second) => appointmentDateTimeSortValue(second) - appointmentDateTimeSortValue(first));
+}
+
+function appointmentIntervalText(appointment) {
+  const previous = previousAppointmentsForPrint(appointment)[0];
+
+  if (!previous?.appointmentDate || !appointment.appointmentDate) {
+    return appointmentTypeLabel(appointment) === "Enrollment" ? "New enrollment" : "-";
+  }
+
+  const currentDate = new Date(`${appointment.appointmentDate}T00:00:00`);
+  const previousDate = new Date(`${previous.appointmentDate}T00:00:00`);
+  const dayCount = Math.max(0, Math.round((currentDate - previousDate) / 86400000));
+
+  return `${dayCount} days since ${formatDateOnly(previous.appointmentDate)}`;
+}
+
+function appointmentPreviousGoalText(appointment) {
+  const previousWithGoal = previousAppointmentsForPrint(appointment).find((item) => appointmentGoalText(item).trim());
+  return previousWithGoal ? appointmentGoalText(previousWithGoal).trim() : "-";
+}
+
 function appointmentSchedulePrintCard(appointment) {
   const familySummary = appointmentPrintClientSummary(appointment)
     .map((client) => [client.caregiver ? `Caregiver: ${client.caregiver}` : "", client.language].filter(Boolean).join(" | "))
@@ -6858,11 +6913,31 @@ function appointmentPrepPrintCard(appointment) {
   `;
 }
 
-function printPromptBlock(label, lines = 3) {
+function normalizeNotePrompt(prompt) {
+  return Array.isArray(prompt)
+    ? { label: prompt[0], lines: prompt[1] || 3, type: "lines" }
+    : { type: "lines", lines: 3, ...prompt };
+}
+
+function printPromptBlock(prompt) {
+  const item = normalizeNotePrompt(prompt);
+
+  if (item.type === "check") {
+    return `
+      <div class="print-checkbox-row">
+        <span>${escapeHtml(item.label)}</span>
+        <strong>Yes</strong>
+        <i></i>
+        <strong>No</strong>
+        <i></i>
+      </div>
+    `;
+  }
+
   return `
     <div>
-      <span>${escapeHtml(label)}</span>
-      <div class="print-lines" style="--print-lines-height: ${Number(lines) * 26}px;"></div>
+      <span>${escapeHtml(item.label)}</span>
+      <div class="print-lines" style="--print-lines-height: ${Number(item.lines) * 22}px;"></div>
     </div>
   `;
 }
@@ -6871,16 +6946,14 @@ function appointmentNotePromptSections(appointment) {
   if (appointmentTypeLabel(appointment) === "Enrollment") {
     return [
       {
-        title: "Enrollment Appointment Notes",
+        title: "Visit Notes",
         prompts: [
-          ["What do you know about the program? What interested you in making an appointment?", 4],
-          ["What do you do that makes you feel healthy?", 3],
-          ["Anything you wish you did that would make you feel more healthy?", 3],
-          ["Caregiver goals or anything they would like to work on?", 3],
-          ["Foods they enjoy or prefer not to eat", 3],
+          ["Program interest / what they know", 3],
+          ["Healthy habits and strengths", 2],
+          ["Caregiver goals", 2],
+          ["Foods enjoyed or avoided", 2],
           ["Goal", 2],
-          ["Next Lesson", 1],
-          ["Next Appt", 1]
+          ["Next lesson / next appt", 1]
         ]
       }
     ];
@@ -6888,15 +6961,6 @@ function appointmentNotePromptSections(appointment) {
 
   const lesson = appointmentLessonNumber(appointment);
   const isCheckIn = String(appointment.lesson || "").toLowerCase() === "check in" || lesson === 8;
-  const lessonTitles = {
-    1: "Nutrient Density Appointment Notes",
-    2: "Sugar Appointment Notes",
-    3: "Food Groups Appointment Notes",
-    4: "Macronutrients Appointment Notes",
-    5: "Micronutrients Appointment Notes",
-    6: "Mindful Eating Appointment Notes",
-    7: "Healthy Habits Appointment Notes"
-  };
   const retentionPrompts = {
     2: ["Nutrient dense / sometimes foods"],
     3: ["Natural sugar and added sugar", "Find added sugar on label and grams", "Nutrient dense / sometimes foods"],
@@ -6909,13 +6973,11 @@ function appointmentNotePromptSections(appointment) {
   if (isCheckIn) {
     return [
       {
-        title: "Check In Appointment Notes",
+        title: "Visit Notes",
         prompts: [
-          ["Interval since last SNACK appointment", 2],
-          ["Previous Goal", 2],
-          ["How did the goal go? What helped or made it harder?", 4],
+          ["How did the previous goal go? What helped or made it harder?", 3],
           ["Anything you would like to talk about today?", 3],
-          ["One thing you would like help or support with", 3],
+          ["One thing you would like help or support with", 2],
           ["New Goal", 2],
           ["Next Appt", 1]
         ]
@@ -6925,24 +6987,44 @@ function appointmentNotePromptSections(appointment) {
 
   return [
     {
-      title: lessonTitles[lesson] || "Appointment Note Sheet",
+      title: "Visit Notes",
       prompts: [
-        ["Interval since last SNACK appointment", 2],
-        ["Previous Goal 1", 2],
-        ["Previous Goal 2", 2],
-        ["How did the goal go? What helped or made it harder?", 4],
-        ["Updates or wins", 3],
-        ["Lesson / Topics Covered", 4],
-        ["Client Response / Observations", 4],
-        ["Goal Set Today", 3],
-        ["Follow-Up / Chart Note To-Do", 3]
+        ["How did the previous goal go? What helped or made it harder?", 3],
+        ["Updates or wins", 2],
+        ["Lesson / topics covered", 3],
+        ["Client response / observations", 3],
+        ["Goal set today", 2],
+        ["Follow-up / chart note to-do", 2]
       ]
     },
     ...(retentionPrompts[lesson]?.length ? [{
       title: "Knowledge Retention",
-      prompts: retentionPrompts[lesson].map((prompt) => [prompt, 1])
+      prompts: retentionPrompts[lesson].map((prompt) => ({ label: prompt, type: "check" }))
     }] : [])
   ];
+}
+
+function appointmentNoteTitle(appointment) {
+  if (appointmentTypeLabel(appointment) === "Enrollment") {
+    return "Enrollment Appointment Notes";
+  }
+
+  if (String(appointment.lesson || "").toLowerCase() === "check in") {
+    return "Check In Appointment Notes";
+  }
+
+  const lesson = appointmentLessonNumber(appointment);
+  const titles = {
+    1: "Nutrient Density Appointment Notes",
+    2: "Sugar Appointment Notes",
+    3: "Food Groups Appointment Notes",
+    4: "Macronutrients Appointment Notes",
+    5: "Micronutrients Appointment Notes",
+    6: "Mindful Eating Appointment Notes",
+    7: "Healthy Habits Appointment Notes"
+  };
+
+  return titles[lesson] || "Appointment Note Sheet";
 }
 
 function appointmentNotePrintCard(appointment) {
@@ -6951,32 +7033,30 @@ function appointmentNotePrintCard(appointment) {
       <div class="print-note-prompts">
         <h2>${escapeHtml(section.title)}</h2>
         <div class="print-note-grid">
-          ${section.prompts.map(([label, lines]) => printPromptBlock(label, lines)).join("")}
+          ${section.prompts.map((prompt) => printPromptBlock(prompt)).join("")}
         </div>
       </div>
     `)
     .join("");
+  const noteMeta = [
+    ["Client", appointmentNoteClientSummary(appointment) || appointmentClientName(appointment)],
+    ["Time", formatAppointmentTime(appointment.appointmentTime) || "Time TBD"],
+    ["Interval since last appointment", appointmentIntervalText(appointment)],
+    ["Previous goal", appointmentPreviousGoalText(appointment)],
+    ["Current goal", appointmentGoalText(appointment) || "-"]
+  ];
 
   return `
     <section class="print-card print-note-card">
-      <div class="print-card-header">
-        <div>
-          <p>${escapeHtml(formatAppointmentTime(appointment.appointmentTime) || "Time TBD")}</p>
-          <h2>${escapeHtml(appointmentClientName(appointment))}</h2>
-        </div>
+      <div class="print-note-sheet-header">
+        <p>The SNACK Program</p>
+        <h2>${escapeHtml(appointmentNoteTitle(appointment))}</h2>
         <span>${escapeHtml(appointmentLessonLabel(appointment) || appointmentTypeLabel(appointment))}</span>
       </div>
-      <div class="print-grid print-note-summary">
-        ${printField("Staff", appointment.staffMember || "-")}
-        ${printField("Goal", appointmentGoalText(appointment) || "-")}
-        ${printField("Notes", appointmentNotesText(appointment) || "-")}
-      </div>
-      <div class="print-clients">
-        <h2>Family</h2>
-        <ul>${appointmentClientPrintRows(appointment)}</ul>
-      </div>
-      <div class="print-note-prompts print-visit-notes-title">
-        <h2>Visit Notes</h2>
+      <div class="print-note-info">
+        ${noteMeta.map(([label, value]) => `
+          <p><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value || "-")}</p>
+        `).join("")}
       </div>
       ${sections}
     </section>

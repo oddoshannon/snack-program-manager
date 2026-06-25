@@ -5269,10 +5269,62 @@ dd {
 
   .print-note-card {
     break-after: page;
+    padding: 11px;
   }
 
   .print-note-card:last-child {
     break-after: auto;
+  }
+
+  .print-note-sheet-header {
+    position: relative;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+  }
+
+  .print-note-sheet-header p {
+    margin: 0 0 2px;
+    color: var(--brand-green);
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .print-note-sheet-header h2 {
+    margin: 0;
+    padding-right: 130px;
+    font-size: 20px;
+    line-height: 1.05;
+  }
+
+  .print-note-sheet-header span {
+    position: absolute;
+    right: 0;
+    bottom: 8px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 9px;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .print-note-info {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 12px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  .print-note-info p {
+    margin: 0;
+  }
+
+  .print-note-info p:first-child,
+  .print-note-info p:last-child {
+    grid-column: 1 / -1;
   }
 
   .print-schedule-row {
@@ -5367,38 +5419,52 @@ dd {
   .print-clients,
   .print-prep,
   .print-note-prompts {
-    margin-top: 12px;
+    margin-top: 8px;
   }
 
   .print-note-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-    margin-top: 8px;
+    gap: 7px;
+    margin-top: 6px;
   }
 
   .print-note-grid > div {
     border: 1px solid var(--line);
     border-radius: 7px;
-    padding: 9px;
+    padding: 7px;
   }
 
   .print-note-grid span {
     color: var(--muted);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 900;
     text-transform: uppercase;
   }
 
   .print-lines {
     height: var(--print-lines-height, 78px);
-    margin-top: 8px;
-    background: repeating-linear-gradient(#ffffff 0 23px, var(--line) 24px);
+    margin-top: 6px;
+    background: repeating-linear-gradient(#ffffff 0 20px, var(--line) 21px);
   }
 
-  .print-visit-notes-title {
-    border-top: 2px solid var(--line);
-    padding-top: 10px;
+  .print-checkbox-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto 16px auto 16px;
+    align-items: center;
+    gap: 7px;
+    min-height: 28px;
+  }
+
+  .print-checkbox-row i {
+    width: 13px;
+    height: 13px;
+    border: 1px solid var(--ink);
+    border-radius: 2px;
+  }
+
+  .print-checkbox-row strong {
+    font-size: 10px;
   }
 
   .print-root ul {
