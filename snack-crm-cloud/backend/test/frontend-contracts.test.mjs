@@ -331,6 +331,9 @@ test("appointment prep checklist mirrors the When to Give What guide", () => {
 
 test("printable appointment note sheets include handwritten visit note prompts", () => {
   assert.match(appJs, /Visit Note/);
+  assert.match(appJs, /Goal Check In/);
+  assert.match(appJs, /Goal & Next Steps/);
+  assert.match(appJs, /function appointmentLessonTopicTitle/);
   assert.match(appJs, /Food Groups Appointment Note/);
   assert.match(appJs, /Age/);
   assert.match(appJs, /Interval since last appointment/);

@@ -7004,6 +7004,25 @@ function printPromptBlock(prompt) {
   `;
 }
 
+function appointmentLessonTopicTitle(appointment) {
+  if (String(appointment.lesson || "").toLowerCase() === "check in") {
+    return "Check In";
+  }
+
+  const lesson = appointmentLessonNumber(appointment);
+  const titles = {
+    1: "Nutrient Density",
+    2: "Sugar",
+    3: "Food Groups",
+    4: "Macronutrients",
+    5: "Micronutrients",
+    6: "Mindful Eating",
+    7: "Healthy Habits"
+  };
+
+  return titles[lesson] || appointmentLessonLabel(appointment) || appointmentTypeLabel(appointment);
+}
+
 function appointmentNotePromptSections(appointment) {
   if (appointmentTypeLabel(appointment) === "Enrollment") {
     return [
@@ -7035,7 +7054,7 @@ function appointmentNotePromptSections(appointment) {
   if (isCheckIn) {
     return [
       {
-        title: "Visit Note",
+        title: "Goal Check In",
         prompts: [
           ["How did the previous goal go? What helped or made it harder? Other updates or wins?", 3],
           ["Anything you would like to talk about today?", 3],
@@ -7056,20 +7075,20 @@ function appointmentNotePromptSections(appointment) {
 
   return [
     {
-      title: "Visit Note",
+      title: "Goal Check In",
       prompts: [
         ["How did the previous goal go? What helped or made it harder? Other updates or wins?", 3]
       ]
     },
     retentionSection,
     {
-      title: "Activities Practiced",
+      title: `Lesson: ${appointmentLessonTopicTitle(appointment)}`,
       prompts: [
         ["Activities practiced / client response", 4]
       ]
     },
     {
-      title: "Goal and Follow Up",
+      title: "Goal & Next Steps",
       prompts: [
         ["Goal set today", 2],
         { type: "nextAppointment" },
@@ -7115,23 +7134,25 @@ function appointmentNotePrintCard(appointment) {
     .join("");
   const caregiverText = uniqueAppointmentPrintValues(appointment, "caregiver").join("; ") || "-";
   const languageText = uniqueAppointmentPrintValues(appointment, "language").join("; ") || "-";
-  const ageText = appointmentAgeText(appointment);
-  const noteMetaRows = [
-    `Client: ${appointmentClientName(appointment)}`,
-    [`Caregiver: ${caregiverText}`, `Language: ${languageText}`, `Age: ${ageText}`].join(" | "),
-    `Time: ${formatAppointmentTime(appointment.appointmentTime) || "Time TBD"}`,
-    `Interval since last appointment: ${appointmentIntervalText(appointment)}`
+  const noteMeta = [
+    ["Client", appointmentClientName(appointment)],
+    ["Caregiver", caregiverText],
+    ["Language", languageText],
+    ["Age", appointmentAgeText(appointment)],
+    ["Time", formatAppointmentTime(appointment.appointmentTime) || "Time TBD"],
+    ["Interval since last appointment", appointmentIntervalText(appointment)]
   ];
   const goalText = appointmentGoalText(appointment);
 
   return `
     <section class="print-card print-note-card">
       <div class="print-note-sheet-header">
+        <p>The SNACK Program</p>
         <h2>${escapeHtml(appointmentNoteTitle(appointment))}</h2>
         <span>${escapeHtml(appointmentLessonLabel(appointment) || appointmentTypeLabel(appointment))}</span>
       </div>
       <div class="print-note-info">
-        ${noteMetaRows.map((row) => `<p>${escapeHtml(row)}</p>`).join("")}
+        ${noteMeta.map(([label, value]) => `<p><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value || "-")}</p>`).join("")}
       </div>
       <div class="print-note-goal"><strong>Goal:</strong> ${goalText ? ` ${escapeHtml(goalText)}` : ""}</div>
       ${sections}
