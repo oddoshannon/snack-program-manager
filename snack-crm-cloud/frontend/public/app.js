@@ -5043,6 +5043,9 @@ function setActiveModule(moduleName) {
   referralNetworkPanel.hidden = !showReferralNetwork;
   outreachPanel.hidden = !showOutreach;
   schedulingPanel.hidden = !showScheduling;
+  if (!showScheduling) {
+    document.body.classList.remove("scheduling-v2-preview-mode");
+  }
   adminSettingsView.hidden = !showAdminSettings;
   adminDataToolsView.hidden = !showAdminDataTools;
   adminKpiView.hidden = !showAdminKpi;
@@ -6756,43 +6759,71 @@ function schedulingPreviewCounterItems(dateAppointments) {
   ];
 }
 
+const schedulingV2Icons = {
+  admin: "<svg viewBox=\"0 0 24 24\"><path d=\"M4 20h16\"/><path d=\"M6 20V9l6-4 6 4v11\"/><path d=\"M9 20v-6h6v6\"/></svg>",
+  bell: "<svg viewBox=\"0 0 24 24\"><path d=\"M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9\"/><path d=\"M10 21h4\"/></svg>",
+  calendar: "<svg viewBox=\"0 0 24 24\"><path d=\"M7 3v4\"/><path d=\"M17 3v4\"/><path d=\"M4 9h16\"/><rect x=\"4\" y=\"5\" width=\"16\" height=\"15\" rx=\"2\"/></svg>",
+  check: "<svg viewBox=\"0 0 24 24\"><path d=\"m5 12 4 4L19 6\"/></svg>",
+  clock: "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"8\"/><path d=\"M12 8v5l3 2\"/></svg>",
+  close: "<svg viewBox=\"0 0 24 24\"><path d=\"M6 6l12 12\"/><path d=\"M18 6 6 18\"/></svg>",
+  file: "<svg viewBox=\"0 0 24 24\"><path d=\"M7 3h7l4 4v14H7z\"/><path d=\"M14 3v5h5\"/></svg>",
+  grants: "<svg viewBox=\"0 0 24 24\"><path d=\"M12 3v18\"/><path d=\"M17 6H9.5a3 3 0 0 0 0 6H15a3 3 0 0 1 0 6H6\"/></svg>",
+  help: "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M9.5 9a2.5 2.5 0 0 1 4.4 1.6c0 1.8-1.9 2.2-1.9 3.7\"/><path d=\"M12 18h.01\"/></svg>",
+  history: "<svg viewBox=\"0 0 24 24\"><path d=\"M3 12a9 9 0 1 0 3-6.7\"/><path d=\"M3 4v5h5\"/><path d=\"M12 7v5l3 2\"/></svg>",
+  home: "<svg viewBox=\"0 0 24 24\"><path d=\"M4 11 12 4l8 7\"/><path d=\"M6 10v10h12V10\"/><path d=\"M10 20v-6h4v6\"/></svg>",
+  network: "<svg viewBox=\"0 0 24 24\"><circle cx=\"8\" cy=\"8\" r=\"3\"/><circle cx=\"16\" cy=\"8\" r=\"3\"/><circle cx=\"12\" cy=\"17\" r=\"3\"/><path d=\"m10 10 2 4\"/><path d=\"m14 10-2 4\"/></svg>",
+  outreach: "<svg viewBox=\"0 0 24 24\"><path d=\"M4 13h4l9-6v12l-9-6H4z\"/><path d=\"M8 13v5\"/></svg>",
+  plus: "<svg viewBox=\"0 0 24 24\"><path d=\"M12 5v14\"/><path d=\"M5 12h14\"/></svg>",
+  prep: "<svg viewBox=\"0 0 24 24\"><path d=\"M8 4h8\"/><path d=\"M9 2h6v4H9z\"/><rect x=\"5\" y=\"5\" width=\"14\" height=\"16\" rx=\"2\"/><path d=\"m8 13 2 2 5-5\"/></svg>",
+  print: "<svg viewBox=\"0 0 24 24\"><path d=\"M7 8V4h10v4\"/><path d=\"M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2\"/><path d=\"M7 14h10v7H7z\"/></svg>",
+  referrals: "<svg viewBox=\"0 0 24 24\"><path d=\"M8 6h13\"/><path d=\"M8 12h13\"/><path d=\"M8 18h13\"/><path d=\"M3 6h.01\"/><path d=\"M3 12h.01\"/><path d=\"M3 18h.01\"/></svg>",
+  scheduling: "<svg viewBox=\"0 0 24 24\"><path d=\"M7 3v4\"/><path d=\"M17 3v4\"/><rect x=\"4\" y=\"5\" width=\"16\" height=\"15\" rx=\"2\"/><path d=\"M8 12h3\"/><path d=\"M13 12h3\"/><path d=\"M8 16h3\"/></svg>",
+  search: "<svg viewBox=\"0 0 24 24\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m16 16 4 4\"/></svg>",
+  settings: "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a8 8 0 0 0 .1-2l2-1.5-2-3.5-2.4 1a8 8 0 0 0-1.7-1L15 5h-6l-.4 3a8 8 0 0 0-1.7 1l-2.4-1-2 3.5 2 1.5a8 8 0 0 0 .1 2l-2 1.5 2 3.5 2.4-1a8 8 0 0 0 1.7 1l.4 3h6l.4-3a8 8 0 0 0 1.7-1l2.4 1 2-3.5z\"/></svg>",
+  users: "<svg viewBox=\"0 0 24 24\"><circle cx=\"9\" cy=\"8\" r=\"3\"/><path d=\"M3 20a6 6 0 0 1 12 0\"/><circle cx=\"17\" cy=\"9\" r=\"2\"/><path d=\"M15 15a5 5 0 0 1 6 5\"/></svg>"
+};
+
+function schedulingV2Icon(name) {
+  return `<span class="scheduling-v2-icon" aria-hidden="true">${schedulingV2Icons[name] || ""}</span>`;
+}
+
 function renderSchedulingV2Sidebar() {
   const navGroups = [
     {
       label: "Overview",
       items: [
-        { icon: "H", label: "Dashboard" }
+        { icon: "home", label: "Dashboard" }
       ]
     },
     {
       label: "Workflow",
       items: [
-        { icon: "S", label: "Scheduling", active: true },
-        { icon: "G", label: "Grants" },
-        { icon: "O", label: "Outreach" }
+        { icon: "scheduling", label: "Scheduling", active: true },
+        { icon: "calendar", label: "Grants" },
+        { icon: "outreach", label: "Outreach" }
       ]
     },
     {
       label: "CRM",
       items: [
-        { icon: "R", label: "Referrals" },
-        { icon: "C", label: "Clients" },
-        { icon: "N", label: "Referral Network" }
+        { icon: "referrals", label: "Referrals" },
+        { icon: "users", label: "Clients" },
+        { icon: "network", label: "Referral Network" }
       ]
     },
     {
       label: "Fundraising",
       items: [
-        { icon: "$", label: "Grants" },
-        { icon: "E", label: "Events" },
-        { icon: "D", label: "Donors" }
+        { icon: "grants", label: "Grants" },
+        { icon: "calendar", label: "Events" },
+        { icon: "users", label: "Donors" }
       ]
     },
     {
       label: "Admin",
       items: [
-        { icon: "R", label: "Reports" },
-        { icon: "A", label: "Settings" }
+        { icon: "admin", label: "Reports" },
+        { icon: "settings", label: "Settings" }
       ]
     }
   ];
@@ -6800,7 +6831,7 @@ function renderSchedulingV2Sidebar() {
   return `
     <aside class="scheduling-v2-sidebar" aria-label="Scheduling preview navigation">
       <div class="scheduling-v2-brand">
-        <span aria-hidden="true">S</span>
+        <span aria-hidden="true"><img src="./favicon.png" alt=""></span>
         <div>
           <strong>SNACK</strong>
           <small>Program Manager</small>
@@ -6812,7 +6843,7 @@ function renderSchedulingV2Sidebar() {
             <p>${escapeHtml(group.label)}</p>
             ${group.items.map((item) => `
               <button class="${item.active ? "active" : ""}" type="button">
-                <span aria-hidden="true">${escapeHtml(item.icon)}</span>
+                ${schedulingV2Icon(item.icon)}
                 ${escapeHtml(item.label)}
               </button>
             `).join("")}
@@ -6821,10 +6852,10 @@ function renderSchedulingV2Sidebar() {
       </nav>
       <section class="scheduling-v2-quick-actions" aria-label="Quick actions">
         <h3>Quick Actions</h3>
-        <button data-scheduling-action="new" type="button">New Appointment</button>
-        <button data-scheduling-action="print-schedule" type="button">Print Schedule</button>
-        <button data-scheduling-action="print-notes" type="button">Print Notes</button>
-        <button data-scheduling-action="print-prep" type="button">Print Prep Sheets</button>
+        <button data-scheduling-action="new" type="button">${schedulingV2Icon("plus")}New Appointment</button>
+        <button data-scheduling-action="print-schedule" type="button">${schedulingV2Icon("print")}Print Schedule</button>
+        <button data-scheduling-action="print-notes" type="button">${schedulingV2Icon("file")}Print Notes</button>
+        <button data-scheduling-action="print-prep" type="button">${schedulingV2Icon("prep")}Print Prep Sheets</button>
       </section>
       <div class="scheduling-v2-account">
         <span aria-hidden="true">SO</span>
@@ -6837,37 +6868,59 @@ function renderSchedulingV2Sidebar() {
   `;
 }
 
+function renderSchedulingV2Topbar() {
+  return `
+    <header class="scheduling-v2-topbar">
+      <div class="scheduling-v2-search">
+        ${schedulingV2Icon("search")}
+        <input type="search" value="" placeholder="Search clients, referrals, appointments..." aria-label="Search clients, referrals, appointments">
+        <kbd>Cmd K</kbd>
+      </div>
+      <div class="scheduling-v2-top-actions">
+        <button type="button" aria-label="Notifications">${schedulingV2Icon("bell")}<span>3</span></button>
+        <button type="button" aria-label="Help">${schedulingV2Icon("help")}</button>
+        <button class="scheduling-v2-user-menu" type="button">
+          <span>SO</span>
+          <strong>Shannon Oddo<small>Director</small></strong>
+        </button>
+        <button data-scheduling-action="classic" type="button">Classic</button>
+      </div>
+    </header>
+  `;
+}
+
+function renderSchedulingV2PageHeader() {
+  return `
+    <header class="scheduling-v2-page-header">
+      <h2>Scheduling</h2>
+      <div>
+        <button class="scheduling-v2-print-button" data-scheduling-action="print-schedule" type="button">${schedulingV2Icon("print")}Print Schedule</button>
+        <div class="scheduling-v2-view-switch" role="group" aria-label="Scheduling preview views">
+          ${["day", "week", "list"].map((view) => `
+            <button class="${activeSchedulingPreviewView === view ? "active" : ""}" data-scheduling-preview-view="${view}" type="button">${escapeHtml(titleCase(view))}</button>
+          `).join("")}
+        </div>
+        <button class="scheduling-v2-primary" data-scheduling-action="new" type="button">${schedulingV2Icon("plus")}New Appointment</button>
+      </div>
+    </header>
+  `;
+}
+
 function renderSchedulingV2Controls(dateAppointments) {
   return `
-    <header class="scheduling-v2-content-header">
-      <div>
-        <p class="eyebrow">Scheduling</p>
-        <h2>Scheduling</h2>
-      </div>
-      <div class="scheduling-v2-search">
-        <span aria-hidden="true">Search</span>
-        <input type="search" value="" placeholder="Search clients, referrals, appointments..." aria-label="Search clients, referrals, appointments">
-      </div>
-      <button class="scheduling-v2-primary" data-scheduling-action="new" type="button">New Appointment</button>
-    </header>
     <section class="scheduling-v2-date-card" aria-label="Scheduling preview date controls">
       <div class="scheduling-v2-date-row">
         <button data-scheduling-date="today" type="button">Today</button>
         <button data-scheduling-date="previous" type="button" aria-label="Previous day">&lt;</button>
         <button data-scheduling-date="next" type="button" aria-label="Next day">&gt;</button>
         <label>
-          <span>Choose date</span>
+          <span>Date</span>
           <input data-scheduling-date-input type="date" value="${escapeHtml(visibleSchedulingPreviewDate)}">
         </label>
-        <div class="scheduling-v2-view-switch" role="group" aria-label="Scheduling preview views">
-          ${["day", "week", "month", "list"].map((view) => `
-            <button class="${activeSchedulingPreviewView === view ? "active" : ""}" data-scheduling-preview-view="${view}" type="button">${escapeHtml(titleCase(view))}</button>
-          `).join("")}
-        </div>
       </div>
       <div class="scheduling-v2-counters">
-        ${schedulingPreviewCounterItems(dateAppointments).map((item) => `
-          <article>
+        ${schedulingPreviewCounterItems(dateAppointments).map((item, index) => `
+          <article style="--counter-index: ${index};">
             <strong>${escapeHtml(item.value)}</strong>
             <span>${escapeHtml(item.label)}</span>
           </article>
@@ -6908,7 +6961,7 @@ function renderSchedulingV2Agenda(dateAppointments) {
                     <small>${escapeHtml([appointment.status || "Scheduled", appointmentLessonLabel(appointment) || appointmentTypeLabel(appointment)].filter(Boolean).join(" | "))}</small>
                     <em>${escapeHtml(appointmentClientCount(appointment) > 1 ? `${appointmentClientCount(appointment)} clients` : "")}</em>
                   </button>
-                `).join("") : "<span class=\"scheduling-v2-empty-slot\">Open</span>"}
+                `).join("") : ""}
               </div>
             </div>
           `;
@@ -6921,7 +6974,7 @@ function renderSchedulingV2Agenda(dateAppointments) {
 function schedulingV2InfoRow(label, value) {
   return `
     <div class="scheduling-v2-info-row">
-      <span>${escapeHtml(label)}</span>
+      <span>${label}</span>
       <strong>${escapeHtml(value || "-")}</strong>
     </div>
   `;
@@ -6942,52 +6995,61 @@ function renderSchedulingV2Detail(appointment) {
   const primaryClient = appointmentPreviewPrimaryClient(appointment);
   const prepItems = appointmentPrepItems(appointment);
   const goalText = appointmentGoalText(appointment);
+  const appointmentTimeText = `${formatAppointmentTime(appointment.appointmentTime) || "Time TBD"} - ${formatDuration(appointmentDurationMinutes(appointment))}`;
+  const status = appointment.status || "Scheduled";
 
   return `
     <section class="scheduling-v2-detail-card" aria-label="Selected appointment preview">
+      <button class="scheduling-v2-detail-close" type="button" aria-label="Close preview">${schedulingV2Icon("close")}</button>
       <div class="scheduling-v2-detail-left">
         <div class="scheduling-v2-selected-status">
-          <span class="status-badge status-${escapeHtml(cssToken(appointment.status || "Scheduled"))}">${escapeHtml(appointment.status || "Scheduled")}</span>
-          <button data-scheduling-action="check-in" type="button">Check In</button>
+          <span class="scheduling-v2-status-dot" aria-hidden="true"></span>
+          <span>${escapeHtml(status)}</span>
         </div>
         <h3>${escapeHtml(appointmentClientName(appointment))}</h3>
         <div class="scheduling-v2-detail-meta">
-          ${schedulingV2InfoRow("Date", formatDateOnly(appointment.appointmentDate))}
-          ${schedulingV2InfoRow("Time", `${formatAppointmentTime(appointment.appointmentTime) || "Time TBD"} (${formatDuration(appointmentDurationMinutes(appointment))})`)}
-          ${schedulingV2InfoRow("Staff", appointment.staffMember || "-")}
-          ${schedulingV2InfoRow("Type", [appointmentTypeLabel(appointment), appointmentLessonLabel(appointment)].filter(Boolean).join(" | "))}
+          ${schedulingV2InfoRow(`${schedulingV2Icon("calendar")}Date`, formatDateOnly(appointment.appointmentDate))}
+          ${schedulingV2InfoRow(`${schedulingV2Icon("clock")}Time`, appointmentTimeText)}
+          ${schedulingV2InfoRow(`${schedulingV2Icon("users")}Family`, appointmentClientCount(appointment) > 1 ? `Caregiver + ${appointmentClientCount(appointment)}` : primaryClient.caregiver || "-")}
         </div>
         <section class="scheduling-v2-family-card">
-          <h4>Family</h4>
+          <h4>${schedulingV2Icon("users")}Family</h4>
           ${schedulingV2InfoRow("Caregiver", primaryClient.caregiver || "-")}
-          ${schedulingV2InfoRow("Phone", primaryClient.phone || "-")}
           ${schedulingV2InfoRow("Children", clients.map((client) => client.name).join(", ") || "-")}
           ${schedulingV2InfoRow("Language", [...new Set(clients.map((client) => client.language).filter(Boolean))].join(", ") || "-")}
+          ${schedulingV2InfoRow("Phone", primaryClient.phone || "-")}
           ${schedulingV2InfoRow("Address", primaryClient.address || "-")}
           ${primaryClient.id ? `<button data-scheduling-client="${escapeHtml(primaryClient.id)}" type="button">View Family Profile</button>` : ""}
         </section>
       </div>
       <div class="scheduling-v2-detail-main">
         <div class="scheduling-v2-detail-tabs" role="tablist" aria-label="Appointment preview tabs">
-          ${["Visit Note", "Prep", "History", "Files"].map((tab, index) => `
-            <button class="${index === 0 ? "active" : ""}" type="button" role="tab" aria-selected="${index === 0 ? "true" : "false"}">${escapeHtml(tab)}</button>
+          ${[
+    ["Visit Note", "calendar"],
+    ["Prep", "prep"],
+    ["History", "history"],
+    ["Files", "file"]
+  ].map(([tab, icon], index) => `
+            <button class="${index === 0 ? "active" : ""}" type="button" role="tab" aria-selected="${index === 0 ? "true" : "false"}">${schedulingV2Icon(icon)}${escapeHtml(tab)}</button>
           `).join("")}
         </div>
         <section class="scheduling-v2-visit-card">
           <div>
-            <h4>Lesson</h4>
+            <h4>${schedulingV2Icon("file")}Lesson</h4>
             <button data-scheduling-action="edit" type="button">Edit</button>
           </div>
           <dl>
             <div><dt>Type</dt><dd>${escapeHtml(appointmentTypeLabel(appointment))}</dd></div>
             <div><dt>Lesson</dt><dd>${escapeHtml(appointmentLessonLabel(appointment) || "-")}</dd></div>
             <div><dt>Goal</dt><dd>${escapeHtml(goalText || "-")}</dd></div>
+            <div><dt>Staff</dt><dd>${escapeHtml(appointment.staffMember || "-")}</dd></div>
             <div><dt>Notes</dt><dd>${escapeHtml(appointmentNotesText(appointment) || "-")}</dd></div>
           </dl>
         </section>
         <section class="scheduling-v2-visit-card scheduling-v2-prep-card">
           <div>
-            <h4>Prep</h4>
+            <h4>${schedulingV2Icon("prep")}Prep</h4>
+            <button data-scheduling-action="print-prep" type="button">Print</button>
           </div>
           ${prepItems.length ? `
             <ul>
@@ -7004,7 +7066,7 @@ function renderSchedulingV2Detail(appointment) {
         </section>
         <section class="scheduling-v2-check-in-card">
           <div>
-            <h4>Check In</h4>
+            <h4>${schedulingV2Icon("check")}Check In</h4>
             <button data-scheduling-action="check-in" type="button">Edit</button>
           </div>
           <div class="scheduling-v2-check-grid">
@@ -7015,8 +7077,8 @@ function renderSchedulingV2Detail(appointment) {
           </div>
         </section>
         <div class="scheduling-v2-actions">
-          <button data-scheduling-action="complete" type="button">Mark Complete</button>
-          <button data-scheduling-action="reschedule" type="button">Reschedule</button>
+          <button data-scheduling-action="complete" type="button">${schedulingV2Icon("check")}Mark Complete</button>
+          <button data-scheduling-action="reschedule" type="button">${schedulingV2Icon("calendar")}Reschedule</button>
           <button data-scheduling-action="no-show" type="button">No Show</button>
         </div>
       </div>
@@ -7062,6 +7124,8 @@ function bindSchedulingV2PreviewActions(selectedAppointment) {
 
       if (action === "new") {
         startNewAppointment({ appointmentDate: visibleSchedulingPreviewDate });
+      } else if (action === "classic") {
+        setSchedulingDesign("classic");
       } else if (action === "print-schedule") {
         printScheduleForDate(visibleSchedulingPreviewDate);
       } else if (action === "print-notes") {
@@ -7097,10 +7161,16 @@ function renderSchedulingV2Preview() {
     <div class="scheduling-v2-shell">
       ${renderSchedulingV2Sidebar()}
       <div class="scheduling-v2-main">
-        ${renderSchedulingV2Controls(dateAppointments)}
-        <div class="scheduling-v2-workspace">
-          ${renderSchedulingV2Agenda(dateAppointments)}
-          ${renderSchedulingV2Detail(selectedAppointment)}
+        ${renderSchedulingV2Topbar()}
+        <div class="scheduling-v2-content">
+          ${renderSchedulingV2PageHeader()}
+          <div class="scheduling-v2-workspace">
+            <div class="scheduling-v2-agenda-column">
+              ${renderSchedulingV2Controls(dateAppointments)}
+              ${renderSchedulingV2Agenda(dateAppointments)}
+            </div>
+            ${renderSchedulingV2Detail(selectedAppointment)}
+          </div>
         </div>
       </div>
     </div>
@@ -7116,6 +7186,7 @@ function renderSchedulingDesign() {
   schedulingClassicViewButton.classList.toggle("active", !showPreview);
   schedulingV2ViewButton.classList.toggle("active", showPreview);
   schedulingPanel.classList.toggle("scheduling-v2-active", showPreview);
+  document.body.classList.toggle("scheduling-v2-preview-mode", showPreview);
   schedulingClassicViewButton.setAttribute("aria-pressed", String(!showPreview));
   schedulingV2ViewButton.setAttribute("aria-pressed", String(showPreview));
 
