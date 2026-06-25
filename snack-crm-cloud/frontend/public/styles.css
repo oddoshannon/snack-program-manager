@@ -5311,9 +5311,9 @@ dd {
 
   .print-note-info {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px 12px;
-    margin-bottom: 8px;
+    margin-bottom: 7px;
     font-size: 11px;
     line-height: 1.25;
   }
@@ -5325,6 +5325,50 @@ dd {
   .print-note-info p:first-child,
   .print-note-info p:last-child {
     grid-column: 1 / -1;
+  }
+
+  .print-note-goal {
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 7px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  .print-prep-row {
+    break-inside: avoid;
+    border-bottom: 1px solid var(--line);
+    padding: 8px 0;
+  }
+
+  .print-prep-row-header {
+    display: grid;
+    grid-template-columns: 72px 88px minmax(0, 1fr);
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .print-prep-row-header strong {
+    color: var(--brand-green);
+    font-size: 13px;
+  }
+
+  .print-prep-row-header span {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .print-prep-row-header h2 {
+    margin: 0;
+    font-size: 15px;
+  }
+
+  .print-prep-row ul {
+    margin-top: 5px;
+    columns: 2;
   }
 
   .print-schedule-row {
@@ -5424,8 +5468,8 @@ dd {
 
   .print-note-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 7px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
     margin-top: 6px;
   }
 
@@ -5445,7 +5489,7 @@ dd {
   .print-lines {
     height: var(--print-lines-height, 78px);
     margin-top: 6px;
-    background: repeating-linear-gradient(#ffffff 0 20px, var(--line) 21px);
+    background: repeating-linear-gradient(#ffffff 0 26px, var(--line) 27px);
   }
 
   .print-checkbox-row {

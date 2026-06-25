@@ -6814,6 +6814,50 @@ function appointmentNoteClientSummary(appointment) {
     .join("; ");
 }
 
+function uniqueAppointmentPrintValues(appointment, key) {
+  return [...new Set(appointmentPrintClientSummary(appointment).map((client) => client[key]).filter(Boolean))];
+}
+
+function ageOnDate(dateOfBirth, targetDate) {
+  if (!dateOfBirth || !targetDate) {
+    return "";
+  }
+
+  const birthDate = new Date(`${dateOfBirth}T00:00:00`);
+  const appointmentDate = new Date(`${targetDate}T00:00:00`);
+
+  if (Number.isNaN(birthDate.getTime()) || Number.isNaN(appointmentDate.getTime())) {
+    return "";
+  }
+
+  let age = appointmentDate.getFullYear() - birthDate.getFullYear();
+  const birthdayThisYear = new Date(appointmentDate.getFullYear(), birthDate.getMonth(), birthDate.getDate());
+
+  if (appointmentDate < birthdayThisYear) {
+    age -= 1;
+  }
+
+  return age >= 0 ? String(age) : "";
+}
+
+function appointmentAgeText(appointment) {
+  const clients = appointmentClientIds(appointment)
+    .map((clientId) => loadedClients.find((item) => item.id === clientId))
+    .filter(Boolean);
+  const ages = clients
+    .map((client) => ({
+      name: clientName(client),
+      age: ageOnDate(client.dateOfBirth, appointment.appointmentDate)
+    }))
+    .filter((item) => item.age);
+
+  if (!ages.length) {
+    return "-";
+  }
+
+  return ages.length === 1 ? ages[0].age : ages.map((item) => `${item.name}: ${item.age}`).join("; ");
+}
+
 function appointmentDateTimeSortValue(appointment) {
   return dateValue(appointment.appointmentDate, 1) + appointmentTimeValue(appointment.appointmentTime) * 60000;
 }
@@ -6878,37 +6922,15 @@ function appointmentSchedulePrintCard(appointment) {
 
 function appointmentPrepPrintCard(appointment) {
   const prepItems = appointmentPrepItems(appointment);
-  const prepList = prepItems.length
-    ? `
-      <div class="print-prep">
-        <h2>Prep List</h2>
-        <ul>${prepItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
-      </div>
-    `
-    : "";
 
   return `
-    <section class="print-card">
-      <div class="print-card-header">
-        <div>
-          <p>${escapeHtml(formatAppointmentTime(appointment.appointmentTime) || "Time TBD")}</p>
-          <h2>${escapeHtml(appointmentClientName(appointment))}</h2>
-        </div>
-        <span>${escapeHtml(appointmentPrepVisitLabel(appointment))}</span>
+    <section class="print-prep-row">
+      <div class="print-prep-row-header">
+        <strong>${escapeHtml(formatAppointmentTime(appointment.appointmentTime) || "Time TBD")}</strong>
+        <span>${escapeHtml(appointmentLessonLabel(appointment) || appointmentTypeLabel(appointment))}</span>
+        <h2>${escapeHtml(appointmentClientName(appointment))}</h2>
       </div>
-      <div class="print-grid">
-        ${printField("Type", appointmentTypeLabel(appointment))}
-        ${printField("Lesson", appointmentLessonLabel(appointment) || "-")}
-        ${printField("Duration", formatDuration(appointmentDurationMinutes(appointment)))}
-        ${printField("Staff", appointment.staffMember || "-")}
-        ${printField("Goal", appointmentGoalText(appointment) || "-")}
-        ${printField("Notes", appointmentNotesText(appointment) || "-")}
-      </div>
-      <div class="print-clients">
-        <h2>Family</h2>
-        <ul>${appointmentClientPrintRows(appointment)}</ul>
-      </div>
-      ${prepList}
+      <ul>${prepItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
     </section>
   `;
 }
@@ -6937,7 +6959,7 @@ function printPromptBlock(prompt) {
   return `
     <div>
       <span>${escapeHtml(item.label)}</span>
-      <div class="print-lines" style="--print-lines-height: ${Number(item.lines) * 22}px;"></div>
+      <div class="print-lines" style="--print-lines-height: ${Number(item.lines) * 28}px;"></div>
     </div>
   `;
 }
@@ -6991,10 +7013,10 @@ function appointmentNotePromptSections(appointment) {
       prompts: [
         ["How did the previous goal go? What helped or made it harder?", 3],
         ["Updates or wins", 2],
-        ["Lesson / topics covered", 3],
+        ["Activities practiced", 3],
         ["Client response / observations", 3],
         ["Goal set today", 2],
-        ["Follow-up / chart note to-do", 2]
+        ["Follow-up / to-do", 2]
       ]
     },
     ...(retentionPrompts[lesson]?.length ? [{
@@ -7039,12 +7061,14 @@ function appointmentNotePrintCard(appointment) {
     `)
     .join("");
   const noteMeta = [
-    ["Client", appointmentNoteClientSummary(appointment) || appointmentClientName(appointment)],
+    ["Client", appointmentClientName(appointment)],
+    ["Caregiver", uniqueAppointmentPrintValues(appointment, "caregiver").join("; ") || "-"],
+    ["Language", uniqueAppointmentPrintValues(appointment, "language").join("; ") || "-"],
+    ["Age", appointmentAgeText(appointment)],
     ["Time", formatAppointmentTime(appointment.appointmentTime) || "Time TBD"],
-    ["Interval since last appointment", appointmentIntervalText(appointment)],
-    ["Previous goal", appointmentPreviousGoalText(appointment)],
-    ["Current goal", appointmentGoalText(appointment) || "-"]
+    ["Interval since last appointment", appointmentIntervalText(appointment)]
   ];
+  const goalText = appointmentGoalText(appointment) || "-";
 
   return `
     <section class="print-card print-note-card">
@@ -7058,20 +7082,27 @@ function appointmentNotePrintCard(appointment) {
           <p><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value || "-")}</p>
         `).join("")}
       </div>
+      <div class="print-note-goal"><strong>Goal:</strong> ${escapeHtml(goalText)}</div>
       ${sections}
     </section>
   `;
 }
 
 function printableDocumentContent(title, subtitle, content) {
+  const header = title
+    ? `
+      <header class="print-header">
+        <div>
+          <p>The SNACK Program</p>
+          <h1>${escapeHtml(title)}</h1>
+        </div>
+        ${subtitle ? `<div class="print-date">${escapeHtml(subtitle)}</div>` : ""}
+      </header>
+    `
+    : "";
+
   return `
-    <header class="print-header">
-      <div>
-        <p>The SNACK Program</p>
-        <h1>${escapeHtml(title)}</h1>
-      </div>
-      ${subtitle ? `<div class="print-date">${escapeHtml(subtitle)}</div>` : ""}
-    </header>
+    ${header}
     ${content}
   `;
 }
@@ -7144,7 +7175,7 @@ function printAppointmentNoteSheets() {
   const subtitle = formatDateOnly(todayDateString());
   const content = appointments.map((appointment) => appointmentNotePrintCard(appointment)).join("");
 
-  if (printPreparedDocument("Appointment Note Sheets", subtitle, content)) {
+  if (printPreparedDocument("", subtitle, content)) {
     appointmentsStatusEl.textContent = "Print dialog opened for appointment note sheets.";
   }
 }

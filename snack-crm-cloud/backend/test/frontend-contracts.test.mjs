@@ -317,7 +317,7 @@ test("scheduling module exposes printable daily schedule and prep sheets", () =>
   assert.match(stylesCss, /@media print/);
   assert.match(stylesCss, /body > :not\(\.print-root\)/);
   assert.match(appJs, /Appointment Prep Sheets/);
-  assert.match(appJs, /Appointment Note Sheets/);
+  assert.match(appJs, /No appointments scheduled today for note sheets/);
 });
 
 test("appointment prep checklist mirrors the When to Give What guide", () => {
@@ -332,11 +332,13 @@ test("appointment prep checklist mirrors the When to Give What guide", () => {
 test("printable appointment note sheets include handwritten visit note prompts", () => {
   assert.match(appJs, /Visit Notes/);
   assert.match(appJs, /Food Groups Appointment Notes/);
+  assert.match(appJs, /Age/);
   assert.match(appJs, /Interval since last appointment/);
-  assert.match(appJs, /Previous goal/);
-  assert.match(appJs, /Lesson \/ topics covered/);
+  assert.match(appJs, /Goal:/);
+  assert.match(appJs, /Activities practiced/);
   assert.match(appJs, /Client response \/ observations/);
   assert.match(appJs, /Goal set today/);
+  assert.match(appJs, /Follow-up \/ to-do/);
   assert.match(appJs, /Knowledge Retention/);
   assert.match(appJs, /print-checkbox-row/);
   assert.match(appJs, /print-lines/);
