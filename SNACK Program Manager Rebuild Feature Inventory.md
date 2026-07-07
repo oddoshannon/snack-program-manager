@@ -14,6 +14,18 @@ fallback while this new version is planned and built.
   or visual decisions drive the rebuild.
 - Scheduling, CRM, Outreach, Fundraising, Marketing, Operations, and Settings
   should feel like one app with one consistent design system.
+- Each module should use the same page structure shown in the module sandbox
+  screenshots:
+  - Title and short subtitle on the left.
+  - View tabs and main action button on the right.
+  - One module-colored summary strip directly beneath the header.
+  - Search/list panel, profile/summary column, and detail panel below when the
+    module needs a working record view.
+- Color-code the whole module experience to that module color, including the
+  active navigation item, active tabs, primary action button, summary strip, and
+  key status accents.
+- Put Operations above Settings in the main navigation, and keep Operations in
+  the dark blue/indigo color family from the sandbox.
 - Kitchen and School scheduling can remain Coming soon.
 - Native forms can remain print-packet based until the program KPI and form
   requirements are finalized.
@@ -21,6 +33,9 @@ fallback while this new version is planned and built.
   families are not confused by the switch.
 - Avoid dark green hover states for profile names, list rows, tabs, and cards.
 - Avoid all-caps labels unless they are part of an official name.
+- Treat the screenshots as design direction, not pixel-perfect sources. Fix
+  sandbox problems during the rebuild, including cut-off content, misaligned
+  words/boxes, cramped labels, and tabs that run out of space.
 - Keep narrow-window behavior usable: content should resize, the side navigation
   should be collapsible, and key panels should not cut off.
 
@@ -82,6 +97,7 @@ Must work before review:
 - Page header for Clinic Schedule with Day, Week, and Month views.
 - Remove the List view unless a truly different list view is needed later.
 - Move Classic out of the primary header or hide it during the rebuild.
+- Do not include a Classic view button in the rebuilt scheduling module.
 - Date controls:
   - Today button.
   - Previous/next date buttons.
