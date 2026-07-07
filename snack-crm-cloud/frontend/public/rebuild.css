@@ -1,14 +1,14 @@
-@import url("https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap");
 
 :root {
   color-scheme: light;
   --page: #ffffff;
   --surface: #ffffff;
-  --surface-soft: #f8fafc;
+  --surface-soft: #fbfcfd;
   --ink: #101828;
   --muted: #667085;
-  --line: #dfe5ec;
-  --shadow: 0 20px 50px rgba(16, 24, 40, 0.09);
+  --line: #e4e7ec;
+  --shadow: 0 16px 38px rgba(16, 24, 40, 0.06);
   --radius: 8px;
   --module: #ef4656;
   --module-soft: #fff1f2;
@@ -26,7 +26,10 @@ body {
   min-width: 320px;
   background: var(--page);
   color: var(--ink);
-  font-family: "Public Sans", Arial, sans-serif;
+  font-family: "Public Sans", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.45;
   letter-spacing: 0;
 }
 
@@ -38,7 +41,7 @@ textarea {
 }
 
 button {
-  cursor: pointer;
+  cursor: default;
 }
 
 .app-shell {
@@ -58,10 +61,10 @@ button {
   height: 100vh;
   display: grid;
   grid-template-rows: auto 1fr auto auto;
-  gap: 20px;
+  gap: 18px;
   border-right: 1px solid var(--line);
   background: #fff;
-  padding: 18px 12px;
+  padding: 0 10px 14px;
   overflow: hidden;
 }
 
@@ -70,7 +73,8 @@ button {
   grid-template-columns: 42px minmax(0, 1fr) 36px;
   align-items: center;
   gap: 10px;
-  min-height: 48px;
+  min-height: 78px;
+  border-bottom: 1px solid var(--line);
 }
 
 .brand-mark {
@@ -87,13 +91,13 @@ button {
 
 .brand-copy strong {
   color: #08784c;
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .brand-copy span {
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .icon-button {
@@ -117,23 +121,24 @@ button {
 .module-nav {
   display: grid;
   align-content: start;
-  gap: 8px;
+  gap: 4px;
+  padding: 10px 0;
 }
 
 .nav-item,
 .quick-action {
   min-height: 42px;
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
+  grid-template-columns: 18px minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   border: 1px solid transparent;
   border-radius: var(--radius);
   background: transparent;
   color: #344054;
   padding: 8px 10px;
   text-align: left;
-  font-weight: 800;
+  font-weight: 500;
 }
 
 .nav-item:hover,
@@ -143,9 +148,10 @@ button {
 }
 
 .nav-item.active {
-  border-left: 4px solid var(--module);
+  border-left: 3px solid var(--module);
   background: var(--module-soft);
   color: var(--module);
+  font-weight: 600;
 }
 
 .nav-icon,
@@ -153,7 +159,9 @@ button {
   display: grid;
   place-items: center;
   color: inherit;
-  font-weight: 800;
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 0.75;
 }
 
 .quick-actions,
@@ -165,7 +173,7 @@ button {
 
 .quick-actions {
   display: grid;
-  gap: 8px;
+  gap: 4px;
   padding: 12px;
 }
 
@@ -173,7 +181,7 @@ button {
   margin: 0;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .user-card {
@@ -193,7 +201,7 @@ button {
   border-radius: 50%;
   background: #e8f7ef;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .app-shell[data-sidebar="closed"] .brand-copy,
@@ -224,7 +232,7 @@ button {
 
 .workspace {
   min-width: 0;
-  padding: 24px;
+  padding: 24px 28px;
   overflow: auto;
 }
 
@@ -233,7 +241,7 @@ button {
   --module-soft: var(--module-soft-color, #fff1f2);
   --module-line: var(--module-line-color, #f8c7ce);
   display: grid;
-  gap: 22px;
+  gap: 18px;
 }
 
 .module-header {
@@ -245,16 +253,18 @@ button {
 
 .module-title h1 {
   margin: 0;
-  font-size: clamp(28px, 3vw, 40px);
-  line-height: 1.05;
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1.1;
   letter-spacing: 0;
 }
 
 .module-title p {
-  margin: 7px 0 0;
+  margin: 6px 0 0;
   color: var(--muted);
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.4;
 }
 
 .module-controls {
@@ -274,13 +284,13 @@ button {
 }
 
 .segmented button {
-  min-height: 48px;
+  min-height: 42px;
   border: 0;
   border-right: 1px solid var(--line);
   background: #fff;
   color: #344054;
-  padding: 0 22px;
-  font-weight: 800;
+  padding: 0 18px;
+  font-weight: 500;
 }
 
 .segmented button:last-child {
@@ -290,7 +300,8 @@ button {
 .segmented button.active {
   background: var(--module-soft);
   color: var(--module);
-  box-shadow: inset 0 0 0 2px var(--module);
+  box-shadow: inset 0 0 0 1px var(--module);
+  font-weight: 700;
 }
 
 .primary-action,
@@ -298,15 +309,15 @@ button {
 .ghost-action {
   min-height: 46px;
   border-radius: var(--radius);
-  padding: 0 20px;
-  font-weight: 800;
+  padding: 0 18px;
+  font-weight: 700;
 }
 
 .primary-action {
   border: 1px solid var(--module);
   background: var(--module);
   color: #fff;
-  box-shadow: 0 12px 24px color-mix(in srgb, var(--module) 22%, transparent);
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--module) 16%, transparent);
 }
 
 .secondary-action {
@@ -325,18 +336,18 @@ button {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   border: 1px solid var(--line);
-  border-top: 6px solid var(--module);
   border-radius: var(--radius);
   overflow: hidden;
   background: #fff;
 }
 
 .summary-card {
-  min-height: 92px;
+  min-height: 82px;
   display: grid;
   align-content: center;
   gap: 6px;
-  padding: 16px 20px;
+  border-top: 4px solid var(--module);
+  padding: 13px 16px;
   border-right: 1px solid var(--line);
 }
 
@@ -346,19 +357,20 @@ button {
 
 .summary-card strong {
   color: var(--module);
-  font-size: 28px;
+  font-size: 1.35rem;
+  font-weight: 700;
   line-height: 1;
 }
 
 .summary-card span {
   color: var(--muted);
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .record-layout {
   display: grid;
-  grid-template-columns: minmax(220px, 300px) minmax(230px, 310px) minmax(360px, 1fr);
+  grid-template-columns: minmax(220px, 292px) minmax(230px, 300px) minmax(360px, 1fr);
   gap: 0;
   align-items: stretch;
   min-width: 0;
@@ -377,7 +389,7 @@ button {
 }
 
 .record-list-panel {
-  padding: 18px;
+  padding: 16px;
 }
 
 .record-profile-panel,
@@ -386,13 +398,13 @@ button {
 }
 
 .record-profile-panel {
-  padding: 22px;
+  padding: 20px;
 }
 
 .record-detail-panel {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  min-height: 560px;
+  min-height: 540px;
 }
 
 .search-field {
@@ -402,12 +414,12 @@ button {
 
 .search-field input {
   width: 100%;
-  min-height: 50px;
+  min-height: 46px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0 14px 0 42px;
   color: var(--ink);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .search-field span {
@@ -416,7 +428,7 @@ button {
   top: 50%;
   transform: translateY(-50%);
   color: var(--muted);
-  font-weight: 800;
+  font-weight: 500;
 }
 
 .record-list {
@@ -433,7 +445,7 @@ button {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #fff;
-  padding: 11px 12px 11px 0;
+  padding: 10px 12px 10px 0;
   text-align: left;
 }
 
@@ -463,7 +475,8 @@ button {
 
 .record-main strong {
   color: var(--ink);
-  font-size: 15px;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .record-main span {
@@ -472,7 +485,7 @@ button {
   overflow: hidden;
   color: var(--muted);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -485,7 +498,7 @@ button {
   color: var(--pill-color, var(--module));
   padding: 5px 10px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -495,7 +508,7 @@ button {
   gap: 8px;
   color: var(--module);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .status-dot {
@@ -507,15 +520,16 @@ button {
 
 .profile-header {
   display: grid;
-  gap: 14px;
-  padding-bottom: 22px;
+  gap: 12px;
+  padding-bottom: 20px;
   border-bottom: 1px solid var(--line);
 }
 
 .profile-header h2 {
   margin: 0;
-  font-size: 28px;
-  line-height: 1.05;
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.12;
 }
 
 .profile-facts {
@@ -529,7 +543,7 @@ button {
   gap: 10px;
   align-items: start;
   color: #344054;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .fact-icon {
@@ -540,8 +554,8 @@ button {
 
 .profile-section {
   display: grid;
-  gap: 12px;
-  padding: 22px 0;
+  gap: 11px;
+  padding: 20px 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -552,7 +566,8 @@ button {
 .profile-section h3 {
   margin: 0;
   color: var(--module);
-  font-size: 17px;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .profile-fields {
@@ -563,7 +578,7 @@ button {
 .field-pair span,
 .detail-term {
   color: var(--muted);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .field-pair strong,
@@ -571,7 +586,7 @@ button {
   display: block;
   margin-top: 3px;
   color: var(--ink);
-  font-weight: 800;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
@@ -581,7 +596,7 @@ button {
   background: transparent;
   color: var(--module);
   padding: 0;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .detail-tabs {
@@ -589,49 +604,51 @@ button {
   gap: 4px;
   min-width: 0;
   border-bottom: 1px solid var(--line);
-  padding: 0 20px;
+  padding: 0 18px;
   overflow-x: auto;
 }
 
 .detail-tabs button {
-  min-height: 58px;
+  min-height: 48px;
   flex: 0 0 auto;
   border: 0;
   border-bottom: 3px solid transparent;
   background: transparent;
   color: var(--muted);
-  padding: 0 18px;
-  font-weight: 800;
+  padding: 0 14px;
+  font-weight: 600;
 }
 
 .detail-tabs button.active {
   border-bottom-color: var(--module);
   color: var(--module);
+  font-weight: 700;
 }
 
 .detail-content {
   display: grid;
   align-content: start;
-  gap: 14px;
-  padding: 20px;
+  gap: 12px;
+  padding: 18px;
 }
 
 .detail-card {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #fff;
-  padding: 18px;
+  padding: 16px;
 }
 
 .detail-card h3 {
-  margin: 0 0 16px;
-  font-size: 18px;
+  margin: 0 0 14px;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 18px 26px;
+  gap: 14px 24px;
 }
 
 .detail-grid .wide {
@@ -640,7 +657,7 @@ button {
 
 .check-list {
   display: grid;
-  gap: 12px;
+  gap: 9px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -652,15 +669,15 @@ button {
   gap: 10px;
   align-items: start;
   color: #344054;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .detail-actions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
   border-top: 1px solid var(--line);
-  padding: 16px 20px;
+  padding: 14px 18px;
 }
 
 .empty-state {
@@ -668,13 +685,13 @@ button {
   place-items: center;
   min-height: 360px;
   color: var(--muted);
-  font-weight: 800;
+  font-weight: 500;
   text-align: center;
 }
 
 .schedule-layout {
   display: grid;
-  grid-template-columns: minmax(320px, 0.9fr) minmax(560px, 1.1fr);
+  grid-template-columns: minmax(340px, 0.95fr) minmax(560px, 1.05fr);
   gap: 0;
   align-items: stretch;
   min-width: 0;
@@ -696,15 +713,15 @@ button {
 
 .schedule-board {
   display: grid;
-  gap: 16px;
-  padding: 18px;
+  gap: 14px;
+  padding: 16px;
   border-right: 1px solid var(--line);
 }
 
 .date-controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .date-button {
@@ -714,7 +731,7 @@ button {
   background: #fff;
   color: #344054;
   padding: 0 14px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .date-button:hover,
@@ -726,7 +743,7 @@ button {
 
 .day-grid {
   position: relative;
-  height: 720px;
+  height: 690px;
   border-left: 1px solid var(--line);
   margin-left: 74px;
 }
@@ -737,7 +754,7 @@ button {
   width: 60px;
   transform: translateY(-50%);
   color: var(--muted);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .time-line {
@@ -753,12 +770,12 @@ button {
   right: 14px;
   display: grid;
   align-content: start;
-  gap: 6px;
+  gap: 5px;
   border: 1px solid var(--appt-line, var(--module-line));
   border-left: 5px solid var(--appt-color, var(--module));
   border-radius: var(--radius);
   background: var(--appt-bg, var(--module-soft));
-  padding: 12px;
+  padding: 10px 12px;
   text-align: left;
   overflow: hidden;
 }
@@ -776,6 +793,7 @@ button {
   min-height: 1.25em;
   color: var(--ink);
   line-height: 1.25;
+  font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -785,19 +803,19 @@ button {
 .week-appointment span,
 .month-appt span {
   color: var(--muted);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .week-list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .week-day {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #fff;
-  padding: 12px;
+  padding: 11px;
 }
 
 .week-day.active {
@@ -810,13 +828,14 @@ button {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 9px;
 }
 
 .week-day h3,
 .month-day h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 .week-appointments,
@@ -833,18 +852,18 @@ button {
   border-left: 5px solid var(--appt-color, var(--module));
   border-radius: var(--radius);
   background: var(--appt-bg, var(--module-soft));
-  padding: 10px;
+  padding: 9px 10px;
   text-align: left;
 }
 
 .month-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 9px;
 }
 
 .month-day {
-  min-height: 148px;
+  min-height: 138px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #fff;
@@ -859,20 +878,54 @@ button {
 .appointment-panel {
   display: grid;
   grid-template-columns: minmax(210px, 260px) minmax(0, 1fr);
-  min-height: 650px;
+  min-height: 620px;
   overflow: hidden;
 }
 
 .appointment-aside {
   border-right: 1px solid var(--line);
-  padding: 22px;
+  padding: 20px;
+}
+
+.appointment-aside h2,
+.appointment-form h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.appointment-aside h3,
+.appointment-form h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.appointment-aside strong,
+.appointment-form strong {
+  font-weight: 500;
+}
+
+.appointment-aside h2 strong,
+.appointment-form h2 strong,
+.appointment-block strong,
+.week-appointment strong,
+.month-appt strong,
+.record-main strong {
+  font-weight: 600;
+}
+
+.appointment-aside .field-pair span,
+.appointment-aside .detail-term {
+  font-size: 0.84rem;
 }
 
 .appointment-form {
   display: grid;
   align-content: start;
-  gap: 16px;
-  padding: 22px;
+  gap: 14px;
+  padding: 18px;
 }
 
 .form-header {
@@ -881,13 +934,13 @@ button {
   justify-content: space-between;
   gap: 14px;
   border-bottom: 1px solid var(--line);
-  padding-bottom: 16px;
+  padding-bottom: 14px;
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px 18px;
+  gap: 12px 16px;
 }
 
 .form-grid .wide {
@@ -898,7 +951,7 @@ button {
   display: grid;
   gap: 7px;
   color: var(--muted);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .field input,
@@ -911,7 +964,7 @@ button {
   background: #fff;
   color: #344054;
   padding: 10px 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .field textarea {
@@ -941,25 +994,25 @@ button {
   background: var(--module-soft);
   color: var(--ink);
   padding: 8px 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .client-chip button {
   border: 0;
   background: transparent;
   color: var(--module);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .report-grid,
 .task-list-panel {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #fff;
   box-shadow: var(--shadow);
-  padding: 18px;
+  padding: 16px;
 }
 
 .report-grid {
@@ -969,22 +1022,24 @@ button {
 .report-card,
 .task-row {
   border: 1px solid var(--line);
-  border-top: 5px solid var(--module);
+  border-top: 4px solid var(--module);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 14px;
   background: #fff;
 }
 
 .report-card h3,
 .task-row h3 {
   margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .task-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   border-top-width: 1px;
 }
 
@@ -1006,7 +1061,7 @@ button {
   box-shadow: var(--shadow);
   padding: 12px 14px;
   color: var(--ink);
-  font-weight: 800;
+  font-weight: 600;
   opacity: 0;
   transform: translateY(8px);
   pointer-events: none;
