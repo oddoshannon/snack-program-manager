@@ -108,8 +108,10 @@ gcloud run deploy snack-crm-api \
   --source . \
   --region us-central1 \
   --project snack-crm \
-  --update-env-vars FIREBASE_AUTH_PROJECT_ID=snack-crm,ALLOWED_EMAIL_DOMAIN=snackprogram.org
+  --update-env-vars FIREBASE_AUTH_PROJECT_ID=snack-crm,ALLOWED_EMAIL_DOMAIN=snackprogram.org,ALLOW_ADMIN_BULK_DELETE=false
 ```
+
+Keep `ALLOW_ADMIN_BULK_DELETE=false` for production. Only set it to `true` temporarily in a test environment when intentionally clearing imported test data.
 
 ## Deploy Frontend
 
@@ -158,6 +160,7 @@ Expected result:
 - The backend currently allows any verified `@snackprogram.org` Google account.
 - A future version should add roles such as `admin`, `staff`, or `viewer`.
 - The Cloud Run Invoker IAM check is disabled so Firebase Hosting can forward browser requests to Cloud Run. The app-level Firebase token check is what protects the API.
+- Admin bulk delete is disabled by default with `ALLOW_ADMIN_BULK_DELETE=false`; leave it off for production.
 
 ## First Real Feature
 

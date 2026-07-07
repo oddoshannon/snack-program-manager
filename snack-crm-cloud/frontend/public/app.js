@@ -59,6 +59,9 @@ const adminSettingsView = document.querySelector("#admin-settings-view");
 const adminDataToolsView = document.querySelector("#admin-data-tools-view");
 const adminKpiView = document.querySelector("#admin-kpi-view");
 const adminWorkPlanView = document.querySelector("#admin-work-plan-view");
+const adminSchedulingSettingsForm = document.querySelector("#admin-scheduling-settings-form");
+const adminSchedulingSettingsStatus = document.querySelector("#admin-scheduling-settings-status");
+const adminSchedulingSettingsSaveButton = document.querySelector("#admin-scheduling-settings-save");
 const dataToolsList = document.querySelector("#data-tools-list");
 const dataToolsStatusEl = document.querySelector("#data-tools-status");
 const refreshDataToolsButton = document.querySelector("#refresh-data-tools");
@@ -271,6 +274,12 @@ const completionNextStaffInput = document.querySelector("#completion-next-staff"
 const completionNextNotesInput = document.querySelector("#completion-next-notes");
 const saveAppointmentCompletionButton = document.querySelector("#save-appointment-completion");
 const cancelAppointmentCompletionButton = document.querySelector("#cancel-appointment-completion");
+const appointmentCheckInModal = document.querySelector("#appointment-check-in-modal");
+const appointmentCheckInForm = document.querySelector("#appointment-check-in-form");
+const appointmentCheckInTitle = document.querySelector("#appointment-check-in-title");
+const appointmentCheckInSummary = document.querySelector("#appointment-check-in-summary");
+const saveAppointmentCheckInButton = document.querySelector("#save-appointment-check-in");
+const closeAppointmentCheckInButtons = document.querySelectorAll("[data-close-appointment-check-in]");
 const flowArchiveModal = document.querySelector("#flow-archive-modal");
 const flowArchiveEyebrow = document.querySelector("#flow-archive-eyebrow");
 const flowArchiveTitle = document.querySelector("#flow-archive-title");
@@ -325,9 +334,24 @@ const app = initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG);
 const auth = getAuth(app);
 const storage = getStorage(app);
 const provider = new GoogleAuthProvider();
-const schedulingStartMinutes = 13 * 60;
-const schedulingEndMinutes = 18 * 60;
 const defaultAppointmentDurationMinutes = 30;
+const defaultSchedulingSettings = Object.freeze({
+  officeStartTime: "13:00",
+  officeEndTime: "18:00",
+  bookableStartTime: "13:30",
+  bookableEndTime: "18:00",
+  weekdays: [2, 3, 4],
+  defaultDurationMinutes: defaultAppointmentDurationMinutes,
+  slotIntervalMinutes: 15
+});
+let schedulingOfficeStartMinutes = 13 * 60;
+let schedulingOfficeEndMinutes = 18 * 60;
+let schedulingBookableStartMinutes = 13 * 60 + 30;
+let schedulingBookableEndMinutes = schedulingOfficeEndMinutes;
+let schedulingStartMinutes = schedulingOfficeStartMinutes;
+let schedulingEndMinutes = schedulingOfficeEndMinutes;
+let schedulingDefaultDurationMinutes = defaultSchedulingSettings.defaultDurationMinutes;
+let schedulingSlotIntervalMinutes = 15;
 const taskCompleteSoundUrl = "./todoist-complete.m4a?v=20260603-prep-audio";
 const taskCompleteSoundDurationMs = 1600;
 const legacyStatusMap = {
@@ -389,7 +413,7 @@ const clientStatuses = [
   "Inactive",
   "Closed"
 ];
-const appointmentStatuses = ["Scheduled", "Completed", "No-show", "Rescheduled", "Canceled"];
+const appointmentStatuses = ["Scheduled", "Completed", "No-show", "Rescheduled", "Blocked", "Canceled"];
 const setmoreAppointmentServices = new Map([
   ["enrollment appointment", "Enrollment"],
   ["sibling enrollment appointment", "Enrollment"],
@@ -409,6 +433,32 @@ const appointmentLessonKeywords = [
   { value: "2", patterns: [/\blesson\s*2\b/i, /\bsugar\b/i] },
   { value: "1", patterns: [/\blesson\s*1\b/i, /\bnutrient\s+density\b/i, /\bnutrient\s+dense\b/i, /\bND\b/] }
 ];
+const appointmentLessonTitles = {
+  1: "Nutrient Density",
+  2: "Sugar",
+  3: "Food Groups",
+  4: "Macronutrients",
+  5: "Micronutrients",
+  6: "Mindful Eating",
+  7: "Healthy Habits"
+};
+const appointmentCheckInDefaults = {
+  caregiverMood: "Good",
+  confidence: "High",
+  participation: "Engaged",
+  barriers: "None"
+};
+const appointmentWrapUpOptions = {
+  caregiverMood: ["Good", "Okay", "Stressed", "Concerned"],
+  confidence: ["High", "Medium", "Low"],
+  participation: ["Engaged", "Somewhat Engaged", "Quiet", "Not Engaged"],
+  barriers: ["None", "Transportation", "Schedule", "Food access", "Language", "Caregiver capacity", "Other"]
+};
+const defaultSchedulingStaffMembers = ["Cynthia Esparza", "Shannon Oddo"];
+const schedulingStaffMembersStorageKey = "snackSchedulingStaffMembers";
+const inactiveSchedulingStaffMembers = new Set(["Paige Spady"]);
+let schedulingV2ClinicWeekdays = [...defaultSchedulingSettings.weekdays];
+let schedulingV2ClinicWeekdaySet = new Set(schedulingV2ClinicWeekdays);
 const importedMonthNames = new Map([
   ["jan", "01"],
   ["january", "01"],
@@ -742,11 +792,21 @@ let editingOutreachContactId = null;
 let selectedAppointmentId = null;
 let editingAppointmentId = null;
 let completingAppointmentId = null;
+let checkInAppointmentId = null;
 let appointmentCompletionMode = "complete";
 let visibleSchedulingWeekStart = null;
 let visibleSchedulingPreviewDate = todayDateString();
 let activeSchedulingPreviewView = "day";
+let activeSchedulingPreviewNavModule = "Schedule";
 let selectedSchedulingPreviewAppointmentId = null;
+let activeSchedulingV2Panel = "appointment";
+let activeSchedulingV2DetailTab = "appt-note";
+let schedulingV2InlineMode = "";
+let schedulingV2InlineAppointmentId = "";
+let schedulingV2InlineDefaults = {};
+let schedulingV2DatePickerOpen = false;
+let schedulingV2SidebarCollapsed = false;
+let schedulingV2AgendaScrollTop = 0;
 const selectedAppointmentClientIds = new Set();
 let editingTaskId = null;
 let editingGrantId = null;
@@ -779,7 +839,9 @@ let activeAdminView = "settings";
 let activeFundraisingView = "grants";
 let activeReferralView = "flow";
 let activeClientView = "flow";
-let activeSchedulingDesign = "classic";
+let activeReferralProfileTab = "overview";
+let activeClientProfileTab = "overview";
+let activeSchedulingDesign = "v2";
 const savedNavigationState = loadNavigationState();
 let activeModule = savedNavigationState.activeModule;
 let activeCrmView = savedNavigationState.activeCrmView;
@@ -846,6 +908,24 @@ function appointmentClientName(appointment) {
   return names.length ? names.join(", ") : "Unknown client";
 }
 
+function firstNameFromFullName(name) {
+  return String(name || "").trim().split(/\s+/)[0] || "";
+}
+
+function formatFirstNameList(names) {
+  const firstNames = names.map(firstNameFromFullName).filter(Boolean);
+
+  if (firstNames.length <= 1) {
+    return firstNames[0] || "";
+  }
+
+  if (firstNames.length === 2) {
+    return `${firstNames[0]} & ${firstNames[1]}`;
+  }
+
+  return `${firstNames.slice(0, -1).join(", ")} & ${firstNames[firstNames.length - 1]}`;
+}
+
 function appointmentClientIds(appointment) {
   if (Array.isArray(appointment.clientIds) && appointment.clientIds.length) {
     return appointment.clientIds.filter(Boolean);
@@ -876,7 +956,7 @@ function appointmentTypeLabel(appointment) {
 }
 
 function appointmentCarriesGoal(appointment) {
-  return appointmentTypeLabel(appointment) !== "Enrollment";
+  return appointmentTypeLabel(appointment) === "Nutrition Education";
 }
 
 function appointmentGoalText(appointment) {
@@ -897,16 +977,23 @@ function appointmentNotesText(appointment) {
 }
 
 function appointmentLessonLabel(appointment) {
-  if (!appointment.lesson) {
+  const rawLesson = String(appointment.lesson || "").trim();
+
+  if (!rawLesson) {
     return "";
   }
 
-  return String(appointment.lesson).toLowerCase() === "check in" ? "Check In" : `Lesson ${appointment.lesson}`;
+  return rawLesson.toLowerCase() === "check in" ? "Check In" : appointmentLessonTitle(rawLesson) || rawLesson;
 }
 
 function appointmentLessonNumber(appointment) {
   const lesson = Number.parseInt(String(appointment.lesson || "").replace(/\D/g, ""), 10);
   return Number.isFinite(lesson) ? lesson : 0;
+}
+
+function appointmentLessonTitle(lesson) {
+  const lessonNumber = Number.parseInt(String(lesson || "").replace(/\D/g, ""), 10);
+  return appointmentLessonTitles[lessonNumber] || "";
 }
 
 function inferAppointmentLessonFromNotes(notes, appointmentType = "") {
@@ -1004,10 +1091,10 @@ function appointmentPrepVisitLabel(appointment) {
 
   const lesson = appointmentLessonNumber(appointment);
   if (lesson === 7) {
-    return "Lesson 7 / Graduation";
+    return `${appointmentLessonTitle(lesson)} / Graduation`;
   }
 
-  return lesson >= 1 ? `Lesson ${lesson}` : appointmentTypeLabel(appointment);
+  return appointmentLessonTitle(lesson) || appointmentTypeLabel(appointment);
 }
 
 function appointmentPrepItems(appointment) {
@@ -1092,12 +1179,51 @@ function appointmentPrepTaskNotes(appointment) {
 }
 
 function appointmentLessonAccent(appointment) {
-  if (appointmentTypeLabel(appointment) === "Enrollment") {
+  if (appointmentTypeLabel(appointment) !== "Nutrition Education") {
     return "var(--muted)";
   }
 
   const lesson = Number.parseInt(String(appointment.lesson || "").replace(/\D/g, ""), 10);
   return Number.isFinite(lesson) && lesson >= 1 ? profileLessonAccent(lesson) : "var(--brand-red)";
+}
+
+function appointmentIsBlockTime(appointment) {
+  return appointmentTypeLabel(appointment) === "Administrative" ||
+    ["block time", "blocked time"].includes(normalizedLookupKey(appointmentClientName(appointment)));
+}
+
+function appointmentDisplayStatus(appointment) {
+  if ((appointment.status || "") === "Blocked") {
+    return "Blocked";
+  }
+
+  return appointmentIsBlockTime(appointment) ? "Blocked" : appointment.status || "Scheduled";
+}
+
+function schedulingV2DisplayStatus(status = "Scheduled") {
+  return status === "Needs Reschedule" ? "Reschedule" : status;
+}
+
+function clientStatusDisplayLabel(status = "Scheduled") {
+  return status === "Needs Reschedule" ? "Reschedule" : status;
+}
+
+function schedulingV2AppointmentDisplayStatus(appointment) {
+  return schedulingV2DisplayStatus(appointmentDisplayStatus(appointment));
+}
+
+function appointmentCheckInValue(appointment, key) {
+  const value = String(appointment?.[key] || "").trim();
+  return value || appointmentCheckInDefaults[key] || "";
+}
+
+function appointmentCheckInFields(appointment) {
+  return {
+    caregiverMood: appointmentCheckInValue(appointment, "caregiverMood"),
+    confidence: appointmentCheckInValue(appointment, "confidence"),
+    participation: appointmentCheckInValue(appointment, "participation"),
+    barriers: appointmentCheckInValue(appointment, "barriers")
+  };
 }
 
 function formatDate(value) {
@@ -1136,6 +1262,44 @@ function formatDateOnly(value) {
     month: "numeric",
     day: "numeric",
     year: "2-digit"
+  }).format(date);
+}
+
+function formatDayPickerDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return formatDateOnly(value);
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  }).format(date);
+}
+
+function formatFullDate(value) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return formatDateOnly(value);
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric"
   }).format(date);
 }
 
@@ -1209,6 +1373,93 @@ function appointmentTimeMinutes(value) {
   return match ? Number(match[1]) * 60 + Number(match[2]) : null;
 }
 
+function normalizeSchedulingWeekdays(value) {
+  const source = Array.isArray(value) ? value : defaultSchedulingSettings.weekdays;
+  const weekdays = source
+    .map((day) => Number(day))
+    .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6);
+  const unique = [...new Set(weekdays)];
+
+  return unique.length ? unique.sort((first, second) => first - second) : [...defaultSchedulingSettings.weekdays];
+}
+
+function normalizeSchedulingTime(value, fallback) {
+  const normalized = normalizeAppointmentTime(value);
+
+  return appointmentTimeMinutes(normalized) === null ? fallback : normalized;
+}
+
+function normalizeSchedulingSettings(raw = {}) {
+  const officeStartTime = normalizeSchedulingTime(raw.officeStartTime, defaultSchedulingSettings.officeStartTime);
+  let officeEndTime = normalizeSchedulingTime(raw.officeEndTime, defaultSchedulingSettings.officeEndTime);
+  let bookableStartTime = normalizeSchedulingTime(raw.bookableStartTime, defaultSchedulingSettings.bookableStartTime);
+  let bookableEndTime = normalizeSchedulingTime(raw.bookableEndTime, defaultSchedulingSettings.bookableEndTime);
+  const officeStartMinutes = appointmentTimeMinutes(officeStartTime);
+  let officeEndMinutes = appointmentTimeMinutes(officeEndTime);
+  let bookableStartMinutes = appointmentTimeMinutes(bookableStartTime);
+  let bookableEndMinutes = appointmentTimeMinutes(bookableEndTime);
+
+  if (officeEndMinutes <= officeStartMinutes) {
+    officeEndTime = defaultSchedulingSettings.officeEndTime;
+    officeEndMinutes = appointmentTimeMinutes(officeEndTime);
+  }
+
+  if (bookableStartMinutes < officeStartMinutes || bookableStartMinutes >= officeEndMinutes) {
+    bookableStartTime = defaultSchedulingSettings.bookableStartTime;
+    bookableStartMinutes = appointmentTimeMinutes(bookableStartTime);
+  }
+
+  if (bookableEndMinutes > officeEndMinutes || bookableEndMinutes <= bookableStartMinutes) {
+    bookableEndTime = defaultSchedulingSettings.bookableEndTime;
+    bookableEndMinutes = appointmentTimeMinutes(bookableEndTime);
+  }
+
+  const defaultDurationMinutes = Number(raw.defaultDurationMinutes) || defaultSchedulingSettings.defaultDurationMinutes;
+  const slotIntervalMinutes = Number(raw.slotIntervalMinutes) || defaultSchedulingSettings.slotIntervalMinutes;
+
+  return {
+    officeStartTime,
+    officeEndTime,
+    bookableStartTime,
+    bookableEndTime,
+    weekdays: normalizeSchedulingWeekdays(raw.weekdays),
+    defaultDurationMinutes: defaultDurationMinutes > 0 ? defaultDurationMinutes : defaultSchedulingSettings.defaultDurationMinutes,
+    slotIntervalMinutes: [5, 10, 15, 30].includes(slotIntervalMinutes) ? slotIntervalMinutes : defaultSchedulingSettings.slotIntervalMinutes,
+    officeStartMinutes,
+    officeEndMinutes,
+    bookableStartMinutes,
+    bookableEndMinutes
+  };
+}
+
+function applySchedulingSettings(raw = defaultSchedulingSettings) {
+  const settings = normalizeSchedulingSettings(raw);
+
+  schedulingOfficeStartMinutes = settings.officeStartMinutes;
+  schedulingOfficeEndMinutes = settings.officeEndMinutes;
+  schedulingBookableStartMinutes = settings.bookableStartMinutes;
+  schedulingBookableEndMinutes = settings.bookableEndMinutes;
+  schedulingStartMinutes = schedulingOfficeStartMinutes;
+  schedulingEndMinutes = schedulingOfficeEndMinutes;
+  schedulingDefaultDurationMinutes = settings.defaultDurationMinutes;
+  schedulingSlotIntervalMinutes = settings.slotIntervalMinutes;
+  schedulingV2ClinicWeekdays = [...settings.weekdays];
+  schedulingV2ClinicWeekdaySet = new Set(schedulingV2ClinicWeekdays);
+
+  return settings;
+}
+
+function schedulingDateForWeekday(weekStart, weekday) {
+  return addDays(weekStart, Number(weekday) === 0 ? 6 : Number(weekday) - 1);
+}
+
+function schedulingWeekdayLabels(format = "short", weekdays = schedulingV2ClinicWeekdays) {
+  return weekdays.map((weekday) => {
+    const date = schedulingDateForWeekday(weekStartDate("2026-06-01"), weekday);
+    return new Intl.DateTimeFormat("en-US", { weekday: format }).format(date);
+  });
+}
+
 function appointmentClientCount(appointment) {
   const clientIds = appointmentClientIds(appointment);
 
@@ -1251,11 +1502,11 @@ function appointmentFitsSchedulingWindow(appointment) {
     return false;
   }
 
-  return start >= schedulingStartMinutes && start + appointmentDurationMinutes(appointment) <= schedulingEndMinutes;
+  return start >= schedulingBookableStartMinutes && start + appointmentDurationMinutes(appointment) <= schedulingBookableEndMinutes;
 }
 
 function appointmentBlocksSchedule(appointment) {
-  return ["Scheduled", "Completed"].includes(appointment.status || "Scheduled");
+  return ["Scheduled", "Completed", "Blocked"].includes(appointment.status || "Scheduled");
 }
 
 function appointmentsOverlap(first, second) {
@@ -1293,8 +1544,8 @@ function appointmentConflictError(conflict) {
 }
 
 function schedulingWindowEndLabel() {
-  const hour = Math.floor(schedulingEndMinutes / 60);
-  const minute = schedulingEndMinutes % 60;
+  const hour = Math.floor(schedulingBookableEndMinutes / 60);
+  const minute = schedulingBookableEndMinutes % 60;
   return formatAppointmentTime(`${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
 }
 
@@ -1575,7 +1826,7 @@ function loadNavigationState() {
     activeFundraisingView: "grants",
     activeReferralView: "flow",
     activeClientView: "flow",
-    activeSchedulingDesign: "classic"
+    activeSchedulingDesign: "v2"
   };
 
   try {
@@ -3578,6 +3829,136 @@ async function deleteAdminDataCollection(definition) {
   }
 }
 
+function timeFromMinutes(minutes) {
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
+function latestSchedulingStartLabel(settings = normalizeSchedulingSettings(defaultSchedulingSettings)) {
+  const latestStart = settings.bookableEndMinutes - (settings.defaultDurationMinutes || defaultAppointmentDurationMinutes);
+  return formatAppointmentTime(timeFromMinutes(latestStart));
+}
+
+function schedulingSettingsStatusText(settings = normalizeSchedulingSettings(defaultSchedulingSettings)) {
+  const dayLabels = schedulingWeekdayLabels("short", settings.weekdays).join(", ");
+  return `${dayLabels} starts offered ${formatAppointmentTime(settings.bookableStartTime)} - ${latestSchedulingStartLabel(settings)}.`;
+}
+
+function setSchedulingSettingsFormValues(raw = defaultSchedulingSettings) {
+  if (!adminSchedulingSettingsForm) {
+    return;
+  }
+
+  const settings = normalizeSchedulingSettings(raw);
+
+  adminSchedulingSettingsForm.querySelectorAll('input[name="weekdays"]').forEach((field) => {
+    field.checked = settings.weekdays.includes(Number(field.value));
+  });
+  adminSchedulingSettingsForm.elements.officeStartTime.value = settings.officeStartTime;
+  adminSchedulingSettingsForm.elements.officeEndTime.value = settings.officeEndTime;
+  adminSchedulingSettingsForm.elements.bookableStartTime.value = settings.bookableStartTime;
+  adminSchedulingSettingsForm.elements.bookableEndTime.value = settings.bookableEndTime;
+  adminSchedulingSettingsForm.elements.defaultDurationMinutes.value = String(settings.defaultDurationMinutes);
+  adminSchedulingSettingsForm.elements.slotIntervalMinutes.value = String(settings.slotIntervalMinutes);
+
+  if (adminSchedulingSettingsStatus) {
+    adminSchedulingSettingsStatus.textContent = schedulingSettingsStatusText(settings);
+  }
+}
+
+function schedulingSettingsFormPayload() {
+  const formData = new FormData(adminSchedulingSettingsForm);
+
+  return {
+    weekdays: formData.getAll("weekdays").map((value) => Number(value)),
+    officeStartTime: formData.get("officeStartTime"),
+    officeEndTime: formData.get("officeEndTime"),
+    bookableStartTime: formData.get("bookableStartTime"),
+    bookableEndTime: formData.get("bookableEndTime"),
+    defaultDurationMinutes: Number(formData.get("defaultDurationMinutes")),
+    slotIntervalMinutes: Number(formData.get("slotIntervalMinutes"))
+  };
+}
+
+function refreshSchedulingViewsAfterSettingsChange() {
+  renderAppointmentTimeOptions();
+  renderAppointments();
+
+  if (activeModule === "scheduling") {
+    renderSchedulingDesign();
+  }
+}
+
+async function loadSchedulingSettings() {
+  if (!currentUser || !adminSchedulingSettingsForm) {
+    applySchedulingSettings(defaultSchedulingSettings);
+    setSchedulingSettingsFormValues(defaultSchedulingSettings);
+    return;
+  }
+
+  try {
+    const response = await authedFetch("/api/admin/scheduling-settings");
+
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    const settings = applySchedulingSettings(data.schedulingSettings || defaultSchedulingSettings);
+    setSchedulingSettingsFormValues(settings);
+    refreshSchedulingViewsAfterSettingsChange();
+  } catch (error) {
+    applySchedulingSettings(defaultSchedulingSettings);
+    setSchedulingSettingsFormValues(defaultSchedulingSettings);
+    if (adminSchedulingSettingsStatus) {
+      adminSchedulingSettingsStatus.textContent = "Using default scheduling settings for now.";
+    }
+    console.error(error);
+  }
+}
+
+async function saveSchedulingSettings(event) {
+  event.preventDefault();
+
+  if (!currentUser || !adminSchedulingSettingsForm) {
+    return;
+  }
+
+  const payload = schedulingSettingsFormPayload();
+  const previewSettings = normalizeSchedulingSettings(payload);
+
+  if (!payload.weekdays.length) {
+    adminSchedulingSettingsStatus.textContent = "Choose at least one appointment day.";
+    return;
+  }
+
+  adminSchedulingSettingsSaveButton.disabled = true;
+  adminSchedulingSettingsStatus.textContent = "Saving scheduling settings...";
+
+  try {
+    const response = await authedFetch("/api/admin/scheduling-settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    const settings = applySchedulingSettings(data.schedulingSettings || payload);
+    setSchedulingSettingsFormValues(settings);
+    refreshSchedulingViewsAfterSettingsChange();
+    adminSchedulingSettingsStatus.textContent = `Saved. ${schedulingSettingsStatusText(settings)}`;
+  } catch (error) {
+    adminSchedulingSettingsStatus.textContent = error.message || "Could not save scheduling settings.";
+    console.error(error);
+  } finally {
+    adminSchedulingSettingsSaveButton.disabled = false;
+  }
+}
+
 function workPlanStatusClass(status) {
   return String(status || "")
     .toLowerCase()
@@ -3703,7 +4084,7 @@ function renderDashboardAppointmentWeek() {
       const name = document.createElement("strong");
       name.textContent = appointmentClientName(appointment);
       const detail = document.createElement("span");
-      const type = [appointmentTypeLabel(appointment), appointment.lesson ? `Lesson ${appointment.lesson}` : ""].filter(Boolean).join(" ");
+      const type = [appointmentTypeLabel(appointment), appointmentLessonLabel(appointment)].filter(Boolean).join(" ");
       detail.textContent = [formatAppointmentTime(appointment.appointmentTime), type].filter(Boolean).join(" | ");
       item.append(name, detail);
       day.append(item);
@@ -4802,60 +5183,34 @@ function renderFlowBoard({ container, columns, records, statusFor, cardFor, drag
 }
 
 function renderReferralFlow(referrals) {
-  renderFlowBoard({
-    container: referralFlowBoard,
-    columns: referralFlowColumns,
-    records: referrals,
-    statusFor: (referral) => normalizeStatus(referral.status),
-    dragKind: "referral-flow",
-    onColumnDrop: (payload, column) => moveReferralToFlowColumn(payload.id, column),
-    cardFor: (referral, column) =>
-      flowCard({
-        title: referralName(referral),
-        detail: referral.referralSource || displayValue(referral.referralType),
-        meta: [
-          formatShortDate(referral.referralDate) ? `Referral ${formatShortDate(referral.referralDate)}` : "",
-          formatShortDate(referral.mostRecentContactDate) ? `Contact ${formatShortDate(referral.mostRecentContactDate)}` : ""
-        ].filter(Boolean).join(" | ") || "No dates yet",
-        tag: normalizeStatus(referral.status),
-        accent: column.accent,
-        dragData: { kind: "referral-flow", id: referral.id },
-        onOpen: () => {
-          if (!flowArchiveModal.hidden) {
-            closeFlowArchive();
-          }
-          setSelectedReferral(referral.id);
-        }
-      })
+  renderProfileV2List(referralFlowBoard, referrals, {
+    name: referralName,
+    status: (referral) => normalizeStatus(referral.status),
+    selectedId: selectedReferralId,
+    fallbackStatus: "New",
+    emptyText: loadedReferrals.length ? "No referrals match the current filters." : "No referrals yet.",
+    onOpen: (referral) => {
+      if (!flowArchiveModal.hidden) {
+        closeFlowArchive();
+      }
+      setSelectedReferral(referral.id);
+    }
   });
 }
 
 function renderClientFlow(clients) {
-  renderFlowBoard({
-    container: clientFlowBoard,
-    columns: clientFlowColumns,
-    records: clients,
-    statusFor: (client) => client.status || "Scheduled",
-    dragKind: "client-flow",
-    onColumnDrop: (payload, column) => moveClientToFlowColumn(payload.id, column),
-    cardFor: (client, column) =>
-      flowCard({
-        title: clientName(client),
-        detail: [client.parentName, formatPhone(client.phone)].filter(Boolean).join(" | ") || "No contact info yet",
-        meta: [
-          `Appt ${profileDate(clientFlowAppointmentDate(client))}`,
-          `Contact ${profileDate(client.mostRecentContactDate)}`
-        ].join(" | "),
-        tag: client.status || "Scheduled",
-        accent: column.accent,
-        dragData: { kind: "client-flow", id: client.id },
-        onOpen: () => {
-          if (!flowArchiveModal.hidden) {
-            closeFlowArchive();
-          }
-          setSelectedClient(client.id);
-        }
-      })
+  renderProfileV2List(clientFlowBoard, clients, {
+    name: clientName,
+    status: (client) => client.status || "Scheduled",
+    selectedId: selectedClientId,
+    fallbackStatus: "Scheduled",
+    emptyText: loadedClients.length ? "No clients match the current search." : "No clients yet.",
+    onOpen: (client) => {
+      if (!flowArchiveModal.hidden) {
+        closeFlowArchive();
+      }
+      setSelectedClient(client.id);
+    }
   });
 }
 
@@ -5271,7 +5626,7 @@ function closeActivityLogModal() {
   activityLogModal.hidden = true;
   activityLogForm.reset();
 
-  if (referralModal.hidden && clientModal.hidden && networkModal.hidden && outreachModal.hidden && outreachContactModal.hidden && appointmentModal.hidden && appointmentCompleteModal.hidden && taskModal.hidden && siblingModal.hidden) {
+  if (referralModal.hidden && clientModal.hidden && networkModal.hidden && outreachModal.hidden && outreachContactModal.hidden && appointmentModal.hidden && appointmentCompleteModal.hidden && appointmentCheckInModal.hidden && taskModal.hidden && siblingModal.hidden) {
     document.body.classList.remove("modal-open");
   }
 }
@@ -5316,7 +5671,7 @@ function closeSiblingModal() {
   siblingModal.hidden = true;
   siblingForm.reset();
 
-  if (referralModal.hidden && clientModal.hidden && networkModal.hidden && outreachModal.hidden && outreachContactModal.hidden && appointmentModal.hidden && appointmentCompleteModal.hidden && taskModal.hidden && activityLogModal.hidden) {
+  if (referralModal.hidden && clientModal.hidden && networkModal.hidden && outreachModal.hidden && outreachContactModal.hidden && appointmentModal.hidden && appointmentCompleteModal.hidden && appointmentCheckInModal.hidden && taskModal.hidden && activityLogModal.hidden) {
     document.body.classList.remove("modal-open");
   }
 }
@@ -5469,6 +5824,55 @@ function closeAppointmentCompletionModal() {
   appointmentsStatusEl.textContent = "";
 }
 
+function openAppointmentCheckInModal() {
+  appointmentCheckInModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeAppointmentCheckInModal() {
+  appointmentCheckInModal.hidden = true;
+  checkInAppointmentId = null;
+  appointmentCheckInForm.reset();
+  appointmentsStatusEl.textContent = "";
+
+  if (referralModal.hidden && clientModal.hidden && networkModal.hidden && outreachModal.hidden && outreachContactModal.hidden && appointmentModal.hidden && appointmentCompleteModal.hidden && taskModal.hidden && activityLogModal.hidden && siblingModal.hidden) {
+    document.body.classList.remove("modal-open");
+  }
+}
+
+function setAppointmentCheckInField(name, value) {
+  const field = appointmentCheckInForm.elements.namedItem(name);
+  if (!field) {
+    return;
+  }
+
+  field.value = [...field.options].some((option) => option.value === value) ? value : appointmentCheckInDefaults[name] || "";
+}
+
+function setAppointmentCheckInFormValues(appointment) {
+  const checkIn = appointmentCheckInFields(appointment);
+  setAppointmentCheckInField("caregiverMood", checkIn.caregiverMood);
+  setAppointmentCheckInField("confidence", checkIn.confidence);
+  setAppointmentCheckInField("participation", checkIn.participation);
+  setAppointmentCheckInField("barriers", checkIn.barriers);
+}
+
+function startEditingAppointmentCheckIn(appointment) {
+  if (!appointment) {
+    return;
+  }
+
+  checkInAppointmentId = appointment.id;
+  appointmentCheckInTitle.textContent = `Edit Check In`;
+  appointmentCheckInSummary.textContent = [
+    appointmentClientName(appointment),
+    formatFullDate(appointment.appointmentDate),
+    formatAppointmentTime(appointment.appointmentTime)
+  ].filter(Boolean).join(" | ");
+  setAppointmentCheckInFormValues(appointment);
+  openAppointmentCheckInModal();
+}
+
 function setSelectedAppointment(appointmentId) {
   selectedAppointmentId = appointmentId;
   editingAppointmentId = null;
@@ -5547,7 +5951,7 @@ function renderAppointmentDetail(appointment) {
     appointmentDetailField("Duration", formatDuration(appointmentDurationMinutes(appointment))),
     appointmentDetailField("Type", appointmentTypeLabel(appointment)),
     appointmentDetailField("Status", appointment.status || "Scheduled"),
-    appointmentDetailField("Lesson", appointment.lesson ? `Lesson ${appointment.lesson}` : "-"),
+    appointmentDetailField("Lesson", appointmentLessonLabel(appointment) || "-"),
     appointmentDetailField("Staff", appointment.staffMember || "-"),
     appointmentDetailField("Goal", appointmentGoalText(appointment) || "-")
   );
@@ -5617,7 +6021,7 @@ function statusBadge(status = "New") {
 function clientStatusBadge(status = "Scheduled") {
   const badge = document.createElement("span");
   badge.className = `status-badge status-${cssToken(status)} status-group-${clientStatusGroupKey(status)}`;
-  badge.textContent = status;
+  badge.textContent = clientStatusDisplayLabel(status);
   return badge;
 }
 
@@ -5627,6 +6031,7 @@ function appointmentStatusBadge(status = "Scheduled") {
     Completed: "new",
     "No-show": "follow-up",
     Rescheduled: "contacted",
+    Blocked: "closed",
     Canceled: "closed"
   };
   const badge = document.createElement("span");
@@ -6142,28 +6547,30 @@ function appointmentDraftForTime(appointmentTime, overrides = {}) {
     appointmentDate: overrides.appointmentDate || appointmentForm.elements.appointmentDate.value || todayDateString(),
     appointmentTime,
     appointmentType: overrides.appointmentType || appointmentForm.elements.appointmentType.value || "Enrollment",
+    durationMinutes: overrides.durationMinutes,
     lesson: (overrides.lesson ?? appointmentForm.elements.lesson.value) || "",
     goal: (overrides.goal ?? appointmentForm.elements.goal.value) || "",
     status: overrides.status || appointmentForm.elements.status.value || "Scheduled"
   };
 }
 
-function appointmentAvailableTimeValues(selectedTime = "", overrides = {}) {
+function appointmentTimeValues(selectedTime = "", overrides = {}, options = {}) {
   const selected = normalizeAppointmentTime(selectedTime);
   const times = [];
+  const includeConflicts = Boolean(options.includeConflicts);
   const excludedAppointmentId = overrides.excludedAppointmentId ?? editingAppointmentId;
   const draft = appointmentDraftForTime(
-    selected || `${String(Math.floor(schedulingStartMinutes / 60)).padStart(2, "0")}:00`,
+    selected || `${String(Math.floor(schedulingBookableStartMinutes / 60)).padStart(2, "0")}:${String(schedulingBookableStartMinutes % 60).padStart(2, "0")}`,
     overrides
   );
-  const latestStart = schedulingEndMinutes - appointmentDurationMinutes(draft);
+  const latestStart = schedulingBookableEndMinutes - appointmentDurationMinutes(draft);
 
-  for (let minutes = schedulingStartMinutes; minutes <= latestStart; minutes += 15) {
+  for (let minutes = schedulingBookableStartMinutes; minutes <= latestStart; minutes += schedulingSlotIntervalMinutes) {
     const candidateTime = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
     const candidate = appointmentDraftForTime(candidateTime, overrides);
     const conflict = appointmentSchedulingConflict(candidate, excludedAppointmentId);
 
-    if (!conflict) {
+    if (includeConflicts || !conflict) {
       times.push(candidateTime);
     }
   }
@@ -6171,7 +6578,7 @@ function appointmentAvailableTimeValues(selectedTime = "", overrides = {}) {
   if (excludedAppointmentId && selected && !times.includes(selected)) {
     const selectedCandidate = appointmentDraftForTime(selected, overrides);
     const selectedConflict = appointmentSchedulingConflict(selectedCandidate, excludedAppointmentId);
-    if (appointmentFitsSchedulingWindow(selectedCandidate) && !selectedConflict) {
+    if (appointmentFitsSchedulingWindow(selectedCandidate) && (includeConflicts || !selectedConflict)) {
       times.unshift(selected);
     }
   }
@@ -6179,14 +6586,45 @@ function appointmentAvailableTimeValues(selectedTime = "", overrides = {}) {
   return times;
 }
 
+function appointmentAvailableTimeValues(selectedTime = "", overrides = {}) {
+  return appointmentTimeValues(selectedTime, overrides);
+}
+
+function appointmentClinicTimeValues(selectedTime = "", overrides = {}) {
+  const selected = normalizeAppointmentTime(selectedTime);
+  const draft = appointmentDraftForTime(
+    selected || `${String(Math.floor(schedulingBookableStartMinutes / 60)).padStart(2, "0")}:${String(schedulingBookableStartMinutes % 60).padStart(2, "0")}`,
+    overrides
+  );
+  const latestStart = schedulingBookableEndMinutes - appointmentDurationMinutes(draft);
+  const times = [];
+
+  for (let minutes = schedulingBookableStartMinutes; minutes <= latestStart; minutes += schedulingSlotIntervalMinutes) {
+    times.push(`${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`);
+  }
+
+  if (selected && !times.includes(selected)) {
+    const selectedCandidate = appointmentDraftForTime(selected, overrides);
+    if (appointmentFitsSchedulingWindow(selectedCandidate)) {
+      times.push(selected);
+    }
+  }
+
+  return [...new Set(times)].sort((first, second) => appointmentTimeValue(first) - appointmentTimeValue(second));
+}
+
+function appointmentValidTimeValues(selectedTime = "", overrides = {}) {
+  return appointmentClinicTimeValues(selectedTime, overrides);
+}
+
 function renderAppointmentTimeOptions(selectedTime = appointmentTimeInput.value) {
   const normalizedSelected = normalizeAppointmentTime(selectedTime);
-  const times = appointmentAvailableTimeValues(normalizedSelected);
+  const times = appointmentValidTimeValues(normalizedSelected);
   appointmentTimeInput.innerHTML = "";
 
   const placeholder = document.createElement("option");
   placeholder.value = "";
-  placeholder.textContent = times.length ? "Choose time" : "No open times";
+  placeholder.textContent = times.length ? "Choose time" : "No valid times";
   appointmentTimeInput.append(placeholder);
 
   for (const time of times) {
@@ -6222,7 +6660,7 @@ function renderCompletionAppointmentTimeOptions() {
   }
 
   const normalizedSelected = normalizeAppointmentTime(completionNextTimeInput.value);
-  const times = appointmentAvailableTimeValues(normalizedSelected, appointmentCompletionTimeContext(appointment));
+  const times = appointmentValidTimeValues(normalizedSelected, appointmentCompletionTimeContext(appointment));
 
   for (const time of times) {
     const datalistOption = document.createElement("option");
@@ -6230,14 +6668,14 @@ function renderCompletionAppointmentTimeOptions() {
     appointmentTimeOptions.append(datalistOption);
   }
 
-  completionNextTimeInput.placeholder = times.length ? "3:00 PM" : "No open times";
+  completionNextTimeInput.placeholder = times.length ? "3:00 PM" : "No valid times";
 }
 
 function renderAppointmentSummary() {
   appointmentSummary.innerHTML = "";
   const today = todayDateString();
   const currentWeekStart = weekStartDate(today);
-  const currentWeekDayKeys = [1, 2, 3].map((offset) => toDateString(addDays(currentWeekStart, offset)));
+  const currentWeekDayKeys = schedulingV2ClinicWeekdays.map((weekday) => toDateString(schedulingDateForWeekday(currentWeekStart, weekday)));
   const completedAppointmentCount = loadedAppointments.filter((appointment) => appointment.status === "Completed").length;
   const noShowAppointmentCount = loadedAppointments.filter((appointment) => appointment.status === "No-show").length;
   const noShowRate = percentage(noShowAppointmentCount, completedAppointmentCount + noShowAppointmentCount);
@@ -6338,16 +6776,22 @@ function resetSchedulingWeek() {
 }
 
 function calendarStartMinutes(hour) {
-  return [0, 15, 30, 45].filter((minute) => {
+  const minutes = [];
+
+  for (let minute = 0; minute < 60; minute += schedulingSlotIntervalMinutes) {
+    minutes.push(minute);
+  }
+
+  return minutes.filter((minute) => {
     const start = hour * 60 + minute;
-    return start >= schedulingStartMinutes && start <= schedulingEndMinutes - defaultAppointmentDurationMinutes;
+    return start >= schedulingBookableStartMinutes && start <= schedulingBookableEndMinutes - schedulingDefaultDurationMinutes;
   });
 }
 
 function renderSchedulingCalendar() {
   schedulingCalendar.innerHTML = "";
   const start = schedulingWeekStartDate();
-  const days = [1, 2, 3].map((offset) => addDays(start, offset));
+  const days = schedulingV2ClinicWeekdays.map((weekday) => schedulingDateForWeekday(start, weekday));
   const dayKeys = days.map(toDateString);
   const calendarAppointments = loadedAppointments.filter(appointmentBlocksSchedule);
   const startHour = Math.floor(schedulingStartMinutes / 60);
@@ -6509,7 +6953,7 @@ function renderCalendarAppointment(appointment, options = {}) {
   summary.textContent = [
     formatAppointmentTime(appointment.appointmentTime),
     appointmentClientName(appointment),
-    appointment.lesson ? `L${appointment.lesson}` : appointmentTypeLabel(appointment),
+    appointmentLessonLabel(appointment) || appointmentTypeLabel(appointment),
     formatDuration(appointmentDurationMinutes(appointment)),
     appointment.status
   ].filter(Boolean).join(" | ");
@@ -6586,7 +7030,7 @@ function renderSchedulingCard(appointment, showActions) {
   detail.className = "scheduling-card-detail";
   detail.textContent = [
     appointmentTypeLabel(appointment),
-    appointment.lesson ? `Lesson ${appointment.lesson}` : "",
+    appointmentLessonLabel(appointment),
     appointmentGoalText(appointment),
     client?.parentName ? `Caregiver: ${client.parentName}` : ""
   ].filter(Boolean).join(" | ");
@@ -6664,9 +7108,21 @@ function setSchedulingDesign(design) {
   renderAppointments();
 }
 
+function rememberSchedulingV2AgendaScroll() {
+  const agenda = schedulingV2Preview?.querySelector(".scheduling-v2-agenda");
+
+  if (agenda && activeSchedulingPreviewView === "day") {
+    schedulingV2AgendaScrollTop = agenda.scrollTop;
+  }
+}
+
 function moveSchedulingPreviewDate(dayOffset) {
   visibleSchedulingPreviewDate = toDateString(addDays(new Date(`${visibleSchedulingPreviewDate}T00:00:00`), dayOffset));
   selectedSchedulingPreviewAppointmentId = null;
+  activeSchedulingV2Panel = "appointment";
+  activeSchedulingV2DetailTab = "appt-note";
+  schedulingV2AgendaScrollTop = 0;
+  clearSchedulingV2InlineState();
   renderSchedulingV2Preview();
 }
 
@@ -6677,11 +7133,16 @@ function setSchedulingPreviewDate(value) {
 
   visibleSchedulingPreviewDate = value;
   selectedSchedulingPreviewAppointmentId = null;
+  activeSchedulingV2Panel = "appointment";
+  activeSchedulingV2DetailTab = "appt-note";
+  schedulingV2AgendaScrollTop = 0;
+  clearSchedulingV2InlineState();
   renderSchedulingV2Preview();
 }
 
 function setSchedulingPreviewView(viewName) {
-  activeSchedulingPreviewView = validValue(viewName, ["day", "week", "month", "list"], "day");
+  activeSchedulingPreviewView = validValue(viewName, ["day", "week", "month"], "day");
+  schedulingV2AgendaScrollTop = 0;
   renderSchedulingV2Preview();
 }
 
@@ -6752,10 +7213,10 @@ function appointmentPreviewPrimaryClient(appointment) {
 
 function schedulingPreviewCounterItems(dateAppointments) {
   return [
-    { label: "Today", value: dateAppointments.filter((appointment) => appointment.status !== "Canceled").length },
-    { label: "Completed", value: dateAppointments.filter((appointment) => appointment.status === "Completed").length },
-    { label: "No Show", value: dateAppointments.filter((appointment) => appointment.status === "No-show").length },
-    { label: "Needs Reschedule", value: dateAppointments.filter((appointment) => appointment.status === "Rescheduled").length }
+    { tone: "today", label: "Today", value: dateAppointments.filter((appointment) => appointment.status !== "Canceled").length },
+    { tone: "completed", label: "Completed", value: dateAppointments.filter((appointment) => appointment.status === "Completed").length },
+    { tone: "no-show", label: "No Show", value: dateAppointments.filter((appointment) => appointment.status === "No-show").length },
+    { tone: "reschedule", label: "Reschedule", value: dateAppointments.filter((appointment) => appointment.status === "Rescheduled").length }
   ];
 }
 
@@ -6764,22 +7225,26 @@ const schedulingV2Icons = {
   bell: "<svg viewBox=\"0 0 24 24\"><path d=\"M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9\"/><path d=\"M10 21h4\"/></svg>",
   calendar: "<svg viewBox=\"0 0 24 24\"><path d=\"M7 3v4\"/><path d=\"M17 3v4\"/><path d=\"M4 9h16\"/><rect x=\"4\" y=\"5\" width=\"16\" height=\"15\" rx=\"2\"/></svg>",
   check: "<svg viewBox=\"0 0 24 24\"><path d=\"m5 12 4 4L19 6\"/></svg>",
+  chevronLeft: "<svg viewBox=\"0 0 24 24\"><path d=\"m15 6-6 6 6 6\"/></svg>",
+  chevronRight: "<svg viewBox=\"0 0 24 24\"><path d=\"m9 6 6 6-6 6\"/></svg>",
   clock: "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"8\"/><path d=\"M12 8v5l3 2\"/></svg>",
   close: "<svg viewBox=\"0 0 24 24\"><path d=\"M6 6l12 12\"/><path d=\"M18 6 6 18\"/></svg>",
   file: "<svg viewBox=\"0 0 24 24\"><path d=\"M7 3h7l4 4v14H7z\"/><path d=\"M14 3v5h5\"/></svg>",
   grants: "<svg viewBox=\"0 0 24 24\"><path d=\"M12 3v18\"/><path d=\"M17 6H9.5a3 3 0 0 0 0 6H15a3 3 0 0 1 0 6H6\"/></svg>",
   help: "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M9.5 9a2.5 2.5 0 0 1 4.4 1.6c0 1.8-1.9 2.2-1.9 3.7\"/><path d=\"M12 18h.01\"/></svg>",
-  history: "<svg viewBox=\"0 0 24 24\"><path d=\"M3 12a9 9 0 1 0 3-6.7\"/><path d=\"M3 4v5h5\"/><path d=\"M12 7v5l3 2\"/></svg>",
+  history: "<svg viewBox=\"0 0 24 24\"><path d=\"M4 9V4h5\"/><path d=\"M4.5 9A8 8 0 1 1 6.4 17\"/><path d=\"M12 8v5l3 2\"/></svg>",
   home: "<svg viewBox=\"0 0 24 24\"><path d=\"M4 11 12 4l8 7\"/><path d=\"M6 10v10h12V10\"/><path d=\"M10 20v-6h4v6\"/></svg>",
+  marketing: "<svg viewBox=\"0 0 24 24\"><path d=\"M5 19V5h14v14z\"/><path d=\"M8 9h8\"/><path d=\"M8 13h5\"/></svg>",
+  money: "<svg viewBox=\"0 0 24 24\"><path d=\"M12 3v18\"/><path d=\"M17 7.5c-.8-1.1-2.2-1.8-4-1.8-2.4 0-4 1.1-4 2.8 0 4 8 2 8 6 0 1.7-1.6 2.8-4 2.8-2 0-3.6-.7-4.6-2\"/></svg>",
   network: "<svg viewBox=\"0 0 24 24\"><circle cx=\"8\" cy=\"8\" r=\"3\"/><circle cx=\"16\" cy=\"8\" r=\"3\"/><circle cx=\"12\" cy=\"17\" r=\"3\"/><path d=\"m10 10 2 4\"/><path d=\"m14 10-2 4\"/></svg>",
-  outreach: "<svg viewBox=\"0 0 24 24\"><path d=\"M4 13h4l9-6v12l-9-6H4z\"/><path d=\"M8 13v5\"/></svg>",
+  outreach: "<svg viewBox=\"0 0 24 24\"><path d=\"M3 11v3a2 2 0 0 0 2 2h3l8 4V5L8 9H5a2 2 0 0 0-2 2z\"/><path d=\"M8 16v4\"/><path d=\"M19 9.5c.8.6 1.3 1.5 1.3 2.5s-.5 1.9-1.3 2.5\"/></svg>",
   plus: "<svg viewBox=\"0 0 24 24\"><path d=\"M12 5v14\"/><path d=\"M5 12h14\"/></svg>",
   prep: "<svg viewBox=\"0 0 24 24\"><path d=\"M8 4h8\"/><path d=\"M9 2h6v4H9z\"/><rect x=\"5\" y=\"5\" width=\"14\" height=\"16\" rx=\"2\"/><path d=\"m8 13 2 2 5-5\"/></svg>",
   print: "<svg viewBox=\"0 0 24 24\"><path d=\"M7 8V4h10v4\"/><path d=\"M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2\"/><path d=\"M7 14h10v7H7z\"/></svg>",
   referrals: "<svg viewBox=\"0 0 24 24\"><path d=\"M8 6h13\"/><path d=\"M8 12h13\"/><path d=\"M8 18h13\"/><path d=\"M3 6h.01\"/><path d=\"M3 12h.01\"/><path d=\"M3 18h.01\"/></svg>",
   scheduling: "<svg viewBox=\"0 0 24 24\"><path d=\"M7 3v4\"/><path d=\"M17 3v4\"/><rect x=\"4\" y=\"5\" width=\"16\" height=\"15\" rx=\"2\"/><path d=\"M8 12h3\"/><path d=\"M13 12h3\"/><path d=\"M8 16h3\"/></svg>",
   search: "<svg viewBox=\"0 0 24 24\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m16 16 4 4\"/></svg>",
-  settings: "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a8 8 0 0 0 .1-2l2-1.5-2-3.5-2.4 1a8 8 0 0 0-1.7-1L15 5h-6l-.4 3a8 8 0 0 0-1.7 1l-2.4-1-2 3.5 2 1.5a8 8 0 0 0 .1 2l-2 1.5 2 3.5 2.4-1a8 8 0 0 0 1.7 1l.4 3h6l.4-3a8 8 0 0 0 1.7-1l2.4 1 2-3.5z\"/></svg>",
+  settings: "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2.8v2.1\"/><path d=\"M12 19.1v2.1\"/><path d=\"M4.9 4.9l1.5 1.5\"/><path d=\"M17.6 17.6l1.5 1.5\"/><path d=\"M2.8 12h2.1\"/><path d=\"M19.1 12h2.1\"/><path d=\"M4.9 19.1l1.5-1.5\"/><path d=\"M17.6 6.4l1.5-1.5\"/><circle cx=\"12\" cy=\"12\" r=\"7\"/></svg>",
   users: "<svg viewBox=\"0 0 24 24\"><circle cx=\"9\" cy=\"8\" r=\"3\"/><path d=\"M3 20a6 6 0 0 1 12 0\"/><circle cx=\"17\" cy=\"9\" r=\"2\"/><path d=\"M15 15a5 5 0 0 1 6 5\"/></svg>"
 };
 
@@ -6788,45 +7253,44 @@ function schedulingV2Icon(name) {
 }
 
 function renderSchedulingV2Sidebar() {
-  const navGroups = [
-    {
-      label: "Overview",
-      items: [
-        { icon: "home", label: "Dashboard" }
-      ]
-    },
-    {
-      label: "Workflow",
-      items: [
-        { icon: "scheduling", label: "Scheduling", active: true },
-        { icon: "calendar", label: "Grants" },
-        { icon: "outreach", label: "Outreach" }
-      ]
-    },
-    {
-      label: "CRM",
-      items: [
-        { icon: "referrals", label: "Referrals" },
-        { icon: "users", label: "Clients" },
-        { icon: "network", label: "Referral Network" }
-      ]
-    },
-    {
-      label: "Fundraising",
-      items: [
-        { icon: "grants", label: "Grants" },
-        { icon: "calendar", label: "Events" },
-        { icon: "users", label: "Donors" }
-      ]
-    },
-    {
-      label: "Admin",
-      items: [
-        { icon: "admin", label: "Reports" },
-        { icon: "settings", label: "Settings" }
-      ]
-    }
+  const navModules = [
+    { icon: "scheduling", label: "Schedule", tone: "schedule", children: ["Clinic", "Kitchen", "School"] },
+    { icon: "users", label: "CRM", tone: "crm", children: ["Clients", "Referrals", "Referral Network", "Tasks", "Forms"] },
+    { icon: "outreach", label: "Outreach", tone: "outreach", children: ["Events", "Contacts"] },
+    { icon: "money", label: "Fundraising", tone: "fundraising", children: ["Grants", "Campaigns", "Donors", "Events", "Sales"] },
+    { icon: "marketing", label: "Marketing", tone: "marketing", children: ["Newsletter", "Subscribers", "Assets"] },
+    { icon: "settings", label: "Admin", tone: "admin", children: ["Data Tools", "KPI / Reports", "Settings"] }
   ];
+  const quickActionsByModule = {
+    Schedule: [
+      { icon: "plus", label: "New Appointment", action: "new" },
+      { icon: "calendar", label: "Block Time", action: "block-time" },
+      { icon: "print", label: "Print Schedule", action: "print-schedule" },
+      { icon: "file", label: "Print Appt Notes", action: "print-notes" },
+      { icon: "users", label: "View Unscheduled", action: "view-unscheduled" }
+    ],
+    CRM: [
+      { icon: "users", label: "New Client", action: "placeholder" },
+      { icon: "referrals", label: "New Referral", action: "placeholder" },
+      { icon: "file", label: "New Task", action: "placeholder" }
+    ],
+    Outreach: [
+      { icon: "calendar", label: "New Event", action: "placeholder" },
+      { icon: "users", label: "New Contact", action: "placeholder" }
+    ],
+    Fundraising: [
+      { icon: "money", label: "New Grant", action: "placeholder" },
+      { icon: "calendar", label: "New Event", action: "placeholder" }
+    ],
+    Marketing: [
+      { icon: "marketing", label: "Placeholder Action", action: "placeholder" }
+    ],
+    Admin: [
+      { icon: "settings", label: "Placeholder Action", action: "placeholder" }
+    ]
+  };
+  const activeNavModule = navModules.find((module) => module.label === activeSchedulingPreviewNavModule) || navModules[0];
+  const quickActions = quickActionsByModule[activeSchedulingPreviewNavModule] || quickActionsByModule.Schedule;
 
   return `
     <aside class="scheduling-v2-sidebar" aria-label="Scheduling preview navigation">
@@ -6836,32 +7300,45 @@ function renderSchedulingV2Sidebar() {
           <strong>SNACK</strong>
           <small>Program Manager</small>
         </div>
+        <button
+          class="scheduling-v2-sidebar-toggle"
+          data-scheduling-action="toggle-sidebar"
+          type="button"
+          aria-label="${schedulingV2SidebarCollapsed ? "Expand navigation" : "Collapse navigation"}"
+          aria-pressed="${schedulingV2SidebarCollapsed ? "true" : "false"}"
+        >${schedulingV2Icon(schedulingV2SidebarCollapsed ? "chevronRight" : "chevronLeft")}</button>
       </div>
       <nav class="scheduling-v2-nav" aria-label="Preview navigation">
-        ${navGroups.map((group) => `
-          <section>
-            <p>${escapeHtml(group.label)}</p>
-            ${group.items.map((item) => `
-              <button class="${item.active ? "active" : ""}" type="button">
-                ${schedulingV2Icon(item.icon)}
-                ${escapeHtml(item.label)}
-              </button>
-            `).join("")}
+        ${navModules.map((module) => {
+    const expanded = module.label === activeSchedulingPreviewNavModule;
+    return `
+          <section class="scheduling-v2-nav-${escapeHtml(module.tone)} ${expanded ? "expanded" : ""}">
+            <button class="${expanded ? "active" : ""}" data-scheduling-nav-module="${escapeHtml(module.label)}" type="button" aria-expanded="${expanded ? "true" : "false"}">
+              ${schedulingV2Icon(module.icon)}
+              ${escapeHtml(module.label)}
+            </button>
+            ${expanded ? `
+              <div class="scheduling-v2-nav-tree">
+                ${module.children.map((child, index) => `
+                  <button class="${index === 0 ? "current" : ""}" type="button">${escapeHtml(child)}</button>
+                `).join("")}
+              </div>
+            ` : ""}
           </section>
-        `).join("")}
+        `;
+  }).join("")}
       </nav>
-      <section class="scheduling-v2-quick-actions" aria-label="Quick actions">
+      <section class="scheduling-v2-quick-actions scheduling-v2-nav-${escapeHtml(activeNavModule.tone)}" aria-label="Quick actions">
         <h3>Quick Actions</h3>
-        <button data-scheduling-action="new" type="button">${schedulingV2Icon("plus")}New Appointment</button>
-        <button data-scheduling-action="print-schedule" type="button">${schedulingV2Icon("print")}Print Schedule</button>
-        <button data-scheduling-action="print-notes" type="button">${schedulingV2Icon("file")}Print Notes</button>
-        <button data-scheduling-action="print-prep" type="button">${schedulingV2Icon("prep")}Print Prep Sheets</button>
+        ${quickActions.map((action) => `
+          <button data-scheduling-action="${escapeHtml(action.action)}" type="button">${schedulingV2Icon(action.icon)}${escapeHtml(action.label)}</button>
+        `).join("")}
       </section>
+      <button class="scheduling-v2-classic-nav-button" data-scheduling-action="classic" type="button">${schedulingV2Icon("chevronLeft")}Classic</button>
       <div class="scheduling-v2-account">
         <span aria-hidden="true">SO</span>
         <div>
           <strong>Shannon Oddo</strong>
-          <small>director@snackprogram.org</small>
         </div>
       </div>
     </aside>
@@ -6883,7 +7360,6 @@ function renderSchedulingV2Topbar() {
           <span>SO</span>
           <strong>Shannon Oddo<small>Director</small></strong>
         </button>
-        <button data-scheduling-action="classic" type="button">Classic</button>
       </div>
     </header>
   `;
@@ -6892,11 +7368,10 @@ function renderSchedulingV2Topbar() {
 function renderSchedulingV2PageHeader() {
   return `
     <header class="scheduling-v2-page-header">
-      <h2>Scheduling</h2>
+      <h2>Clinic Schedule</h2>
       <div>
-        <button class="scheduling-v2-print-button" data-scheduling-action="print-schedule" type="button">${schedulingV2Icon("print")}Print Schedule</button>
         <div class="scheduling-v2-view-switch" role="group" aria-label="Scheduling preview views">
-          ${["day", "week", "list"].map((view) => `
+          ${["day", "week", "month"].map((view) => `
             <button class="${activeSchedulingPreviewView === view ? "active" : ""}" data-scheduling-preview-view="${view}" type="button">${escapeHtml(titleCase(view))}</button>
           `).join("")}
         </div>
@@ -6906,21 +7381,258 @@ function renderSchedulingV2PageHeader() {
   `;
 }
 
+function schedulingV2DateKeyOffset(dateKey, dayOffset) {
+  return toDateString(addDays(new Date(`${dateKey}T00:00:00`), dayOffset));
+}
+
+function schedulingV2AppointmentsForDateKey(dateKey) {
+  return schedulingPreviewAppointmentsForDate(dateKey);
+}
+
+function schedulingV2IsClinicDay(date) {
+  return schedulingV2ClinicWeekdaySet.has(date.getDay());
+}
+
+function schedulingV2ClinicDaysForWeek(dateKey) {
+  const start = weekStartDate(dateKey);
+  return schedulingV2ClinicWeekdays.map((weekday) => {
+    const date = schedulingDateForWeekday(start, weekday);
+    const currentDateKey = toDateString(date);
+    return {
+      date,
+      dateKey: currentDateKey,
+      appointments: schedulingV2PreviewAgendaAppointments(schedulingV2AppointmentsForDateKey(currentDateKey))
+    };
+  });
+}
+
+function schedulingV2ClinicMonthDates(dateKey) {
+  const visibleDate = new Date(`${dateKey}T00:00:00`);
+  const monthStart = new Date(visibleDate.getFullYear(), visibleDate.getMonth(), 1);
+  const monthEnd = new Date(visibleDate.getFullYear(), visibleDate.getMonth() + 1, 0);
+  const gridStart = weekStartDate(toDateString(monthStart));
+  const dates = [];
+
+  for (let weekStart = gridStart; weekStart <= monthEnd; weekStart = addDays(weekStart, 7)) {
+    schedulingV2ClinicWeekdays.forEach((weekday) => {
+      const date = schedulingDateForWeekday(weekStart, weekday);
+      const currentDateKey = toDateString(date);
+      dates.push({
+        date,
+        dateKey: currentDateKey,
+        isCurrentMonth: date.getMonth() === visibleDate.getMonth(),
+        appointments: schedulingV2PreviewAgendaAppointments(schedulingV2AppointmentsForDateKey(currentDateKey))
+      });
+    });
+  }
+
+  return dates;
+}
+
+function formatMonthYear(value) {
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric"
+  }).format(date);
+}
+
+function renderSchedulingV2MiniDatePicker() {
+  const visibleDate = new Date(`${visibleSchedulingPreviewDate}T00:00:00`);
+  const monthStart = new Date(visibleDate.getFullYear(), visibleDate.getMonth(), 1);
+  const gridStart = addDays(monthStart, -monthStart.getDay());
+  const selectedMonth = visibleDate.getMonth();
+  const selectedDate = visibleSchedulingPreviewDate;
+
+  return `
+    <div class="scheduling-v2-mini-calendar" role="dialog" aria-label="Choose schedule date">
+      <div class="scheduling-v2-mini-calendar-header">
+        <button data-scheduling-calendar-month="-1" type="button" aria-label="Previous month">${schedulingV2Icon("chevronLeft")}</button>
+        <strong>${escapeHtml(formatMonthYear(selectedDate))}</strong>
+        <button data-scheduling-calendar-month="1" type="button" aria-label="Next month">${schedulingV2Icon("chevronRight")}</button>
+      </div>
+      <div class="scheduling-v2-mini-calendar-grid">
+        ${["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => `<span>${escapeHtml(day)}</span>`).join("")}
+        ${Array.from({ length: 42 }, (_, index) => {
+    const day = addDays(gridStart, index);
+    const dateKey = toDateString(day);
+    const isCurrentMonth = day.getMonth() === selectedMonth;
+    const isSelected = dateKey === selectedDate;
+    return `
+          <button
+            class="${isSelected ? "selected" : ""} ${isCurrentMonth ? "" : "muted"}"
+            data-scheduling-calendar-date="${escapeHtml(dateKey)}"
+            type="button"
+          >
+            <span>${escapeHtml(String(day.getDate()))}</span>
+          </button>
+        `;
+  }).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function schedulingV2PreviewAgendaAppointments(appointments) {
+  return appointments.filter((appointment) => {
+    const start = appointmentTimeValue(appointment.appointmentTime);
+    const end = start + appointmentDurationMinutes(appointment);
+    return start < schedulingOfficeEndMinutes && end > schedulingOfficeStartMinutes;
+  });
+}
+
+function schedulingV2AgendaCardName(appointments) {
+  if (appointments.length === 1 && appointmentIsBlockTime(appointments[0])) {
+    return "Blocked Time";
+  }
+
+  const names = appointments.flatMap(appointmentClientNames);
+  const uniqueNames = [...new Map(names.map((name) => [normalizedLookupKey(name), name])).values()].filter(Boolean);
+
+  if (uniqueNames.length > 1) {
+    return formatFirstNameList(uniqueNames) || uniqueNames.join(", ");
+  }
+
+  return uniqueNames[0] || "Unknown client";
+}
+
+function schedulingV2AppointmentFamilyKey(appointment) {
+  const clientRows = appointmentPreviewClientRows(appointment);
+  const phone = clientRows.find((client) => client.phone)?.phone || "";
+  const caregiver = clientRows.find((client) => client.caregiver)?.caregiver || "";
+
+  if (phone || caregiver) {
+    return normalizedLookupKey(`${phone}|${caregiver}`);
+  }
+
+  return normalizedLookupKey(appointmentClientNames(appointment).map((name) => String(name).trim().split(/\s+/).slice(1).join(" ")).join("|"));
+}
+
+function schedulingV2AppointmentLastNameKeys(appointment) {
+  const clientRecords = appointmentClientRecords(appointment);
+  const recordKeys = clientRecords
+    .map((client) => normalizedLookupKey(client.lastName || ""))
+    .filter(Boolean);
+
+  if (recordKeys.length) {
+    return new Set(recordKeys);
+  }
+
+  return new Set(appointmentClientNames(appointment)
+    .map((name) => normalizedLookupKey(String(name || "").trim().split(/\s+/).slice(1).join(" ")))
+    .filter(Boolean));
+}
+
+function schedulingV2AppointmentsShareSiblingLink(first, second) {
+  const firstRecords = appointmentClientRecords(first);
+  const secondRecords = appointmentClientRecords(second);
+  const firstIds = new Set(firstRecords.map((client) => client.id).filter(Boolean));
+  const secondIds = new Set(secondRecords.map((client) => client.id).filter(Boolean));
+
+  return firstRecords.some((client) =>
+    Array.isArray(client.siblingIds) && client.siblingIds.some((siblingId) => secondIds.has(siblingId))
+  ) || secondRecords.some((client) =>
+    Array.isArray(client.siblingIds) && client.siblingIds.some((siblingId) => firstIds.has(siblingId))
+  );
+}
+
+function schedulingV2AppointmentsShareFamilyName(first, second) {
+  const firstKeys = schedulingV2AppointmentLastNameKeys(first);
+  const secondKeys = schedulingV2AppointmentLastNameKeys(second);
+
+  return [...firstKeys].some((key) => secondKeys.has(key));
+}
+
+function schedulingV2AppointmentsShareFamilySignal(first, second) {
+  const firstFamilyKey = schedulingV2AppointmentFamilyKey(first);
+  const secondFamilyKey = schedulingV2AppointmentFamilyKey(second);
+
+  return schedulingV2AppointmentsShareSiblingLink(first, second) ||
+    (Boolean(firstFamilyKey) && firstFamilyKey === secondFamilyKey) ||
+    schedulingV2AppointmentsShareFamilyName(first, second);
+}
+
+function schedulingV2CanVisuallyGroupAppointments(first, second) {
+  if (!first || !second) {
+    return false;
+  }
+
+  const firstStart = appointmentTimeMinutes(first.appointmentTime);
+  const secondStart = appointmentTimeMinutes(second.appointmentTime);
+  const firstDuration = appointmentDurationMinutes(first);
+  const secondDuration = appointmentDurationMinutes(second);
+
+  if (firstStart === null || secondStart === null) {
+    return false;
+  }
+
+  return (firstDuration <= 15 || secondDuration <= 15) &&
+    secondStart === firstStart + firstDuration &&
+    schedulingV2AppointmentDisplayStatus(first) === schedulingV2AppointmentDisplayStatus(second) &&
+    appointmentTypeLabel(first) === appointmentTypeLabel(second) &&
+    normalizedLookupKey(appointmentLessonTopicTitle(first) || "") === normalizedLookupKey(appointmentLessonTopicTitle(second) || "") &&
+    schedulingV2AppointmentsShareFamilySignal(first, second);
+}
+
+function schedulingV2AgendaDisplayItems(slotAppointments) {
+  const sortedAppointments = [...slotAppointments].sort((first, second) => appointmentTimeValue(first.appointmentTime) - appointmentTimeValue(second.appointmentTime));
+  const items = [];
+
+  for (let index = 0; index < sortedAppointments.length; index += 1) {
+    const appointments = [sortedAppointments[index]];
+
+    while (index + 1 < sortedAppointments.length && schedulingV2CanVisuallyGroupAppointments(appointments[appointments.length - 1], sortedAppointments[index + 1])) {
+      appointments.push(sortedAppointments[index + 1]);
+      index += 1;
+    }
+
+    items.push({ appointments, primary: appointments[0] });
+  }
+
+  return items;
+}
+
+function schedulingV2GroupedDuration(appointments) {
+  const starts = appointments
+    .map((appointment) => appointmentTimeMinutes(appointment.appointmentTime))
+    .filter((minutes) => minutes !== null);
+
+  if (!starts.length) {
+    return appointments.reduce((total, appointment) => total + appointmentDurationMinutes(appointment), 0);
+  }
+
+  const start = Math.min(...starts);
+  const end = Math.max(...appointments.map((appointment) => {
+    const appointmentStart = appointmentTimeMinutes(appointment.appointmentTime);
+    return (appointmentStart ?? start) + appointmentDurationMinutes(appointment);
+  }));
+
+  return Math.max(15, end - start);
+}
+
 function renderSchedulingV2Controls(dateAppointments) {
   return `
     <section class="scheduling-v2-date-card" aria-label="Scheduling preview date controls">
       <div class="scheduling-v2-date-row">
         <button data-scheduling-date="today" type="button">Today</button>
-        <button data-scheduling-date="previous" type="button" aria-label="Previous day">&lt;</button>
-        <button data-scheduling-date="next" type="button" aria-label="Next day">&gt;</button>
-        <label>
-          <span>Date</span>
-          <input data-scheduling-date-input type="date" value="${escapeHtml(visibleSchedulingPreviewDate)}">
-        </label>
+        <button class="scheduling-v2-date-arrow" data-scheduling-date="previous" type="button" aria-label="Previous day">${schedulingV2Icon("chevronLeft")}</button>
+        <button class="scheduling-v2-date-arrow" data-scheduling-date="next" type="button" aria-label="Next day">${schedulingV2Icon("chevronRight")}</button>
+        <div class="scheduling-v2-date-picker">
+          <button data-scheduling-date-picker-toggle type="button" aria-expanded="${schedulingV2DatePickerOpen ? "true" : "false"}">
+            ${schedulingV2Icon("calendar")}
+            <span>${escapeHtml(formatDayPickerDate(visibleSchedulingPreviewDate))}</span>
+          </button>
+          ${schedulingV2DatePickerOpen ? renderSchedulingV2MiniDatePicker() : ""}
+        </div>
       </div>
       <div class="scheduling-v2-counters">
         ${schedulingPreviewCounterItems(dateAppointments).map((item, index) => `
-          <article style="--counter-index: ${index};">
+          <article class="scheduling-v2-counter-${escapeHtml(item.tone)}" style="--counter-index: ${index};">
             <strong>${escapeHtml(item.value)}</strong>
             <span>${escapeHtml(item.label)}</span>
           </article>
@@ -6931,44 +7643,249 @@ function renderSchedulingV2Controls(dateAppointments) {
 }
 
 function renderSchedulingV2Agenda(dateAppointments) {
-  const startHour = 8;
-  const endHour = 17;
+  const startMinutes = schedulingStartMinutes;
+  const endMinutes = schedulingEndMinutes;
+  const totalMinutes = endMinutes - startMinutes;
+  const minuteHeight = 2.5;
+  const hourStarts = [];
+  const halfHourStarts = [];
+  const quarterStarts = [];
+  const firstHourStart = Math.ceil(startMinutes / 60) * 60;
+  const firstHalfHourStart = Math.ceil(startMinutes / 30) * 30;
+  const firstBookableStart = Math.max(startMinutes, schedulingBookableStartMinutes);
+  const latestBookableStart = Math.min(endMinutes, schedulingBookableEndMinutes) - schedulingDefaultDurationMinutes;
+
+  for (let mark = firstHourStart; mark <= endMinutes; mark += 60) {
+    hourStarts.push(mark);
+  }
+
+  for (let mark = firstHalfHourStart; mark <= endMinutes; mark += 30) {
+    halfHourStarts.push(mark);
+  }
+
+  for (let mark = firstBookableStart; mark <= latestBookableStart; mark += schedulingSlotIntervalMinutes) {
+    quarterStarts.push(mark);
+  }
+  const agendaAppointments = dateAppointments.filter((appointment) => {
+    const appointmentStart = appointmentTimeValue(appointment.appointmentTime);
+    const appointmentEnd = appointmentStart + appointmentDurationMinutes(appointment);
+    return appointmentStart < endMinutes && appointmentEnd > startMinutes;
+  });
+  const displayItems = schedulingV2AgendaDisplayItems(agendaAppointments);
 
   return `
     <section class="scheduling-v2-agenda-card" aria-label="Day agenda">
-      <div class="scheduling-v2-agenda-title">
-        <div>
-          <h3>${escapeHtml(formatPrintDayTitle(visibleSchedulingPreviewDate))}</h3>
-          <p>${escapeHtml(dateAppointments.length ? `${dateAppointments.length} appointment${dateAppointments.length === 1 ? "" : "s"}` : "Nothing scheduled.")}</p>
-        </div>
-      </div>
       <div class="scheduling-v2-agenda">
-        ${Array.from({ length: endHour - startHour + 1 }, (_, index) => startHour + index).map((hour) => {
-          const hourAppointments = dateAppointments.filter((appointment) => Math.floor(appointmentTimeValue(appointment.appointmentTime) / 60) === hour);
+        <div class="scheduling-v2-time-grid" style="--agenda-total-height: ${totalMinutes * minuteHeight}px;">
+          ${hourStarts.map((hourStart) => {
+          const hour = Math.floor(hourStart / 60);
           return `
-            <div class="scheduling-v2-hour-row">
-              <time>${escapeHtml(formatAppointmentTime(`${String(hour).padStart(2, "0")}:00`))}</time>
-              <div>
-                ${hourAppointments.length ? hourAppointments.map((appointment) => `
-                  <button
-                    class="scheduling-v2-appointment-card ${appointment.id === selectedSchedulingPreviewAppointmentId ? "selected" : ""}"
-                    type="button"
-                    data-scheduling-preview-appointment="${escapeHtml(appointment.id)}"
-                    style="--appointment-accent: ${escapeHtml(appointmentLessonAccent(appointment))};"
-                  >
-                    <strong>${escapeHtml(formatAppointmentTime(appointment.appointmentTime) || "Time TBD")}</strong>
-                    <span>${escapeHtml(appointmentClientName(appointment))}</span>
-                    <small>${escapeHtml([appointment.status || "Scheduled", appointmentLessonLabel(appointment) || appointmentTypeLabel(appointment)].filter(Boolean).join(" | "))}</small>
-                    <em>${escapeHtml(appointmentClientCount(appointment) > 1 ? `${appointmentClientCount(appointment)} clients` : "")}</em>
-                  </button>
-                `).join("") : ""}
+              <div class="scheduling-v2-hour-marker" style="--minute-offset-px: ${(hourStart - startMinutes) * minuteHeight}px;">
+                <time>${escapeHtml(formatAppointmentTime(`${String(hour).padStart(2, "0")}:00`))}</time>
+                <span></span>
               </div>
-            </div>
-          `;
+            `;
         }).join("")}
+          ${halfHourStarts
+            .filter((slotStart) => slotStart % 60 !== 0)
+            .map((slotStart) => {
+              const halfHour = Math.floor(slotStart / 60);
+              return `
+                <div class="scheduling-v2-half-hour-marker" style="--minute-offset-px: ${(slotStart - startMinutes) * minuteHeight}px;">
+                  <time>${escapeHtml(formatAppointmentTime(`${String(halfHour).padStart(2, "0")}:30`))}</time>
+                  <span></span>
+                </div>
+              `;
+            }).join("")}
+          ${quarterStarts.map((slotStart) => {
+            const slotHour = Math.floor(slotStart / 60);
+            const slotMinute = slotStart % 60;
+            const slotCovered = agendaAppointments.some((appointment) => {
+              const appointmentMinutes = appointmentTimeValue(appointment.appointmentTime);
+              return appointmentMinutes <= slotStart && appointmentMinutes + appointmentDurationMinutes(appointment) > slotStart;
+            });
+            return slotCovered ? `
+              <span class="scheduling-v2-slot-covered" style="--slot-top-px: ${(slotStart - startMinutes) * minuteHeight}px;"></span>
+            ` : `
+              <button class="scheduling-v2-empty-slot" style="--slot-top-px: ${(slotStart - startMinutes) * minuteHeight}px;" data-scheduling-empty-slot="${escapeHtml(`${String(slotHour).padStart(2, "0")}:${String(slotMinute).padStart(2, "0")}`)}" type="button" aria-label="Create appointment at ${escapeHtml(formatAppointmentTime(`${String(slotHour).padStart(2, "0")}:${String(slotMinute).padStart(2, "0")}`))}"></button>
+            `;
+          }).join("")}
+          ${displayItems.map((item) => {
+    const appointment = item.primary;
+    const groupedDuration = schedulingV2GroupedDuration(item.appointments);
+    const status = schedulingV2AppointmentDisplayStatus(appointment);
+    const appointmentStart = appointmentTimeValue(appointment.appointmentTime);
+    const appointmentEnd = appointmentStart + Math.max(15, groupedDuration);
+    const startOffset = Math.max(0, appointmentStart - startMinutes);
+    const appointmentDuration = Math.max(15, Math.min(appointmentEnd, endMinutes) - Math.max(appointmentStart, startMinutes));
+    const compactClass = appointmentDuration < 30 ? "scheduling-v2-appointment-card-compact" : "";
+    return `
+            <button
+              class="scheduling-v2-appointment-card ${compactClass} ${item.appointments.some((current) => current.id === selectedSchedulingPreviewAppointmentId) ? "selected" : ""}"
+              type="button"
+              data-scheduling-preview-appointment="${escapeHtml(appointment.id)}"
+              style="--appointment-accent: ${escapeHtml(appointmentLessonAccent(appointment))}; --appointment-top-px: ${startOffset * minuteHeight}px; --appointment-height-px: ${appointmentDuration * minuteHeight}px;"
+            >
+              <span>${escapeHtml(schedulingV2AgendaCardName(item.appointments))}</span>
+              <em>${escapeHtml(status)}</em>
+              <small>${escapeHtml([appointmentLessonTopicTitle(appointment) || appointmentTypeLabel(appointment), formatDuration(groupedDuration)].filter(Boolean).join(" | "))}</small>
+            </button>
+          `;
+  }).join("")}
+        </div>
       </div>
     </section>
   `;
+}
+
+function renderSchedulingV2CompactAppointment(appointment, { dateKey = "" } = {}) {
+  return renderSchedulingV2CompactAppointmentGroup([appointment], { dateKey });
+}
+
+function renderSchedulingV2CompactAppointmentGroup(appointments, { dateKey = "" } = {}) {
+  const appointment = appointments[0];
+  const status = schedulingV2AppointmentDisplayStatus(appointment);
+  const groupedDuration = schedulingV2GroupedDuration(appointments);
+  return `
+    <button
+      class="scheduling-v2-compact-appointment"
+      type="button"
+      data-scheduling-preview-appointment="${escapeHtml(appointment.id)}"
+      ${dateKey ? `data-scheduling-preview-date="${escapeHtml(dateKey)}"` : ""}
+      style="--appointment-accent: ${escapeHtml(appointmentLessonAccent(appointment))};"
+    >
+      <strong>${escapeHtml(formatAppointmentTime(appointment.appointmentTime) || "Time TBD")}</strong>
+      <span>${escapeHtml(schedulingV2AgendaCardName(appointments))}</span>
+      <em>${escapeHtml(status)}</em>
+      <small>${escapeHtml([appointmentLessonTopicTitle(appointment) || appointmentTypeLabel(appointment), formatDuration(groupedDuration)].filter(Boolean).join(" | "))}</small>
+    </button>
+  `;
+}
+
+function renderSchedulingV2WeekView() {
+  const days = schedulingV2ClinicDaysForWeek(visibleSchedulingPreviewDate);
+
+  return `
+    <section class="scheduling-v2-agenda-card scheduling-v2-week-view" aria-label="Week view">
+      ${days.map((day) => `
+        <article class="${day.dateKey === visibleSchedulingPreviewDate ? "selected" : ""}">
+          <button class="scheduling-v2-week-day-header" data-scheduling-calendar-date="${escapeHtml(day.dateKey)}" type="button">
+            <strong>${escapeHtml(new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(day.date))}</strong>
+            <span>${escapeHtml(formatDateOnly(day.dateKey))}</span>
+            <em>${escapeHtml(String(day.appointments.length))}</em>
+          </button>
+          <div>
+            ${day.appointments.length
+    ? schedulingV2AgendaDisplayItems(day.appointments).map((item) => renderSchedulingV2CompactAppointmentGroup(item.appointments, { dateKey: day.dateKey })).join("")
+    : `<p>Open clinic day.</p>`}
+          </div>
+        </article>
+      `).join("")}
+    </section>
+  `;
+}
+
+function renderSchedulingV2MonthAppointment(appointment, dateKey) {
+  return renderSchedulingV2MonthAppointmentGroup([appointment], dateKey);
+}
+
+function renderSchedulingV2MonthAppointmentGroup(appointments, dateKey) {
+  const appointment = appointments[0];
+  return `
+    <button
+      class="scheduling-v2-month-appointment"
+      type="button"
+      data-scheduling-preview-appointment="${escapeHtml(appointment.id)}"
+      data-scheduling-preview-date="${escapeHtml(dateKey)}"
+      style="--appointment-accent: ${escapeHtml(appointmentLessonAccent(appointment))};"
+    >
+      <span>${escapeHtml(formatAppointmentTime(appointment.appointmentTime) || "Time TBD")}</span>
+      <strong>${escapeHtml(schedulingV2AgendaCardName(appointments))}</strong>
+    </button>
+  `;
+}
+
+function renderSchedulingV2MonthView() {
+  const monthDates = schedulingV2ClinicMonthDates(visibleSchedulingPreviewDate);
+  const clinicDayLabels = schedulingWeekdayLabels("short");
+  const clinicDayCopy = schedulingWeekdayLabels("long").join(", ");
+
+  return `
+    <section class="scheduling-v2-agenda-card scheduling-v2-month-view" aria-label="Month view">
+      <header>
+        <h3>${escapeHtml(formatMonthYear(visibleSchedulingPreviewDate))}</h3>
+        <p>Clinic appointments are available ${escapeHtml(clinicDayCopy)}.</p>
+      </header>
+      <div class="scheduling-v2-month-grid" style="--scheduling-v2-month-days: ${clinicDayLabels.length};">
+        ${clinicDayLabels.map((day) => `<span>${escapeHtml(day)}</span>`).join("")}
+        ${monthDates.map((day) => {
+          const selected = day.dateKey === visibleSchedulingPreviewDate;
+          const appointmentCount = day.appointments.length;
+          return `
+          <article class="${selected ? "selected" : ""} ${day.isCurrentMonth ? "" : "muted"}">
+            <button class="scheduling-v2-month-day" data-scheduling-calendar-date="${escapeHtml(day.dateKey)}" type="button">
+              <strong>${escapeHtml(new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(day.date))}</strong>
+              <em>${appointmentCount ? escapeHtml(`${appointmentCount} appt${appointmentCount === 1 ? "" : "s"}`) : "Open"}</em>
+            </button>
+            <div class="scheduling-v2-month-appointments">
+              ${appointmentCount ? schedulingV2AgendaDisplayItems(day.appointments).map((item) => renderSchedulingV2MonthAppointmentGroup(item.appointments, day.dateKey)).join("") : ""}
+            </div>
+          </article>
+        `;
+  }).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderSchedulingV2ListView() {
+  const startKey = visibleSchedulingPreviewDate;
+  const appointments = loadedAppointments
+    .filter((appointment) => appointment.status !== "Canceled" && appointment.appointmentDate >= startKey)
+    .sort(
+      (first, second) =>
+        dateValue(first.appointmentDate) - dateValue(second.appointmentDate) ||
+        appointmentTimeValue(first.appointmentTime) - appointmentTimeValue(second.appointmentTime)
+    )
+    .slice(0, 24);
+  const grouped = appointments.reduce((groups, appointment) => {
+    const key = appointment.appointmentDate || "";
+    if (!groups.has(key)) {
+      groups.set(key, []);
+    }
+    groups.get(key).push(appointment);
+    return groups;
+  }, new Map());
+
+  return `
+    <section class="scheduling-v2-agenda-card scheduling-v2-list-view" aria-label="List view">
+      ${grouped.size ? [...grouped.entries()].map(([dateKey, dateAppointments]) => `
+        <article>
+          <button class="scheduling-v2-list-date" data-scheduling-calendar-date="${escapeHtml(dateKey)}" type="button">
+            <strong>${escapeHtml(formatFullDate(dateKey))}</strong>
+            <span>${escapeHtml(`${dateAppointments.length} appointment${dateAppointments.length === 1 ? "" : "s"}`)}</span>
+          </button>
+          <div>
+            ${schedulingV2AgendaDisplayItems(dateAppointments).map((item) => renderSchedulingV2CompactAppointmentGroup(item.appointments, { dateKey })).join("")}
+          </div>
+        </article>
+      `).join("") : `
+        <p class="scheduling-v2-empty-list">No upcoming appointments found.</p>
+      `}
+    </section>
+  `;
+}
+
+function renderSchedulingV2ScheduleView(dateAppointments) {
+  if (activeSchedulingPreviewView === "week") {
+    return renderSchedulingV2WeekView();
+  }
+
+  if (activeSchedulingPreviewView === "month") {
+    return renderSchedulingV2MonthView();
+  }
+
+  return renderSchedulingV2Agenda(dateAppointments);
 }
 
 function schedulingV2InfoRow(label, value) {
@@ -6980,13 +7897,1431 @@ function schedulingV2InfoRow(label, value) {
   `;
 }
 
+function schedulingV2StackedInfoRow(label, values) {
+  const visibleValues = values.map((value) => String(value || "").trim()).filter(Boolean);
+  return `
+    <div class="scheduling-v2-info-row scheduling-v2-info-row-stacked">
+      <span>${escapeHtml(label)}</span>
+      <strong>${visibleValues.length ? visibleValues.map((value) => `<span>${escapeHtml(value)}</span>`).join("") : "-"}</strong>
+    </div>
+  `;
+}
+
+function schedulingV2StackedClientLinks(label, clients) {
+  const visibleClients = clients
+    .map((client) => ({
+      id: client.id || "",
+      name: firstNameFromFullName(client.name || clientName(client))
+    }))
+    .filter((client) => client.name);
+
+  return `
+    <div class="scheduling-v2-info-row scheduling-v2-info-row-stacked scheduling-v2-info-row-links">
+      <span>${escapeHtml(label)}</span>
+      <div>
+        ${visibleClients.length ? visibleClients.map((client) => client.id ? `
+          <button class="scheduling-v2-client-link" data-scheduling-client="${escapeHtml(client.id)}" type="button">${escapeHtml(client.name)}</button>
+        ` : `<span>${escapeHtml(client.name)}</span>`).join("") : "<span>-</span>"}
+      </div>
+    </div>
+  `;
+}
+
+function schedulingV2Chevron() {
+  return `<svg class="scheduling-v2-chevron" aria-hidden="true" viewBox="0 0 12 12"><path d="M3 4.7 6 7.3l3-2.6"></path></svg>`;
+}
+
+function schedulingV2CheckControl(fieldName, label, value) {
+  const options = appointmentWrapUpOptions[fieldName] || [value];
+
+  return `
+    <div class="scheduling-v2-check-control">
+      <span>${escapeHtml(label)}</span>
+      <select name="${escapeHtml(fieldName)}" data-scheduling-wrap-field="${escapeHtml(fieldName)}" aria-label="${escapeHtml(label)}">
+        ${options.map((option) => `<option value="${escapeHtml(option)}" ${option === value ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+      </select>
+    </div>
+  `;
+}
+
+function schedulingV2OptionList(options, selectedValue = "") {
+  return options.map((option) => {
+    const value = typeof option === "string" ? option : option.value;
+    const label = typeof option === "string" ? option : option.label;
+    return `<option value="${escapeHtml(value)}" ${String(value) === String(selectedValue || "") ? "selected" : ""}>${escapeHtml(label)}</option>`;
+  }).join("");
+}
+
+function storedSchedulingStaffMembers() {
+  try {
+    const names = JSON.parse(localStorage.getItem(schedulingStaffMembersStorageKey) || "[]");
+    return Array.isArray(names) ? names.map((name) => String(name || "").trim()).filter(Boolean) : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function saveSchedulingStaffMember(name) {
+  const normalizedName = String(name || "").trim();
+
+  if (!normalizedName) {
+    return "";
+  }
+
+  const names = new Set(storedSchedulingStaffMembers());
+  names.add(normalizedName);
+  localStorage.setItem(schedulingStaffMembersStorageKey, JSON.stringify([...names].sort((first, second) => first.localeCompare(second))));
+  return normalizedName;
+}
+
+function normalizeSchedulingStaffSelection(value) {
+  const staffValue = String(value || "").trim();
+  return staffValue === "__add_staff__" ? "" : staffValue;
+}
+
+function schedulingV2StaffMembers(selectedValue = "") {
+  const staffNames = new Set(defaultSchedulingStaffMembers);
+  const selected = String(selectedValue || "").trim();
+
+  storedSchedulingStaffMembers().forEach((name) => {
+    if (!inactiveSchedulingStaffMembers.has(name)) {
+      staffNames.add(name);
+    }
+  });
+
+  if (selected) {
+    staffNames.add(selected);
+  }
+
+  return [...staffNames].sort((first, second) => first.localeCompare(second));
+}
+
+function schedulingV2StaffOptions(selectedValue = "") {
+  return schedulingV2OptionList([
+    { value: "", label: "-" },
+    ...schedulingV2StaffMembers(selectedValue).map((name) => ({ value: name, label: name })),
+    { value: "__add_staff__", label: "+ Add staff member" }
+  ], selectedValue);
+}
+
+function schedulingV2ClientSearchOptions() {
+  return loadedClients
+    .map((client) => `<option value="${escapeHtml(clientName(client))}">${escapeHtml([client.parentName, formatPhone(client.phone), client.status].filter(Boolean).join(" | "))}</option>`)
+    .join("");
+}
+
+function schedulingV2ClientSearchField(primaryClientId = "") {
+  const primaryClient = loadedClients.find((client) => client.id === primaryClientId);
+  return `
+    <input name="clientSearch" list="scheduling-v2-client-options" value="${escapeHtml(primaryClient ? clientName(primaryClient) : "")}" placeholder="Start typing a client name" autocomplete="off" required>
+    <datalist id="scheduling-v2-client-options">
+      ${schedulingV2ClientSearchOptions()}
+    </datalist>
+  `;
+}
+
+function uniqueSchedulingV2ClientNames(clientNames) {
+  const seenNames = new Set();
+  return (Array.isArray(clientNames) ? clientNames : [])
+    .map((name) => String(name || "").trim())
+    .filter((name) => {
+      const key = normalizedLookupKey(name);
+      if (!key || seenNames.has(key)) {
+        return false;
+      }
+      seenNames.add(key);
+      return true;
+    });
+}
+
+function schedulingV2InlineClientNamesValue(clientNames) {
+  return escapeHtml(JSON.stringify(uniqueSchedulingV2ClientNames(clientNames)));
+}
+
+function schedulingV2InlineClientPicker(clientIds, clientNames = []) {
+  return `
+    <div class="scheduling-v2-inline-client-picker">
+      <div class="scheduling-v2-inline-client-add">
+        <input name="clientSearch" list="scheduling-v2-client-options" value="" placeholder="Start typing a client name" autocomplete="off">
+        <button data-scheduling-action="add-inline-client" type="button">Add</button>
+      </div>
+      <datalist id="scheduling-v2-client-options">
+        ${schedulingV2ClientSearchOptions()}
+      </datalist>
+      <input type="hidden" name="clientIds" value="${escapeHtml(clientIds.join(","))}">
+      <input type="hidden" name="clientNames" value="${schedulingV2InlineClientNamesValue(clientNames)}">
+      ${schedulingV2InlineClientSummary(clientIds, { clientNames, removable: true })}
+    </div>
+  `;
+}
+
+function schedulingV2LessonOptions(selectedValue = "") {
+  const options = [
+    { value: "", label: "-" },
+    ...Object.entries(appointmentLessonTitles).map(([value, label]) => ({ value, label })),
+    { value: "Check In", label: "Check In" }
+  ];
+  return schedulingV2OptionList(options, selectedValue);
+}
+
+function schedulingV2InlineSourceAppointment() {
+  return schedulingV2InlineAppointmentId
+    ? loadedAppointments.find((appointment) => appointment.id === schedulingV2InlineAppointmentId) || null
+    : null;
+}
+
+function schedulingV2InlineDefaultAppointment() {
+  const source = schedulingV2InlineSourceAppointment();
+  return {
+    ...(source || {}),
+    ...schedulingV2InlineDefaults
+  };
+}
+
+function schedulingV2InlineTitle(mode, appointment) {
+  if (mode === "complete") {
+    return `Complete ${schedulingV2AgendaCardName([appointment])}`;
+  }
+
+  if (mode === "reschedule") {
+    return `Reschedule ${schedulingV2AgendaCardName([appointment])}`;
+  }
+
+  if (mode === "block") {
+    return appointment?.id ? "Edit Blocked Time" : "New Blocked Time";
+  }
+
+  if (mode === "edit") {
+    return `Edit ${schedulingV2AgendaCardName([appointment])}`;
+  }
+
+  return "New Appointment";
+}
+
+function schedulingV2InlineClientIds(appointment, mode) {
+  if (mode === "block") {
+    return [];
+  }
+
+  const defaults = Array.isArray(schedulingV2InlineDefaults.clientIds)
+    ? schedulingV2InlineDefaults.clientIds
+    : schedulingV2InlineDefaults.clientId ? [schedulingV2InlineDefaults.clientId] : [];
+  return defaults.length ? defaults : appointmentClientIds(appointment || {});
+}
+
+function schedulingV2InlineClientNames(appointment, mode) {
+  if (mode === "block") {
+    return [];
+  }
+
+  const defaults = Array.isArray(schedulingV2InlineDefaults.clientNames)
+    ? schedulingV2InlineDefaults.clientNames
+    : schedulingV2InlineDefaults.clientName ? [schedulingV2InlineDefaults.clientName] : [];
+  const clientIds = schedulingV2InlineClientIds(appointment, mode);
+  const selectedClientNames = schedulingV2ClientRowsFromIds(clientIds).map(clientName);
+  const selectedNameKeys = new Set(selectedClientNames.map((name) => normalizedLookupKey(name)));
+
+  return uniqueSchedulingV2ClientNames(defaults.length ? defaults : appointmentClientNames(appointment || {}))
+    .filter((name) => !selectedNameKeys.has(normalizedLookupKey(name)));
+}
+
+function schedulingV2InlineClientSummary(clientIds, options = {}) {
+  const clients = clientIds
+    .map((clientId) => loadedClients.find((client) => client.id === clientId))
+    .filter(Boolean);
+  const selectedNameKeys = new Set(clients.map((client) => normalizedLookupKey(clientName(client))));
+  const fallbackNames = uniqueSchedulingV2ClientNames(options.clientNames || [])
+    .filter((name) => !selectedNameKeys.has(normalizedLookupKey(name)));
+
+  if (!clients.length && !fallbackNames.length) {
+    return "";
+  }
+
+  return `
+    <div class="scheduling-v2-inline-selected-clients">
+      ${clients.map((client) => `
+        <span>
+          ${escapeHtml(clientName(client))}
+          ${options.removable ? `<button data-scheduling-action="remove-inline-client" data-client-id="${escapeHtml(client.id)}" type="button" aria-label="Remove ${escapeHtml(clientName(client))}">Remove</button>` : ""}
+        </span>
+      `).join("")}
+      ${fallbackNames.map((name) => `
+        <span>
+          ${escapeHtml(name)}
+          ${options.removable ? `<button data-scheduling-action="remove-inline-client-name" data-client-name="${escapeHtml(name)}" type="button" aria-label="Remove ${escapeHtml(name)}">Remove</button>` : ""}
+        </span>
+      `).join("")}
+    </div>
+  `;
+}
+
+function schedulingV2InlineTimeOptions(appointment, selectedTime, mode) {
+  const clientIds = schedulingV2InlineClientIds(appointment, mode);
+  const overrides = {
+    clientIds,
+    appointmentDate: appointment.appointmentDate || visibleSchedulingPreviewDate,
+    appointmentType: appointment.appointmentType || (mode === "block" ? "Administrative" : "Nutrition Education"),
+    durationMinutes: appointment.durationMinutes,
+    lesson: appointment.lesson || "",
+    status: appointment.status || (mode === "block" ? "Blocked" : "Scheduled"),
+    excludedAppointmentId: appointment.id || schedulingV2InlineAppointmentId || ""
+  };
+  const times = appointmentValidTimeValues(selectedTime, overrides);
+  const normalizedSelected = normalizeAppointmentTime(selectedTime);
+
+  if (normalizedSelected && !times.includes(normalizedSelected)) {
+    times.unshift(normalizedSelected);
+  }
+
+  return times;
+}
+
+function renderSchedulingV2InlineForm() {
+  const mode = schedulingV2InlineMode || "new";
+  const source = schedulingV2InlineSourceAppointment();
+  const appointment = schedulingV2InlineDefaultAppointment();
+  const isBlock = mode === "block" || appointmentDisplayStatus(appointment) === "Blocked";
+  const isEditing = mode === "edit" || mode === "block";
+  const clientIds = schedulingV2InlineClientIds(appointment, isBlock ? "block" : mode);
+  const clientNames = schedulingV2InlineClientNames(appointment, isBlock ? "block" : mode);
+  const selectedTime = normalizeAppointmentTime(appointment.appointmentTime || "");
+  const timeOptions = schedulingV2InlineTimeOptions(appointment, selectedTime, isBlock ? "block" : mode);
+  const title = schedulingV2InlineTitle(isBlock ? "block" : mode, appointment);
+  const appointmentType = isBlock ? "Administrative" : appointment.appointmentType || (appointment.lesson ? "Nutrition Education" : "Enrollment");
+  const status = isBlock ? "Blocked" : appointment.status || "Scheduled";
+  const lessonHidden = appointmentType !== "Nutrition Education" ? "hidden" : "";
+
+  return `
+    <section class="scheduling-v2-detail-card scheduling-v2-inline-card" aria-label="${escapeHtml(title)}">
+      <div class="scheduling-v2-detail-left">
+        <div class="scheduling-v2-selected-status ${isBlock ? "blocked" : ""}">
+          <span class="scheduling-v2-status-dot" aria-hidden="true"></span>
+          <span>${escapeHtml(status)}</span>
+        </div>
+        <h3>${escapeHtml(title)}</h3>
+        <div class="scheduling-v2-detail-meta">
+	          ${schedulingV2InfoRow(`${schedulingV2Icon("calendar")}Date`, formatFullDate(appointment.appointmentDate || visibleSchedulingPreviewDate))}
+	          ${schedulingV2InfoRow(`${schedulingV2Icon("clock")}Time`, formatAppointmentTime(appointment.appointmentTime || "") || "Choose time")}
+	          ${isBlock
+	    ? schedulingV2InfoRow(`${schedulingV2Icon("users")}Staff`, appointment.staffMember || "-")
+	    : schedulingV2InfoRow(`${schedulingV2Icon("file")}Type`, appointmentType)}
+	        </div>
+      </div>
+      <div class="scheduling-v2-detail-main">
+        <form class="scheduling-v2-inline-form" data-scheduling-v2-inline-form data-mode="${escapeHtml(mode)}" data-appointment-id="${escapeHtml(source?.id || "")}">
+          <div class="scheduling-v2-inline-form-header">
+            <h4>${escapeHtml(isBlock ? "Blocked Time" : "Appointment")}</h4>
+            <button data-scheduling-action="cancel-inline" type="button">Cancel</button>
+          </div>
+          <div class="scheduling-v2-inline-grid">
+            ${isBlock ? "" : `
+              <label class="scheduling-v2-inline-field scheduling-v2-inline-wide">
+                <span>Clients</span>
+                ${schedulingV2InlineClientPicker(clientIds, clientNames)}
+              </label>
+            `}
+            <label class="scheduling-v2-inline-field">
+              <span>Status</span>
+              <select name="status" ${isBlock ? "disabled" : ""}>
+                ${schedulingV2OptionList(appointmentStatuses.filter((item) => item !== "Blocked"), status)}
+                ${isBlock ? `<option value="Blocked" selected>Blocked</option>` : ""}
+              </select>
+            </label>
+            <label class="scheduling-v2-inline-field">
+              <span>Date</span>
+              <input name="appointmentDate" type="date" required value="${escapeHtml(appointment.appointmentDate || visibleSchedulingPreviewDate)}">
+            </label>
+            <label class="scheduling-v2-inline-field">
+              <span>Time</span>
+              <select name="appointmentTime" required>
+                <option value="">Choose time</option>
+                ${timeOptions.map((time) => `<option value="${escapeHtml(time)}" ${time === selectedTime ? "selected" : ""}>${escapeHtml(formatAppointmentTime(time))}</option>`).join("")}
+              </select>
+            </label>
+            <label class="scheduling-v2-inline-field">
+              <span>Type</span>
+              <select name="appointmentType" ${isBlock ? "disabled" : ""}>
+                ${schedulingV2OptionList(["Enrollment", "Nutrition Education", "Administrative"], appointmentType)}
+              </select>
+            </label>
+            <label class="scheduling-v2-inline-field" ${lessonHidden}>
+              <span>Lesson</span>
+              <select name="lesson">${schedulingV2LessonOptions(appointment.lesson || "")}</select>
+            </label>
+            <label class="scheduling-v2-inline-field" ${lessonHidden}>
+              <span>Goal</span>
+              <input name="goal" value="${escapeHtml(appointment.goal || "")}">
+            </label>
+	            <label class="scheduling-v2-inline-field">
+	              <span>Staff</span>
+	              <select name="staffMember" data-scheduling-staff-select>${schedulingV2StaffOptions(appointment.staffMember || "")}</select>
+	            </label>
+            <label class="scheduling-v2-inline-field scheduling-v2-inline-wide">
+              <span>Notes</span>
+              <textarea name="notes">${escapeHtml(appointment.notes || (isBlock ? "Blocked time" : ""))}</textarea>
+            </label>
+          </div>
+          <div class="scheduling-v2-inline-actions">
+            ${isEditing && source?.id ? `<button class="danger" data-scheduling-action="delete-inline" type="button">${isBlock ? "Delete Block" : "Delete"}</button>` : ""}
+            <button type="submit">${escapeHtml(isEditing ? isBlock ? "Update Block" : "Update Appointment" : isBlock ? "Save Block" : "Save Appointment")}</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  `;
+}
+
+function clearSchedulingV2InlineState() {
+  schedulingV2InlineMode = "";
+  schedulingV2InlineAppointmentId = "";
+  schedulingV2InlineDefaults = {};
+}
+
+function startSchedulingV2InlineForm(mode, defaultsOrAppointment = {}) {
+  const appointment = defaultsOrAppointment || {};
+  schedulingV2InlineMode = mode;
+  schedulingV2InlineAppointmentId = appointment.id || "";
+  schedulingV2InlineDefaults = { ...appointment };
+
+  if (mode === "new" && !schedulingV2InlineDefaults.appointmentDate) {
+    schedulingV2InlineDefaults.appointmentDate = visibleSchedulingPreviewDate;
+  }
+
+  if (mode === "new" && !schedulingV2InlineDefaults.staffMember) {
+    schedulingV2InlineDefaults.staffMember = defaultSchedulingStaffMembers[0] || "";
+  }
+
+  if (mode === "block") {
+    schedulingV2InlineDefaults = {
+      appointmentDate: visibleSchedulingPreviewDate,
+      appointmentTime: "",
+      staffMember: "",
+      notes: "Blocked time",
+      ...schedulingV2InlineDefaults,
+      appointmentType: "Administrative",
+      status: "Blocked",
+      clientName: "Blocked Time",
+      clientNames: ["Blocked Time"],
+      clientIds: []
+    };
+  }
+
+  if (mode === "reschedule") {
+    schedulingV2InlineDefaults = {
+      ...appointment,
+      appointmentDate: defaultNextAppointmentDate(appointment),
+      appointmentTime: normalizeAppointmentTime(appointment.appointmentTime),
+      status: "Scheduled"
+    };
+  }
+
+  if (mode === "complete") {
+    schedulingV2InlineDefaults = { ...appointment };
+  }
+
+  activeSchedulingV2Panel = "inline";
+  renderSchedulingV2Preview();
+}
+
+function startSchedulingV2AppointmentFromProfile(defaults = {}) {
+  const appointmentDate = defaults.appointmentDate || visibleSchedulingPreviewDate || todayDateString();
+
+  closeClientModal();
+  closeReferralModal();
+  closeAppointmentModal();
+  activeSchedulingDesign = "v2";
+  activeSchedulingPreviewView = "day";
+  visibleSchedulingPreviewDate = appointmentDate;
+  selectedSchedulingPreviewAppointmentId = null;
+  activeSchedulingV2Panel = "appointment";
+  activeSchedulingV2DetailTab = "appt-note";
+  schedulingV2AgendaScrollTop = 0;
+  setActiveModule("scheduling");
+  startSchedulingV2InlineForm("new", {
+    appointmentType: "Nutrition Education",
+    status: "Scheduled",
+    ...defaults,
+    appointmentDate
+  });
+}
+
+function cancelSchedulingV2InlineForm() {
+  clearSchedulingV2InlineState();
+  activeSchedulingV2Panel = "appointment";
+  renderSchedulingV2Preview();
+}
+
+function schedulingV2ClientRowsFromIds(clientIds) {
+  return clientIds
+    .map((clientId) => loadedClients.find((client) => client.id === clientId))
+    .filter(Boolean);
+}
+
+function schedulingV2InlineAppointmentPayload(form) {
+  const formData = new FormData(form);
+  const source = schedulingV2InlineSourceAppointment();
+  const mode = form.dataset.mode || schedulingV2InlineMode || "new";
+  const isBlock = mode === "block" || appointmentDisplayStatus(source || schedulingV2InlineDefaults) === "Blocked";
+  const selectedClientId = String(formData.get("clientId") || "").trim();
+  const clientSearchName = String(formData.get("clientSearch") || "").trim();
+  const matchedClient = clientSearchName
+    ? loadedClients.find((client) => normalizedLookupKey(clientName(client)) === normalizedLookupKey(clientSearchName))
+    : null;
+  const preservedClientIds = String(formData.get("clientIds") || "")
+    .split(",")
+    .map((clientId) => clientId.trim())
+    .filter(Boolean);
+  const clientIds = isBlock ? [] : [...new Set([
+    ...preservedClientIds,
+    ...(selectedClientId ? [selectedClientId] : []),
+    ...(matchedClient ? [matchedClient.id] : [])
+  ])];
+  const selectedClients = schedulingV2ClientRowsFromIds(clientIds);
+  const selectedClientNames = selectedClients.map(clientName);
+  const selectedNameKeys = new Set(selectedClientNames.map((name) => normalizedLookupKey(name)));
+  const preservedClientNames = schedulingV2InlineClientNamesFromForm(form)
+    .filter((name) => !selectedNameKeys.has(normalizedLookupKey(name)));
+  const typedClientName = !matchedClient && clientSearchName ? clientSearchName : "";
+  const clientNames = isBlock ? [] : uniqueSchedulingV2ClientNames([
+    ...selectedClientNames,
+    ...preservedClientNames,
+    typedClientName
+  ]);
+  const appointmentType = isBlock ? "Administrative" : String(formData.get("appointmentType") || "Enrollment");
+  const notes = stripSetmoreBookingIdFromNotes(formData.get("notes") || "");
+  const appointment = {
+    ...(source || {}),
+    clientIds,
+    clientId: clientIds[0] || "",
+    clientNames,
+    clientName: clientNames[0] || source?.clientName || "",
+    appointmentDate: String(formData.get("appointmentDate") || visibleSchedulingPreviewDate),
+    appointmentTime: normalizeAppointmentTime(formData.get("appointmentTime")),
+	    appointmentType,
+	    status: isBlock ? "Blocked" : String(formData.get("status") || "Scheduled"),
+	    lesson: appointmentType === "Nutrition Education" ? String(formData.get("lesson") || "") : "",
+	    goal: appointmentType === "Nutrition Education" ? String(formData.get("goal") || "").trim() : "",
+	    staffMember: normalizeSchedulingStaffSelection(formData.get("staffMember")),
+	    notes
+	  };
+
+  if (isBlock) {
+    appointment.clientIds = [];
+    appointment.clientId = "";
+    appointment.clientNames = ["Blocked Time"];
+    appointment.clientName = "Blocked Time";
+    appointment.status = "Blocked";
+    appointment.notes = appointment.notes || "Blocked time";
+  }
+
+  if (appointment.appointmentType === "Nutrition Education") {
+    const inferred = inferAppointmentFieldsFromNotes(appointment.notes, appointment.appointmentType);
+    appointment.lesson = appointment.lesson || inferred.lesson;
+    appointment.goal = appointment.goal || inferred.goal;
+  }
+
+  return appointment;
+}
+
+function schedulingV2InlineClientIdsFromForm(form) {
+  return String(new FormData(form).get("clientIds") || "")
+    .split(",")
+    .map((clientId) => clientId.trim())
+    .filter(Boolean);
+}
+
+function schedulingV2InlineClientNamesFromForm(form) {
+  const value = String(new FormData(form).get("clientNames") || "").trim();
+
+  if (!value) {
+    return [];
+  }
+
+  try {
+    return uniqueSchedulingV2ClientNames(JSON.parse(value));
+  } catch (error) {
+    return uniqueSchedulingV2ClientNames(value.split(","));
+  }
+}
+
+function setSchedulingV2InlineClientIds(form, clientIds) {
+  const hidden = form.querySelector('input[name="clientIds"]');
+  if (hidden) {
+    hidden.value = [...new Set(clientIds.filter(Boolean))].join(",");
+  }
+}
+
+function setSchedulingV2InlineClientNames(form, clientNames) {
+  const hidden = form.querySelector('input[name="clientNames"]');
+  if (hidden) {
+    hidden.value = JSON.stringify(uniqueSchedulingV2ClientNames(clientNames));
+  }
+}
+
+function addSchedulingV2InlineClient(form) {
+  const input = form.querySelector('input[name="clientSearch"]');
+  const clientSearchName = String(input?.value || "").trim();
+  const matchedClient = clientSearchName
+    ? loadedClients.find((client) => normalizedLookupKey(clientName(client)) === normalizedLookupKey(clientSearchName))
+    : null;
+
+  if (!matchedClient) {
+    appointmentsStatusEl.textContent = "Choose a client from the list.";
+    input?.focus();
+    return false;
+  }
+
+  const clientIds = schedulingV2InlineClientIdsFromForm(form);
+  const clientNames = schedulingV2InlineClientNamesFromForm(form)
+    .filter((name) => normalizedLookupKey(name) !== normalizedLookupKey(clientName(matchedClient)));
+  setSchedulingV2InlineClientIds(form, [...clientIds, matchedClient.id]);
+  setSchedulingV2InlineClientNames(form, [...clientNames, clientName(matchedClient)]);
+  if (input) {
+    input.value = "";
+  }
+  syncSchedulingV2InlineDraftFromForm(form, { rerender: true });
+  return true;
+}
+
+function removeSchedulingV2InlineClient(form, clientId) {
+  const clientIds = schedulingV2InlineClientIdsFromForm(form).filter((id) => id !== clientId);
+  setSchedulingV2InlineClientIds(form, clientIds);
+  syncSchedulingV2InlineDraftFromForm(form, { rerender: true });
+}
+
+function removeSchedulingV2InlineClientName(form, clientNameValue) {
+  const removeKey = normalizedLookupKey(clientNameValue);
+  const clientNames = schedulingV2InlineClientNamesFromForm(form)
+    .filter((name) => normalizedLookupKey(name) !== removeKey);
+  setSchedulingV2InlineClientNames(form, clientNames);
+  syncSchedulingV2InlineDraftFromForm(form, { rerender: true });
+}
+
+function syncSchedulingV2InlineDraftFromForm(form, options = {}) {
+  if (!form) {
+    return;
+  }
+
+  schedulingV2InlineDefaults = schedulingV2InlineAppointmentPayload(form);
+
+  if (options.rerender) {
+    renderSchedulingV2Preview();
+  }
+}
+
+function schedulingV2ValidateInlineAppointment(appointment, excludedAppointmentId = "") {
+  if (appointment.status !== "Blocked" && !appointmentClientNames(appointment).length) {
+    appointmentsStatusEl.textContent = "Choose a client or type a referral name before saving.";
+    return false;
+  }
+
+  if (!appointment.appointmentDate || !appointment.appointmentTime) {
+    appointmentsStatusEl.textContent = "Choose a date and time before saving.";
+    return false;
+  }
+
+  if (!appointmentFitsSchedulingWindow(appointment)) {
+    appointmentsStatusEl.textContent = schedulingWindowError(appointment);
+    return false;
+  }
+
+  const conflict = appointmentSchedulingConflict(appointment, excludedAppointmentId);
+
+  if (conflict) {
+    appointmentsStatusEl.textContent = appointmentConflictError(conflict);
+    return false;
+  }
+
+  return true;
+}
+
+function schedulingV2PayloadForCreate(appointment) {
+  const { id, createdAt, updatedAt, ...payload } = appointment;
+  return payload;
+}
+
+async function saveSchedulingV2InlineReschedule(source, replacementAppointment) {
+  rememberSchedulingV2AgendaScroll();
+  const normalizedOriginalTime = normalizeAppointmentTime(source.appointmentTime);
+
+  if (source.appointmentDate === replacementAppointment.appointmentDate && normalizedOriginalTime === replacementAppointment.appointmentTime) {
+    appointmentsStatusEl.textContent = "Choose a new date or time for the rescheduled appointment.";
+    return;
+  }
+
+  if (!schedulingV2ValidateInlineAppointment(replacementAppointment, source.id)) {
+    return;
+  }
+
+  appointmentsStatusEl.textContent = "Rescheduling appointment...";
+  let originalAppointmentRetired = false;
+  let replacementAppointmentCreated = false;
+
+  try {
+    const updateResponse = await authedFetch(`/api/appointments/${encodeURIComponent(source.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ ...source, status: "Rescheduled" })
+    });
+
+    if (!updateResponse.ok) {
+      const errorData = await updateResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || `Original appointment returned ${updateResponse.status}`);
+    }
+
+    originalAppointmentRetired = true;
+
+    const createResponse = await authedFetch("/api/appointments", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(schedulingV2PayloadForCreate(replacementAppointment))
+    });
+
+    if (!createResponse.ok) {
+      const errorData = await createResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || `Rescheduled appointment returned ${createResponse.status}`);
+    }
+
+    replacementAppointmentCreated = true;
+    const createData = await createResponse.json().catch(() => ({}));
+    const savedReplacement = createData.appointment || replacementAppointment;
+    await applyAppointmentClientEffects(savedReplacement, "Scheduled");
+    clearSchedulingV2InlineState();
+    activeSchedulingV2Panel = "appointment";
+    selectedAppointmentId = savedReplacement.id || "";
+    selectedSchedulingPreviewAppointmentId = savedReplacement.id || "";
+    visibleSchedulingPreviewDate = savedReplacement.appointmentDate || visibleSchedulingPreviewDate;
+    activeSchedulingV2DetailTab = "appt-note";
+    await loadClients();
+    await loadAppointments();
+    await loadTasks();
+    appointmentsStatusEl.textContent = Number(createData.completedRescheduleTasks || 0)
+      ? "Appointment rescheduled and reschedule task completed."
+      : "Appointment rescheduled.";
+  } catch (error) {
+    if (originalAppointmentRetired && !replacementAppointmentCreated) {
+      await authedFetch(`/api/appointments/${encodeURIComponent(source.id)}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(source)
+      }).catch((restoreError) => {
+        console.error("Could not restore original appointment after reschedule failure.", restoreError);
+      });
+    }
+    appointmentsStatusEl.textContent = error.message || "Could not reschedule appointment yet.";
+    console.error(error);
+  }
+}
+
+async function saveSchedulingV2InlineForm(event) {
+  event.preventDefault();
+  rememberSchedulingV2AgendaScroll();
+
+  if (!currentUser) {
+    appointmentsStatusEl.textContent = "Sign in before saving an appointment.";
+    return;
+  }
+
+  const form = event.currentTarget;
+  const mode = form.dataset.mode || schedulingV2InlineMode || "new";
+  const source = schedulingV2InlineSourceAppointment();
+  const appointment = schedulingV2InlineAppointmentPayload(form);
+  const isEditing = Boolean(source?.id && (mode === "edit" || mode === "block"));
+
+  if (mode === "reschedule") {
+    if (!source?.id) {
+      appointmentsStatusEl.textContent = "Choose an appointment before rescheduling.";
+      return;
+    }
+    await saveSchedulingV2InlineReschedule(source, appointment);
+    return;
+  }
+
+  if (!schedulingV2ValidateInlineAppointment(appointment, isEditing ? source.id : "")) {
+    return;
+  }
+
+  appointmentsStatusEl.textContent = isEditing ? "Updating appointment..." : "Saving appointment...";
+
+  try {
+    const response = await authedFetch(isEditing ? `/api/appointments/${encodeURIComponent(source.id)}` : "/api/appointments", {
+      method: isEditing ? "PATCH" : "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(isEditing ? appointment : schedulingV2PayloadForCreate(appointment))
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    const savedAppointment = data.appointment || { ...appointment, id: source?.id || "" };
+    await applyAppointmentClientEffects(savedAppointment, savedAppointment.status || appointment.status);
+    clearSchedulingV2InlineState();
+    activeSchedulingV2Panel = "appointment";
+    selectedAppointmentId = savedAppointment.id || source?.id || "";
+    selectedSchedulingPreviewAppointmentId = savedAppointment.id || source?.id || "";
+    visibleSchedulingPreviewDate = savedAppointment.appointmentDate || visibleSchedulingPreviewDate;
+    activeSchedulingV2DetailTab = "appt-note";
+    await loadClients();
+    await loadAppointments();
+    await loadTasks();
+    appointmentsStatusEl.textContent = Number(data.completedRescheduleTasks || 0)
+      ? `${isEditing ? "Appointment updated" : "Appointment saved"}; reschedule task completed.`
+      : isEditing ? "Appointment updated." : "Appointment saved.";
+  } catch (error) {
+    appointmentsStatusEl.textContent = error.message || "Could not save appointment yet.";
+    console.error(error);
+  }
+}
+
+function renderSchedulingV2InlineCompletionForm() {
+  const appointment = schedulingV2InlineSourceAppointment() || schedulingV2InlineDefaultAppointment();
+  const nextLesson = nextLessonNumberForAppointment(appointment);
+  const nextLessonLabel = nextLesson ? appointmentLessonTitle(nextLesson) || `Lesson ${nextLesson}` : "";
+  const selectedTime = normalizeAppointmentTime(appointment.appointmentTime || "");
+  const timeOptions = appointmentValidTimeValues(selectedTime, {
+    clientIds: appointmentClientIds(appointment),
+    appointmentDate: defaultNextAppointmentDate(appointment),
+    appointmentType: "Nutrition Education",
+    lesson: nextLesson ? String(nextLesson) : "",
+    status: "Scheduled"
+  });
+  const checkIn = appointmentCheckInFields(appointment);
+
+  return `
+    <section class="scheduling-v2-detail-card scheduling-v2-inline-card" aria-label="Complete appointment">
+      <div class="scheduling-v2-detail-left">
+        <div class="scheduling-v2-selected-status">
+          <span class="scheduling-v2-status-dot" aria-hidden="true"></span>
+          <span>Complete</span>
+        </div>
+        <h3>${escapeHtml(`Complete ${schedulingV2AgendaCardName([appointment])}`)}</h3>
+        <div class="scheduling-v2-detail-meta">
+	          ${schedulingV2InfoRow(`${schedulingV2Icon("calendar")}Date`, formatFullDate(appointment.appointmentDate))}
+	          ${schedulingV2InfoRow(`${schedulingV2Icon("clock")}Time`, `${formatAppointmentTime(appointment.appointmentTime) || "Time TBD"} - ${formatDuration(appointmentDurationMinutes(appointment))}`)}
+	          ${schedulingV2InfoRow(`${schedulingV2Icon("file")}Type`, appointmentTypeLabel(appointment))}
+        </div>
+      </div>
+      <div class="scheduling-v2-detail-main">
+        <form class="scheduling-v2-inline-form" data-scheduling-v2-complete-form>
+          <div class="scheduling-v2-inline-form-header">
+            <h4>Wrap Up</h4>
+            <button data-scheduling-action="cancel-inline" type="button">Cancel</button>
+          </div>
+          <section class="scheduling-v2-inline-section">
+            <h5>Next Appointment</h5>
+            ${nextLesson ? `
+              <label class="scheduling-v2-inline-check">
+                <input name="scheduleNext" type="checkbox" checked>
+                <span>Schedule ${escapeHtml(nextLessonLabel)} next</span>
+              </label>
+              <div class="scheduling-v2-inline-grid">
+                <label class="scheduling-v2-inline-field">
+                  <span>Date</span>
+                  <input name="nextDate" type="date" value="${escapeHtml(defaultNextAppointmentDate(appointment))}">
+                </label>
+                <label class="scheduling-v2-inline-field">
+                  <span>Time</span>
+                  <select name="nextTime">
+                    <option value="">Choose time</option>
+                    ${timeOptions.map((time) => `<option value="${escapeHtml(time)}" ${time === selectedTime ? "selected" : ""}>${escapeHtml(formatAppointmentTime(time))}</option>`).join("")}
+                  </select>
+                </label>
+	                <label class="scheduling-v2-inline-field">
+	                  <span>Staff</span>
+	                  <select name="nextStaff" data-scheduling-staff-select>${schedulingV2StaffOptions(appointment.staffMember || "")}</select>
+	                </label>
+                <label class="scheduling-v2-inline-field">
+                  <span>Goal</span>
+                  <input name="nextGoal" value="">
+                </label>
+                <label class="scheduling-v2-inline-field scheduling-v2-inline-wide">
+                  <span>Notes</span>
+                  <textarea name="nextNotes"></textarea>
+                </label>
+              </div>
+            ` : `<p class="scheduling-v2-inline-note">No next lesson is due. Completing this appointment will leave the client active.</p>`}
+          </section>
+          <section class="scheduling-v2-inline-section">
+            <h5>Appointment Note</h5>
+            <textarea name="completedNotes" placeholder="Add the appointment note here.">${escapeHtml(appointment.notes || "")}</textarea>
+          </section>
+          <section class="scheduling-v2-inline-section">
+            <h5>Engagement</h5>
+            <div class="scheduling-v2-check-grid">
+              ${schedulingV2CheckControl("caregiverMood", "Caregiver Mood", checkIn.caregiverMood)}
+              ${schedulingV2CheckControl("confidence", "Confidence", checkIn.confidence)}
+              ${schedulingV2CheckControl("participation", "Participation", checkIn.participation)}
+              ${schedulingV2CheckControl("barriers", "Barriers", checkIn.barriers)}
+            </div>
+          </section>
+          <div class="scheduling-v2-inline-actions">
+            <button type="submit">Complete Appointment</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  `;
+}
+
+async function saveSchedulingV2InlineCompletion(event) {
+  event.preventDefault();
+  rememberSchedulingV2AgendaScroll();
+
+  if (!currentUser) {
+    appointmentsStatusEl.textContent = "Sign in before completing an appointment.";
+    return;
+  }
+
+  const appointment = schedulingV2InlineSourceAppointment() ||
+    loadedAppointments.find((item) => item.id === selectedAppointmentId) ||
+    loadedAppointments.find((item) => item.id === selectedSchedulingPreviewAppointmentId);
+  if (!appointment?.id) {
+    appointmentsStatusEl.textContent = "Choose an appointment before completing it.";
+    return;
+  }
+
+  const form = event.currentTarget;
+  const formData = new FormData(form);
+  const nextLesson = nextLessonNumberForAppointment(appointment);
+  const shouldScheduleNext = Boolean(nextLesson && formData.get("scheduleNext"));
+  const checkIn = {
+    caregiverMood: String(formData.get("caregiverMood") || appointmentCheckInDefaults.caregiverMood),
+    confidence: String(formData.get("confidence") || appointmentCheckInDefaults.confidence),
+    participation: String(formData.get("participation") || appointmentCheckInDefaults.participation),
+    barriers: String(formData.get("barriers") || appointmentCheckInDefaults.barriers)
+  };
+  let nextAppointment = null;
+
+  if (shouldScheduleNext) {
+    const nextClients = schedulingV2ClientRowsFromIds(appointmentClientIds(appointment));
+    nextAppointment = {
+      clientIds: appointmentClientIds(appointment),
+      clientId: appointmentClientIds(appointment)[0] || "",
+      clientNames: nextClients.map(clientName),
+      clientName: nextClients[0] ? clientName(nextClients[0]) : appointment.clientName || "",
+      appointmentDate: String(formData.get("nextDate") || ""),
+      appointmentTime: normalizeAppointmentTime(formData.get("nextTime")),
+      appointmentType: "Nutrition Education",
+      status: "Scheduled",
+      lesson: String(nextLesson),
+      goal: String(formData.get("nextGoal") || "").trim(),
+	      staffMember: normalizeSchedulingStaffSelection(formData.get("nextStaff")),
+      notes: stripSetmoreBookingIdFromNotes(formData.get("nextNotes") || "")
+    };
+
+    if (!schedulingV2ValidateInlineAppointment(nextAppointment, appointment.id)) {
+      return;
+    }
+  }
+
+  appointmentsStatusEl.textContent = shouldScheduleNext ? "Completing appointment and scheduling next visit..." : "Completing appointment...";
+
+  try {
+    const completedAppointment = {
+      ...appointment,
+      ...checkIn,
+      notes: stripSetmoreBookingIdFromNotes(formData.get("completedNotes") || appointment.notes || ""),
+      status: "Completed"
+    };
+    const response = await authedFetch(`/api/appointments/${encodeURIComponent(appointment.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(completedAppointment)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    let savedNextAppointment = null;
+    let completedRescheduleTasks = 0;
+
+    if (shouldScheduleNext) {
+      const createResponse = await authedFetch("/api/appointments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(nextAppointment)
+      });
+
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Next appointment returned ${createResponse.status}`);
+      }
+
+      const nextData = await createResponse.json().catch(() => ({}));
+      savedNextAppointment = nextData.appointment || nextAppointment;
+      completedRescheduleTasks += Number(nextData.completedRescheduleTasks || 0);
+    }
+
+    await applyAppointmentClientEffects(completedAppointment, "Completed", {
+      nextAppointmentScheduled: shouldScheduleNext || !nextLesson
+    });
+    clearSchedulingV2InlineState();
+    activeSchedulingV2Panel = "appointment";
+    selectedAppointmentId = savedNextAppointment?.id || appointment.id;
+    selectedSchedulingPreviewAppointmentId = savedNextAppointment?.id || appointment.id;
+    visibleSchedulingPreviewDate = savedNextAppointment?.appointmentDate || visibleSchedulingPreviewDate;
+    activeSchedulingV2DetailTab = "appt-note";
+    await loadClients();
+    await loadAppointments();
+    await loadTasks();
+    appointmentsStatusEl.textContent = completedRescheduleTasks
+      ? "Appointment completed, next visit scheduled, and reschedule task completed."
+    : shouldScheduleNext ? "Appointment completed and next visit scheduled." : "Appointment completed; client marked Reschedule.";
+  } catch (error) {
+    appointmentsStatusEl.textContent = error.message || "Could not complete appointment yet.";
+    console.error(error);
+  }
+}
+
+function schedulingV2UnscheduledClients() {
+  const reviewStatuses = ["Active", "Needs Reschedule", "Waiting on Family", "Needs Language Support"];
+  return loadedClients
+    .filter((client) => reviewStatuses.includes(client.status || "Scheduled") && !hasFutureAppointment(client))
+    .sort(
+      (first, second) =>
+        clientStatusSortIndex(first) - clientStatusSortIndex(second) ||
+        clientName(first).localeCompare(clientName(second))
+    );
+}
+
+function renderSchedulingV2UnscheduledPanel() {
+  const clients = schedulingV2UnscheduledClients();
+
+  return `
+    <section class="scheduling-v2-detail-card scheduling-v2-unscheduled-panel" aria-label="Unscheduled clients">
+      <button class="scheduling-v2-detail-close" data-scheduling-action="close-detail" type="button" aria-label="Close unscheduled clients">${schedulingV2Icon("close")}</button>
+      <div class="scheduling-v2-unscheduled-header">
+        <p>Needs Scheduling</p>
+        <h3>Unscheduled Clients</h3>
+        <span>${escapeHtml(String(clients.length))} clients without a future appointment</span>
+      </div>
+      ${clients.length ? `
+        <div class="scheduling-v2-unscheduled-list">
+          ${clients.map((client) => `
+            <article class="scheduling-v2-unscheduled-row" draggable="true" data-scheduling-unscheduled-drag="${escapeHtml(client.id)}">
+              <div>
+                <strong>${escapeHtml(clientName(client))}</strong>
+                <span>${escapeHtml([schedulingV2DisplayStatus(client.status || "Scheduled"), client.parentName, formatPhone(client.phone), client.language].filter(Boolean).join(" | "))}</span>
+              </div>
+              <button data-scheduling-unscheduled-client="${escapeHtml(client.id)}" type="button">Schedule</button>
+            </article>
+          `).join("")}
+        </div>
+      ` : `
+        <p class="scheduling-v2-unscheduled-empty">Everyone in the active clinic workflow has a future appointment.</p>
+      `}
+    </section>
+  `;
+}
+
+function renderSchedulingV2DetailTabs(detailTabs) {
+  const activeKey = detailTabs.some(([key]) => key === activeSchedulingV2DetailTab)
+    ? activeSchedulingV2DetailTab
+    : detailTabs[0]?.[0] || "appt-note";
+
+  activeSchedulingV2DetailTab = activeKey;
+
+  return `
+    <div class="scheduling-v2-detail-tabs" role="tablist" aria-label="Appointment preview tabs">
+      ${detailTabs.map(([key, tab, icon]) => `
+        <button class="${key === activeKey ? "active" : ""}" data-scheduling-detail-tab="${escapeHtml(key)}" type="button" role="tab" aria-selected="${key === activeKey ? "true" : "false"}">${schedulingV2Icon(icon)}${escapeHtml(tab)}</button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderSchedulingV2AppointmentCard(appointment, lessonRows, title) {
+  const isEditingDetail = schedulingV2InlineMode === "edit" && schedulingV2InlineAppointmentId === appointment.id;
+  const appointmentType = appointmentTypeLabel(appointment);
+  const carriesGoal = appointmentCarriesGoal(appointment);
+
+  if (isEditingDetail) {
+    return `
+      <section class="scheduling-v2-visit-card scheduling-v2-details-card">
+        <form class="scheduling-v2-inline-form scheduling-v2-detail-edit-form" data-scheduling-v2-inline-form data-mode="edit" data-appointment-id="${escapeHtml(appointment.id || "")}">
+          <div class="scheduling-v2-inline-form-header">
+            <h4>${escapeHtml(title)}</h4>
+            <button data-scheduling-action="cancel-inline" type="button">Cancel</button>
+          </div>
+          <input type="hidden" name="clientIds" value="${escapeHtml(appointmentClientIds(appointment).join(","))}">
+          <input type="hidden" name="clientNames" value="${schedulingV2InlineClientNamesValue(appointmentClientNames(appointment))}">
+          <input type="hidden" name="status" value="${escapeHtml(appointment.status || "Scheduled")}">
+          <input type="hidden" name="appointmentDate" value="${escapeHtml(appointment.appointmentDate || visibleSchedulingPreviewDate)}">
+          <input type="hidden" name="appointmentTime" value="${escapeHtml(normalizeAppointmentTime(appointment.appointmentTime || ""))}">
+          <div class="scheduling-v2-inline-grid">
+            <label class="scheduling-v2-inline-field">
+              <span>Type</span>
+              <select name="appointmentType">
+                ${schedulingV2OptionList(["Enrollment", "Nutrition Education"], appointmentType)}
+              </select>
+            </label>
+	            <label class="scheduling-v2-inline-field">
+	              <span>Staff</span>
+	              <select name="staffMember" data-scheduling-staff-select>${schedulingV2StaffOptions(appointment.staffMember || "")}</select>
+	            </label>
+            ${carriesGoal ? `
+              <label class="scheduling-v2-inline-field">
+                <span>Lesson</span>
+                <select name="lesson">${schedulingV2LessonOptions(appointment.lesson || "")}</select>
+              </label>
+              <label class="scheduling-v2-inline-field">
+                <span>Goal</span>
+                <input name="goal" value="${escapeHtml(appointment.goal || "")}">
+              </label>
+            ` : `
+              <input type="hidden" name="lesson" value="">
+              <input type="hidden" name="goal" value="">
+            `}
+            <label class="scheduling-v2-inline-field scheduling-v2-inline-wide">
+              <span>Notes</span>
+              <textarea name="notes">${escapeHtml(appointment.notes || "")}</textarea>
+            </label>
+          </div>
+          <div class="scheduling-v2-inline-actions">
+            <button type="submit">Save Changes</button>
+          </div>
+        </form>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="scheduling-v2-visit-card scheduling-v2-details-card">
+      <div>
+        <h4>${escapeHtml(title)}</h4>
+        <button data-scheduling-action="edit" type="button">Edit</button>
+      </div>
+      <dl>
+        ${lessonRows.map(([label, value]) => {
+          const detailClass = normalizedLookupKey(label).replace(/[^a-z0-9-]/g, "");
+          const wideClass = ["Goal", "Notes"].includes(label) ? "scheduling-v2-detail-row-wide" : "";
+          return `<div class="${wideClass} scheduling-v2-detail-row-${escapeHtml(detailClass)}"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`;
+        }).join("")}
+      </dl>
+    </section>
+  `;
+}
+
+function renderSchedulingV2PrepCard(prepItems) {
+  return `
+    <section class="scheduling-v2-visit-card scheduling-v2-prep-card">
+      <div>
+        <h4>Prep</h4>
+        <button data-scheduling-action="print-prep" type="button">Print</button>
+      </div>
+      ${prepItems.length ? `
+        <ul>
+          ${prepItems.slice(0, 6).map((item) => `
+            <li>
+              <label>
+                <input type="checkbox">
+                <span>${escapeHtml(item)}</span>
+              </label>
+            </li>
+          `).join("")}
+        </ul>
+      ` : "<p>No prep items for this appointment.</p>"}
+    </section>
+  `;
+}
+
+function renderSchedulingV2WrapUpTab(appointment) {
+  const nextLesson = nextLessonNumberForAppointment(appointment);
+  const nextLessonLabel = nextLesson ? appointmentLessonTitle(nextLesson) || `Lesson ${nextLesson}` : "";
+  const selectedTime = normalizeAppointmentTime(appointment.appointmentTime || "");
+  const timeOptions = appointmentValidTimeValues(selectedTime, {
+    clientIds: appointmentClientIds(appointment),
+    appointmentDate: defaultNextAppointmentDate(appointment),
+    appointmentType: "Nutrition Education",
+    lesson: nextLesson ? String(nextLesson) : "",
+    status: "Scheduled"
+  });
+  const checkIn = appointmentCheckInFields(appointment);
+
+  return `
+    <form class="scheduling-v2-inline-form scheduling-v2-wrap-up-form" data-scheduling-v2-complete-form>
+      <section class="scheduling-v2-inline-section">
+        <h5>Next Appointment</h5>
+        ${nextLesson ? `
+          <label class="scheduling-v2-inline-check">
+            <input name="scheduleNext" type="checkbox" checked>
+            <span>Schedule ${escapeHtml(nextLessonLabel)} next</span>
+          </label>
+          <div class="scheduling-v2-inline-grid">
+            <label class="scheduling-v2-inline-field">
+              <span>Date</span>
+              <input name="nextDate" type="date" value="${escapeHtml(defaultNextAppointmentDate(appointment))}">
+            </label>
+            <label class="scheduling-v2-inline-field">
+              <span>Time</span>
+              <select name="nextTime">
+                <option value="">Choose time</option>
+                ${timeOptions.map((time) => `<option value="${escapeHtml(time)}" ${time === selectedTime ? "selected" : ""}>${escapeHtml(formatAppointmentTime(time))}</option>`).join("")}
+              </select>
+            </label>
+	            <label class="scheduling-v2-inline-field">
+	              <span>Staff</span>
+	              <select name="nextStaff" data-scheduling-staff-select>${schedulingV2StaffOptions(appointment.staffMember || "")}</select>
+	            </label>
+            <label class="scheduling-v2-inline-field">
+              <span>Goal</span>
+              <input name="nextGoal" value="">
+            </label>
+            <label class="scheduling-v2-inline-field scheduling-v2-inline-wide">
+              <span>Notes</span>
+              <textarea name="nextNotes"></textarea>
+            </label>
+          </div>
+        ` : `<p class="scheduling-v2-inline-note">No next lesson is due. Completing this appointment will leave the client active.</p>`}
+      </section>
+      <section class="scheduling-v2-inline-section">
+        <h5>Appointment Note</h5>
+        <textarea name="completedNotes" placeholder="Add the appointment note here.">${escapeHtml(appointment.notes || "")}</textarea>
+      </section>
+      <section class="scheduling-v2-inline-section">
+        <h5>Engagement</h5>
+        <div class="scheduling-v2-check-grid">
+          ${schedulingV2CheckControl("caregiverMood", "Caregiver Mood", checkIn.caregiverMood)}
+          ${schedulingV2CheckControl("confidence", "Confidence", checkIn.confidence)}
+          ${schedulingV2CheckControl("participation", "Participation", checkIn.participation)}
+          ${schedulingV2CheckControl("barriers", "Barriers", checkIn.barriers)}
+        </div>
+      </section>
+      <div class="scheduling-v2-inline-actions">
+        <button type="submit">Complete Appointment</button>
+      </div>
+    </form>
+  `;
+}
+
+function schedulingV2AppointmentActivityItems(appointment) {
+  const clientIds = appointmentClientIds(appointment);
+  const appointmentLogItems = loadedActivityLogs
+    .filter((log) => log.relatedType === "client" && clientIds.includes(log.relatedId))
+    .map((log) => ({
+      title: log.title || `${log.direction || "Outbound"} ${log.type || "Activity"}`,
+      detail: [log.result, log.description].filter(Boolean).join(" | ") || displayValue(log.type),
+      date: log.activityDate || String(log.occurredAt || "").slice(0, 10),
+      sortKey: activityLogTimestamp(log)
+    }));
+  const generatedItems = [
+    {
+      title: schedulingV2DisplayStatus(appointmentDisplayStatus(appointment)),
+      detail: [appointmentLessonTopicTitle(appointment) || appointmentTypeLabel(appointment), appointment.staffMember].filter(Boolean).join(" | ") || "Appointment",
+      date: appointment.appointmentDate,
+      sortKey: `${appointment.appointmentDate || ""}T${normalizeAppointmentTime(appointment.appointmentTime) || "00:00"}`
+    },
+    appointment.createdAt ? {
+      title: "Appointment created",
+      detail: formatAppointmentTime(appointment.appointmentTime) || "Time TBD",
+      date: String(appointment.createdAt).slice(0, 10),
+      sortKey: appointment.createdAt
+    } : null,
+    appointment.updatedAt ? {
+      title: "Last updated",
+      detail: appointmentDisplayStatus(appointment),
+      date: String(appointment.updatedAt).slice(0, 10),
+      sortKey: appointment.updatedAt
+    } : null
+  ].filter(Boolean);
+
+  return [...appointmentLogItems, ...generatedItems]
+    .sort((first, second) => String(second.sortKey || "").localeCompare(String(first.sortKey || "")))
+    .slice(0, 8);
+}
+
+function renderSchedulingV2ActivityTab(appointment) {
+  const items = schedulingV2AppointmentActivityItems(appointment);
+
+  return `
+    <section class="scheduling-v2-visit-card scheduling-v2-activity-card">
+      <div>
+        <h4>Activity</h4>
+      </div>
+      ${items.length ? `
+        <ol>
+          ${items.map((item) => `
+            <li>
+              <span>${escapeHtml(formatDateOnly(item.date))}</span>
+              <strong>${escapeHtml(item.title)}</strong>
+              <p>${escapeHtml(item.detail || "-")}</p>
+            </li>
+          `).join("")}
+        </ol>
+      ` : "<p>No activity has been logged for this appointment yet.</p>"}
+    </section>
+  `;
+}
+
+const printFormPackets = Object.freeze({
+  enrollment: {
+    name: "Enrollment packet",
+    description: "Forms 1, 2, and 3.",
+    files: [
+      { label: "Program Enrollment", fileName: "1. Program Enrollment - Print.docx" },
+      { label: "Questionnaire", fileName: "2. Questionnaire - Print.xlsx" },
+      { label: "HRSN Screener", fileName: "3. HRSN Screener.docx" }
+    ]
+  },
+  enrollmentSpanish: {
+    name: "Enrollment packet",
+    description: "Spanish forms 1, 2, and 3.",
+    files: [
+      { label: "SP Program Enrollment", fileName: "1. SP Program Enrollment - Print.docx" },
+      { label: "SP Questionnaire", fileName: "2. SP Questionnaire - Print.xlsx" },
+      { label: "SP HRSN Screener", fileName: "3. HRSN Screener- Spanish.docx" }
+    ]
+  },
+  graduation: {
+    name: "Graduation packet",
+    description: "Forms 2, 4, and 5.",
+    files: [
+      { label: "Questionnaire", fileName: "2. Questionnaire - Print.xlsx" },
+      { label: "Child Feedback", fileName: "4. Child Feedback Form - Print.docx" },
+      { label: "Parent Feedback", fileName: "5. Parent Feedback Form - Print.docx" }
+    ]
+  },
+  graduationSpanish: {
+    name: "Graduation packet",
+    description: "Spanish forms 2, 4, and 5.",
+    files: [
+      { label: "SP Questionnaire", fileName: "2. SP Questionnaire - Print.xlsx" },
+      { label: "SP Child Feedback", fileName: "4. SP Child Feedback Form - Print.docx" },
+      { label: "SP Parent Feedback", fileName: "5. SP Parent Feedback Form - Print.docx" }
+    ]
+  }
+});
+
+const profileV2ClientPrintFormRows = Object.freeze([
+  {
+    name: "Enrollment packet",
+    description: "Forms 1, 2, and 3. Use Spanish versions for Spanish-language appointments.",
+    files: [...printFormPackets.enrollment.files, ...printFormPackets.enrollmentSpanish.files]
+  },
+  {
+    name: "Graduation packet",
+    description: "Forms 2, 4, and 5. Use Spanish versions for Spanish-language appointments.",
+    files: [...printFormPackets.graduation.files, ...printFormPackets.graduationSpanish.files]
+  }
+]);
+
+function appointmentUsesSpanishForms(appointment) {
+  const clients = appointmentClientRecords(appointment);
+  const values = [
+    appointment.publicBookingServiceId,
+    appointment.publicBookingServiceLabel,
+    ...clients.map((client) => client.preferredLanguage)
+  ].map(normalizedLookupKey);
+
+  return values.some((value) => value.includes("spanish") || value.includes("espanol"));
+}
+
+function schedulingV2AppointmentPrintFormPacket(appointment) {
+  const useSpanish = appointmentUsesSpanishForms(appointment);
+
+  if (appointmentTypeLabel(appointment) === "Enrollment") {
+    return useSpanish ? printFormPackets.enrollmentSpanish : printFormPackets.enrollment;
+  }
+
+  if (appointmentLessonNumber(appointment) === 7 || normalizedLookupKey(appointmentLessonTopicTitle(appointment)).includes("healthy habits")) {
+    return useSpanish ? printFormPackets.graduationSpanish : printFormPackets.graduation;
+  }
+
+  return null;
+}
+
+function renderPrintFormLinksHtml(files, className) {
+  const classAttribute = className ? ` class="${escapeHtml(className)}"` : "";
+
+  return `<div${classAttribute}>${files.map((file) => `
+    <a href="${escapeHtml(profileV2PrintFormHref(file.fileName))}" download="${escapeHtml(file.fileName)}">${escapeHtml(file.label)}</a>
+  `).join("")}</div>`;
+}
+
+function schedulingV2AppointmentFormItems(appointment) {
+  const clients = appointmentClientRecords(appointment);
+  const isEnrollment = appointmentTypeLabel(appointment) === "Enrollment";
+  const hasYccoClient = clients.some((client) => truthyProfileValue(client.ycco));
+  const forms = isEnrollment
+    ? [
+      "Enrollment form",
+      "Questionnaire for each child",
+      ...(hasYccoClient ? ["HRSN screener"] : []),
+      "SNACK sticker"
+    ]
+    : [
+      `${appointmentLessonTopicTitle(appointment) || "Nutrition education"} note sheet`,
+      "Lesson handouts",
+      "Goal tracker"
+    ];
+
+  return forms;
+}
+
+function renderSchedulingV2FormsTab(appointment) {
+  const forms = schedulingV2AppointmentFormItems(appointment);
+  const packet = schedulingV2AppointmentPrintFormPacket(appointment);
+
+  return `
+    <section class="scheduling-v2-visit-card scheduling-v2-forms-card">
+      <div>
+        <h4>Forms</h4>
+      </div>
+      <div class="scheduling-v2-form-actions">
+        <button data-scheduling-action="print-current-note" type="button">${schedulingV2Icon("print")}Print Appt Note</button>
+        <button data-scheduling-action="print-current-prep" type="button">${schedulingV2Icon("print")}Print Prep</button>
+        <button data-scheduling-action="print-schedule" type="button">${schedulingV2Icon("print")}Print Day Schedule</button>
+      </div>
+      <div class="scheduling-v2-form-list">
+        <h5>Likely Needed</h5>
+        ${packet ? `
+          <p>${escapeHtml(packet.description)}</p>
+          ${renderPrintFormLinksHtml(packet.files, "scheduling-v2-form-links")}
+        ` : ""}
+        ${forms.length ? `
+          <ul>
+            ${forms.map((formName) => `<li>${escapeHtml(formName)}</li>`).join("")}
+          </ul>
+        ` : "<p>No forms mapped for this appointment yet.</p>"}
+      </div>
+    </section>
+  `;
+}
+
+function renderSchedulingV2PlaceholderTab(title, body) {
+  return `
+    <section class="scheduling-v2-visit-card scheduling-v2-placeholder-card">
+      <div>
+        <h4>${escapeHtml(title)}</h4>
+      </div>
+      <p>${escapeHtml(body)}</p>
+    </section>
+  `;
+}
+
 function renderSchedulingV2Detail(appointment) {
   if (!appointment) {
     return `
       <section class="scheduling-v2-detail-card scheduling-v2-empty-detail" aria-label="Appointment preview">
         <p class="eyebrow">Appointment</p>
         <h3>No appointment selected</h3>
-        <p>Choose an appointment from the agenda to preview the new detail layout.</p>
       </section>
     `;
   }
@@ -6996,97 +9331,106 @@ function renderSchedulingV2Detail(appointment) {
   const prepItems = appointmentPrepItems(appointment);
   const goalText = appointmentGoalText(appointment);
   const appointmentTimeText = `${formatAppointmentTime(appointment.appointmentTime) || "Time TBD"} - ${formatDuration(appointmentDurationMinutes(appointment))}`;
-  const status = appointment.status || "Scheduled";
+  const status = appointmentDisplayStatus(appointment);
+  const isBlockedTime = status === "Blocked";
+  const carriesGoal = appointmentCarriesGoal(appointment);
+  const appointmentCardTitle = isBlockedTime ? "Blocked Time" : "Details";
+  const detailTabs = isBlockedTime
+    ? [["details", "Details", "calendar"], ["activity", "Activity", "history"]]
+    : [["appt-note", "Appt Note", "calendar"], ["wrap-up", "Wrap Up", "check"], ["activity", "Activity", "history"], ["forms", "Forms", "file"]];
+  const lessonRows = [];
+
+  if (carriesGoal) {
+    lessonRows.push(["Lesson", appointmentLessonLabel(appointment) || "-"]);
+  }
+
+  lessonRows.push(["Staff", appointment.staffMember || "-"]);
+
+  if (carriesGoal) {
+    lessonRows.push(["Goal", goalText || "-"]);
+  }
+
+  lessonRows.push(["Notes", appointmentNotesText(appointment) || "-"]);
+
+  const activeTab = detailTabs.some(([key]) => key === activeSchedulingV2DetailTab)
+    ? activeSchedulingV2DetailTab
+    : detailTabs[0][0];
+  activeSchedulingV2DetailTab = activeTab;
+  const detailContent = isBlockedTime
+    ? activeTab === "activity"
+      ? renderSchedulingV2ActivityTab(appointment)
+      : renderSchedulingV2AppointmentCard(appointment, lessonRows, appointmentCardTitle)
+    : activeTab === "wrap-up"
+      ? renderSchedulingV2WrapUpTab(appointment)
+      : activeTab === "activity"
+        ? renderSchedulingV2ActivityTab(appointment)
+        : activeTab === "forms"
+          ? renderSchedulingV2FormsTab(appointment)
+          : `${renderSchedulingV2AppointmentCard(appointment, lessonRows, appointmentCardTitle)}${renderSchedulingV2PrepCard(prepItems)}`;
 
   return `
-    <section class="scheduling-v2-detail-card" aria-label="Selected appointment preview">
-      <button class="scheduling-v2-detail-close" type="button" aria-label="Close preview">${schedulingV2Icon("close")}</button>
+    <section class="scheduling-v2-detail-card ${isBlockedTime ? "scheduling-v2-blocked-detail" : ""}" aria-label="Selected appointment preview">
       <div class="scheduling-v2-detail-left">
-        <div class="scheduling-v2-selected-status">
+        <div class="scheduling-v2-selected-status ${isBlockedTime ? "blocked" : ""}">
           <span class="scheduling-v2-status-dot" aria-hidden="true"></span>
-          <span>${escapeHtml(status)}</span>
+          <span>${escapeHtml(schedulingV2DisplayStatus(status))}</span>
         </div>
-        <h3>${escapeHtml(appointmentClientName(appointment))}</h3>
+        <h3>${escapeHtml(schedulingV2AgendaCardName([appointment]))}</h3>
         <div class="scheduling-v2-detail-meta">
-          ${schedulingV2InfoRow(`${schedulingV2Icon("calendar")}Date`, formatDateOnly(appointment.appointmentDate))}
+          ${schedulingV2InfoRow(`${schedulingV2Icon("calendar")}Date`, formatFullDate(appointment.appointmentDate))}
           ${schedulingV2InfoRow(`${schedulingV2Icon("clock")}Time`, appointmentTimeText)}
-          ${schedulingV2InfoRow(`${schedulingV2Icon("users")}Family`, appointmentClientCount(appointment) > 1 ? `Caregiver + ${appointmentClientCount(appointment)}` : primaryClient.caregiver || "-")}
+          ${isBlockedTime
+    ? schedulingV2InfoRow(`${schedulingV2Icon("users")}Staff`, appointment.staffMember || "-")
+    : schedulingV2InfoRow(`${schedulingV2Icon("file")}Type`, appointmentTypeLabel(appointment))}
         </div>
-        <section class="scheduling-v2-family-card">
+        ${isBlockedTime ? "" : `<section class="scheduling-v2-family-card">
           <h4>${schedulingV2Icon("users")}Family</h4>
           ${schedulingV2InfoRow("Caregiver", primaryClient.caregiver || "-")}
-          ${schedulingV2InfoRow("Children", clients.map((client) => client.name).join(", ") || "-")}
+          ${schedulingV2StackedClientLinks("Siblings", clients)}
           ${schedulingV2InfoRow("Language", [...new Set(clients.map((client) => client.language).filter(Boolean))].join(", ") || "-")}
           ${schedulingV2InfoRow("Phone", primaryClient.phone || "-")}
           ${schedulingV2InfoRow("Address", primaryClient.address || "-")}
           ${primaryClient.id ? `<button data-scheduling-client="${escapeHtml(primaryClient.id)}" type="button">View Family Profile</button>` : ""}
-        </section>
+        </section>`}
       </div>
       <div class="scheduling-v2-detail-main">
-        <div class="scheduling-v2-detail-tabs" role="tablist" aria-label="Appointment preview tabs">
-          ${[
-    ["Visit Note", "calendar"],
-    ["Prep", "prep"],
-    ["History", "history"],
-    ["Files", "file"]
-  ].map(([tab, icon], index) => `
-            <button class="${index === 0 ? "active" : ""}" type="button" role="tab" aria-selected="${index === 0 ? "true" : "false"}">${schedulingV2Icon(icon)}${escapeHtml(tab)}</button>
-          `).join("")}
-        </div>
-        <section class="scheduling-v2-visit-card">
-          <div>
-            <h4>${schedulingV2Icon("file")}Lesson</h4>
-            <button data-scheduling-action="edit" type="button">Edit</button>
-          </div>
-          <dl>
-            <div><dt>Type</dt><dd>${escapeHtml(appointmentTypeLabel(appointment))}</dd></div>
-            <div><dt>Lesson</dt><dd>${escapeHtml(appointmentLessonLabel(appointment) || "-")}</dd></div>
-            <div><dt>Goal</dt><dd>${escapeHtml(goalText || "-")}</dd></div>
-            <div><dt>Staff</dt><dd>${escapeHtml(appointment.staffMember || "-")}</dd></div>
-            <div><dt>Notes</dt><dd>${escapeHtml(appointmentNotesText(appointment) || "-")}</dd></div>
-          </dl>
-        </section>
-        <section class="scheduling-v2-visit-card scheduling-v2-prep-card">
-          <div>
-            <h4>${schedulingV2Icon("prep")}Prep</h4>
-            <button data-scheduling-action="print-prep" type="button">Print</button>
-          </div>
-          ${prepItems.length ? `
-            <ul>
-              ${prepItems.slice(0, 6).map((item) => `
-                <li>
-                  <label>
-                    <input type="checkbox">
-                    <span>${escapeHtml(item)}</span>
-                  </label>
-                </li>
-              `).join("")}
-            </ul>
-          ` : "<p>No prep items for this appointment.</p>"}
-        </section>
-        <section class="scheduling-v2-check-in-card">
-          <div>
-            <h4>${schedulingV2Icon("check")}Check In</h4>
-            <button data-scheduling-action="check-in" type="button">Edit</button>
-          </div>
-          <div class="scheduling-v2-check-grid">
-            ${schedulingV2InfoRow("Caregiver Mood", "Good")}
-            ${schedulingV2InfoRow("Confidence", "High")}
-            ${schedulingV2InfoRow("Participation", "Engaged")}
-            ${schedulingV2InfoRow("Barriers", "None reported")}
-          </div>
-        </section>
-        <div class="scheduling-v2-actions">
+        ${renderSchedulingV2DetailTabs(detailTabs)}
+        ${detailContent}
+        ${isBlockedTime && activeTab === "details" ? `<div class="scheduling-v2-actions scheduling-v2-actions-blocked">
+          <button data-scheduling-action="edit" type="button">Edit Block</button>
+          <button data-scheduling-action="delete" type="button">Delete Block</button>
+        </div>` : ""}
+        ${!isBlockedTime && activeTab === "appt-note" ? `<div class="scheduling-v2-actions">
           <button data-scheduling-action="complete" type="button">${schedulingV2Icon("check")}Mark Complete</button>
           <button data-scheduling-action="reschedule" type="button">${schedulingV2Icon("calendar")}Reschedule</button>
           <button data-scheduling-action="no-show" type="button">No Show</button>
-        </div>
+        </div>` : ""}
       </div>
     </section>
   `;
 }
 
 function bindSchedulingV2PreviewActions(selectedAppointment) {
+  schedulingV2Preview.querySelectorAll("[data-scheduling-nav-module]").forEach((button) => {
+    button.addEventListener("click", () => {
+      activeSchedulingPreviewNavModule = button.dataset.schedulingNavModule || "Schedule";
+      const moduleTarget = {
+        Schedule: "scheduling",
+        CRM: "crm",
+        Outreach: "outreach",
+        Fundraising: "fundraising",
+        Admin: "admin"
+      }[activeSchedulingPreviewNavModule];
+
+      if (moduleTarget && moduleTarget !== "scheduling") {
+        setActiveModule(moduleTarget);
+        return;
+      }
+
+      renderSchedulingV2Preview();
+    });
+  });
+
   schedulingV2Preview.querySelectorAll("[data-scheduling-date]").forEach((button) => {
     button.addEventListener("click", () => {
       if (button.dataset.schedulingDate === "today") {
@@ -7102,14 +9446,95 @@ function bindSchedulingV2PreviewActions(selectedAppointment) {
   const dateInput = schedulingV2Preview.querySelector("[data-scheduling-date-input]");
   dateInput?.addEventListener("change", () => setSchedulingPreviewDate(dateInput.value));
 
+  schedulingV2Preview.querySelector("[data-scheduling-date-picker-toggle]")?.addEventListener("click", () => {
+    rememberSchedulingV2AgendaScroll();
+    schedulingV2DatePickerOpen = !schedulingV2DatePickerOpen;
+    renderSchedulingV2Preview();
+  });
+
+  schedulingV2Preview.querySelectorAll("[data-scheduling-calendar-month]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const currentDate = new Date(`${visibleSchedulingPreviewDate}T00:00:00`);
+      currentDate.setMonth(currentDate.getMonth() + Number(button.dataset.schedulingCalendarMonth || 0));
+      visibleSchedulingPreviewDate = toDateString(currentDate);
+      selectedSchedulingPreviewAppointmentId = null;
+      activeSchedulingV2Panel = "appointment";
+      activeSchedulingV2DetailTab = "appt-note";
+      clearSchedulingV2InlineState();
+      schedulingV2DatePickerOpen = true;
+      renderSchedulingV2Preview();
+    });
+  });
+
+  schedulingV2Preview.querySelectorAll("[data-scheduling-calendar-date]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const dateKey = button.dataset.schedulingCalendarDate;
+      if (dateKey) {
+        schedulingV2DatePickerOpen = false;
+        setSchedulingPreviewDate(dateKey);
+      }
+    });
+  });
+
+  schedulingV2Preview.querySelectorAll("[data-scheduling-empty-slot]").forEach((button) => {
+    button.addEventListener("click", () => {
+      rememberSchedulingV2AgendaScroll();
+      startSchedulingV2InlineForm("new", {
+        appointmentDate: visibleSchedulingPreviewDate,
+        appointmentTime: button.dataset.schedulingEmptySlot || "",
+        appointmentType: "Nutrition Education",
+        status: "Scheduled"
+      });
+    });
+    button.addEventListener("dragover", (event) => {
+      if (Array.from(event.dataTransfer?.types || []).includes("text/plain")) {
+        event.preventDefault();
+      }
+    });
+    button.addEventListener("drop", (event) => {
+      const clientId = event.dataTransfer?.getData("text/plain") || "";
+      if (!clientId || !loadedClients.some((client) => client.id === clientId)) {
+        return;
+      }
+
+      event.preventDefault();
+      rememberSchedulingV2AgendaScroll();
+      startSchedulingV2InlineForm("new", {
+        appointmentDate: visibleSchedulingPreviewDate,
+        appointmentTime: button.dataset.schedulingEmptySlot || "",
+        appointmentType: "Nutrition Education",
+        status: "Scheduled",
+        clientId,
+        clientIds: [clientId]
+      });
+    });
+  });
+
   schedulingV2Preview.querySelectorAll("[data-scheduling-preview-view]").forEach((button) => {
     button.addEventListener("click", () => setSchedulingPreviewView(button.dataset.schedulingPreviewView));
   });
 
   schedulingV2Preview.querySelectorAll("[data-scheduling-preview-appointment]").forEach((button) => {
     button.addEventListener("click", () => {
+      rememberSchedulingV2AgendaScroll();
       selectedSchedulingPreviewAppointmentId = button.dataset.schedulingPreviewAppointment;
       selectedAppointmentId = selectedSchedulingPreviewAppointmentId;
+      if (button.dataset.schedulingPreviewDate) {
+        visibleSchedulingPreviewDate = button.dataset.schedulingPreviewDate;
+      }
+      activeSchedulingV2Panel = "appointment";
+      activeSchedulingV2DetailTab = "appt-note";
+      clearSchedulingV2InlineState();
+      renderSchedulingV2Preview();
+    });
+  });
+
+  schedulingV2Preview.querySelectorAll("[data-scheduling-detail-tab]").forEach((button) => {
+    button.addEventListener("click", () => {
+      rememberSchedulingV2AgendaScroll();
+      activeSchedulingV2DetailTab = button.dataset.schedulingDetailTab || "appt-note";
+      clearSchedulingV2InlineState();
+      activeSchedulingV2Panel = "appointment";
       renderSchedulingV2Preview();
     });
   });
@@ -7118,32 +9543,205 @@ function bindSchedulingV2PreviewActions(selectedAppointment) {
     button.addEventListener("click", () => setSelectedClient(button.dataset.schedulingClient));
   });
 
-  schedulingV2Preview.querySelectorAll("[data-scheduling-action]").forEach((button) => {
+  schedulingV2Preview.querySelectorAll("[data-scheduling-unscheduled-client]").forEach((button) => {
     button.addEventListener("click", () => {
+      rememberSchedulingV2AgendaScroll();
+      const clientId = button.dataset.schedulingUnscheduledClient;
+      startSchedulingV2InlineForm("new", {
+        appointmentDate: visibleSchedulingPreviewDate,
+        appointmentType: "Nutrition Education",
+        status: "Scheduled",
+        clientId,
+        clientIds: [clientId]
+      });
+    });
+  });
+
+  schedulingV2Preview.querySelectorAll("[data-scheduling-unscheduled-drag]").forEach((row) => {
+    row.addEventListener("dragstart", (event) => {
+      event.dataTransfer?.setData("text/plain", row.dataset.schedulingUnscheduledDrag || "");
+      event.dataTransfer?.setData("application/x-snack-client-id", row.dataset.schedulingUnscheduledDrag || "");
+      event.dataTransfer.effectAllowed = "copy";
+    });
+  });
+
+  schedulingV2Preview.querySelectorAll("[data-scheduling-wrap-field]").forEach((field) => {
+    field.addEventListener("change", () => {
+      const key = field.dataset.schedulingWrapField;
+
+      if (!key || !selectedAppointment || field.closest("[data-scheduling-v2-complete-form]")) {
+        return;
+      }
+
+      saveAppointmentInlineUpdates(selectedAppointment, { [key]: field.value }, "Wrap Up saved.");
+    });
+  });
+
+  schedulingV2Preview.querySelectorAll("[data-scheduling-staff-select]").forEach((field) => {
+    field.dataset.previousStaff = field.value || "";
+    field.addEventListener("focus", () => {
+      field.dataset.previousStaff = field.value || "";
+    });
+    field.addEventListener("change", () => {
+      if (field.value !== "__add_staff__") {
+        field.dataset.previousStaff = field.value || "";
+        return;
+      }
+
+      const newStaffName = saveSchedulingStaffMember(window.prompt("Staff member name") || "");
+      if (!newStaffName) {
+        field.value = field.dataset.previousStaff || "";
+        return;
+      }
+
+      const addOption = field.querySelector("option[value='__add_staff__']");
+      if (![...field.options].some((option) => option.value === newStaffName)) {
+        const option = document.createElement("option");
+        option.value = newStaffName;
+        option.textContent = newStaffName;
+        field.insertBefore(option, addOption);
+      }
+      field.value = newStaffName;
+      field.dataset.previousStaff = newStaffName;
+    });
+  });
+
+  schedulingV2Preview.querySelectorAll("[data-scheduling-v2-inline-form]").forEach((form) => {
+    form.querySelectorAll('[name="status"], [name="appointmentDate"], [name="appointmentTime"], [name="appointmentType"], [name="lesson"], [name="goal"], [name="staffMember"], [name="notes"]').forEach((field) => {
+      const syncDraftField = () => {
+        if (field.name === "staffMember" && field.value === "__add_staff__") {
+          return;
+        }
+
+        rememberSchedulingV2AgendaScroll();
+        syncSchedulingV2InlineDraftFromForm(form, { rerender: true });
+      };
+
+      field.addEventListener("change", syncDraftField);
+      if (field.name === "appointmentDate") {
+        field.addEventListener("input", syncDraftField);
+      }
+    });
+
+    form.querySelector('input[name="clientSearch"]')?.addEventListener("change", () => {
+      const input = form.querySelector('input[name="clientSearch"]');
+      const clientSearchName = String(input?.value || "").trim();
+      const matchedClient = clientSearchName
+        ? loadedClients.find((client) => normalizedLookupKey(clientName(client)) === normalizedLookupKey(clientSearchName))
+        : null;
+
+      if (matchedClient) {
+        addSchedulingV2InlineClient(form);
+      }
+    });
+  });
+
+  schedulingV2Preview.querySelectorAll("[data-scheduling-v2-inline-form]").forEach((form) => {
+    form.addEventListener("submit", saveSchedulingV2InlineForm);
+  });
+  schedulingV2Preview.querySelectorAll("[data-scheduling-v2-complete-form]").forEach((form) => {
+    form.addEventListener("submit", saveSchedulingV2InlineCompletion);
+  });
+
+  schedulingV2Preview.querySelectorAll("[data-scheduling-action]").forEach((button) => {
+    button.addEventListener("click", async () => {
       const action = button.dataset.schedulingAction;
 
       if (action === "new") {
-        startNewAppointment({ appointmentDate: visibleSchedulingPreviewDate });
+        rememberSchedulingV2AgendaScroll();
+        startSchedulingV2InlineForm("new", { appointmentDate: visibleSchedulingPreviewDate });
       } else if (action === "classic") {
         setSchedulingDesign("classic");
+      } else if (action === "toggle-sidebar") {
+        schedulingV2SidebarCollapsed = !schedulingV2SidebarCollapsed;
+        rememberSchedulingV2AgendaScroll();
+        renderSchedulingV2Preview();
       } else if (action === "print-schedule") {
         printScheduleForDate(visibleSchedulingPreviewDate);
       } else if (action === "print-notes") {
         printAppointmentNoteSheetsForDate(visibleSchedulingPreviewDate);
       } else if (action === "print-prep") {
         printPrepSheetsForDate(visibleSchedulingPreviewDate);
+      } else if (action === "print-current-note" && selectedAppointment) {
+        printAppointmentNoteSheetForAppointment(selectedAppointment);
+      } else if (action === "print-current-prep" && selectedAppointment) {
+        printPrepSheetForAppointment(selectedAppointment);
+      } else if (action === "block-time") {
+        rememberSchedulingV2AgendaScroll();
+        startSchedulingV2InlineForm("block", { appointmentDate: visibleSchedulingPreviewDate });
+      } else if (action === "view-unscheduled") {
+        const agenda = schedulingV2Preview.querySelector(".scheduling-v2-agenda");
+        schedulingV2AgendaScrollTop = agenda?.scrollTop || schedulingV2AgendaScrollTop;
+        activeSchedulingV2Panel = "unscheduled";
+        renderSchedulingV2Preview();
+      } else if (action === "placeholder") {
+        appointmentsStatusEl.textContent = "This quick action is a placeholder while we map the rest of the modules.";
+      } else if (action === "close-detail") {
+        rememberSchedulingV2AgendaScroll();
+        activeSchedulingV2Panel = "appointment";
+        activeSchedulingV2DetailTab = "appt-note";
+        clearSchedulingV2InlineState();
+        renderSchedulingV2Preview();
+      } else if (action === "cancel-inline") {
+        rememberSchedulingV2AgendaScroll();
+        cancelSchedulingV2InlineForm();
+      } else if (action === "add-inline-client") {
+        const form = button.closest("[data-scheduling-v2-inline-form]");
+        if (form) {
+          addSchedulingV2InlineClient(form);
+        }
+      } else if (action === "remove-inline-client") {
+        const form = button.closest("[data-scheduling-v2-inline-form]");
+        if (form) {
+          removeSchedulingV2InlineClient(form, button.dataset.clientId || "");
+        }
+      } else if (action === "remove-inline-client-name") {
+        const form = button.closest("[data-scheduling-v2-inline-form]");
+        if (form) {
+          removeSchedulingV2InlineClientName(form, button.dataset.clientName || "");
+        }
       } else if (action === "edit" && selectedAppointment) {
+        rememberSchedulingV2AgendaScroll();
         selectedAppointmentId = selectedAppointment.id;
-        startEditingAppointment(selectedAppointment);
-        openAppointmentModal();
+        if (appointmentDisplayStatus(selectedAppointment) === "Blocked") {
+          startSchedulingV2InlineForm("block", selectedAppointment);
+        } else {
+          schedulingV2InlineMode = "edit";
+          schedulingV2InlineAppointmentId = selectedAppointment.id;
+          schedulingV2InlineDefaults = { ...selectedAppointment };
+          activeSchedulingV2Panel = "appointment";
+          renderSchedulingV2Preview();
+        }
       } else if (action === "complete" && selectedAppointment) {
-        startCompletingAppointment(selectedAppointment);
+        rememberSchedulingV2AgendaScroll();
+        selectedAppointmentId = selectedAppointment.id;
+        activeSchedulingV2Panel = "appointment";
+        activeSchedulingV2DetailTab = "wrap-up";
+        clearSchedulingV2InlineState();
+        renderSchedulingV2Preview();
       } else if (action === "reschedule" && selectedAppointment) {
-        startReschedulingAppointment(selectedAppointment);
+        rememberSchedulingV2AgendaScroll();
+        selectedAppointmentId = selectedAppointment.id;
+        startSchedulingV2InlineForm("reschedule", selectedAppointment);
       } else if (action === "no-show" && selectedAppointment) {
-        updateAppointmentStatus(selectedAppointment, "No-show");
-      } else if (action === "check-in") {
-        appointmentsStatusEl.textContent = "Check-in workflow will be wired after the preview layout is approved.";
+        rememberSchedulingV2AgendaScroll();
+        await updateAppointmentStatus(selectedAppointment, "No-show");
+      } else if (action === "check-in" && selectedAppointment) {
+        rememberSchedulingV2AgendaScroll();
+        startEditingAppointmentCheckIn(selectedAppointment);
+      } else if (action === "delete" && selectedAppointment) {
+        rememberSchedulingV2AgendaScroll();
+        selectedAppointmentId = selectedAppointment.id;
+        deleteAppointment();
+      } else if (action === "delete-inline") {
+        rememberSchedulingV2AgendaScroll();
+        const source = schedulingV2InlineSourceAppointment();
+        if (source?.id) {
+          selectedAppointmentId = source.id;
+          deleteAppointment();
+          clearSchedulingV2InlineState();
+          activeSchedulingV2Panel = "appointment";
+        }
       }
     });
   });
@@ -7154,22 +9752,31 @@ function renderSchedulingV2Preview() {
     return;
   }
 
+  if (!["day", "week", "month"].includes(activeSchedulingPreviewView)) {
+    activeSchedulingPreviewView = "day";
+  }
+
   const dateAppointments = schedulingPreviewAppointmentsForDate();
-  const selectedAppointment = schedulingPreviewSelectedAppointment(dateAppointments);
+  const agendaAppointments = schedulingV2PreviewAgendaAppointments(dateAppointments);
+  const selectedAppointment = schedulingPreviewSelectedAppointment(agendaAppointments.length ? agendaAppointments : dateAppointments);
+  const detailPanel = activeSchedulingV2Panel === "unscheduled"
+    ? renderSchedulingV2UnscheduledPanel()
+    : activeSchedulingV2Panel === "inline"
+      ? schedulingV2InlineMode === "complete" ? renderSchedulingV2InlineCompletionForm() : renderSchedulingV2InlineForm()
+      : renderSchedulingV2Detail(selectedAppointment);
 
   schedulingV2Preview.innerHTML = `
-    <div class="scheduling-v2-shell">
+    <div class="scheduling-v2-shell ${schedulingV2SidebarCollapsed ? "sidebar-collapsed" : ""}">
       ${renderSchedulingV2Sidebar()}
       <div class="scheduling-v2-main">
-        ${renderSchedulingV2Topbar()}
         <div class="scheduling-v2-content">
           ${renderSchedulingV2PageHeader()}
           <div class="scheduling-v2-workspace">
             <div class="scheduling-v2-agenda-column">
               ${renderSchedulingV2Controls(dateAppointments)}
-              ${renderSchedulingV2Agenda(dateAppointments)}
+              ${renderSchedulingV2ScheduleView(agendaAppointments)}
             </div>
-            ${renderSchedulingV2Detail(selectedAppointment)}
+            ${detailPanel}
           </div>
         </div>
       </div>
@@ -7177,10 +9784,21 @@ function renderSchedulingV2Preview() {
   `;
 
   bindSchedulingV2PreviewActions(selectedAppointment);
+  const agenda = schedulingV2Preview.querySelector(".scheduling-v2-agenda");
+  if (agenda && activeSchedulingPreviewView === "day") {
+    const targetScrollTop = schedulingV2AgendaScrollTop;
+    agenda.scrollTop = targetScrollTop;
+    window.requestAnimationFrame(() => {
+      const nextAgenda = schedulingV2Preview.querySelector(".scheduling-v2-agenda");
+      if (nextAgenda && activeSchedulingPreviewView === "day") {
+        nextAgenda.scrollTop = targetScrollTop;
+      }
+    });
+  }
 }
 
 function renderSchedulingDesign() {
-  const showPreview = activeSchedulingDesign === "v2";
+  const showPreview = activeModule === "scheduling" && activeSchedulingDesign === "v2";
   schedulingClassicView.hidden = showPreview;
   schedulingV2Preview.hidden = !showPreview;
   schedulingClassicViewButton.classList.toggle("active", !showPreview);
@@ -7239,7 +9857,7 @@ function renderAppointments() {
       formatAppointmentDateTime(appointment),
       appointmentClientName(appointment),
       appointmentStatusBadge(appointment.status),
-      appointment.lesson || "-",
+      appointmentLessonLabel(appointment) || "-",
       appointment.staffMember || "-"
     ];
 
@@ -7571,17 +10189,7 @@ function appointmentLessonTopicTitle(appointment) {
   }
 
   const lesson = appointmentLessonNumber(appointment);
-  const titles = {
-    1: "Nutrient Density",
-    2: "Sugar",
-    3: "Food Groups",
-    4: "Macronutrients",
-    5: "Micronutrients",
-    6: "Mindful Eating",
-    7: "Healthy Habits"
-  };
-
-  return titles[lesson] || appointmentLessonLabel(appointment) || appointmentTypeLabel(appointment);
+  return appointmentLessonTitle(lesson) || appointmentLessonLabel(appointment) || appointmentTypeLabel(appointment);
 }
 
 function appointmentNotePromptSections(appointment) {
@@ -7805,6 +10413,24 @@ function printPrepSheets() {
   printPrepSheetsForDate(todayDateString());
 }
 
+function printPrepSheetForAppointment(appointment) {
+  if (!appointment) {
+    appointmentsStatusEl.textContent = "Choose an appointment before printing prep.";
+    return;
+  }
+
+  const prepItems = appointmentPrepItems(appointment);
+
+  if (!prepItems.length) {
+    appointmentsStatusEl.textContent = "This appointment does not have prep items yet.";
+    return;
+  }
+
+  if (printPreparedDocument("Appointment Prep Sheet", formatDateOnly(appointment.appointmentDate), appointmentPrepPrintCard(appointment))) {
+    appointmentsStatusEl.textContent = "Print dialog opened for this appointment prep sheet.";
+  }
+}
+
 function printAppointmentNoteSheetsForDate(dateKey = todayDateString()) {
   const appointments = printableAppointmentsForDate(dateKey);
 
@@ -7823,6 +10449,17 @@ function printAppointmentNoteSheetsForDate(dateKey = todayDateString()) {
 
 function printAppointmentNoteSheets() {
   printAppointmentNoteSheetsForDate(todayDateString());
+}
+
+function printAppointmentNoteSheetForAppointment(appointment) {
+  if (!appointment) {
+    appointmentsStatusEl.textContent = "Choose an appointment before printing a note sheet.";
+    return;
+  }
+
+  if (printPreparedDocument("", formatDateOnly(appointment.appointmentDate), appointmentNotePrintCard(appointment))) {
+    appointmentsStatusEl.textContent = "Print dialog opened for this appointment note.";
+  }
 }
 
 function renderClientSummary() {
@@ -8083,6 +10720,300 @@ function mostRecentAppointmentDate(client) {
 
 function clientFlowAppointmentDate(client) {
   return mostRecentAppointmentDate(client) || client.lastAppointmentDate || client.firstAppointmentDate || "";
+}
+
+function profileV2StatusAccent(status) {
+  const key = String(status || "").toLowerCase();
+  if (key.includes("reschedule") || key.includes("no show") || key.includes("closed") || key.includes("not interested")) {
+    return "var(--brand-red)";
+  }
+  if (key.includes("scheduled") || key.includes("complete")) {
+    return "var(--brand-green)";
+  }
+  if (key.includes("active")) {
+    return "var(--brand-blue)";
+  }
+  if (key.includes("waiting") || key.includes("call back") || key.includes("watch")) {
+    return "var(--brand-purple)";
+  }
+  if (key.includes("voicemail") || key.includes("texted") || key.includes("emailed") || key.includes("contact")) {
+    return "var(--brand-orange)";
+  }
+  return "var(--brand-green)";
+}
+
+function profileV2StatusLabel(status, fallback = "Active") {
+  return displayValue(status || fallback).replace(/^Needs Reschedule$/i, "Reschedule");
+}
+
+function renderProfileV2List(container, records, options) {
+  container.innerHTML = "";
+  container.classList.add("profile-v2-flow-list");
+
+  if (!records.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = options.emptyText;
+    container.append(empty);
+    return;
+  }
+
+  for (const record of records) {
+    const status = options.status(record);
+    const row = document.createElement("button");
+    row.className = "profile-v2-list-item";
+    row.type = "button";
+    row.style.setProperty("--profile-accent", profileV2StatusAccent(status));
+    row.setAttribute("aria-label", `Open ${options.name(record)}`);
+
+    if (record.id === options.selectedId) {
+      row.classList.add("active");
+      row.setAttribute("aria-current", "true");
+    }
+
+    const name = document.createElement("strong");
+    name.textContent = options.name(record);
+    const pill = document.createElement("span");
+    pill.className = "profile-v2-pill";
+    pill.textContent = profileV2StatusLabel(status, options.fallbackStatus);
+    row.append(pill, name);
+    row.addEventListener("click", () => options.onOpen(record));
+    container.append(row);
+  }
+}
+
+function profileV2Field(label, value, className = "") {
+  const field = document.createElement("div");
+  field.className = `profile-v2-field${className ? ` ${className}` : ""}`;
+  const labelEl = document.createElement("span");
+  labelEl.textContent = label;
+  const valueEl = document.createElement("strong");
+  if (value instanceof Node) {
+    valueEl.append(value);
+  } else {
+    valueEl.textContent = displayValue(value);
+  }
+  field.append(labelEl, valueEl);
+  return field;
+}
+
+function renderProfileV2Card(titleText, fields, action) {
+  const card = document.createElement("section");
+  card.className = "profile-v2-card";
+
+  const header = document.createElement("div");
+  header.className = "profile-v2-card-header";
+  const title = document.createElement("h3");
+  title.textContent = titleText;
+  header.append(title);
+
+  if (action) {
+    const button = document.createElement("button");
+    button.className = "profile-v2-edit";
+    button.type = "button";
+    button.textContent = action.label;
+    button.addEventListener("click", action.onClick);
+    header.append(button);
+  }
+
+  const grid = document.createElement("div");
+  grid.className = "profile-v2-detail-grid";
+  for (const field of fields) {
+    grid.append(profileV2Field(field.label, field.value, field.className || ""));
+  }
+
+  card.append(header, grid);
+  return card;
+}
+
+function profileV2Siblings(record, moduleName) {
+  const records = moduleName === "clients" ? loadedClients : loadedReferrals;
+  const getName = moduleName === "clients" ? clientName : referralName;
+  const selectRecord = moduleName === "clients" ? setSelectedClient : setSelectedReferral;
+  const siblingIds = Array.isArray(record.siblingIds) ? record.siblingIds : [];
+  const siblings = siblingIds.map((id) => records.find((item) => item.id === id)).filter(Boolean);
+  const list = document.createElement("div");
+  list.className = "profile-v2-linked-list";
+
+  if (!siblings.length) {
+    const empty = document.createElement("strong");
+    empty.textContent = "None linked yet";
+    list.append(empty);
+  }
+
+  for (const sibling of siblings) {
+    const button = document.createElement("button");
+    button.className = "profile-v2-text-link";
+    button.type = "button";
+    button.textContent = firstNameFromFullName(getName(sibling)) || getName(sibling);
+    button.addEventListener("click", () => selectRecord(sibling.id));
+    list.append(button);
+  }
+
+  return list;
+}
+
+function profileV2SideInfo(label, value) {
+  const item = document.createElement("div");
+  item.className = "profile-v2-info";
+  const labelEl = document.createElement("span");
+  labelEl.textContent = label;
+  const valueEl = document.createElement("strong");
+  if (value instanceof Node) {
+    valueEl.append(value);
+  } else {
+    valueEl.textContent = displayValue(value);
+  }
+  item.append(labelEl, valueEl);
+  return item;
+}
+
+function profileV2MetaRow(label, value) {
+  const row = document.createElement("div");
+  row.className = "profile-v2-meta-row";
+  const labelEl = document.createElement("span");
+  labelEl.textContent = label;
+  const valueEl = document.createElement("strong");
+  valueEl.textContent = displayValue(value);
+  row.append(labelEl, valueEl);
+  return row;
+}
+
+function renderProfileV2Tabs(activeTab, onSelect) {
+  const tabs = document.createElement("nav");
+  tabs.className = "profile-v2-tabs";
+  tabs.setAttribute("aria-label", "Profile tabs");
+  const items = [
+    ["overview", "Overview"],
+    ["notes", "Notes"],
+    ["activity", "Activity"],
+    ["appointments", "Appointments"],
+    ["forms", "Forms"]
+  ];
+
+  for (const [tab, label] of items) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.classList.toggle("active", activeTab === tab);
+    button.dataset.profileTab = tab;
+    button.setAttribute("role", "tab");
+    button.setAttribute("aria-selected", String(activeTab === tab));
+    button.addEventListener("click", () => onSelect(tab));
+    tabs.append(button);
+  }
+
+  return tabs;
+}
+
+function renderProfileV2ActivityCard(record, moduleName, fallbackItems, onAddActivity) {
+  const card = document.createElement("section");
+  card.className = "profile-v2-card";
+  const header = document.createElement("div");
+  header.className = "profile-v2-card-header";
+  const title = document.createElement("h3");
+  title.textContent = "Activity";
+  const button = document.createElement("button");
+  button.className = "profile-v2-edit";
+  button.type = "button";
+  button.textContent = "Add Activity";
+  button.addEventListener("click", onAddActivity);
+  header.append(title, button);
+
+  const list = document.createElement("div");
+  list.className = "profile-v2-activity-list";
+  const items = [...profileActivityLogs(record, moduleName), ...fallbackItems]
+    .sort((first, second) => String(second.sortKey || "").localeCompare(String(first.sortKey || "")))
+    .slice(0, 8);
+
+  for (const item of items) {
+    const row = document.createElement("div");
+    row.className = "profile-v2-activity";
+    const copy = document.createElement("div");
+    const itemTitle = document.createElement("strong");
+    itemTitle.textContent = item.title;
+    copy.append(itemTitle);
+    for (const detailValue of (Array.isArray(item.detail) ? item.detail : [item.detail]).filter(Boolean)) {
+      const detail = document.createElement("span");
+      detail.textContent = detailValue;
+      copy.append(detail);
+    }
+    const date = document.createElement("span");
+    date.className = "profile-v2-pill";
+    date.textContent = profileDate(String(item.date || "").slice(0, 10));
+    row.append(copy, date);
+    list.append(row);
+  }
+
+  if (!list.children.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-inline";
+    empty.textContent = "No activity yet.";
+    list.append(empty);
+  }
+
+  card.append(header, list);
+  return card;
+}
+
+function profileV2PrintFormHref(fileName) {
+  return `./print-forms/${encodeURIComponent(fileName)}`;
+}
+
+function renderProfileV2FormLinks(files) {
+  const links = document.createElement("div");
+  links.className = "profile-v2-form-links";
+
+  for (const file of files) {
+    const anchor = document.createElement("a");
+    anchor.href = profileV2PrintFormHref(file.fileName);
+    anchor.download = file.fileName;
+    anchor.textContent = file.label;
+    links.append(anchor);
+  }
+
+  return links;
+}
+
+function renderProfileV2FormsCard(recordType = "client") {
+  const card = document.createElement("section");
+  card.className = "profile-v2-card";
+  const header = document.createElement("div");
+  header.className = "profile-v2-card-header";
+  const title = document.createElement("h3");
+  title.textContent = "Forms";
+  header.append(title);
+
+  const list = document.createElement("div");
+  list.className = "profile-v2-form-list";
+  const rows = recordType === "client"
+    ? profileV2ClientPrintFormRows
+    : [
+      {
+        name: "Referral intake",
+        description: "No referral-specific packet is mapped yet. Print client packets after conversion or scheduling.",
+        files: []
+      }
+    ];
+
+  for (const rowData of rows) {
+    const row = document.createElement("div");
+    row.className = "profile-v2-form-row";
+    const copy = document.createElement("div");
+    const rowTitle = document.createElement("strong");
+    rowTitle.textContent = rowData.name;
+    const detail = document.createElement("span");
+    detail.textContent = rowData.description;
+    copy.append(rowTitle, detail);
+    if (rowData.files.length) {
+      copy.append(renderProfileV2FormLinks(rowData.files));
+    }
+    row.append(copy);
+    list.append(row);
+  }
+
+  card.append(header, list);
+  return card;
 }
 
 function referralAppointments(referral) {
@@ -8630,7 +11561,7 @@ function renderClientRecentActivity(client) {
     .slice(0, 4)
     .map((appointment) => ({
       title: appointment.status === "Completed" ? "Appointment completed" : "Appointment scheduled",
-      detail: appointmentGoalText(appointment) || (appointment.lesson ? `Lesson ${appointment.lesson}` : "Enrollment appointment"),
+      detail: appointmentGoalText(appointment) || appointmentLessonLabel(appointment) || "Enrollment appointment",
       date: appointment.appointmentDate,
       sortKey: `${appointment.appointmentDate || ""}T${appointment.appointmentTime || "00:00"}`
     }));
@@ -8727,7 +11658,7 @@ function renderClientAppointmentGroup(titleText, appointments, emptyText) {
     ].filter(Boolean).join(" ");
     const detail = document.createElement("span");
     detail.textContent = [
-      appointment.lesson ? `Lesson ${appointment.lesson}` : "Enrollment",
+      appointmentLessonLabel(appointment) || "Enrollment",
       appointmentGoalText(appointment) || appointment.notes || ""
     ].filter(Boolean).join(" | ");
     copy.append(title, detail);
@@ -8930,7 +11861,7 @@ function renderReferralRecentActivity(referral) {
     .slice(0, 2)
     .map((appointment) => ({
       title: appointment.status === "Completed" ? "Appointment completed" : "Appointment scheduled",
-      detail: appointmentGoalText(appointment) || (appointment.lesson ? `Lesson ${appointment.lesson}` : "Enrollment appointment"),
+      detail: appointmentGoalText(appointment) || appointmentLessonLabel(appointment) || "Enrollment appointment",
       date: appointment.appointmentDate,
       sortKey: `${appointment.appointmentDate || ""}T${appointment.appointmentTime || "00:00"}`
     }));
@@ -8965,6 +11896,390 @@ function renderReferralRecentActivity(referral) {
 
   section.append(title, list);
   return section;
+}
+
+function renderClientProfileV2Side(client, statusSelect) {
+  const side = document.createElement("aside");
+  side.className = "profile-v2-side";
+
+  const titleWrap = document.createElement("div");
+  titleWrap.className = "profile-v2-title";
+  const status = document.createElement("span");
+  status.className = "profile-v2-status";
+  status.textContent = profileV2StatusLabel(client.status, "Scheduled");
+  const title = document.createElement("h2");
+  title.textContent = clientName(client);
+  titleWrap.append(status, title);
+
+  const meta = document.createElement("div");
+  meta.className = "profile-v2-meta";
+  meta.append(
+    profileV2MetaRow("First appointment", profileDate(client.firstAppointmentDate)),
+    profileV2MetaRow("Recent contact", profileDate(client.mostRecentContactDate)),
+    profileV2MetaRow("Caregiver", client.parentName)
+  );
+
+  const family = document.createElement("section");
+  family.className = "profile-v2-side-section";
+  const familyTitle = document.createElement("h3");
+  familyTitle.textContent = "Family";
+  family.append(
+    familyTitle,
+    profileV2SideInfo("Caregiver", client.parentName),
+    profileV2SideInfo("Siblings", profileV2Siblings(client, "clients")),
+    profileV2SideInfo("Language", client.preferredLanguage),
+    profileV2SideInfo("Phone", formatPhone(client.phone)),
+    profileV2SideInfo("Address", formatAddress(client))
+  );
+
+  const program = document.createElement("section");
+  program.className = "profile-v2-side-section";
+  const programTitle = document.createElement("h3");
+  programTitle.textContent = "Program";
+  program.append(
+    programTitle,
+    profileV2SideInfo("Status", statusSelect),
+    profileV2SideInfo("Current stage", currentLessonLabel(client)),
+    profileV2SideInfo("Provider profiles", providerLinksForDisplay(client).length
+      ? providerLinksForDisplay(client).map((link) => `${link.providerName} (${link.organizationName})`).join(", ")
+      : "None linked yet")
+  );
+
+  side.append(titleWrap, meta, family, program);
+  return side;
+}
+
+function renderReferralProfileV2Side(referral, statusSelect) {
+  const side = document.createElement("aside");
+  side.className = "profile-v2-side";
+
+  const titleWrap = document.createElement("div");
+  titleWrap.className = "profile-v2-title";
+  const status = document.createElement("span");
+  status.className = "profile-v2-status";
+  status.textContent = profileV2StatusLabel(normalizeStatus(referral.status), "New");
+  const title = document.createElement("h2");
+  title.textContent = referralName(referral);
+  titleWrap.append(status, title);
+
+  const meta = document.createElement("div");
+  meta.className = "profile-v2-meta";
+  meta.append(
+    profileV2MetaRow("Referral date", profileDate(referral.referralDate)),
+    profileV2MetaRow("Recent contact", profileDate(referral.mostRecentContactDate)),
+    profileV2MetaRow("Caregiver", referral.parentName)
+  );
+
+  const family = document.createElement("section");
+  family.className = "profile-v2-side-section";
+  const familyTitle = document.createElement("h3");
+  familyTitle.textContent = "Family";
+  family.append(
+    familyTitle,
+    profileV2SideInfo("Caregiver", referral.parentName),
+    profileV2SideInfo("Siblings", profileV2Siblings(referral, "referrals")),
+    profileV2SideInfo("Language", referral.preferredLanguage),
+    profileV2SideInfo("Phone", formatPhone(referral.phone)),
+    profileV2SideInfo("Address", formatAddress(referral))
+  );
+
+  const referralInfo = document.createElement("section");
+  referralInfo.className = "profile-v2-side-section";
+  const referralTitle = document.createElement("h3");
+  referralTitle.textContent = "Referral";
+  referralInfo.append(
+    referralTitle,
+    profileV2SideInfo("Status", statusSelect),
+    profileV2SideInfo("Source", renderReferralSourceValue(referral) || "None linked yet"),
+    profileV2SideInfo("Type", referral.referralType)
+  );
+
+  side.append(titleWrap, meta, family, referralInfo);
+  return side;
+}
+
+function renderClientLessonProgressionCard(client) {
+  const card = document.createElement("section");
+  card.className = "profile-v2-card";
+
+  const header = document.createElement("div");
+  header.className = "profile-v2-card-header";
+  const title = document.createElement("h3");
+  title.textContent = "Lesson Progression";
+  const edit = document.createElement("button");
+  edit.className = "profile-v2-edit";
+  edit.type = "button";
+  edit.textContent = "Edit";
+  edit.addEventListener("click", () => startEditingClient(client));
+  header.append(title, edit);
+
+  const completedIndex = clientCompletedLessonIndex(client);
+  const items = [
+    { label: "Enroll", value: "enrollment", done: completedIndex >= 0 },
+    ...Array.from({ length: 7 }, (_, index) => {
+      const lesson = index + 1;
+      return {
+        label: appointmentLessonTitles[lesson],
+        value: `lesson-${lesson}`,
+        done: completedIndex >= lesson
+      };
+    })
+  ];
+  const firstPendingIndex = items.findIndex((item) => !item.done);
+  const progress = document.createElement("div");
+  progress.className = "profile-v2-progress";
+  items.forEach((item, index) => {
+    const button = document.createElement("button");
+    button.className = "profile-v2-step";
+    button.type = "button";
+    button.style.setProperty("--step-color", profileLessonAccent(index));
+    if (item.done) {
+      button.classList.add("done");
+    } else if (index === firstPendingIndex) {
+      button.classList.add("next");
+    }
+    const label = document.createElement("strong");
+    label.textContent = item.label;
+    const state = document.createElement("span");
+    state.textContent = item.done ? "Done" : index === firstPendingIndex ? "Next" : "-";
+    button.append(label, state);
+    button.addEventListener("click", () => updateClientCurrentLesson(client, item.value));
+    progress.append(button);
+  });
+
+  card.append(header, progress);
+  return card;
+}
+
+function renderReferralProgressV2Card(referral) {
+  const card = document.createElement("section");
+  card.className = "profile-v2-card";
+
+  const header = document.createElement("div");
+  header.className = "profile-v2-card-header";
+  const title = document.createElement("h3");
+  title.textContent = "Referral Pipeline";
+  const edit = document.createElement("button");
+  edit.className = "profile-v2-edit";
+  edit.type = "button";
+  edit.textContent = "Edit";
+  edit.addEventListener("click", () => startEditingReferral(referral));
+  header.append(title, edit);
+
+  const currentIndex = referralProgressIndex(referral);
+  const items = [
+    { label: "New", status: "New", accent: "var(--brand-red)" },
+    { label: "Contacted", status: "Texted", accent: "var(--brand-green)" },
+    { label: "Scheduled", status: "Scheduled", accent: "var(--brand-blue)" },
+    { label: "Closed", status: "Closed / No Further Outreach", accent: "var(--muted)" }
+  ];
+  const progress = document.createElement("div");
+  progress.className = "profile-v2-progress profile-v2-referral-progress";
+  items.forEach((item, index) => {
+    const button = document.createElement("button");
+    button.className = "profile-v2-step";
+    button.type = "button";
+    button.style.setProperty("--step-color", item.accent);
+    if (index < currentIndex || (index === currentIndex && currentIndex === items.length - 1)) {
+      button.classList.add("done");
+    } else if (index === currentIndex) {
+      button.classList.add("next");
+    }
+    const label = document.createElement("strong");
+    label.textContent = item.label;
+    const state = document.createElement("span");
+    state.textContent = index < currentIndex || (index === currentIndex && currentIndex === items.length - 1)
+      ? "Done"
+      : index === currentIndex
+        ? "Current"
+        : "-";
+    button.append(label, state);
+    button.disabled = Boolean(referral.convertedClientId);
+    button.addEventListener("click", () => updateReferralStatus(referral, item.status));
+    progress.append(button);
+  });
+
+  card.append(header, progress);
+  return card;
+}
+
+function renderProfileV2NotesCard(notesValue, onEdit) {
+  const card = document.createElement("section");
+  card.className = "profile-v2-card";
+  const header = document.createElement("div");
+  header.className = "profile-v2-card-header";
+  const title = document.createElement("h3");
+  title.textContent = "Notes";
+  const edit = document.createElement("button");
+  edit.className = "profile-v2-edit";
+  edit.type = "button";
+  edit.textContent = "Edit";
+  edit.addEventListener("click", onEdit);
+  header.append(title, edit);
+  const note = document.createElement("div");
+  note.className = "profile-v2-note";
+  note.textContent = notesValue || "-";
+  card.append(header, note);
+  return card;
+}
+
+function renderProfileV2AppointmentsCard(appointments, onNewAppointment) {
+  const card = document.createElement("section");
+  card.className = "profile-v2-card";
+  const header = document.createElement("div");
+  header.className = "profile-v2-card-header";
+  const title = document.createElement("h3");
+  title.textContent = "Appointments";
+  const button = document.createElement("button");
+  button.className = "profile-v2-edit";
+  button.type = "button";
+  button.textContent = "New Appt";
+  button.addEventListener("click", onNewAppointment);
+  header.append(title, button);
+
+  const list = document.createElement("div");
+  list.className = "profile-v2-appointment-list";
+  const sorted = [...appointments].sort(
+    (first, second) =>
+      dateValue(second.appointmentDate, -1) - dateValue(first.appointmentDate, -1) ||
+      appointmentTimeValue(second.appointmentTime) - appointmentTimeValue(first.appointmentTime)
+  );
+
+  for (const appointment of sorted.slice(0, 10)) {
+    const row = document.createElement("button");
+    row.className = "profile-v2-appointment";
+    row.type = "button";
+    row.addEventListener("click", () => {
+      closeClientModal();
+      closeReferralModal();
+      setActiveModule("scheduling");
+      setSelectedAppointment(appointment.id);
+    });
+    const copy = document.createElement("div");
+    const rowTitle = document.createElement("strong");
+    rowTitle.textContent = [
+      profileDate(appointment.appointmentDate),
+      formatAppointmentTime(appointment.appointmentTime)
+    ].filter(Boolean).join(" ");
+    const detail = document.createElement("span");
+    detail.textContent = [
+      appointmentLessonLabel(appointment) || appointmentTypeLabel(appointment),
+      appointmentGoalText(appointment) || appointmentNotesText(appointment)
+    ].filter(Boolean).join(" | ");
+    copy.append(rowTitle, detail);
+    row.append(copy, appointmentStatusBadge(appointment.status));
+    list.append(row);
+  }
+
+  if (!list.children.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-inline";
+    empty.textContent = "No appointments yet.";
+    list.append(empty);
+  }
+
+  card.append(header, list);
+  return card;
+}
+
+function renderClientProfileV2Body(client, tab, actions) {
+  const body = document.createElement("div");
+  body.className = "profile-v2-tab-body";
+  const convertedDate = client.convertedAt || (client.sourceReferralId ? client.createdAt : "");
+
+  if (tab === "notes") {
+    body.append(renderProfileV2NotesCard(client.notes, () => startEditingClient(client)));
+    return body;
+  }
+
+  if (tab === "activity") {
+    const appointmentItems = clientAppointments(client).map((appointment) => ({
+      title: appointment.status === "Completed" ? "Appointment completed" : "Appointment scheduled",
+      detail: appointmentGoalText(appointment) || appointmentLessonLabel(appointment) || appointmentTypeLabel(appointment),
+      date: appointment.appointmentDate,
+      sortKey: `${appointment.appointmentDate || ""}T${appointment.appointmentTime || "00:00"}`
+    }));
+    body.append(renderProfileV2ActivityCard(client, "clients", appointmentItems, () => openActivityLogModal(client, "clients", "Call")));
+    return body;
+  }
+
+  if (tab === "appointments") {
+    body.append(renderProfileV2AppointmentsCard(clientAppointments(client), actions.newAppointment));
+    return body;
+  }
+
+  if (tab === "forms") {
+    body.append(renderProfileV2FormsCard("client"));
+    return body;
+  }
+
+  body.append(
+    renderProfileV2Card("Snapshot", [
+      { label: "Date of birth", value: profileDate(client.dateOfBirth) },
+      { label: "Language", value: client.preferredLanguage },
+      { label: "First appointment", value: profileDate(client.firstAppointmentDate) },
+      { label: "Most recent appointment", value: profileDate(mostRecentAppointmentDate(client)) },
+      { label: "Graduation date", value: profileDate(client.lastAppointmentDate, "Not graduated") },
+      { label: "Insurance", value: truthyProfileValue(client.ycco) ? "YCCO" : "-" }
+    ], { label: "Edit", onClick: () => startEditingClient(client) }),
+    renderClientLessonProgressionCard(client),
+    renderProfileV2Card("Referral", [
+      { label: "Referral date", value: profileDate(client.referralDate) },
+      { label: "Referral type", value: client.referralType },
+      { label: "Referral source", value: renderReferralSourceValue(client) || "None linked yet" },
+      { label: "Converted date", value: formatDateOnly(String(convertedDate || "").slice(0, 10)) || "-" }
+    ], { label: "Edit", onClick: () => startEditingClient(client) })
+  );
+  return body;
+}
+
+function renderReferralProfileV2Body(referral, tab, actions) {
+  const body = document.createElement("div");
+  body.className = "profile-v2-tab-body";
+
+  if (tab === "notes") {
+    body.append(renderProfileV2NotesCard(referral.notes, () => startEditingReferral(referral)));
+    return body;
+  }
+
+  if (tab === "activity") {
+    const appointmentItems = referralAppointments(referral).map((appointment) => ({
+      title: appointment.status === "Completed" ? "Appointment completed" : "Appointment scheduled",
+      detail: appointmentGoalText(appointment) || appointmentLessonLabel(appointment) || appointmentTypeLabel(appointment),
+      date: appointment.appointmentDate,
+      sortKey: `${appointment.appointmentDate || ""}T${appointment.appointmentTime || "00:00"}`
+    }));
+    body.append(renderProfileV2ActivityCard(referral, "referrals", appointmentItems, () => openActivityLogModal(referral, "referrals", "Call")));
+    return body;
+  }
+
+  if (tab === "appointments") {
+    body.append(renderProfileV2AppointmentsCard(referralAppointments(referral), actions.newAppointment));
+    return body;
+  }
+
+  if (tab === "forms") {
+    body.append(renderProfileV2FormsCard("referral"));
+    return body;
+  }
+
+  body.append(
+    renderProfileV2Card("Snapshot", [
+      { label: "Date of birth", value: profileDate(referral.dateOfBirth) },
+      { label: "Language", value: referral.preferredLanguage },
+      { label: "Referral date", value: profileDate(referral.referralDate) },
+      { label: "First contact", value: profileDate(referral.firstContactDate) },
+      { label: "Recent contact", value: profileDate(referral.mostRecentContactDate) },
+      { label: "Insurance", value: truthyProfileValue(referral.ycco) ? "YCCO" : "-" }
+    ], { label: "Edit", onClick: () => startEditingReferral(referral) }),
+    renderReferralProgressV2Card(referral),
+    renderProfileV2Card("Referral Source", [
+      { label: "Referral source", value: renderReferralSourceValue(referral) || "None linked yet" },
+      { label: "Referral type", value: referral.referralType },
+      { label: "Preferred contact", value: referral.preferredContactMethod, className: "wide" }
+    ], { label: "Edit", onClick: () => startEditingReferral(referral) })
+  );
+  return body;
 }
 
 function renderReferralDetail() {
@@ -9018,7 +12333,7 @@ function renderReferralDetail() {
   newAppointmentFromReferralButton.type = "button";
   newAppointmentFromReferralButton.textContent = "New Appt";
   newAppointmentFromReferralButton.addEventListener("click", () => {
-    startNewAppointment({
+    startSchedulingV2AppointmentFromProfile({
       clientName: referralName(referral),
       clientNames: [referralName(referral)],
       appointmentType: referral.firstAppointmentDate ? "Nutrition Education" : "Enrollment"
@@ -9066,47 +12381,27 @@ function renderReferralDetail() {
   statusLabel.append(statusSelect);
 
   const shell = document.createElement("div");
-  shell.className = "client-progress-profile referral-progress-profile";
+  shell.className = "profile-v2-detail referral-progress-profile";
+  shell.style.setProperty("--profile-accent", profileV2StatusAccent(normalizeStatus(referral.status)));
 
-  const topbar = document.createElement("div");
-  topbar.className = "client-profile-topbar";
-  const titleWrap = document.createElement("div");
-  const eyebrow = document.createElement("p");
-  eyebrow.className = "eyebrow";
-  eyebrow.textContent = "Referral profile";
-  const title = document.createElement("h3");
-  title.textContent = referralName(referral);
-  titleWrap.append(eyebrow, title);
-  topbar.append(titleWrap, actions);
-
-  const profileGrid = document.createElement("div");
-  profileGrid.className = "client-profile-grid";
-  profileGrid.append(
-    renderReferralProfileHero(referral),
-    renderReferralProgressPanel(referral)
+  const main = document.createElement("section");
+  main.className = "profile-v2-main-panel";
+  main.append(
+    renderProfileV2Tabs(activeReferralProfileTab, (tab) => {
+      activeReferralProfileTab = tab;
+      renderReferralDetail();
+    }),
+    renderReferralProfileV2Body(referral, activeReferralProfileTab, {
+      newAppointment: () => newAppointmentFromReferralButton.click()
+    })
   );
 
-  const adminStrip = document.createElement("div");
-  adminStrip.className = "client-admin-strip";
-  adminStrip.append(
-    statusLabel,
-    renderProfileLinkedField(referral, "referrals", "siblings"),
-    renderReferralSourceField(referral),
-    renderFormsPlaceholderField()
-  );
+  const footer = document.createElement("footer");
+  footer.className = "profile-v2-footer-actions";
+  footer.append(...Array.from(actions.children));
 
-  const splitGrid = document.createElement("div");
-  splitGrid.className = "client-profile-split-grid";
-  splitGrid.append(renderReferralDetailsPanel(referral), renderReferralRecentActivity(referral));
-
-  shell.append(
-    topbar,
-    profileGrid,
-    adminStrip,
-    splitGrid,
-    renderReferralAppointmentsPanel(referral),
-    renderProfileNotes(referral.notes)
-  );
+  main.append(footer);
+  shell.append(renderReferralProfileV2Side(referral, statusSelect), main);
 
   referralDetail.append(shell);
 }
@@ -9151,7 +12446,7 @@ function renderClientDetail() {
   newAppointmentFromClientButton.type = "button";
   newAppointmentFromClientButton.textContent = "New Appt";
   newAppointmentFromClientButton.addEventListener("click", () => {
-    startNewAppointment({
+    startSchedulingV2AppointmentFromProfile({
       clientId: client.id,
       clientIds: [client.id],
       clientName: clientName(client),
@@ -9187,7 +12482,7 @@ function renderClientDetail() {
   for (const status of clientStatuses) {
     const option = document.createElement("option");
     option.value = status;
-    option.textContent = status;
+    option.textContent = clientStatusDisplayLabel(status);
     option.className = `status-group-${clientStatusGroupKey(status)}`;
     statusSelect.append(option);
   }
@@ -9201,47 +12496,27 @@ function renderClientDetail() {
   statusLabel.append(statusSelect);
 
   const shell = document.createElement("div");
-  shell.className = "client-progress-profile";
+  shell.className = "profile-v2-detail";
+  shell.style.setProperty("--profile-accent", profileV2StatusAccent(client.status || "Scheduled"));
 
-  const topbar = document.createElement("div");
-  topbar.className = "client-profile-topbar";
-  const titleWrap = document.createElement("div");
-  const eyebrow = document.createElement("p");
-  eyebrow.className = "eyebrow";
-  eyebrow.textContent = "Client profile";
-  const title = document.createElement("h3");
-  title.textContent = clientName(client);
-  titleWrap.append(eyebrow, title);
-  topbar.append(titleWrap, actions);
-
-  const profileGrid = document.createElement("div");
-  profileGrid.className = "client-profile-grid";
-  profileGrid.append(
-    renderClientProfileHero(client, client.status || "Scheduled"),
-    renderClientProgramProgress(client)
+  const main = document.createElement("section");
+  main.className = "profile-v2-main-panel";
+  main.append(
+    renderProfileV2Tabs(activeClientProfileTab, (tab) => {
+      activeClientProfileTab = tab;
+      renderClientDetail();
+    }),
+    renderClientProfileV2Body(client, activeClientProfileTab, {
+      newAppointment: () => newAppointmentFromClientButton.click()
+    })
   );
 
-  const adminStrip = document.createElement("div");
-  adminStrip.className = "client-admin-strip";
-  adminStrip.append(
-    statusLabel,
-    renderProfileLinkedField(client, "clients", "siblings"),
-    renderReferralSourceField(client),
-    renderFormsPlaceholderField()
-  );
+  const footer = document.createElement("footer");
+  footer.className = "profile-v2-footer-actions";
+  footer.append(...Array.from(actions.children));
 
-  const splitGrid = document.createElement("div");
-  splitGrid.className = "client-profile-split-grid";
-  splitGrid.append(renderClientDetailsPanel(client), renderClientRecentActivity(client));
-
-  shell.append(
-    topbar,
-    profileGrid,
-    adminStrip,
-    splitGrid,
-    renderClientAppointmentsPanel(client),
-    renderProfileNotes(client.notes)
-  );
+  main.append(footer);
+  shell.append(renderClientProfileV2Side(client, statusSelect), main);
 
   clientDetail.append(shell);
 }
@@ -10476,6 +13751,87 @@ function importedAppointmentDuration(value) {
   return String(end - start);
 }
 
+function canonicalSetmoreAppointmentServiceLabel(service, appointmentType) {
+  const normalized = normalizedLookupKey(service);
+
+  if (normalized.includes("cita de inscripcion")) {
+    return "Cita de inscripción en español";
+  }
+
+  if (normalized.includes("cita de educacion nutricional")) {
+    return "Cita de educación nutricional en español";
+  }
+
+  return appointmentType === "Nutrition Education" ? "Nutrition Education Appointment" : "Enrollment Appointment";
+}
+
+function appointmentImportStartMinutes(appointment) {
+  return appointmentTimeMinutes(appointment.appointmentTime);
+}
+
+function appointmentImportEndMinutes(appointment) {
+  const start = appointmentImportStartMinutes(appointment);
+
+  if (start === null) {
+    return null;
+  }
+
+  return start + appointmentDurationMinutes(appointment);
+}
+
+function setmoreAppointmentImportLooksLikeSiblingVisit(appointment) {
+  return normalizedLookupKey(appointment.publicBookingServiceLabel).includes("sibling") ||
+    appointmentDurationMinutes(appointment) <= 15;
+}
+
+function setmoreAppointmentImportsCanMerge(first, second) {
+  if (!first || !second || first.skipReason || second.skipReason) {
+    return false;
+  }
+
+  if (first.importSource !== "Setmore appointment export" || second.importSource !== "Setmore appointment export") {
+    return false;
+  }
+
+  const firstEnd = appointmentImportEndMinutes(first);
+  const secondStart = appointmentImportStartMinutes(second);
+
+  if (firstEnd === null || secondStart === null || secondStart !== firstEnd) {
+    return false;
+  }
+
+  return setmoreAppointmentImportLooksLikeSiblingVisit(first) &&
+    setmoreAppointmentImportLooksLikeSiblingVisit(second) &&
+    first.appointmentDate === second.appointmentDate &&
+    first.appointmentType === second.appointmentType &&
+    first.status === second.status &&
+    normalizedLookupKey(first.staffMember) === normalizedLookupKey(second.staffMember) &&
+    normalizedLookupKey(first.lesson || "") === normalizedLookupKey(second.lesson || "") &&
+    schedulingV2AppointmentsShareFamilySignal(first, second);
+}
+
+function mergeAppointmentImportIntoGroup(existing, appointment) {
+  existing.rowNumbers.push(appointment.rowNumber);
+  for (const name of appointment.clientNames) {
+    if (!existing.clientNames.some((currentName) => normalizedLookupKey(currentName) === normalizedLookupKey(name))) {
+      existing.clientNames.push(name);
+    }
+  }
+  existing.clientName = existing.clientNames[0] || existing.clientName;
+
+  const start = appointmentImportStartMinutes(existing);
+  const end = appointmentImportEndMinutes(appointment);
+  if (start !== null && end !== null && end > start) {
+    existing.durationMinutes = String(end - start);
+  }
+
+  if (appointment.notes && !existing.notes.includes(appointment.notes)) {
+    existing.notes = [existing.notes, `${appointment.clientName || `Row ${appointment.rowNumber}`}: ${appointment.notes}`]
+      .filter(Boolean)
+      .join("\n");
+  }
+}
+
 function mappedSetmoreAppointmentRow(row, index) {
   const service = csvFirstValue(row, ["Service/class/event", "Service"]);
   const appointmentType = setmoreAppointmentServices.get(service.toLowerCase()) || service;
@@ -10499,7 +13855,7 @@ function mappedSetmoreAppointmentRow(row, index) {
     goal: inferred.goal,
     staffMember: csvFirstValue(row, ["Team member", "Team Member", "Staff", "Staff Member", "Provider"]),
     notes,
-    publicBookingServiceLabel: service,
+    publicBookingServiceLabel: canonicalSetmoreAppointmentServiceLabel(service, appointmentType),
     importSource: "Setmore appointment export",
     skipReason: setmoreAppointmentSkipReason(row)
   };
@@ -10536,9 +13892,24 @@ function mapAppointmentImportRow(row, index) {
 
 function groupedAppointmentImports(appointments) {
   const groups = new Map();
+  const orderedAppointments = [...appointments].sort((first, second) => {
+    const dateCompare = String(first.appointmentDate || "").localeCompare(String(second.appointmentDate || ""));
+    if (dateCompare) {
+      return dateCompare;
+    }
 
-  for (const appointment of appointments) {
+    return appointmentTimeValue(first.appointmentTime) - appointmentTimeValue(second.appointmentTime) ||
+      (first.rowNumber || 0) - (second.rowNumber || 0);
+  });
+
+  for (const appointment of orderedAppointments) {
     if (appointment.skipReason) {
+      continue;
+    }
+
+    const mergeTarget = [...groups.values()].find((existing) => setmoreAppointmentImportsCanMerge(existing, appointment));
+    if (mergeTarget) {
+      mergeAppointmentImportIntoGroup(mergeTarget, appointment);
       continue;
     }
 
@@ -10562,19 +13933,7 @@ function groupedAppointmentImports(appointments) {
       continue;
     }
 
-    existing.rowNumbers.push(appointment.rowNumber);
-    for (const name of appointment.clientNames) {
-      if (!existing.clientNames.some((currentName) => normalizedLookupKey(currentName) === normalizedLookupKey(name))) {
-        existing.clientNames.push(name);
-      }
-    }
-    existing.clientName = existing.clientNames[0] || existing.clientName;
-
-    if (appointment.notes && !existing.notes.includes(appointment.notes)) {
-      existing.notes = [existing.notes, `${appointment.clientName || `Row ${appointment.rowNumber}`}: ${appointment.notes}`]
-        .filter(Boolean)
-        .join("\n");
-    }
+    mergeAppointmentImportIntoGroup(existing, appointment);
   }
 
   return [...groups.values()];
@@ -12966,13 +16325,13 @@ async function saveAppointment(event) {
   appointment.notes = stripSetmoreBookingIdFromNotes(appointment.notes);
   const typedClientName = appointmentClientSearchInput.value.trim();
 
-  if (appointment.appointmentType === "Enrollment") {
-    appointment.lesson = "";
-    appointment.goal = "";
-  } else {
+  if (appointment.appointmentType === "Nutrition Education") {
     const inferred = inferAppointmentFieldsFromNotes(appointment.notes, appointment.appointmentType);
     appointment.lesson = appointment.lesson || inferred.lesson;
     appointment.goal = appointment.goal || inferred.goal;
+  } else {
+    appointment.lesson = "";
+    appointment.goal = "";
   }
 
   if (!appointment.clientIds.length && !typedClientName) {
@@ -13047,7 +16406,101 @@ async function saveAppointment(event) {
   }
 }
 
+async function saveAppointmentCheckIn(event) {
+  event.preventDefault();
+
+  if (!currentUser) {
+    appointmentsStatusEl.textContent = "Sign in before saving check-in details.";
+    return;
+  }
+
+  const appointment = loadedAppointments.find((item) => item.id === checkInAppointmentId);
+  if (!appointment) {
+    appointmentsStatusEl.textContent = "Choose an appointment before saving check-in details.";
+    return;
+  }
+
+  const formData = new FormData(appointmentCheckInForm);
+  const checkIn = {
+    caregiverMood: String(formData.get("caregiverMood") || appointmentCheckInDefaults.caregiverMood),
+    confidence: String(formData.get("confidence") || appointmentCheckInDefaults.confidence),
+    participation: String(formData.get("participation") || appointmentCheckInDefaults.participation),
+    barriers: String(formData.get("barriers") || appointmentCheckInDefaults.barriers)
+  };
+
+  saveAppointmentCheckInButton.disabled = true;
+  appointmentsStatusEl.textContent = "Saving check-in...";
+
+  try {
+    const response = await authedFetch(`/api/appointments/${encodeURIComponent(appointment.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ ...appointment, ...checkIn })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    selectedAppointmentId = appointment.id;
+    selectedSchedulingPreviewAppointmentId = appointment.id;
+    closeAppointmentCheckInModal();
+    appointmentsStatusEl.textContent = "Check-in saved.";
+    await loadAppointments();
+  } catch (error) {
+    appointmentsStatusEl.textContent = error.message || "Could not save check-in details yet.";
+    console.error(error);
+  } finally {
+    saveAppointmentCheckInButton.disabled = false;
+  }
+}
+
+async function saveAppointmentInlineUpdates(appointment, updates, successMessage = "Appointment updated.") {
+  if (!currentUser) {
+    appointmentsStatusEl.textContent = "Sign in before updating the appointment.";
+    return;
+  }
+
+  if (!appointment?.id) {
+    appointmentsStatusEl.textContent = "Choose an appointment before updating it.";
+    return;
+  }
+
+  appointmentsStatusEl.textContent = "Saving appointment...";
+
+  try {
+    const response = await authedFetch(`/api/appointments/${encodeURIComponent(appointment.id)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ ...appointment, ...updates })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API returned ${response.status}`);
+    }
+
+    selectedAppointmentId = appointment.id;
+    selectedSchedulingPreviewAppointmentId = appointment.id;
+    appointmentsStatusEl.textContent = successMessage;
+    await loadAppointments();
+  } catch (error) {
+    appointmentsStatusEl.textContent = error.message || "Could not update appointment yet.";
+    console.error(error);
+    await loadAppointments();
+  }
+}
+
 function nextLessonNumberForAppointment(appointment) {
+  if (appointmentTypeLabel(appointment) === "Administrative") {
+    return null;
+  }
+
   if (appointmentTypeLabel(appointment) === "Enrollment") {
     return 1;
   }
@@ -13106,12 +16559,12 @@ function startCompletingAppointment(appointment) {
   completingAppointmentId = appointment.id;
   appointmentCompleteForm.reset();
   const nextLesson = nextLessonNumberForAppointment(appointment);
-  const nextLabel = nextLesson ? `Lesson ${nextLesson}` : "Program complete";
+  const nextLabel = nextLesson ? appointmentLessonTitle(nextLesson) || `Lesson ${nextLesson}` : "Program complete";
   appointmentCompleteTitle.textContent = `Complete ${appointmentClientName(appointment)}`;
   appointmentCompleteSummary.textContent = [
     formatAppointmentDateTime(appointment),
     appointmentTypeLabel(appointment),
-    appointment.lesson ? `Lesson ${appointment.lesson}` : ""
+    appointmentLessonLabel(appointment)
   ].filter(Boolean).join(" | ");
   completionNextLessonInput.value = nextLabel;
   completionScheduleNextInput.checked = Boolean(nextLesson);
@@ -13126,12 +16579,12 @@ function startReschedulingAppointment(appointment) {
   appointmentCompletionMode = "reschedule";
   completingAppointmentId = appointment.id;
   appointmentCompleteForm.reset();
-  const visitLabel = appointment.lesson ? `Lesson ${appointment.lesson}` : appointmentTypeLabel(appointment);
+  const visitLabel = appointmentLessonLabel(appointment) || appointmentTypeLabel(appointment);
   appointmentCompleteTitle.textContent = `Reschedule ${appointmentClientName(appointment)}`;
   appointmentCompleteSummary.textContent = [
     formatAppointmentDateTime(appointment),
     appointmentTypeLabel(appointment),
-    appointment.lesson ? `Lesson ${appointment.lesson}` : ""
+    appointmentLessonLabel(appointment)
   ].filter(Boolean).join(" | ");
   completionNextLessonInput.value = visitLabel;
   completionNextGoalInput.value = appointmentGoalText(appointment);
@@ -13254,7 +16707,7 @@ async function saveAppointmentCompletion(event) {
     await loadTasks();
     appointmentsStatusEl.textContent = completedRescheduleTasks
       ? "Appointment completed, next visit scheduled, and reschedule task completed."
-      : shouldScheduleNext ? "Appointment completed and next visit scheduled." : "Appointment completed; client marked Needs Reschedule.";
+      : shouldScheduleNext ? "Appointment completed and next visit scheduled." : "Appointment completed; client marked Reschedule.";
   } catch (error) {
     appointmentsStatusEl.textContent = error.message || "Could not complete appointment yet.";
     console.error(error);
@@ -13381,6 +16834,8 @@ async function saveAppointmentReschedule(appointment) {
 }
 
 async function updateAppointmentStatus(appointment, status) {
+  rememberSchedulingV2AgendaScroll();
+
   if (status === "Completed") {
     startCompletingAppointment(appointment);
     return;
@@ -13404,6 +16859,7 @@ async function updateAppointmentStatus(appointment, status) {
 
     await applyAppointmentClientEffects(appointment, status);
     selectedAppointmentId = appointment.id;
+    selectedSchedulingPreviewAppointmentId = appointment.id;
     appointmentsStatusEl.textContent = "Appointment updated.";
     await loadClients();
     await loadAppointments();
@@ -13415,6 +16871,7 @@ async function updateAppointmentStatus(appointment, status) {
 }
 
 async function moveAppointmentToCalendarSlot(appointmentId, appointmentDate, appointmentTime) {
+  rememberSchedulingV2AgendaScroll();
   const appointment = loadedAppointments.find((item) => item.id === appointmentId);
 
   if (!appointment) {
@@ -14288,22 +17745,22 @@ function setAppointmentFormValues(appointment = {}) {
 }
 
 function syncAppointmentGoalField() {
-  const isEnrollment = appointmentForm.elements.appointmentType.value === "Enrollment";
+  const isNutritionEducation = appointmentForm.elements.appointmentType.value === "Nutrition Education";
   const goalLabel = appointmentForm.elements.goal.closest("label");
   const lessonLabel = appointmentForm.elements.lesson.closest("label");
   if (lessonLabel) {
-    lessonLabel.hidden = isEnrollment;
+    lessonLabel.hidden = !isNutritionEducation;
   }
   if (goalLabel) {
-    goalLabel.hidden = isEnrollment;
+    goalLabel.hidden = !isNutritionEducation;
   }
 
-  if (isEnrollment) {
+  if (!isNutritionEducation) {
     appointmentForm.elements.lesson.value = "";
     appointmentForm.elements.goal.value = "";
   }
-  appointmentForm.elements.lesson.disabled = isEnrollment;
-  appointmentForm.elements.goal.disabled = isEnrollment;
+  appointmentForm.elements.lesson.disabled = !isNutritionEducation;
+  appointmentForm.elements.goal.disabled = !isNutritionEducation;
 }
 
 function startNewAppointment(defaults = {}) {
@@ -14318,6 +17775,18 @@ function startNewAppointment(defaults = {}) {
   appointmentForm.hidden = false;
   openAppointmentModal();
   setAppointmentFeedback("");
+}
+
+function startBlockTimeAppointment() {
+  startNewAppointment({
+    appointmentDate: visibleSchedulingPreviewDate,
+    appointmentType: "Administrative",
+    status: "Blocked",
+    clientName: "Blocked Time",
+    clientNames: ["Blocked Time"],
+    notes: "Blocked time"
+  });
+  appointmentFormTitle.textContent = "Block Time";
 }
 
 function startEditingAppointment(appointment) {
@@ -14806,7 +18275,7 @@ onAuthStateChanged(auth, (user) => {
     loadReferralNetwork();
     loadOutreachEvents();
     loadOutreachContacts();
-    loadAppointments();
+    loadSchedulingSettings().finally(() => loadAppointments());
     loadTasks();
     loadActivityLogs();
     loadGrants();
@@ -14911,6 +18380,7 @@ onAuthStateChanged(auth, (user) => {
 });
 
 renderAppointmentTimeOptions();
+setSchedulingSettingsFormValues(defaultSchedulingSettings);
 bindGrantDisclosureState(grantOrgCard, "organization-info");
 bindGrantDisclosureState(grantQuestionCard, "reusable-answers");
 bindGrantDocumentFileStatus(grantForm, grantDocumentFields);
@@ -14929,6 +18399,7 @@ adminTabSettingsButton.addEventListener("click", () => setAdminView("settings"))
 adminTabDataToolsButton.addEventListener("click", () => setAdminView("data-tools"));
 adminTabKpiButton.addEventListener("click", () => setAdminView("kpi"));
 adminTabWorkPlanButton.addEventListener("click", () => setAdminView("work-plan"));
+adminSchedulingSettingsForm?.addEventListener("submit", saveSchedulingSettings);
 fundraisingTabGrantsButton.addEventListener("click", () => setFundraisingView("grants"));
 fundraisingTabSalesButton.addEventListener("click", () => setFundraisingView("sales"));
 fundraisingTabIndividualGivingButton.addEventListener("click", () => setFundraisingView("individual-giving"));
@@ -15006,6 +18477,8 @@ deleteAppointmentDetailButton.addEventListener("click", deleteAppointment);
 closeAppointmentDetailButton.addEventListener("click", closeAppointmentModal);
 appointmentCompleteForm.addEventListener("submit", saveAppointmentCompletion);
 cancelAppointmentCompletionButton.addEventListener("click", closeAppointmentCompletionModal);
+appointmentCheckInForm.addEventListener("submit", saveAppointmentCheckIn);
+closeAppointmentCheckInButtons.forEach((button) => button.addEventListener("click", closeAppointmentCheckInModal));
 referralForm.addEventListener("submit", saveReferral);
 referralFormField("firstName")?.addEventListener("input", syncReferralEditAvatar);
 referralFormField("lastName")?.addEventListener("input", syncReferralEditAvatar);
@@ -15185,6 +18658,7 @@ function bindBackdropClose(modal, closeFn) {
   [outreachContactModal, closeOutreachContactModal],
   [appointmentModal, closeAppointmentModal],
   [appointmentCompleteModal, closeAppointmentCompletionModal],
+  [appointmentCheckInModal, closeAppointmentCheckInModal],
   [taskModal, closeTaskModal],
   [activityLogModal, closeActivityLogModal],
   [siblingModal, closeSiblingModal],

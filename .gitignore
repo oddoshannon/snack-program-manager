@@ -1,5 +1,8 @@
 drive-download-*/
+.DS_Store
 *.zip
 *.docx
 *.xlsx
 *.pdf
+!snack-crm-cloud/frontend/public/print-forms/
+!snack-crm-cloud/frontend/public/print-forms/**

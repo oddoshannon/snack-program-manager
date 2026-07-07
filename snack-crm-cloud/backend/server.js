@@ -41,7 +41,7 @@ const allowedClientStatuses = new Set([
   "Inactive",
   "Closed"
 ]);
-const allowedAppointmentStatuses = new Set(["Scheduled", "Completed", "No-show", "Rescheduled", "Canceled"]);
+const allowedAppointmentStatuses = new Set(["Scheduled", "Completed", "No-show", "Rescheduled", "Blocked", "Canceled"]);
 const allowedTaskStatuses = new Set(["Open", "In Progress", "Waiting", "Done", "Canceled"]);
 const allowedTaskPriorities = new Set(["Low", "Normal", "Urgent"]);
 const allowedTaskTypes = new Set(["Call", "Text", "Form", "Task"]);
@@ -58,20 +58,29 @@ const appointmentLessonKeywords = [
   { value: "1", patterns: [/\blesson\s*1\b/i, /\bnutrient\s+density\b/i, /\bnutrient\s+dense\b/i, /\bND\b/] }
 ];
 const defaultAppointmentDurationMinutes = 30;
-const schedulingStartMinutes = 13 * 60;
-const schedulingEndMinutes = 18 * 60;
-const publicSchedulingWeekdays = new Set([2, 3, 4]);
+const defaultSchedulingSettings = Object.freeze({
+  officeStartTime: "13:00",
+  officeEndTime: "18:00",
+  bookableStartTime: "13:30",
+  bookableEndTime: "18:00",
+  weekdays: [2, 3, 4],
+  defaultDurationMinutes: defaultAppointmentDurationMinutes,
+  slotIntervalMinutes: 15
+});
 const publicAvailabilityDefaultDays = 21;
 const publicAvailabilityMaxDays = 45;
 const publicBookingMaxAdvanceDays = 120;
 const publicBookingMaxLengths = {
-  firstName: 60,
-  lastName: 60,
+  childName: 120,
+  dateOfBirth: 20,
+  gender: 40,
   parentName: 80,
   phone: 30,
   email: 120,
+  address: 180,
   preferredLanguage: 30,
   preferredContactMethod: 20,
+  yccoId: 60,
   notes: 600
 };
 const publicBookingServices = [
@@ -80,48 +89,40 @@ const publicBookingServices = [
     label: "Enrollment Appointment",
     appointmentType: "Enrollment",
     durationMinutes: 30,
-    defaultLanguage: "English"
+    defaultLanguage: "English",
+    staffMember: "Cynthia Esparza"
   },
   {
     id: "nutrition-education",
     label: "Nutrition Education Appointment",
     appointmentType: "Nutrition Education",
     durationMinutes: 30,
-    defaultLanguage: "English"
+    defaultLanguage: "English",
+    staffMember: "Cynthia Esparza"
   },
   {
     id: "spanish-enrollment",
-    label: "Cita de inscripción en ESPAÑOL",
+    label: "Cita de inscripción en español",
     appointmentType: "Enrollment",
     durationMinutes: 30,
-    defaultLanguage: "Spanish"
+    defaultLanguage: "Spanish",
+    staffMember: "Cynthia Esparza"
   },
   {
     id: "spanish-nutrition-education",
-    label: "Cita de educación nutricional en ESPAÑOL",
+    label: "Cita de educación nutricional en español",
     appointmentType: "Nutrition Education",
     durationMinutes: 30,
-    defaultLanguage: "Spanish"
-  },
-  {
-    id: "sibling-enrollment",
-    label: "Sibling Enrollment Appointment",
-    appointmentType: "Enrollment",
-    durationMinutes: 15,
-    defaultLanguage: "English",
-    siblingVisit: true
-  },
-  {
-    id: "sibling-nutrition-education",
-    label: "Sibling Nutrition Education Appointment",
-    appointmentType: "Nutrition Education",
-    durationMinutes: 15,
-    defaultLanguage: "English",
-    siblingVisit: true
+    defaultLanguage: "Spanish",
+    staffMember: "Cynthia Esparza"
   }
 ];
 const publicBookingServiceById = new Map(publicBookingServices.map((service) => [service.id, service]));
+const publicBookingServiceByLabel = new Map(publicBookingServices.map((service) => [service.label.toLowerCase(), service]));
 const publicBookingAttempts = new Map();
+function isAdminBulkDeleteEnabled() {
+  return process.env.ALLOW_ADMIN_BULK_DELETE === "true";
+}
 const legacyTaskTypeMap = {
   call: "Call",
   text: "Text",
@@ -534,6 +535,10 @@ function toAppointment(snapshot) {
     lesson: data.lesson,
     goal: data.goal,
     staffMember: data.staffMember,
+    caregiverMood: data.caregiverMood,
+    confidence: data.confidence,
+    participation: data.participation,
+    barriers: data.barriers,
     notes: data.notes,
     createdAt: data.createdAt,
     updatedAt: data.updatedAt
@@ -1002,6 +1007,11 @@ function cleanAppointmentPayload(body) {
     staffMember: cleanString(body.staffMember),
     notes
   };
+  for (const field of ["caregiverMood", "confidence", "participation", "barriers"]) {
+    if (Object.prototype.hasOwnProperty.call(body, field)) {
+      payload[field] = cleanString(body[field]);
+    }
+  }
   const publicBookingServiceId = cleanString(body.publicBookingServiceId);
   const publicBookingServiceLabel = cleanString(body.publicBookingServiceLabel);
 
@@ -1124,6 +1134,100 @@ function formatAppointmentTimeValue(value) {
   return `${displayHour}:${String(minute).padStart(2, "0")} ${period}`;
 }
 
+function normalizeSchedulingWeekdays(value) {
+  const source = Array.isArray(value) ? value : defaultSchedulingSettings.weekdays;
+  const weekdays = source
+    .map((day) => Number(day))
+    .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6);
+  const unique = [...new Set(weekdays)];
+
+  return unique.length ? unique.sort((first, second) => first - second) : [...defaultSchedulingSettings.weekdays];
+}
+
+function normalizeSchedulingTime(value, fallback) {
+  const normalized = normalizeAppointmentTimeValue(value);
+
+  if (appointmentTimeMinutes(normalized) === null) {
+    return fallback;
+  }
+
+  return normalized;
+}
+
+function normalizeSchedulingSettings(raw = {}) {
+  const officeStartTime = normalizeSchedulingTime(raw.officeStartTime, defaultSchedulingSettings.officeStartTime);
+  let officeEndTime = normalizeSchedulingTime(raw.officeEndTime, defaultSchedulingSettings.officeEndTime);
+  let bookableStartTime = normalizeSchedulingTime(raw.bookableStartTime, defaultSchedulingSettings.bookableStartTime);
+  let bookableEndTime = normalizeSchedulingTime(raw.bookableEndTime, defaultSchedulingSettings.bookableEndTime);
+  const officeStartMinutes = appointmentTimeMinutes(officeStartTime);
+  let officeEndMinutes = appointmentTimeMinutes(officeEndTime);
+  let bookableStartMinutes = appointmentTimeMinutes(bookableStartTime);
+  let bookableEndMinutes = appointmentTimeMinutes(bookableEndTime);
+
+  if (officeEndMinutes <= officeStartMinutes) {
+    officeEndTime = defaultSchedulingSettings.officeEndTime;
+    officeEndMinutes = appointmentTimeMinutes(officeEndTime);
+  }
+
+  if (bookableStartMinutes < officeStartMinutes || bookableStartMinutes >= officeEndMinutes) {
+    bookableStartTime = defaultSchedulingSettings.bookableStartTime;
+    bookableStartMinutes = appointmentTimeMinutes(bookableStartTime);
+  }
+
+  if (bookableEndMinutes > officeEndMinutes || bookableEndMinutes <= bookableStartMinutes) {
+    bookableEndTime = defaultSchedulingSettings.bookableEndTime;
+    bookableEndMinutes = appointmentTimeMinutes(bookableEndTime);
+  }
+
+  const slotIntervalMinutes = cleanOptionalInteger(raw.slotIntervalMinutes, defaultSchedulingSettings.slotIntervalMinutes);
+  const defaultDuration = cleanOptionalInteger(raw.defaultDurationMinutes, defaultSchedulingSettings.defaultDurationMinutes);
+
+  return {
+    officeStartTime,
+    officeEndTime,
+    bookableStartTime,
+    bookableEndTime,
+    weekdays: normalizeSchedulingWeekdays(raw.weekdays),
+    defaultDurationMinutes: defaultDuration > 0 ? defaultDuration : defaultSchedulingSettings.defaultDurationMinutes,
+    slotIntervalMinutes: [5, 10, 15, 30].includes(slotIntervalMinutes) ? slotIntervalMinutes : defaultSchedulingSettings.slotIntervalMinutes,
+    officeStartMinutes,
+    officeEndMinutes,
+    bookableStartMinutes,
+    bookableEndMinutes
+  };
+}
+
+const defaultSchedulingSettingsNormalized = normalizeSchedulingSettings(defaultSchedulingSettings);
+
+function serializeSchedulingSettings(settings = defaultSchedulingSettingsNormalized) {
+  return {
+    officeStartTime: settings.officeStartTime,
+    officeEndTime: settings.officeEndTime,
+    bookableStartTime: settings.bookableStartTime,
+    bookableEndTime: settings.bookableEndTime,
+    weekdays: settings.weekdays,
+    defaultDurationMinutes: settings.defaultDurationMinutes,
+    slotIntervalMinutes: settings.slotIntervalMinutes,
+    officeStartLabel: formatAppointmentTimeValue(settings.officeStartTime),
+    officeEndLabel: formatAppointmentTimeValue(settings.officeEndTime),
+    bookableStartLabel: formatAppointmentTimeValue(settings.bookableStartTime),
+    bookableEndLabel: formatAppointmentTimeValue(settings.bookableEndTime)
+  };
+}
+
+function toSchedulingSettings(snapshot) {
+  return normalizeSchedulingSettings(snapshot.exists ? snapshot.data() || {} : {});
+}
+
+function cleanSchedulingSettingsPayload(body = {}) {
+  return serializeSchedulingSettings(normalizeSchedulingSettings(body));
+}
+
+async function loadSchedulingSettings() {
+  const snapshot = await adminSettings.doc("scheduling").get();
+  return toSchedulingSettings(snapshot);
+}
+
 function appointmentClientCountFromRecord(appointment) {
   if (Array.isArray(appointment.clientIds) && appointment.clientIds.length) {
     return appointment.clientIds.filter(Boolean).length;
@@ -1147,31 +1251,29 @@ function appointmentDurationMinutesFromRecord(appointment) {
 }
 
 function appointmentBlocksSchedule(appointment) {
-  return ["Scheduled", "Completed"].includes(appointment.status || "Scheduled");
+  return ["Scheduled", "Completed", "Blocked"].includes(appointment.status || "Scheduled");
 }
 
-function appointmentFitsSchedulingWindow(appointment) {
+function appointmentFitsSchedulingWindow(appointment, settings = defaultSchedulingSettingsNormalized) {
   const start = appointmentTimeMinutes(appointment.appointmentTime);
 
   if (start === null) {
     return false;
   }
 
-  return start >= schedulingStartMinutes && start + appointmentDurationMinutesFromRecord(appointment) <= schedulingEndMinutes;
+  return start >= settings.bookableStartMinutes && start + appointmentDurationMinutesFromRecord(appointment) <= settings.bookableEndMinutes;
 }
 
-function schedulingWindowEndLabel() {
-  return formatAppointmentTimeValue(
-    `${String(Math.floor(schedulingEndMinutes / 60)).padStart(2, "0")}:${String(schedulingEndMinutes % 60).padStart(2, "0")}`
-  );
+function schedulingWindowEndLabel(settings = defaultSchedulingSettingsNormalized) {
+  return formatAppointmentTimeValue(settings.bookableEndTime);
 }
 
-function schedulingWindowError(appointment) {
+function schedulingWindowError(appointment, settings = defaultSchedulingSettingsNormalized) {
   if (appointmentTimeMinutes(appointment.appointmentTime) === null) {
     return "Choose a valid appointment time.";
   }
 
-  return `This appointment is ${appointmentDurationMinutesFromRecord(appointment)} min. Choose a start time that ends by ${schedulingWindowEndLabel()}.`;
+  return `This appointment is ${appointmentDurationMinutesFromRecord(appointment)} min. Choose a start time that ends by ${schedulingWindowEndLabel(settings)}.`;
 }
 
 function appointmentRangesOverlap(first, second) {
@@ -1485,14 +1587,14 @@ function daysBetweenDateStrings(startDate, endDate) {
   return Math.round((end.getTime() - start.getTime()) / 86400000);
 }
 
-function isPublicBookableDate(dateString) {
+function isPublicBookableDate(dateString, settings = defaultSchedulingSettingsNormalized) {
   const date = parseDateOnly(dateString);
 
   if (!date) {
     return false;
   }
 
-  return publicSchedulingWeekdays.has(date.getUTCDay());
+  return new Set(settings.weekdays).has(date.getUTCDay());
 }
 
 function isPublicBookingDateInRange(dateString) {
@@ -1503,6 +1605,179 @@ function isPublicBookingDateInRange(dateString) {
 
 function publicBookingServiceFromId(serviceId) {
   return publicBookingServiceById.get(cleanString(serviceId)) || publicBookingServices[0];
+}
+
+function publicBookingServiceFromAppointment(appointment = {}) {
+  const byId = publicBookingServiceById.get(cleanString(appointment.publicBookingServiceId));
+
+  if (byId) {
+    return byId;
+  }
+
+  const byLabel = publicBookingServiceByLabel.get(cleanString(appointment.publicBookingServiceLabel).toLowerCase());
+
+  if (byLabel) {
+    return byLabel;
+  }
+
+  return publicBookingServices.find((service) => service.appointmentType === appointment.appointmentType) || publicBookingServices[0];
+}
+
+function createPublicManageToken() {
+  return crypto.randomBytes(24).toString("hex");
+}
+
+function publicManageTokenHash(token) {
+  return crypto.createHash("sha256").update(cleanString(token)).digest("hex");
+}
+
+function publicManageTokensMatch(token, storedHash) {
+  if (!cleanString(token)) {
+    return false;
+  }
+
+  const candidate = publicManageTokenHash(token);
+  const stored = cleanString(storedHash);
+
+  if (!/^[a-f0-9]{64}$/i.test(stored)) {
+    return false;
+  }
+
+  const candidateBuffer = Buffer.from(candidate, "hex");
+  const storedBuffer = Buffer.from(stored, "hex");
+
+  return candidateBuffer.length === storedBuffer.length && crypto.timingSafeEqual(candidateBuffer, storedBuffer);
+}
+
+function publicManageTokenFromRequest(request) {
+  return cleanString(request.query.token || request.body?.token);
+}
+
+function publicManageClientIdsFromAppointment(appointment = {}) {
+  return [...new Set([
+    ...(Array.isArray(appointment.clientIds) ? appointment.clientIds : []),
+    appointment.clientId
+  ].map(cleanString).filter(Boolean))];
+}
+
+async function existingPublicManageClientRefs(appointment = {}) {
+  const refs = publicManageClientIdsFromAppointment(appointment).map((clientId) => clients.doc(clientId));
+  const snapshots = await Promise.all(refs.map((ref) => ref.get()));
+
+  return refs.filter((_ref, index) => snapshots[index].exists);
+}
+
+function publicAppointmentCanManage(appointment) {
+  const daysAhead = daysBetweenDateStrings(todayDateString(), appointment.appointmentDate);
+  return appointment?.status === "Scheduled" && daysAhead !== null && daysAhead >= 0;
+}
+
+function serializePublicManagedBooking(appointment) {
+  const service = publicBookingServiceFromAppointment(appointment);
+  const clientNames = Array.isArray(appointment.clientNames) && appointment.clientNames.length
+    ? appointment.clientNames.filter(Boolean)
+    : [appointment.clientName].filter(Boolean);
+
+  return {
+    id: appointment.id,
+    clientName: clientNames.length > 1 ? clientNames.join(", ") : clientNames[0] || "",
+    clientNames,
+    serviceId: service.id,
+    serviceLabel: appointment.publicBookingServiceLabel || service.label,
+    appointmentDate: appointment.appointmentDate,
+    appointmentTime: appointment.appointmentTime,
+    appointmentTimeLabel: formatAppointmentTimeValue(appointment.appointmentTime),
+    durationMinutes: appointment.durationMinutes || service.durationMinutes,
+    status: appointment.status || "Scheduled",
+    canCancel: publicAppointmentCanManage(appointment),
+    canReschedule: publicAppointmentCanManage(appointment)
+  };
+}
+
+async function loadPublicManagedAppointment(appointmentId, token) {
+  const id = cleanString(appointmentId);
+
+  if (!id || !token) {
+    return null;
+  }
+
+  const snapshot = await appointments.doc(id).get();
+
+  if (!snapshot.exists) {
+    return null;
+  }
+
+  const appointment = toAppointment(snapshot);
+
+  if (!publicManageTokensMatch(token, snapshot.data()?.publicManageTokenHash)) {
+    return null;
+  }
+
+  return appointment;
+}
+
+function publicChildNameParts(childName) {
+  const name = cleanString(childName);
+  const parts = name.split(/\s+/).filter(Boolean);
+
+  if (!parts.length) {
+    return {
+      firstName: "",
+      lastName: ""
+    };
+  }
+
+  if (parts.length === 1) {
+    return {
+      firstName: parts[0],
+      lastName: ""
+    };
+  }
+
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(" ")
+  };
+}
+
+function rawPublicBookingChildren(body) {
+  if (Array.isArray(body.children)) {
+    return body.children;
+  }
+
+  if (typeof body.children === "string" && body.children.trim()) {
+    try {
+      const parsed = JSON.parse(body.children);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_error) {
+      return [];
+    }
+  }
+
+  const childName = cleanString(body.childName || [body.firstName, body.lastName].filter(Boolean).join(" "));
+
+  return childName ? [{
+    childName,
+    dateOfBirth: body.childDob || body.childDOB || body.dateOfBirth,
+    gender: body.childGender || body.gender
+  }] : [];
+}
+
+function cleanPublicBookingChildren(body) {
+  return rawPublicBookingChildren(body)
+    .map((child) => {
+      const childName = cleanString(child.childName || child.name || [child.firstName, child.lastName].filter(Boolean).join(" "));
+      const { firstName, lastName } = publicChildNameParts(childName);
+
+      return {
+        childName,
+        firstName,
+        lastName,
+        dateOfBirth: cleanString(child.childDob || child.childDOB || child.dateOfBirth || child.dob),
+        gender: cleanString(child.childGender || child.gender)
+      };
+    })
+    .filter((child) => child.childName || child.firstName || child.lastName);
 }
 
 function publicAppointmentDraft({ service, appointmentDate, appointmentTime, clientName = "Public booking" }) {
@@ -1519,15 +1794,15 @@ function publicAppointmentDraft({ service, appointmentDate, appointmentTime, cli
   };
 }
 
-function publicSlotValuesForDate(dateString, service, existingAppointments = []) {
-  if (!isPublicBookableDate(dateString) || !isPublicBookingDateInRange(dateString)) {
+function publicSlotValuesForDate(dateString, service, existingAppointments = [], settings = defaultSchedulingSettingsNormalized) {
+  if (!isPublicBookableDate(dateString, settings) || !isPublicBookingDateInRange(dateString)) {
     return [];
   }
 
   const slots = [];
-  const latestStart = schedulingEndMinutes - service.durationMinutes;
+  const latestStart = settings.bookableEndMinutes - service.durationMinutes;
 
-  for (let minutes = schedulingStartMinutes; minutes <= latestStart; minutes += 15) {
+  for (let minutes = settings.bookableStartMinutes; minutes <= latestStart; minutes += settings.slotIntervalMinutes) {
     const appointmentTime = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
     const candidate = publicAppointmentDraft({ service, appointmentDate: dateString, appointmentTime });
     const conflict = existingAppointments.some(
@@ -1566,20 +1841,27 @@ function publicBookingRateLimit(request, response, next) {
 
 function cleanPublicBookingPayload(body) {
   const service = publicBookingServiceFromId(body.serviceId);
-  const firstName = cleanString(body.firstName || body.childFirstName);
-  const lastName = cleanString(body.lastName || body.childLastName);
+  const children = cleanPublicBookingChildren(body);
   const parentName = cleanString(body.parentName || body.caregiverName);
   const preferredLanguage = cleanString(body.preferredLanguage) || service.defaultLanguage || "English";
+  const phone = cleanString(body.mobilePhone || body.phone);
+  const email = cleanString(body.email);
+  const yccoMember = cleanBoolean(body.yccoMember || body.ycco);
 
   return {
     service,
-    firstName,
-    lastName,
+    children,
+    firstName: children[0]?.firstName || "",
+    lastName: children[0]?.lastName || "",
     parentName,
-    phone: cleanString(body.phone),
-    email: cleanString(body.email),
+    phone,
+    email,
+    address: cleanString(body.address || body.addressStreet),
     preferredLanguage,
-    preferredContactMethod: cleanString(body.preferredContactMethod) || "Call",
+    preferredContactMethod: cleanString(body.preferredContactMethod),
+    yccoMember,
+    yccoId: yccoMember ? cleanString(body.yccoId || body.yccoID || body.memberId) : "",
+    consentReminders: cleanBoolean(body.consentReminders || body.reminderConsent || body.consentToReminders),
     appointmentDate: cleanString(body.appointmentDate),
     appointmentTime: normalizeAppointmentTimeValue(body.appointmentTime),
     notes: cleanString(body.notes),
@@ -1587,13 +1869,17 @@ function cleanPublicBookingPayload(body) {
   };
 }
 
-function publicBookingValidationError(payload) {
+function publicBookingValidationError(payload, settings = defaultSchedulingSettingsNormalized) {
   if (payload.spamTrap || payload.website || payload.company || payload.url || payload.contactMe) {
     return "Could not submit this booking request. Please call or text (971) 202-0232.";
   }
 
-  if (!payload.firstName || !payload.lastName || !payload.parentName || !payload.phone || !payload.preferredLanguage) {
-    return "Child name, caregiver name, phone, and preferred language are required.";
+  if (!payload.children.length || !payload.children.every((child) => child.childName && child.dateOfBirth && child.gender)) {
+    return "Child name, date of birth, and gender are required for each child.";
+  }
+
+  if (!payload.parentName || !payload.phone || !payload.email || !payload.address || !payload.preferredLanguage || !payload.preferredContactMethod || !payload.consentReminders) {
+    return "Caregiver name, mobile phone, email, address, language, contact method, and reminder consent are required.";
   }
 
   for (const [field, maxLength] of Object.entries(publicBookingMaxLengths)) {
@@ -1602,23 +1888,31 @@ function publicBookingValidationError(payload) {
     }
   }
 
-  if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
-    return "Enter a valid email address or leave email blank.";
+  for (const child of payload.children) {
+    for (const field of ["childName", "dateOfBirth", "gender"]) {
+      if (cleanString(child[field]).length > publicBookingMaxLengths[field]) {
+        return "Please shorten the booking details and try again.";
+      }
+    }
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+    return "Enter a valid email address.";
   }
 
   if (!parseDateOnly(payload.appointmentDate) || !payload.appointmentTime) {
     return "Choose an appointment date and time.";
   }
 
-  if (!isPublicBookableDate(payload.appointmentDate) || !isPublicBookingDateInRange(payload.appointmentDate)) {
+  if (!isPublicBookableDate(payload.appointmentDate, settings) || !isPublicBookingDateInRange(payload.appointmentDate)) {
     return "Choose an available appointment date.";
   }
 
   return "";
 }
 
-function validatePublicBookingPayload(payload, response) {
-  const error = publicBookingValidationError(payload);
+function validatePublicBookingPayload(payload, response, settings = defaultSchedulingSettingsNormalized) {
+  const error = publicBookingValidationError(payload, settings);
 
   if (error) {
     response.status(400).json({
@@ -1637,17 +1931,21 @@ app.get("/health", (_request, response) => {
   });
 });
 
-app.get("/api/public/booking-options", (_request, response) => {
-  response.json({
-    services: publicBookingServices,
-    scheduling: {
-      startTime: formatAppointmentTimeValue(
-        `${String(Math.floor(schedulingStartMinutes / 60)).padStart(2, "0")}:${String(schedulingStartMinutes % 60).padStart(2, "0")}`
-      ),
-      endTime: schedulingWindowEndLabel(),
-      weekdays: Array.from(publicSchedulingWeekdays)
-    }
-  });
+app.get("/api/public/booking-options", async (_request, response, next) => {
+  try {
+    const settings = await loadSchedulingSettings();
+
+    response.json({
+      services: publicBookingServices,
+      scheduling: {
+        startTime: formatAppointmentTimeValue(settings.bookableStartTime),
+        endTime: schedulingWindowEndLabel(settings),
+        weekdays: settings.weekdays
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get("/api/public/availability", async (request, response, next) => {
@@ -1659,6 +1957,7 @@ app.get("/api/public/availability", async (request, response, next) => {
     const days = Number.isInteger(requestedDays)
       ? Math.min(Math.max(requestedDays, 1), publicAvailabilityMaxDays)
       : publicAvailabilityDefaultDays;
+    const settings = await loadSchedulingSettings();
     const endDate = addDaysToDateString(startDate, days - 1);
     const snapshot = await appointments
       .where("appointmentDate", ">=", startDate)
@@ -1683,13 +1982,13 @@ app.get("/api/public/availability", async (request, response, next) => {
     for (let offset = 0; offset < days; offset += 1) {
       const date = addDaysToDateString(startDate, offset);
 
-      if (!date || !isPublicBookableDate(date) || !isPublicBookingDateInRange(date)) {
+      if (!date || !isPublicBookableDate(date, settings) || !isPublicBookingDateInRange(date)) {
         continue;
       }
 
       dates.push({
         date,
-        slots: publicSlotValuesForDate(date, service, existingAppointmentsByDate.get(date) || [])
+        slots: publicSlotValuesForDate(date, service, existingAppointmentsByDate.get(date) || [], settings)
       });
     }
 
@@ -1707,9 +2006,12 @@ app.post("/api/public/bookings", publicBookingRateLimit, async (request, respons
     const payload = cleanPublicBookingPayload(request.body);
     const now = new Date().toISOString();
     const today = todayDateString();
-    const clientName = `${payload.firstName} ${payload.lastName}`.trim();
+    const clientNames = payload.children.map((child) => child.childName || `${child.firstName} ${child.lastName}`.trim()).filter(Boolean);
+    const clientName = clientNames[0] || "";
 
-    if (!validatePublicBookingPayload(payload, response)) {
+    const settings = await loadSchedulingSettings();
+
+    if (!validatePublicBookingPayload(payload, response, settings)) {
       return;
     }
 
@@ -1720,9 +2022,9 @@ app.post("/api/public/bookings", publicBookingRateLimit, async (request, respons
       clientName
     });
 
-    if (!appointmentFitsSchedulingWindow(appointmentDraft)) {
+    if (!appointmentFitsSchedulingWindow(appointmentDraft, settings)) {
       response.status(400).json({
-        error: schedulingWindowError(appointmentDraft)
+        error: schedulingWindowError(appointmentDraft, settings)
       });
       return;
     }
@@ -1736,40 +2038,53 @@ app.post("/api/public/bookings", publicBookingRateLimit, async (request, respons
       return;
     }
 
-    const clientRef = clients.doc();
+    const clientRefs = payload.children.map(() => clients.doc());
     const appointmentRef = appointments.doc();
     const taskRef = tasks.doc();
+    const publicManageToken = createPublicManageToken();
+    const manageTokenHash = publicManageTokenHash(publicManageToken);
     const publicNotes = [
       "Booked through the public SNACK booking page.",
-      payload.service.siblingVisit ? "Sibling appointment type selected." : "",
+      clientNames.length > 1 ? `Children: ${clientNames.join(", ")}.` : "",
+      `YCCO member: ${payload.yccoMember ? "Yes" : "No"}.`,
+      payload.yccoMember && payload.yccoId ? `YCCO ID: ${payload.yccoId}.` : "",
       payload.notes ? `Family notes: ${payload.notes}` : ""
     ].filter(Boolean).join(" ");
-    const clientRecord = {
-      firstName: payload.firstName,
-      lastName: payload.lastName,
+    const clientRecords = payload.children.map((child, index) => ({
+      firstName: child.firstName,
+      lastName: child.lastName,
       parentName: payload.parentName,
+      dateOfBirth: child.dateOfBirth,
+      gender: child.gender,
       phone: payload.phone,
       email: payload.email,
       preferredLanguage: payload.preferredLanguage,
       preferredContactMethod: payload.preferredContactMethod,
+      addressStreet: payload.address,
+      emailOptOut: !payload.consentReminders,
+      textOptOut: !payload.consentReminders,
+      ycco: payload.yccoMember,
+      yccoId: payload.yccoId,
       referralType: "Self Referral",
       referralSource: "Public booking",
       referralDate: today,
       firstAppointmentDate: payload.appointmentDate,
       status: "Scheduled",
       notes: publicNotes,
+      siblingIds: clientRefs.map((ref, siblingIndex) => siblingIndex === index ? "" : ref.id).filter(Boolean),
       publicBookingServiceId: payload.service.id,
       publicBookingServiceLabel: payload.service.label,
       createdVia: "Public booking",
       createdAt: now,
       updatedAt: now,
       createdBy: "public-booking"
-    };
+    }));
+    const taskClientName = clientNames.length > 1 ? clientNames.join(", ") : clientName;
     const appointmentRecord = {
-      clientId: clientRef.id,
-      clientIds: [clientRef.id],
+      clientId: clientRefs[0].id,
+      clientIds: clientRefs.map((ref) => ref.id),
       clientName,
-      clientNames: [clientName],
+      clientNames,
       appointmentDate: payload.appointmentDate,
       appointmentTime: payload.appointmentTime,
       appointmentType: payload.service.appointmentType,
@@ -1779,50 +2094,272 @@ app.post("/api/public/bookings", publicBookingRateLimit, async (request, respons
       status: "Scheduled",
       lesson: "",
       goal: "",
-      staffMember: "",
+      staffMember: payload.service.staffMember || "Cynthia Esparza",
       notes: publicNotes,
       createdVia: "Public booking",
+      publicManageTokenHash: manageTokenHash,
+      publicManageTokenCreatedAt: now,
       createdAt: now,
       updatedAt: now,
       createdBy: "public-booking"
     };
     const taskRecord = {
-      title: `Review public booking for ${clientName}`,
+      title: `Review public booking for ${taskClientName}`,
       type: "Task",
       status: "Open",
       priority: "Normal",
       dueDate: today,
       dueTime: "",
       assignedTo: "",
-      clientId: clientRef.id,
-      clientName,
+      clientId: clientRefs[0].id,
+      clientName: taskClientName,
       appointmentId: appointmentRef.id,
       referralId: "",
       source: "Public Booking",
       notes: [
         `Booked ${payload.service.label} for ${payload.appointmentDate} at ${formatAppointmentTimeValue(payload.appointmentTime)}.`,
+        clientNames.length > 1 ? `Multiple children: ${clientNames.join(", ")}.` : "",
         "Review for duplicate records, sibling needs, forms, and appointment prep."
-      ].join(" "),
+      ].filter(Boolean).join(" "),
       createdAt: now,
       updatedAt: now,
       createdBy: "public-booking"
     };
     const batch = firestore.batch();
 
-    batch.set(clientRef, clientRecord);
+    clientRefs.forEach((clientRef, index) => {
+      batch.set(clientRef, clientRecords[index]);
+    });
     batch.set(appointmentRef, appointmentRecord);
     batch.set(taskRef, taskRecord);
     await batch.commit();
 
     response.status(201).json({
       booking: {
-        clientName,
+        clientName: clientNames.length > 1 ? clientNames.join(", ") : clientName,
+        clientNames,
         serviceLabel: payload.service.label,
         appointmentDate: payload.appointmentDate,
         appointmentTime: payload.appointmentTime,
         appointmentTimeLabel: formatAppointmentTimeValue(payload.appointmentTime),
-        durationMinutes: payload.service.durationMinutes
+        durationMinutes: payload.service.durationMinutes,
+        appointmentId: appointmentRef.id,
+        manageToken: publicManageToken
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/public/bookings/:appointmentId", async (request, response, next) => {
+  try {
+    const appointment = await loadPublicManagedAppointment(request.params.appointmentId, publicManageTokenFromRequest(request));
+
+    if (!appointment) {
+      response.status(404).json({
+        error: "We could not find that appointment. Please call or text (971) 202-0232."
+      });
+      return;
+    }
+
+    response.json({
+      booking: serializePublicManagedBooking(appointment)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/public/bookings/:appointmentId/cancel", publicBookingRateLimit, async (request, response, next) => {
+  try {
+    const appointment = await loadPublicManagedAppointment(request.params.appointmentId, publicManageTokenFromRequest(request));
+
+    if (!appointment) {
+      response.status(404).json({
+        error: "We could not find that appointment. Please call or text (971) 202-0232."
+      });
+      return;
+    }
+
+    if (!publicAppointmentCanManage(appointment)) {
+      response.status(400).json({
+        error: "This appointment can no longer be changed online. Please call or text (971) 202-0232."
+      });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const today = todayDateString();
+    const clientNames = Array.isArray(appointment.clientNames) && appointment.clientNames.length
+      ? appointment.clientNames.filter(Boolean)
+      : [appointment.clientName].filter(Boolean);
+    const displayName = clientNames.length > 1 ? clientNames.join(", ") : clientNames[0] || "Public booking";
+    const clientRefsToUpdate = await existingPublicManageClientRefs(appointment);
+    const batch = firestore.batch();
+
+    batch.update(appointments.doc(appointment.id), {
+      status: "Canceled",
+      publicCanceledAt: now,
+      updatedAt: now,
+      updatedBy: "public-booking"
+    });
+
+    for (const clientRef of clientRefsToUpdate) {
+      batch.update(clientRef, {
+        status: "Needs Reschedule",
+        updatedAt: now,
+        updatedBy: "public-booking"
+      });
+    }
+
+    batch.set(tasks.doc(), {
+      title: `Review public cancellation for ${displayName}`,
+      type: "Task",
+      status: "Open",
+      priority: "Normal",
+      dueDate: today,
+      dueTime: "",
+      assignedTo: "",
+      clientId: appointment.clientId || appointment.clientIds?.[0] || "",
+      clientName: displayName,
+      appointmentId: appointment.id,
+      referralId: "",
+      source: "Public Booking",
+      notes: `Family canceled ${appointment.publicBookingServiceLabel || appointment.appointmentType || "appointment"} for ${appointment.appointmentDate} at ${formatAppointmentTimeValue(appointment.appointmentTime)}.`,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: "public-booking"
+    });
+
+    await batch.commit();
+
+    response.json({
+      booking: serializePublicManagedBooking({ ...appointment, status: "Canceled" })
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/public/bookings/:appointmentId/reschedule", publicBookingRateLimit, async (request, response, next) => {
+  try {
+    const appointment = await loadPublicManagedAppointment(request.params.appointmentId, publicManageTokenFromRequest(request));
+
+    if (!appointment) {
+      response.status(404).json({
+        error: "We could not find that appointment. Please call or text (971) 202-0232."
+      });
+      return;
+    }
+
+    if (!publicAppointmentCanManage(appointment)) {
+      response.status(400).json({
+        error: "This appointment can no longer be changed online. Please call or text (971) 202-0232."
+      });
+      return;
+    }
+
+    const appointmentDate = cleanString(request.body?.appointmentDate);
+    const appointmentTime = normalizeAppointmentTimeValue(request.body?.appointmentTime);
+    const settings = await loadSchedulingSettings();
+    const service = publicBookingServiceFromAppointment(appointment);
+    const rescheduledAppointment = {
+      ...appointment,
+      appointmentDate,
+      appointmentTime,
+      durationMinutes: service.durationMinutes,
+      status: "Scheduled"
+    };
+
+    if (!parseDateOnly(appointmentDate) || !appointmentTime) {
+      response.status(400).json({
+        error: "Choose an appointment date and time."
+      });
+      return;
+    }
+
+    if (appointment.appointmentDate === appointmentDate && normalizeAppointmentTimeValue(appointment.appointmentTime) === appointmentTime) {
+      response.status(400).json({
+        error: "Choose a new appointment time."
+      });
+      return;
+    }
+
+    if (!isPublicBookableDate(appointmentDate, settings) || !isPublicBookingDateInRange(appointmentDate)) {
+      response.status(400).json({
+        error: "Choose an available appointment date."
+      });
+      return;
+    }
+
+    if (!appointmentFitsSchedulingWindow(rescheduledAppointment, settings)) {
+      response.status(400).json({
+        error: schedulingWindowError(rescheduledAppointment, settings)
+      });
+      return;
+    }
+
+    const conflict = await findAppointmentConflict(rescheduledAppointment, appointment.id);
+
+    if (conflict) {
+      response.status(409).json({
+        error: "That time was just booked. Please choose another open time."
+      });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const today = todayDateString();
+    const clientNames = Array.isArray(appointment.clientNames) && appointment.clientNames.length
+      ? appointment.clientNames.filter(Boolean)
+      : [appointment.clientName].filter(Boolean);
+    const displayName = clientNames.length > 1 ? clientNames.join(", ") : clientNames[0] || "Public booking";
+    const clientRefsToUpdate = await existingPublicManageClientRefs(appointment);
+    const batch = firestore.batch();
+
+    batch.update(appointments.doc(appointment.id), {
+      appointmentDate,
+      appointmentTime,
+      durationMinutes: service.durationMinutes,
+      status: "Scheduled",
+      publicRescheduledAt: now,
+      updatedAt: now,
+      updatedBy: "public-booking"
+    });
+
+    for (const clientRef of clientRefsToUpdate) {
+      batch.update(clientRef, {
+        status: "Scheduled",
+        firstAppointmentDate: appointmentDate,
+        updatedAt: now,
+        updatedBy: "public-booking"
+      });
+    }
+
+    batch.set(tasks.doc(), {
+      title: `Review public reschedule for ${displayName}`,
+      type: "Task",
+      status: "Open",
+      priority: "Normal",
+      dueDate: today,
+      dueTime: "",
+      assignedTo: "",
+      clientId: appointment.clientId || appointment.clientIds?.[0] || "",
+      clientName: displayName,
+      appointmentId: appointment.id,
+      referralId: "",
+      source: "Public Booking",
+      notes: `Family rescheduled ${appointment.publicBookingServiceLabel || appointment.appointmentType || "appointment"} from ${appointment.appointmentDate} at ${formatAppointmentTimeValue(appointment.appointmentTime)} to ${appointmentDate} at ${formatAppointmentTimeValue(appointmentTime)}.`,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: "public-booking"
+    });
+
+    await batch.commit();
+
+    response.json({
+      booking: serializePublicManagedBooking(rescheduledAppointment)
     });
   } catch (error) {
     next(error);
@@ -1886,6 +2423,13 @@ app.get("/api/admin/export/:collectionKey", requireAuth, async (request, respons
 
 app.post("/api/admin/bulk-delete", requireAuth, async (request, response, next) => {
   try {
+    if (!isAdminBulkDeleteEnabled()) {
+      response.status(403).json({
+        error: "Bulk delete is disabled for this environment."
+      });
+      return;
+    }
+
     const collectionKeys = Array.isArray(request.body.collections)
       ? request.body.collections.map(cleanString).filter(Boolean)
       : [];
@@ -1925,6 +2469,39 @@ app.post("/api/admin/bulk-delete", requireAuth, async (request, response, next) 
       deleted,
       deletedAt: new Date().toISOString(),
       deletedBy: request.user.email
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/admin/scheduling-settings", requireAuth, async (_request, response, next) => {
+  try {
+    const settings = await loadSchedulingSettings();
+
+    response.json({
+      schedulingSettings: serializeSchedulingSettings(settings)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/admin/scheduling-settings", requireAuth, async (request, response, next) => {
+  try {
+    const payload = cleanSchedulingSettingsPayload(request.body);
+    const docRef = adminSettings.doc("scheduling");
+
+    await docRef.set({
+      ...payload,
+      updatedAt: new Date().toISOString(),
+      updatedBy: request.user.email
+    }, { merge: true });
+
+    const updated = await docRef.get();
+
+    response.json({
+      schedulingSettings: serializeSchedulingSettings(toSchedulingSettings(updated))
     });
   } catch (error) {
     next(error);
@@ -1992,9 +2569,11 @@ app.post("/api/appointments", requireAuth, async (request, response, next) => {
       payload.clientName = clientNames[0] || "";
     }
 
-    if (!appointmentFitsSchedulingWindow(payload)) {
+    const settings = await loadSchedulingSettings();
+
+    if (!appointmentFitsSchedulingWindow(payload, settings)) {
       response.status(400).json({
-        error: schedulingWindowError(payload)
+        error: schedulingWindowError(payload, settings)
       });
       return;
     }
@@ -2058,6 +2637,7 @@ app.post("/api/appointments/import", requireAuth, async (request, response, next
     const now = new Date().toISOString();
     const batch = firestore.batch();
     const skipped = [];
+    const settings = await loadSchedulingSettings();
     let importedCount = 0;
 
     for (const [index, row] of appointmentRows.entries()) {
@@ -2074,10 +2654,10 @@ app.post("/api/appointments/import", requireAuth, async (request, response, next
         continue;
       }
 
-      if (!appointmentFitsSchedulingWindow(payload)) {
+      if (!appointmentFitsSchedulingWindow(payload, settings)) {
         skipped.push({
           rowNumber,
-          reason: schedulingWindowError(payload)
+          reason: schedulingWindowError(payload, settings)
         });
         continue;
       }
@@ -2148,9 +2728,11 @@ app.patch("/api/appointments/:appointmentId", requireAuth, async (request, respo
     }
 
     const now = new Date().toISOString();
-    if (!appointmentFitsSchedulingWindow(payload)) {
+    const settings = await loadSchedulingSettings();
+
+    if (!appointmentFitsSchedulingWindow(payload, settings)) {
       response.status(400).json({
-        error: schedulingWindowError(payload)
+        error: schedulingWindowError(payload, settings)
       });
       return;
     }
@@ -4154,6 +4736,7 @@ export {
   cleanProviderLink,
   cleanPublicBookingPayload,
   cleanReferralNetworkPayload,
+  cleanSchedulingSettingsPayload,
   cleanSiblingZohoRecordIds,
   cleanString,
   cleanTaskPayload,
@@ -4163,6 +4746,7 @@ export {
   hasRequiredPersonFields,
   isActiveTaskStatus,
   isGeneratedTaskSource,
+  isAdminBulkDeleteEnabled,
   isPublicBookableDate,
   normalizeActivityDirection,
   normalizeActivityType,
@@ -4178,9 +4762,14 @@ export {
   publicBookingServiceFromId,
   publicBookingServices,
   publicBookingValidationError,
+  publicManageClientIdsFromAppointment,
+  publicManageTokenHash,
+  publicManageTokensMatch,
   publicSlotValuesForDate,
   referralSourceFromRecord,
   resolveAppointmentImportClients,
+  serializePublicManagedBooking,
+  serializeSchedulingSettings,
   schedulingWindowEndLabel,
   schedulingWindowError,
   siblingIdsForImportedRecord,

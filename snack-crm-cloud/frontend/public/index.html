@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SNACK Program Manager</title>
     <link rel="icon" type="image/png" href="./favicon.png">
-    <link rel="stylesheet" href="./styles.css?v=20260616-grant-fields">
+    <link rel="stylesheet" href="./styles.css?v=20260707-live-pass">
   </head>
   <body>
     <div class="app-shell">
@@ -98,31 +98,56 @@
               <div class="dashboard-card-header">
                 <div>
                   <h3 id="admin-scheduling-settings-title">Scheduling Settings</h3>
-                  <p class="dashboard-card-note">Current appointment rules</p>
+                  <p class="dashboard-card-note">Clinic availability and appointment rules</p>
                 </div>
               </div>
-              <div class="admin-settings-list">
-                <div>
-                  <span>Appointment Days</span>
-                  <strong>Tuesday, Wednesday, Thursday</strong>
+              <form id="admin-scheduling-settings-form" class="admin-settings-form">
+                <fieldset>
+                  <legend>Appointment Days</legend>
+                  <label><input type="checkbox" name="weekdays" value="1"> Monday</label>
+                  <label><input type="checkbox" name="weekdays" value="2"> Tuesday</label>
+                  <label><input type="checkbox" name="weekdays" value="3"> Wednesday</label>
+                  <label><input type="checkbox" name="weekdays" value="4"> Thursday</label>
+                  <label><input type="checkbox" name="weekdays" value="5"> Friday</label>
+                </fieldset>
+                <div class="admin-settings-grid">
+                  <label>
+                    <span>Office Opens</span>
+                    <input id="admin-scheduling-office-start" name="officeStartTime" type="time" step="900">
+                  </label>
+                  <label>
+                    <span>Office Closes</span>
+                    <input id="admin-scheduling-office-end" name="officeEndTime" type="time" step="900">
+                  </label>
+                  <label>
+                    <span>First Appointment</span>
+                    <input id="admin-scheduling-bookable-start" name="bookableStartTime" type="time" step="900">
+                  </label>
+                  <label>
+                    <span>Appointments End By</span>
+                    <input id="admin-scheduling-bookable-end" name="bookableEndTime" type="time" step="900">
+                  </label>
+                  <label>
+                    <span>Default Duration</span>
+                    <select id="admin-scheduling-default-duration" name="defaultDurationMinutes">
+                      <option value="30">30 minutes</option>
+                      <option value="45">45 minutes</option>
+                      <option value="60">60 minutes</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Time Slot Size</span>
+                    <select id="admin-scheduling-slot-interval" name="slotIntervalMinutes">
+                      <option value="15">15 minutes</option>
+                      <option value="30">30 minutes</option>
+                    </select>
+                  </label>
                 </div>
-                <div>
-                  <span>Appointment Hours</span>
-                  <strong>1:00 PM - 6:00 PM</strong>
+                <div class="admin-settings-actions">
+                  <p id="admin-scheduling-settings-status" class="form-status" aria-live="polite"></p>
+                  <button id="admin-scheduling-settings-save" class="primary-button compact-button" type="submit">Save Settings</button>
                 </div>
-                <div>
-                  <span>Default Duration</span>
-                  <strong>30 minutes</strong>
-                </div>
-                <div>
-                  <span>Sibling Duration</span>
-                  <strong>15 minutes</strong>
-                </div>
-                <div>
-                  <span>Group Duration</span>
-                  <strong>45 minutes for 3+ clients</strong>
-                </div>
-              </div>
+              </form>
             </section>
 
             <section class="dashboard-card" aria-labelledby="system-dashboard-title">
@@ -798,7 +823,7 @@
             <div class="header-actions">
               <div class="view-toggle" role="group" aria-label="Referral view">
                 <button id="referrals-view-list" class="view-toggle-button active" type="button" aria-pressed="true">List</button>
-                <button id="referrals-view-flow" class="view-toggle-button" type="button" aria-pressed="false">Flow</button>
+                <button id="referrals-view-flow" class="view-toggle-button" type="button" aria-pressed="false">Profiles</button>
               </div>
               <details class="header-search-menu">
                 <summary>Search</summary>
@@ -830,7 +855,7 @@
                 </div>
                 <div id="referrals-list" class="referrals-list" role="rowgroup"></div>
               </div>
-              <div id="referral-flow-board" class="flow-board" aria-label="Referral Flow" hidden></div>
+              <div id="referral-flow-board" class="flow-board" aria-label="Referral Profiles" hidden></div>
             </section>
 
           </div>
@@ -845,7 +870,7 @@
             <div class="header-actions">
               <div class="view-toggle" role="group" aria-label="Client view">
                 <button id="clients-view-list" class="view-toggle-button active" type="button" aria-pressed="true">List</button>
-                <button id="clients-view-flow" class="view-toggle-button" type="button" aria-pressed="false">Flow</button>
+                <button id="clients-view-flow" class="view-toggle-button" type="button" aria-pressed="false">Profiles</button>
               </div>
               <details class="header-search-menu">
                 <summary>Search</summary>
@@ -878,7 +903,7 @@
                 </div>
                 <div id="clients-list" class="referrals-list" role="rowgroup"></div>
               </div>
-              <div id="client-flow-board" class="flow-board" aria-label="Client Flow" hidden></div>
+              <div id="client-flow-board" class="flow-board" aria-label="Client Profiles" hidden></div>
             </section>
           </div>
         </section>
@@ -1083,6 +1108,7 @@
                         <option value="Completed">Completed</option>
                         <option value="No-show">No-show</option>
                         <option value="Rescheduled">Rescheduled</option>
+                        <option value="Blocked">Blocked</option>
                         <option value="Canceled">Canceled</option>
                       </select>
                     </label>
@@ -1436,7 +1462,7 @@
                 <select id="client-status" name="status">
                   <option value="Scheduled">Scheduled</option>
                   <option value="Active">Active</option>
-                  <option value="Needs Reschedule">Needs Reschedule</option>
+                  <option value="Needs Reschedule">Reschedule</option>
                   <option value="Needs Language Support">Needs Language Support</option>
                   <option value="Waiting on Family">Waiting on Family</option>
                   <option value="Graduated">Graduated</option>
@@ -1883,7 +1909,7 @@
     </div>
 
     <div id="appointment-modal" class="modal-backdrop" hidden>
-      <section class="modal-card" role="dialog" aria-modal="true" aria-label="Appointment profile">
+      <section class="modal-card appointment-modal-card" role="dialog" aria-modal="true" aria-label="Appointment profile">
         <div id="appointment-detail" class="referral-detail appointment-detail" hidden>
           <div class="detail-heading">
             <div>
@@ -1899,81 +1925,119 @@
           </div>
           <div id="appointment-detail-body" class="appointment-detail-body"></div>
         </div>
-        <form id="appointment-form" class="referral-form" hidden>
-          <div class="detail-heading">
+        <form id="appointment-form" class="appointment-v2-form" hidden>
+          <div class="appointment-v2-form-heading">
             <div>
               <p class="eyebrow">Scheduling</p>
               <h3 id="appointment-form-title">New Appointment</h3>
             </div>
-            <div class="form-actions">
+            <div class="appointment-v2-form-actions">
               <button id="delete-appointment" class="danger-button" type="button" hidden>Delete</button>
               <button id="save-appointment" type="submit">Save appointment</button>
               <button id="cancel-appointment-edit" class="secondary-button" type="button">Cancel</button>
             </div>
           </div>
-          <p id="appointment-form-status" class="status form-status full-field" aria-live="polite"></p>
-          <label>
-            <span class="label-text">Clients <span class="required-marker" aria-label="required">*</span></span>
-            <span class="inline-field-control">
-              <input id="appointment-client-search" list="appointment-client-options" autocomplete="off">
-              <button id="add-appointment-client" class="secondary-button compact-button" type="button">Add</button>
-            </span>
-            <input id="appointment-client-id" name="clientId" type="hidden">
-            <input id="appointment-client-ids" name="clientIds" type="hidden" required>
-            <datalist id="appointment-client-options"></datalist>
-            <div id="appointment-client-selected" class="selected-client-list" aria-label="Selected appointment clients"></div>
-          </label>
-          <label>
-            Appointment Type
-            <select id="appointment-type" name="appointmentType">
-              <option value="Enrollment">Enrollment</option>
-              <option value="Nutrition Education">Nutrition Education</option>
-            </select>
-          </label>
-          <label>
-            <span class="label-text">Date <span class="required-marker" aria-label="required">*</span></span>
-            <input id="appointment-date" name="appointmentDate" type="date" required>
-          </label>
-          <label>
-            Time
-            <select id="appointment-time" name="appointmentTime" required></select>
-          </label>
-          <label>
-            Status
-            <select id="appointment-status" name="status">
-              <option value="Scheduled">Scheduled</option>
-              <option value="Completed">Completed</option>
-              <option value="No-show">No-show</option>
-              <option value="Rescheduled">Rescheduled</option>
-              <option value="Canceled">Canceled</option>
-            </select>
-          </label>
-          <label>
-            Lesson
-            <select id="appointment-lesson" name="lesson">
-              <option value="">Not set</option>
-              <option value="1">Lesson 1</option>
-              <option value="2">Lesson 2</option>
-              <option value="3">Lesson 3</option>
-              <option value="4">Lesson 4</option>
-              <option value="5">Lesson 5</option>
-              <option value="6">Lesson 6</option>
-              <option value="7">Lesson 7</option>
-              <option value="Check In">Check In</option>
-            </select>
-          </label>
-          <label>
-            Staff Member
-            <input id="appointment-staff-member" name="staffMember">
-          </label>
-          <label class="full-field">
-            Goal
-            <input id="appointment-goal" name="goal">
-          </label>
-          <label class="full-field">
-            Notes
-            <textarea id="appointment-notes" name="notes" rows="5"></textarea>
-          </label>
+          <p id="appointment-form-status" class="status form-status" aria-live="polite"></p>
+          <div class="appointment-v2-form-layout">
+            <aside class="appointment-v2-form-side">
+              <section class="appointment-v2-form-card">
+                <h4>Appointment</h4>
+                <label class="appointment-v2-field appointment-v2-clients-field">
+                  <span class="label-text">Clients <span class="required-marker" aria-label="required">*</span></span>
+                  <span class="inline-field-control">
+                    <input id="appointment-client-search" list="appointment-client-options" autocomplete="off">
+                    <button id="add-appointment-client" class="secondary-button compact-button" type="button">Add</button>
+                  </span>
+                  <input id="appointment-client-id" name="clientId" type="hidden">
+                  <input id="appointment-client-ids" name="clientIds" type="hidden" required>
+                  <datalist id="appointment-client-options"></datalist>
+                  <div id="appointment-client-selected" class="selected-client-list" aria-label="Selected appointment clients"></div>
+                </label>
+                <label class="appointment-v2-field">
+                  <span class="label-text">Status</span>
+                  <select id="appointment-status" name="status">
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="Completed">Completed</option>
+                    <option value="No-show">No-show</option>
+                    <option value="Rescheduled">Rescheduled</option>
+                    <option value="Blocked">Blocked</option>
+                    <option value="Canceled">Canceled</option>
+                  </select>
+                </label>
+                <label class="appointment-v2-field">
+                  <span class="label-text">Date <span class="required-marker" aria-label="required">*</span></span>
+                  <input id="appointment-date" name="appointmentDate" type="date" required>
+                </label>
+                <label class="appointment-v2-field">
+                  <span class="label-text">Time</span>
+                  <select id="appointment-time" name="appointmentTime" required></select>
+                </label>
+              </section>
+            </aside>
+            <div class="appointment-v2-form-main">
+              <div class="appointment-v2-form-tabs" role="tablist" aria-label="Appointment form tabs">
+                <button class="active" type="button" role="tab" aria-selected="true">Appt Note</button>
+                <button type="button" role="tab" aria-selected="false">Prep</button>
+                <button type="button" role="tab" aria-selected="false">Activity</button>
+                <button type="button" role="tab" aria-selected="false">Forms</button>
+              </div>
+              <section class="appointment-v2-form-card">
+                <div class="appointment-v2-card-heading">
+                  <h4>Appt Note</h4>
+                </div>
+                <div class="appointment-v2-field-grid">
+                  <label class="appointment-v2-field">
+                    <span class="label-text">Appointment Type</span>
+                    <select id="appointment-type" name="appointmentType">
+                      <option value="Enrollment">Enrollment</option>
+                      <option value="Nutrition Education">Nutrition Education</option>
+                      <option value="Administrative">Administrative</option>
+                    </select>
+                  </label>
+                  <label class="appointment-v2-field">
+                    <span class="label-text">Staff Member</span>
+                    <input id="appointment-staff-member" name="staffMember">
+                  </label>
+                  <label class="appointment-v2-field">
+                    <span class="label-text">Lesson</span>
+                    <select id="appointment-lesson" name="lesson">
+                      <option value="">Not set</option>
+                      <option value="1">Nutrient Density</option>
+                      <option value="2">Sugar</option>
+                      <option value="3">Food Groups</option>
+                      <option value="4">Macronutrients</option>
+                      <option value="5">Micronutrients</option>
+                      <option value="6">Mindful Eating</option>
+                      <option value="7">Healthy Habits</option>
+                      <option value="Check In">Check In</option>
+                    </select>
+                  </label>
+                  <label class="appointment-v2-field">
+                    <span class="label-text">Goal</span>
+                    <input id="appointment-goal" name="goal">
+                  </label>
+                  <label class="appointment-v2-field appointment-v2-field-wide">
+                    <span class="label-text">Notes</span>
+                    <textarea id="appointment-notes" name="notes" rows="5"></textarea>
+                  </label>
+                </div>
+              </section>
+              <section class="appointment-v2-form-card appointment-v2-mini-card">
+                <h4>Prep</h4>
+                <p>Paperwork, materials, handouts</p>
+              </section>
+              <div class="appointment-v2-form-card-grid">
+                <section class="appointment-v2-form-card appointment-v2-mini-card">
+                  <h4>Activity</h4>
+                  <p>Status changes, edits, completion</p>
+                </section>
+                <section class="appointment-v2-form-card appointment-v2-mini-card">
+                  <h4>Forms</h4>
+                  <p>Print, upload, view</p>
+                </section>
+              </div>
+            </div>
+          </div>
         </form>
       </section>
     </div>
@@ -2019,6 +2083,61 @@
           <label class="full-field">
             Notes
             <textarea id="completion-next-notes" name="nextNotes" rows="4"></textarea>
+          </label>
+        </form>
+      </section>
+    </div>
+    <div id="appointment-check-in-modal" class="modal-backdrop" hidden>
+      <section class="modal-card appointment-check-in-modal-card" role="dialog" aria-modal="true" aria-labelledby="appointment-check-in-title">
+        <form id="appointment-check-in-form" class="referral-form appointment-check-in-form">
+          <div class="detail-heading">
+            <div>
+              <p class="eyebrow">Scheduling</p>
+              <h3 id="appointment-check-in-title">Edit Check In</h3>
+              <p id="appointment-check-in-summary" class="support-text"></p>
+            </div>
+            <div class="form-actions">
+              <button id="save-appointment-check-in" type="submit">Save Check In</button>
+              <button class="secondary-button" data-close-appointment-check-in type="button">Cancel</button>
+            </div>
+          </div>
+          <label>
+            Caregiver Mood
+            <select name="caregiverMood">
+              <option value="Good">Good</option>
+              <option value="Okay">Okay</option>
+              <option value="Stressed">Stressed</option>
+              <option value="Concerned">Concerned</option>
+            </select>
+          </label>
+          <label>
+            Confidence
+            <select name="confidence">
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </label>
+          <label>
+            Participation
+            <select name="participation">
+              <option value="Engaged">Engaged</option>
+              <option value="Somewhat Engaged">Somewhat Engaged</option>
+              <option value="Quiet">Quiet</option>
+              <option value="Not Engaged">Not Engaged</option>
+            </select>
+          </label>
+          <label>
+            Barriers
+            <select name="barriers">
+              <option value="None">None</option>
+              <option value="Transportation">Transportation</option>
+              <option value="Schedule">Schedule</option>
+              <option value="Food access">Food access</option>
+              <option value="Language">Language</option>
+              <option value="Caregiver capacity">Caregiver capacity</option>
+              <option value="Other">Other</option>
+            </select>
           </label>
         </form>
       </section>
@@ -2189,6 +2308,6 @@
     </div>
     <section id="print-root" class="print-root" aria-hidden="true"></section>
     <script src="./app-config.js"></script>
-    <script type="module" src="./app.js?v=20260617-grant-edit-profile"></script>
+    <script type="module" src="./app.js?v=20260707-live-pass"></script>
   </body>
 </html>

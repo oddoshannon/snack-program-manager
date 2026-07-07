@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Book an Appointment | The SNACK Program</title>
     <link rel="icon" type="image/png" href="./favicon.png">
-    <link rel="stylesheet" href="./styles.css?v=20260610-public-booking">
+    <link rel="stylesheet" href="./styles.css?v=20260707-live-pass">
   </head>
   <body class="public-booking-page">
     <main class="public-booking-shell" aria-labelledby="booking-title">
@@ -23,6 +23,28 @@
       </header>
 
       <section id="booking-confirmation" class="public-booking-confirmation" hidden aria-live="polite"></section>
+
+      <section id="booking-management" class="public-booking-card public-booking-management" hidden aria-labelledby="booking-management-title">
+        <div class="public-booking-step-heading">
+          <span>✓</span>
+          <div>
+            <h2 id="booking-management-title">Manage Appointment</h2>
+            <p id="booking-management-summary">Loading appointment...</p>
+          </div>
+        </div>
+        <div class="public-management-actions">
+          <button id="public-cancel-booking" class="public-danger-button" type="button">Cancel Appointment</button>
+        </div>
+        <div class="public-management-reschedule">
+          <h3>Reschedule</h3>
+          <p>Choose a new available time.</p>
+          <div id="public-management-availability" class="public-availability" aria-live="polite"></div>
+        </div>
+        <div class="public-booking-actions">
+          <p id="public-management-status" class="status" aria-live="polite"></p>
+          <button id="public-reschedule-booking" type="button">Reschedule Appointment</button>
+        </div>
+      </section>
 
       <form id="public-booking-form" class="public-booking-form">
         <section class="public-booking-card public-booking-step" aria-labelledby="booking-service-title">
@@ -50,7 +72,7 @@
           <label class="public-field">
             <span>Preferred contact</span>
             <select name="preferredContactMethod">
-              <option value="Call">Call</option>
+              <option value="Phone Call">Phone call</option>
               <option value="Text">Text</option>
               <option value="Email">Email</option>
             </select>
@@ -76,39 +98,55 @@
             <span>3</span>
             <div>
               <h2 id="booking-family-title">Family</h2>
-              <p>Use the child’s name for the appointment.</p>
+              <p>Add each child who will attend this appointment.</p>
             </div>
           </div>
 
-          <div class="public-booking-grid">
-            <label class="public-field">
-              <span>Child first name</span>
-              <input name="firstName" autocomplete="given-name" required>
-            </label>
+          <div id="public-children" class="public-children"></div>
+          <button id="public-add-child" class="public-secondary-button" type="button">Add another child</button>
 
-            <label class="public-field">
-              <span>Child last name</span>
-              <input name="lastName" autocomplete="family-name" required>
-            </label>
-
+          <div class="public-booking-grid public-caregiver-grid">
             <label class="public-field">
               <span>Caregiver name</span>
-              <input name="parentName" autocomplete="name" required>
+              <input name="caregiverName" autocomplete="name" required>
             </label>
 
             <label class="public-field">
-              <span>Phone</span>
-              <input name="phone" type="tel" autocomplete="tel" required>
+              <span>Mobile phone</span>
+              <input name="mobilePhone" type="tel" autocomplete="tel" required>
+            </label>
+
+            <label class="public-field">
+              <span>Email</span>
+              <input name="email" type="email" autocomplete="email" required>
             </label>
 
             <label class="public-field public-field-wide">
-              <span>Email</span>
-              <input name="email" type="email" autocomplete="email">
+              <span>Address</span>
+              <input name="address" autocomplete="street-address" required>
+            </label>
+
+            <label class="public-field">
+              <span>YCCO Member?</span>
+              <select id="public-ycco-member" name="yccoMember" required>
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+              </select>
+            </label>
+
+            <label class="public-field">
+              <span>YCCO ID number <small>(optional)</small></span>
+              <input id="public-ycco-id" name="yccoId" autocomplete="off">
             </label>
 
             <label class="public-field public-field-wide">
               <span>Notes</span>
               <textarea name="notes" rows="3"></textarea>
+            </label>
+
+            <label class="public-checkbox public-field-wide">
+              <input name="consentReminders" type="checkbox" required>
+              <span>I consent to email and text appointment reminders from The SNACK Program.</span>
             </label>
 
             <label class="public-field public-honeypot" aria-hidden="true">
@@ -126,6 +164,6 @@
     </main>
 
     <script src="./app-config.js"></script>
-    <script type="module" src="./booking.js?v=20260610-public-booking"></script>
+    <script type="module" src="./booking.js?v=20260707-live-pass"></script>
   </body>
 </html>

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { test } from "node:test";
 
 const publicDir = new URL("../../frontend/public/", import.meta.url);
@@ -12,6 +12,7 @@ const appConfigJs = await readFile(new URL("app-config.js", publicDir), "utf8");
 const firebaseJson = await readFile(new URL("../../firebase.json", import.meta.url), "utf8");
 const storageRules = await readFile(new URL("../../storage.rules", import.meta.url), "utf8");
 const serverJs = await readFile(new URL("../server.js", import.meta.url), "utf8");
+const printForms = await readdir(new URL("print-forms/", publicDir));
 
 function assertInOrder(source, values) {
   let cursor = -1;
@@ -46,6 +47,10 @@ test("CRM module stays focused on operational tabs", () => {
     'id="crm-tab-clients"',
     'id="crm-tab-referral-network"'
   ]);
+  assert.match(indexHtml, /id="referrals-view-flow"[^>]*>Profiles<\/button>/);
+  assert.match(indexHtml, /id="clients-view-flow"[^>]*>Profiles<\/button>/);
+  assert.match(indexHtml, /aria-label="Referral Profiles"/);
+  assert.match(indexHtml, /aria-label="Client Profiles"/);
 });
 
 test("workflow module includes start-day controls and a task summary", () => {
@@ -61,12 +66,16 @@ test("admin settings surface current scheduling rules", () => {
   assert.match(indexHtml, /id="admin-tab-kpi"/);
   assert.match(indexHtml, /id="admin-tab-work-plan"/);
   assert.match(indexHtml, /Scheduling Settings/);
-  assert.match(indexHtml, /Tuesday, Wednesday, Thursday/);
-  assert.match(indexHtml, /1:00 PM - 6:00 PM/);
+  assert.match(indexHtml, /id="admin-scheduling-settings-form"/);
+  assert.match(indexHtml, /name="weekdays" value="2"/);
+  assert.match(indexHtml, /Office Opens/);
+  assert.match(indexHtml, /First Appointment/);
+  assert.match(indexHtml, /Appointments End By/);
   assert.match(indexHtml, /30 minutes/);
   assert.match(indexHtml, /15 minutes/);
-  assert.match(indexHtml, /45 minutes for 3\+ clients/);
-  assert.match(stylesCss, /\.admin-settings-list/);
+  assert.match(appJs, /\/api\/admin\/scheduling-settings/);
+  assert.match(stylesCss, /\.admin-settings-form/);
+  assert.match(stylesCss, /\.admin-settings-grid/);
 });
 
 test("admin data tools centralize operational import export and deletion", () => {
@@ -102,6 +111,8 @@ test("admin data tools centralize operational import export and deletion", () =>
   assert.match(serverJs, /app\.get\("\/api\/admin\/data-counts"/);
   assert.match(serverJs, /app\.get\("\/api\/admin\/export\/:collectionKey"/);
   assert.match(serverJs, /app\.post\("\/api\/admin\/bulk-delete"/);
+  assert.match(serverJs, /ALLOW_ADMIN_BULK_DELETE/);
+  assert.match(serverJs, /Bulk delete is disabled for this environment/);
   assert.match(serverJs, /app\.post\("\/api\/appointments\/import"/);
   assert.match(serverJs, /confirmation !== "DELETE TEST DATA"/);
 });
@@ -315,6 +326,19 @@ test("scheduling module exposes a non-destructive v2 preview shell", () => {
   assert.match(stylesCss, /scheduling-v2-shell/);
 });
 
+test("scheduling v2 rendered actions have click handlers", () => {
+  const renderedActions = [...new Set([...appJs.matchAll(/data-scheduling-action="([a-z-]+)"/g)].map((match) => match[1]))];
+  const handledActions = new Set([...appJs.matchAll(/action === "([a-z-]+)"/g)].map((match) => match[1]));
+
+  for (const action of renderedActions) {
+    assert.ok(handledActions.has(action), `${action} should have a Scheduling V2 click handler`);
+  }
+
+  for (const quickAction of ["block-time", "view-unscheduled", "print-notes", "placeholder"]) {
+    assert.ok(handledActions.has(quickAction), `${quickAction} quick action should have a Scheduling V2 click handler`);
+  }
+});
+
 test("scheduling module exposes printable daily schedule and prep sheets", () => {
   assert.match(indexHtml, /id="print-today-schedule"/);
   assert.match(indexHtml, /id="print-prep-sheets"/);
@@ -341,6 +365,17 @@ test("appointment prep checklist mirrors the When to Give What guide", () => {
   assert.match(appJs, /Workbook/);
   assert.match(appJs, /1 SNACK tumbler per child/);
   assert.match(appJs, /1 \$50 grocery gift card per family/);
+});
+
+test("Setmore sibling appointment imports normalize into multi-client appointments", () => {
+  assert.match(appJs, /sibling enrollment appointment/);
+  assert.match(appJs, /sibling nutrition education appointment/);
+  assert.match(appJs, /function canonicalSetmoreAppointmentServiceLabel/);
+  assert.match(appJs, /function setmoreAppointmentImportsCanMerge/);
+  assert.match(appJs, /function mergeAppointmentImportIntoGroup/);
+  assert.match(appJs, /schedulingV2AppointmentsShareFamilySignal/);
+  assert.match(appJs, /Cita de inscripción en español/);
+  assert.match(appJs, /Nutrition Education Appointment/);
 });
 
 test("printable appointment note sheets include handwritten visit note prompts", () => {
@@ -391,29 +426,29 @@ test("referral edit form uses profile cards for source and appointment fields", 
 
 test("referral profile keeps progress concise and actionable", () => {
   const referralFlow = appJs.slice(appJs.indexOf("function renderReferralFlow"), appJs.indexOf("function renderClientFlow"));
-  const referralHero = appJs.slice(appJs.indexOf("function renderReferralProfileHero"), appJs.indexOf("function referralProgressIndex"));
   const referralProgress = appJs.slice(appJs.indexOf("function renderReferralProgressPanel"), appJs.indexOf("function renderReferralDetailsPanel"));
-  const referralDetails = appJs.slice(appJs.indexOf("function renderReferralDetailsPanel"), appJs.indexOf("function renderReferralRecentActivity"));
   const referralDetailShell = appJs.slice(appJs.indexOf("function renderReferralDetail"), appJs.indexOf("function renderNetworkDetail"));
 
   assert.match(appJs, /Waiting-on-family referrals land here/);
-  assert.match(referralFlow, /Referral \$\{formatShortDate\(referral\.referralDate\)\}/);
-  assert.match(referralFlow, /Contact \$\{formatShortDate\(referral\.mostRecentContactDate\)\}/);
-  assert.doesNotMatch(referralFlow, /meta: \[normalizeStatus\(referral\.status\)/);
-  assert.doesNotMatch(referralHero, /title\.textContent = statusLabel/);
-  assertInOrder(referralHero, [
-    "[\"Referral date\", profileDate(referral.referralDate)]",
-    "[\"Date of birth\", profileDate(referral.dateOfBirth)]",
-    "[\"First appointment\", profileDate(referral.firstAppointmentDate)]"
+  assert.match(referralFlow, /renderProfileV2List\(referralFlowBoard, referrals/);
+  assert.match(referralFlow, /status: \(referral\) => normalizeStatus\(referral\.status\)/);
+  assert.match(appJs, /profileV2StatusLabel\(status, options\.fallbackStatus\)/);
+  assert.doesNotMatch(referralFlow, /renderFlowBoard/);
+  assert.match(appJs, /function renderReferralProfileV2Side/);
+  assertInOrder(appJs, [
+    "profileV2MetaRow(\"Referral date\", profileDate(referral.referralDate))",
+    "profileV2MetaRow(\"Recent contact\", profileDate(referral.mostRecentContactDate))",
+    "profileV2MetaRow(\"Caregiver\", referral.parentName)"
   ]);
   assert.match(appJs, /\{ label: "Contacted", status: "Texted"/);
   assert.match(appJs, /\{ label: "Scheduled", status: "Scheduled"/);
   assert.match(appJs, /\{ label: "Closed", status: "Closed \/ No Further Outreach"/);
   assert.match(appJs, /dot\.addEventListener\("click", \(\) => updateReferralStatus\(referral, item\.status\)\)/);
   assert.doesNotMatch(referralProgress, /client-current-lesson/);
-  assert.match(referralDetails, /\{ label: "Referral date", value: profileDate\(referral\.referralDate\) \}/);
+  assert.match(appJs, /renderReferralProgressV2Card\(referral\)/);
+  assert.match(appJs, /renderProfileV2Card\("Referral Source"/);
   assert.match(referralDetailShell, /newAppointmentFromReferralButton\.textContent = "New Appt"/);
-  assert.match(referralDetailShell, /renderReferralAppointmentsPanel\(referral\)/);
+  assert.match(referralDetailShell, /renderReferralProfileV2Body\(referral, activeReferralProfileTab/);
   assert.doesNotMatch(appJs, /renderProfileSection\("Key dates"/);
   assert.doesNotMatch(appJs, /"Recent appt", profileDate\(referral\.mostRecentAppointmentDate\)/);
 });
@@ -421,23 +456,93 @@ test("referral profile keeps progress concise and actionable", () => {
 test("flow cards and appointment scheduling avoid duplicate status text", () => {
   const statusSort = appJs.slice(appJs.indexOf("function statusSortIndex"), appJs.indexOf("function clientStatusGroupKey"));
   const clientFlow = appJs.slice(appJs.indexOf("function renderClientFlow"), appJs.indexOf("function renderGrantFlow"));
-  const clientHero = appJs.slice(appJs.indexOf("function renderClientProfileHero"), appJs.indexOf("function renderClientProfileField"));
   const appointmentSave = appJs.slice(appJs.indexOf("async function saveAppointment"), appJs.indexOf("function nextLessonNumberForAppointment"));
 
   assert.match(statusSort, /\["new", "in-contact", "referral-scheduled", "watch", "closed"\]/);
+  assert.match(clientFlow, /renderProfileV2List\(clientFlowBoard, clients/);
+  assert.match(clientFlow, /status: \(client\) => client\.status \|\| "Scheduled"/);
+  assert.doesNotMatch(clientFlow, /renderFlowBoard/);
   assert.doesNotMatch(clientFlow, /meta: \[client\.status \|\| "Scheduled"/);
-  assert.match(clientFlow, /`Appt \$\{profileDate\(clientFlowAppointmentDate\(client\)\)\}`/);
-  assert.match(clientFlow, /`Contact \$\{profileDate\(client\.mostRecentContactDate\)\}`/);
-  assertInOrder(clientHero, [
-    "[\"First appointment\", profileDate(client.firstAppointmentDate)]",
-    "[\"Date of birth\", profileDate(client.dateOfBirth)]",
-    "[\"Graduation date\", profileDate(client.lastAppointmentDate, \"Not graduated\")]"
+  assert.match(appJs, /function renderClientProfileV2Side/);
+  assertInOrder(appJs, [
+    "profileV2MetaRow(\"First appointment\", profileDate(client.firstAppointmentDate))",
+    "profileV2MetaRow(\"Recent contact\", profileDate(client.mostRecentContactDate))",
+    "profileV2MetaRow(\"Caregiver\", client.parentName)"
   ]);
-  assert.doesNotMatch(clientHero, /Most recent appt/);
+  assert.match(appJs, /renderClientLessonProgressionCard\(client\)/);
+  assert.match(appJs, /label: appointmentLessonTitles\[lesson\]/);
   assert.match(appointmentSave, /Add a client or type a referral name before saving/);
   assert.match(appointmentSave, /appointment\.clientNames = \[typedClientName\]/);
   assert.match(stylesCss, /grid-template-columns: repeat\(8, minmax\(0, 1fr\)\)/);
   assert.match(stylesCss, /grid-template-columns: repeat\(auto-fit, minmax\(54px, 1fr\)\)/);
+});
+
+test("CRM profile new appointment actions route into Scheduling V2 inline flow", () => {
+  const bridge = appJs.slice(appJs.indexOf("function startSchedulingV2AppointmentFromProfile"), appJs.indexOf("function cancelSchedulingV2InlineForm"));
+  const referralDetail = appJs.slice(appJs.indexOf("function renderReferralDetail()"), appJs.indexOf("function renderClientDetail()"));
+  const clientDetail = appJs.slice(appJs.indexOf("function renderClientDetail()"), appJs.indexOf("function renderNetworkDetail()"));
+  const inlinePayload = appJs.slice(appJs.indexOf("function schedulingV2InlineAppointmentPayload"), appJs.indexOf("function schedulingV2InlineClientIdsFromForm"));
+  const inlineValidation = appJs.slice(appJs.indexOf("function schedulingV2ValidateInlineAppointment"), appJs.indexOf("function schedulingV2PayloadForCreate"));
+
+  assert.match(appJs, /function startSchedulingV2AppointmentFromProfile/);
+  assert.match(bridge, /closeClientModal\(\)/);
+  assert.match(bridge, /closeReferralModal\(\)/);
+  assert.match(bridge, /activeSchedulingDesign = "v2"/);
+  assert.match(bridge, /activeSchedulingPreviewView = "day"/);
+  assert.match(bridge, /setActiveModule\("scheduling"\)/);
+  assert.match(bridge, /startSchedulingV2InlineForm\("new"/);
+  assert.match(appJs, /mode === "new" && !schedulingV2InlineDefaults\.staffMember/);
+  assert.match(appJs, /schedulingV2InlineDefaults\.staffMember = defaultSchedulingStaffMembers\[0\]/);
+  assert.match(referralDetail, /startSchedulingV2AppointmentFromProfile\(\{/);
+  assert.match(clientDetail, /startSchedulingV2AppointmentFromProfile\(\{/);
+  assert.match(clientDetail, /clientId: client\.id/);
+  assert.match(clientDetail, /clientIds: \[client\.id\]/);
+  assert.match(clientDetail, /clientNames: \[clientName\(client\)\]/);
+  assert.doesNotMatch(referralDetail, /startNewAppointment\(\{/);
+  assert.doesNotMatch(clientDetail, /startNewAppointment\(\{/);
+  assert.match(appJs, /name="clientNames"/);
+  assert.match(appJs, /function schedulingV2InlineClientNamesFromForm/);
+  assert.match(inlinePayload, /preservedClientNames/);
+  assert.match(inlinePayload, /typedClientName/);
+  assert.match(inlinePayload, /clientNames/);
+  assert.match(inlineValidation, /appointmentClientNames\(appointment\)\.length/);
+  assert.match(inlineValidation, /Choose a client or type a referral name before saving/);
+});
+
+test("CRM profile tabs expose stable functional hooks", () => {
+  const profileTabs = appJs.slice(appJs.indexOf("function renderProfileV2Tabs"), appJs.indexOf("function renderProfileV2ActivityCard"));
+  const clientBody = appJs.slice(appJs.indexOf("function renderClientProfileV2Body"), appJs.indexOf("function renderReferralProfileV2Body"));
+  const referralBody = appJs.slice(appJs.indexOf("function renderReferralProfileV2Body"), appJs.indexOf("function renderReferralDetail()"));
+
+  assert.match(profileTabs, /button\.dataset\.profileTab = tab/);
+  assert.match(profileTabs, /button\.setAttribute\("role", "tab"\)/);
+  assert.match(profileTabs, /button\.setAttribute\("aria-selected"/);
+  for (const tab of ["notes", "activity", "appointments", "forms"]) {
+    assert.match(clientBody, new RegExp(`tab === "${tab}"`));
+    assert.match(referralBody, new RegExp(`tab === "${tab}"`));
+  }
+});
+
+test("CRM profile forms tab links to hosted print-form packets", () => {
+  const referencedPrintForms = [...new Set([...appJs.matchAll(/fileName: "([^"]+)"/g)].map((match) => match[1]))];
+
+  assert.equal(referencedPrintForms.length, 10);
+  for (const fileName of referencedPrintForms) {
+    assert.ok(printForms.includes(fileName), `${fileName} should be hosted for CRM print forms`);
+  }
+
+  assert.match(appJs, /const printFormPackets/);
+  assert.match(appJs, /function profileV2PrintFormHref/);
+  assert.match(appJs, /function schedulingV2AppointmentPrintFormPacket/);
+  assert.match(appJs, /Enrollment packet/);
+  assert.match(appJs, /Graduation packet/);
+  assert.match(appJs, /Forms 1, 2, and 3/);
+  assert.match(appJs, /Forms 2, 4, and 5/);
+  assert.match(appJs, /SP Program Enrollment/);
+  assert.match(appJs, /SP Parent Feedback/);
+  assert.match(appJs, /scheduling-v2-form-links/);
+  assert.match(stylesCss, /\.profile-v2-form-links/);
+  assert.match(stylesCss, /\.scheduling-v2-form-links/);
 });
 
 test("appointment API can save referral name-only appointments", () => {
@@ -506,6 +611,9 @@ test("appointment completion flow can complete and schedule the next visit", () 
   assert.match(indexHtml, /Complete (?:&amp;|&) Schedule/);
   assert.match(indexHtml, /id="completion-schedule-next"/);
   assert.match(indexHtml, /id="completion-next-time"/);
+  assert.match(appJs, /loadedAppointments\.find\(\(item\) => item\.id === selectedAppointmentId\)/);
+  assert.match(appJs, /loadedAppointments\.find\(\(item\) => item\.id === selectedSchedulingPreviewAppointmentId\)/);
+  assert.match(appJs, /schedulingV2ValidateInlineAppointment\(nextAppointment, appointment\.id\)/);
 });
 
 test("sibling modal is a button-driven profile link flow", () => {
@@ -531,7 +639,15 @@ test("public booking page has a standalone three-step form", () => {
   assert.match(bookingHtml, /Book an Appointment/);
   assert.match(bookingHtml, /id="public-service-id"/);
   assert.match(bookingHtml, /id="public-availability"/);
-  assert.match(bookingHtml, /Child first name/);
+  assert.match(bookingHtml, /id="public-children"/);
+  assert.match(bookingHtml, /id="public-add-child"/);
+  assert.match(bookingHtml, /id="booking-management"/);
+  assert.match(bookingHtml, /id="public-management-availability"/);
+  assert.match(bookingHtml, /id="public-cancel-booking"/);
+  assert.match(bookingHtml, /id="public-reschedule-booking"/);
+  assert.match(bookingHtml, /Caregiver name/);
+  assert.match(bookingHtml, /Mobile phone/);
+  assert.match(bookingHtml, /name="consentReminders"/);
   assert.match(bookingHtml, /class="public-field public-honeypot"/);
   assert.match(bookingHtml, /name="website"/);
   assert.match(bookingHtml, /Book Appointment/);
@@ -545,13 +661,24 @@ test("public booking JavaScript uses public endpoints and guards submission", ()
   assert.match(bookingJs, /\/api\/public\/booking-options/);
   assert.match(bookingJs, /\/api\/public\/availability/);
   assert.match(bookingJs, /\/api\/public\/bookings/);
+  assert.match(bookingJs, /appointmentId/);
+  assert.match(bookingJs, /manageToken/);
+  assert.match(bookingJs, /loadManagedBooking/);
+  assert.match(bookingJs, /cancelManagedBooking/);
+  assert.match(bookingJs, /rescheduleManagedBooking/);
   assert.equal(bookingJs.includes("/api/clients"), false);
   assert.match(bookingJs, /if \(!selectedSlot\)/);
+  assert.match(bookingJs, /publicBookingChildrenFromForm/);
+  assert.match(bookingJs, /payload\.children = children/);
+  assert.match(bookingJs, /formatPublicNameList/);
   assert.match(bookingJs, /Choose an appointment time/);
   assert.match(bookingJs, /bookingForm\.hidden = true/);
   assert.match(bookingJs, /confirmationEl\.hidden = false/);
   assert.match(bookingJs, /Appointment booked/);
   assert.match(stylesCss, /\.public-honeypot/);
+  assert.match(stylesCss, /\.public-child-card/);
+  assert.match(stylesCss, /\.public-booking-management/);
+  assert.match(stylesCss, /\.public-management-link/);
 });
 
 test("SNACK brand variables are present in the app stylesheet", () => {

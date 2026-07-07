@@ -24,6 +24,7 @@ import {
   cleanProviderLink,
   cleanPublicBookingPayload,
   cleanReferralNetworkPayload,
+  cleanSchedulingSettingsPayload,
   cleanSiblingZohoRecordIds,
   cleanString,
   cleanTaskPayload,
@@ -32,6 +33,7 @@ import {
   formatAppointmentTimeValue,
   hasRequiredPersonFields,
   isActiveTaskStatus,
+  isAdminBulkDeleteEnabled,
   isGeneratedTaskSource,
   isPublicBookableDate,
   normalizeActivityDirection,
@@ -48,9 +50,13 @@ import {
   publicBookingServiceFromId,
   publicBookingServices,
   publicBookingValidationError,
+  publicManageClientIdsFromAppointment,
+  publicManageTokenHash,
+  publicManageTokensMatch,
   publicSlotValuesForDate,
   referralSourceFromRecord,
   resolveAppointmentImportClients,
+  serializePublicManagedBooking,
   schedulingWindowEndLabel,
   schedulingWindowError,
   siblingIdsForImportedRecord,
@@ -98,6 +104,25 @@ test("cleanBoolean accepts checked-style true values", () => {
 
   for (const value of [false, "false", "no", "0", "", null]) {
     assert.equal(cleanBoolean(value), false);
+  }
+});
+
+test("admin bulk delete is disabled unless explicitly enabled", () => {
+  const previous = process.env.ALLOW_ADMIN_BULK_DELETE;
+
+  try {
+    delete process.env.ALLOW_ADMIN_BULK_DELETE;
+    assert.equal(isAdminBulkDeleteEnabled(), false);
+    process.env.ALLOW_ADMIN_BULK_DELETE = "false";
+    assert.equal(isAdminBulkDeleteEnabled(), false);
+    process.env.ALLOW_ADMIN_BULK_DELETE = "true";
+    assert.equal(isAdminBulkDeleteEnabled(), true);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.ALLOW_ADMIN_BULK_DELETE;
+    } else {
+      process.env.ALLOW_ADMIN_BULK_DELETE = previous;
+    }
   }
 });
 
@@ -414,6 +439,7 @@ test("cleanOutreachEventPayload defaults type and integer counts", () => {
 
 test("appointment status normalization protects known values", () => {
   assert.equal(normalizeAppointmentStatus("Completed"), "Completed");
+  assert.equal(normalizeAppointmentStatus("Blocked"), "Blocked");
   assert.equal(normalizeAppointmentStatus("Bogus"), "Scheduled");
 });
 
@@ -455,17 +481,42 @@ test("appointment duration honors explicit values and multi-client defaults", ()
   assert.equal(appointmentDurationMinutesFromRecord({ clientIds: ["a"] }), 30);
 });
 
-test("appointment blocking only counts scheduled and completed visits", () => {
+test("appointment blocking includes scheduled, completed, and blocked records", () => {
   assert.equal(appointmentBlocksSchedule({ status: "Scheduled" }), true);
   assert.equal(appointmentBlocksSchedule({ status: "Completed" }), true);
+  assert.equal(appointmentBlocksSchedule({ status: "Blocked" }), true);
   assert.equal(appointmentBlocksSchedule({ status: "Canceled" }), false);
   assert.equal(appointmentBlocksSchedule({ status: "No-show" }), false);
 });
 
 test("appointment scheduling window allows appointments ending by 6 PM", () => {
+  assert.equal(appointmentFitsSchedulingWindow({ appointmentTime: "13:00", durationMinutes: 30 }), false);
+  assert.equal(appointmentFitsSchedulingWindow({ appointmentTime: "13:30", durationMinutes: 30 }), true);
   assert.equal(appointmentFitsSchedulingWindow({ appointmentTime: "17:30", durationMinutes: 30 }), true);
   assert.equal(appointmentFitsSchedulingWindow({ appointmentTime: "17:45", durationMinutes: 30 }), false);
   assert.equal(schedulingWindowEndLabel(), "6:00 PM");
+});
+
+test("appointment scheduling window accepts custom settings", () => {
+  const settings = {
+    ...cleanSchedulingSettingsPayload({
+      weekdays: [1, 3],
+      officeStartTime: "12:00",
+      officeEndTime: "17:00",
+      bookableStartTime: "12:30",
+      bookableEndTime: "17:00",
+      defaultDurationMinutes: 30,
+      slotIntervalMinutes: 15
+    }),
+    bookableStartMinutes: 12 * 60 + 30,
+    bookableEndMinutes: 17 * 60
+  };
+
+  assert.equal(appointmentFitsSchedulingWindow({ appointmentTime: "12:00", durationMinutes: 30 }, settings), false);
+  assert.equal(appointmentFitsSchedulingWindow({ appointmentTime: "12:30", durationMinutes: 30 }, settings), true);
+  assert.equal(appointmentFitsSchedulingWindow({ appointmentTime: "16:30", durationMinutes: 30 }, settings), true);
+  assert.equal(appointmentFitsSchedulingWindow({ appointmentTime: "16:45", durationMinutes: 30 }, settings), false);
+  assert.equal(schedulingWindowEndLabel(settings), "5:00 PM");
 });
 
 test("schedulingWindowError names invalid time and duration issues", () => {
@@ -490,16 +541,24 @@ test("cleanAppointmentPayload supports CSV-like client fields and public duratio
     clientNames: "Andi Smith, Jessie Kellmer",
     appointmentDate: "2026-06-10",
     appointmentTime: "2:15 PM",
-    durationMinutes: "15",
-    publicBookingServiceId: "sibling-enrollment",
-    publicBookingServiceLabel: "Sibling Enrollment Appointment"
+    durationMinutes: "30",
+    publicBookingServiceId: "nutrition-education",
+    publicBookingServiceLabel: "Nutrition Education Appointment",
+    caregiverMood: " Good ",
+    confidence: " High ",
+    participation: " Engaged ",
+    barriers: " None "
   });
 
   assert.deepEqual(payload.clientIds, ["a", "b"]);
   assert.deepEqual(payload.clientNames, ["Andi Smith", "Jessie Kellmer"]);
   assert.equal(payload.appointmentTime, "14:15");
-  assert.equal(payload.durationMinutes, 15);
-  assert.equal(payload.publicBookingServiceId, "sibling-enrollment");
+  assert.equal(payload.durationMinutes, 30);
+  assert.equal(payload.publicBookingServiceId, "nutrition-education");
+  assert.equal(payload.caregiverMood, "Good");
+  assert.equal(payload.confidence, "High");
+  assert.equal(payload.participation, "Engaged");
+  assert.equal(payload.barriers, "None");
 });
 
 test("resolveAppointmentImportClients matches CSV client names to existing clients", async () => {
@@ -611,15 +670,21 @@ test("normalizedLookupKey trims and lowercases", () => {
 });
 
 test("public booking service list mirrors the Setmore service choices", () => {
-  assert.equal(publicBookingServices.length, 6);
+  assert.equal(publicBookingServices.length, 4);
+  assert.deepEqual(publicBookingServices.map((service) => service.label), [
+    "Enrollment Appointment",
+    "Nutrition Education Appointment",
+    "Cita de inscripción en español",
+    "Cita de educación nutricional en español"
+  ]);
+  assert.equal(publicBookingServices.every((service) => service.durationMinutes === 30), true);
   assert.equal(publicBookingServices.some((service) => service.id === "spanish-enrollment" && service.defaultLanguage === "Spanish"), true);
-  assert.equal(publicBookingServices.some((service) => service.id === "sibling-enrollment" && service.durationMinutes === 15), true);
   assert.equal(publicBookingServiceFromId("nutrition-education").appointmentType, "Nutrition Education");
   assert.equal(publicBookingServiceFromId("unknown").id, "enrollment");
 });
 
 test("public appointment drafts are scheduled and private-safe", () => {
-  const service = publicBookingServiceFromId("sibling-nutrition-education");
+  const service = publicBookingServiceFromId("spanish-nutrition-education");
   const draft = publicAppointmentDraft({
     service,
     appointmentDate: nextUtcWeekday(2),
@@ -628,7 +693,8 @@ test("public appointment drafts are scheduled and private-safe", () => {
   });
 
   assert.equal(draft.status, "Scheduled");
-  assert.equal(draft.durationMinutes, 15);
+  assert.equal(draft.durationMinutes, 30);
+  assert.equal(draft.appointmentType, "Nutrition Education");
   assert.deepEqual(draft.clientNames, ["Public Client"]);
   assert.equal(isPublicBookableDate(nextUtcWeekday(2)), true);
   assert.equal(isPublicBookableDate(nextUtcWeekday(0)), false);
@@ -651,35 +717,108 @@ test("public slots respect service duration and appointment conflicts", () => {
     { appointmentDate: date, appointmentTime: "13:00", durationMinutes: 30, status: "Canceled" }
   ]);
 
-  assert.equal(nonblockingSlots[0].value, "13:00");
+  assert.equal(nonblockingSlots[0].value, "13:30");
+});
+
+test("public slots follow configurable appointment days and hours", () => {
+  const date = nextUtcWeekday(3);
+  const service = publicBookingServiceFromId("enrollment");
+  const customSettings = {
+    weekdays: [3],
+    bookableStartTime: "14:00",
+    bookableEndTime: "15:00",
+    bookableStartMinutes: 14 * 60,
+    bookableEndMinutes: 15 * 60,
+    slotIntervalMinutes: 15
+  };
+
+  assert.deepEqual(publicSlotValuesForDate(date, service, [], customSettings).map((slot) => slot.value), [
+    "14:00",
+    "14:15",
+    "14:30"
+  ]);
+  assert.deepEqual(publicSlotValuesForDate(nextUtcWeekday(4), service, [], customSettings), []);
+});
+
+test("public management tokens and serialized bookings are private-safe", () => {
+  const token = "family-private-token";
+  const hash = publicManageTokenHash(token);
+  const booking = serializePublicManagedBooking({
+    id: "appt-1",
+    clientNames: ["Rafael Hernandez", "Janney Hernandez"],
+    publicBookingServiceId: "spanish-nutrition-education",
+    publicBookingServiceLabel: "Cita de educación nutricional en español",
+    appointmentDate: nextUtcWeekday(2),
+    appointmentTime: "14:30",
+    durationMinutes: 30,
+    status: "Scheduled"
+  });
+
+  assert.equal(publicManageTokensMatch(token, hash), true);
+  assert.equal(publicManageTokensMatch("wrong-token", hash), false);
+  assert.equal(publicManageTokensMatch("", hash), false);
+  assert.equal(publicManageTokensMatch(token, "not-a-valid-hash"), false);
+  assert.equal(booking.serviceId, "spanish-nutrition-education");
+  assert.equal(booking.serviceLabel, "Cita de educación nutricional en español");
+  assert.equal(booking.appointmentTimeLabel, "2:30 PM");
+  assert.equal(booking.clientName, "Rafael Hernandez, Janney Hernandez");
+  assert.equal(Object.hasOwn(booking, "publicManageTokenHash"), false);
+});
+
+test("public management client IDs include fallback client and avoid duplicates", () => {
+  assert.deepEqual(publicManageClientIdsFromAppointment({
+    clientIds: ["client-a", " client-b ", "client-a", ""],
+    clientId: "client-c"
+  }), ["client-a", "client-b", "client-c"]);
+
+  assert.deepEqual(publicManageClientIdsFromAppointment({
+    clientIds: [],
+    clientId: "client-only"
+  }), ["client-only"]);
 });
 
 test("cleanPublicBookingPayload accepts child aliases and service language defaults", () => {
   const payload = cleanPublicBookingPayload({
     serviceId: "spanish-enrollment",
-    childFirstName: " Ana ",
-    childLastName: " Bello ",
+    children: [{
+      childName: " Ana Bello ",
+      dateOfBirth: "2015-01-02",
+      gender: "Female"
+    }],
     caregiverName: " Arianna ",
-    phone: " 503 ",
+    mobilePhone: " 503 ",
+    email: " family@example.com ",
+    address: " 2435 NE Cumulus Ave ",
+    preferredContactMethod: "Phone Call",
+    consentReminders: "on",
     appointmentDate: nextUtcWeekday(2),
     appointmentTime: "1 PM"
   });
 
   assert.equal(payload.firstName, "Ana");
+  assert.equal(payload.lastName, "Bello");
+  assert.equal(payload.children[0].dateOfBirth, "2015-01-02");
   assert.equal(payload.parentName, "Arianna");
   assert.equal(payload.preferredLanguage, "Spanish");
+  assert.equal(payload.phone, "503");
   assert.equal(payload.appointmentTime, "13:00");
 });
 
 test("public booking validation rejects spam traps and malformed public input", () => {
   const validPayload = cleanPublicBookingPayload({
     serviceId: "enrollment",
-    firstName: "Andi Jo",
-    lastName: "Smith",
+    children: [{
+      childName: "Andi Jo Smith",
+      dateOfBirth: "2014-03-04",
+      gender: "Female"
+    }],
     parentName: "Michelle",
     phone: "(503) 560-2538",
     email: "family@example.com",
+    address: "2435 NE Cumulus Ave",
     preferredLanguage: "English",
+    preferredContactMethod: "Text",
+    consentReminders: true,
     appointmentDate: nextUtcWeekday(2),
     appointmentTime: "1 PM"
   });
@@ -688,6 +827,8 @@ test("public booking validation rejects spam traps and malformed public input", 
   assert.match(publicBookingValidationError({ ...validPayload, website: "bot.example" }), /Could not submit/);
   assert.match(publicBookingValidationError({ ...validPayload, spamTrap: "bot.example" }), /Could not submit/);
   assert.match(publicBookingValidationError({ ...validPayload, email: "not-an-email" }), /valid email/);
+  assert.match(publicBookingValidationError({ ...validPayload, email: "" }), /required/);
+  assert.match(publicBookingValidationError({ ...validPayload, consentReminders: false }), /required/);
   assert.match(publicBookingValidationError({ ...validPayload, notes: "x".repeat(601) }), /shorten/);
 });
 
@@ -730,11 +871,15 @@ test("public and protected API routes are registered with expected middleware", 
   assert.ok(routes.indexOf("/api/public/booking-options") < routes.indexOf("/api/message"));
   assert.ok(routes.indexOf("/api/public/availability") < routes.indexOf("/api/message"));
   assert.ok(routes.indexOf("/api/public/bookings") < routes.indexOf("/api/message"));
+  assert.ok(routes.indexOf("/api/public/bookings/:appointmentId") < routes.indexOf("/api/message"));
+  assert.ok(routes.indexOf("/api/public/bookings/:appointmentId/cancel") < routes.indexOf("/api/message"));
+  assert.ok(routes.indexOf("/api/public/bookings/:appointmentId/reschedule") < routes.indexOf("/api/message"));
   assert.ok(routes.includes("/api/grants"));
   assert.ok(routes.includes("/api/grants/:grantId"));
   assert.ok(routes.includes("/api/grant-questions"));
   assert.ok(routes.includes("/api/grant-questions/:questionId"));
   assert.ok(routes.includes("/api/grant-organization-info"));
+  assert.ok(routes.includes("/api/admin/scheduling-settings"));
   const healthRoute = app._router.stack.find((layer) => layer.route?.path === "/health").route;
   const bookingOptionsRoute = app._router.stack.find((layer) => layer.route?.path === "/api/public/booking-options").route;
   const messageRoute = app._router.stack.find((layer) => layer.route?.path === "/api/message").route;
