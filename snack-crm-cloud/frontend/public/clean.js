@@ -224,6 +224,66 @@ const modules = [
   }
 ];
 
+const scheduleAppointments = [
+  {
+    id: "appt-rafael",
+    displayName: "Rafael & Janney",
+    status: "Completed",
+    date: "Tuesday, July 7, 2026",
+    time: "2:30 PM",
+    startMinutes: 14 * 60 + 30,
+    duration: 30,
+    type: "Enrollment",
+    lesson: "Enrollment",
+    staff: "Cynthia Esparza",
+    caregiver: "Neiva",
+    siblings: ["Rafael", "Janney"],
+    language: "Spanish",
+    phone: "(971) 447-2646",
+    address: "1031 SE Rummel St, McMinnville, OR, 97128",
+    goal: "-",
+    notes: "-",
+    prep: [
+      "Place paperwork at reception before the appointment.",
+      "Enrollment form and questionnaire for each child.",
+      "SNACK sticker and pen or pencil."
+    ],
+    activity: [
+      ["7/7/26", "Completed", "Enrollment | Cynthia Esparza"],
+      ["6/30/26", "Appointment created", "2:30 PM"]
+    ]
+  },
+  {
+    id: "appt-lana",
+    displayName: "Lana & Hamzah",
+    status: "No-show",
+    date: "Tuesday, July 7, 2026",
+    time: "4:30 PM",
+    startMinutes: 16 * 60 + 30,
+    duration: 30,
+    type: "Nutrition Education",
+    lesson: "Micronutrients",
+    staff: "Cynthia Esparza",
+    caregiver: "Mariam",
+    siblings: ["Lana", "Hamzah"],
+    language: "English",
+    phone: "(971) 208-1028",
+    address: "1230 SW 2nd St, McMinnville, Oregon, 97128",
+    goal: "BINGO",
+    notes: "Micronutrients: BINGO",
+    prep: ["Prize from the bin.", "Food snack."],
+    activity: [
+      ["7/7/26", "No-show", "Micronutrients | Cynthia Esparza"],
+      ["6/25/26", "Appointment created", "4:30 PM"]
+    ]
+  }
+];
+
+const scheduleStartMinutes = 13 * 60;
+const scheduleEndMinutes = 18 * 60;
+const scheduleVisibleMinutes = scheduleEndMinutes - scheduleStartMinutes;
+const scheduleTickMinutes = [780, 810, 840, 870, 900, 930, 960, 990, 1020, 1050, 1080];
+
 const state = {
   module: "schedule",
   sidebarOpen: true,
@@ -346,6 +406,13 @@ function renderHeader(module) {
 }
 
 function renderMetrics(module) {
+  if (module.id === "schedule") {
+    const completed = scheduleAppointments.filter((appointment) => appointment.status === "Completed").length;
+    const noShow = scheduleAppointments.filter((appointment) => appointment.status === "No-show").length;
+    const reschedule = scheduleAppointments.filter((appointment) => appointment.status === "Reschedule").length;
+    const today = scheduleAppointments.filter((appointment) => appointment.status !== "Reschedule").length;
+    module.metrics = [[String(today), "Today"], [String(completed), "Completed"], [String(noShow), "No Show"], [String(reschedule), "Reschedule"]];
+  }
   return `
     <section class="metric-strip" aria-label="${module.label} summary">
       ${module.metrics.map(([value, label]) => `
@@ -359,6 +426,10 @@ function renderMetrics(module) {
 }
 
 function renderBody(module) {
+  if (module.id === "schedule" && state.subpageByModule.schedule === "Clinic") {
+    return renderScheduleBody(module);
+  }
+
   const selectedIndex = state.selectedRowByModule[module.id];
   const selected = module.rows[selectedIndex] || module.rows[0];
   const detail = {
@@ -395,6 +466,213 @@ function renderBody(module) {
         ${renderDetailActions(detail)}
       </article>
     </section>
+  `;
+}
+
+function renderScheduleBody(module) {
+  const selectedIndex = Math.min(state.selectedRowByModule.schedule, scheduleAppointments.length - 1);
+  const selectedAppointment = scheduleAppointments[selectedIndex] || scheduleAppointments[0];
+  return `
+    <section class="schedule-workspace">
+      <article class="panel schedule-panel">
+        <div class="panel-header schedule-toolbar">
+          <div class="panel-title">
+            <h2>Clinic</h2>
+            <p>${state.viewByModule.schedule} view</p>
+          </div>
+          <div class="date-controls">
+            <button class="secondary-button compact-button" type="button" data-action="toast" data-message="Today">Today</button>
+            <button class="icon-only" type="button" data-action="toast" data-message="Previous day">‹</button>
+            <button class="icon-only" type="button" data-action="toast" data-message="Next day">›</button>
+            <button class="secondary-button compact-button date-display" type="button" data-action="toast" data-message="Date picker">
+              ${icon("schedule")}
+              <span>Tue, Jul 7, 2026</span>
+            </button>
+          </div>
+        </div>
+        <div class="schedule-grid" aria-label="Day schedule">
+          ${scheduleTickMinutes.map((minutes) => renderTimeTick(minutes)).join("")}
+          ${scheduleAppointments.map((appointment, index) => renderAppointmentBlock(appointment, index, selectedIndex)).join("")}
+        </div>
+      </article>
+      <article class="panel detail-panel">
+        ${renderScheduleDetailHero(selectedAppointment)}
+        ${renderScheduleFacts(selectedAppointment)}
+        ${renderScheduleTabs(module)}
+        ${renderScheduleDetailBody(selectedAppointment)}
+        ${renderScheduleActions(selectedAppointment)}
+      </article>
+    </section>
+  `;
+}
+
+function formatTick(minutes) {
+  const hour24 = Math.floor(minutes / 60);
+  const minute = minutes % 60;
+  const hour12 = hour24 > 12 ? hour24 - 12 : hour24;
+  return `${hour12}:${String(minute).padStart(2, "0")} PM`;
+}
+
+function minuteToPercent(minutes) {
+  return ((minutes - scheduleStartMinutes) / scheduleVisibleMinutes) * 100;
+}
+
+function renderTimeTick(minutes) {
+  const top = minuteToPercent(minutes);
+  return `
+    <div class="schedule-time-label" style="top:${top}%">${formatTick(minutes)}</div>
+    <div class="schedule-time-line" style="top:${top}%"></div>
+  `;
+}
+
+function renderAppointmentBlock(appointment, index, selectedIndex) {
+  const top = minuteToPercent(appointment.startMinutes);
+  const height = (appointment.duration / scheduleVisibleMinutes) * 100;
+  return `
+    <button class="appointment-block ${index === selectedIndex ? "active" : ""}" type="button" data-row="${index}" data-status="${appointment.status}" style="top:${top}%;height:${height}%">
+      <strong>${appointment.displayName}</strong>
+      <span>${appointment.type} | ${appointment.duration} min</span>
+      <em>${appointment.status}</em>
+    </button>
+  `;
+}
+
+function renderScheduleDetailHero(appointment) {
+  return `
+    <div class="detail-hero">
+      <div class="detail-title">
+        <span class="eyebrow">${appointment.status}</span>
+        <h2>${appointment.displayName}</h2>
+      </div>
+      <button class="secondary-button" type="button" data-action="toast" data-message="Edit appointment">Edit</button>
+    </div>
+  `;
+}
+
+function renderScheduleFacts(appointment) {
+  return `
+    <div class="fact-grid">
+      <div class="fact"><span>Date</span><strong>${appointment.date}</strong></div>
+      <div class="fact"><span>Time</span><strong>${appointment.time} - ${appointment.duration} min</strong></div>
+      <div class="fact"><span>Type</span><strong>${appointment.type}</strong></div>
+    </div>
+  `;
+}
+
+function renderScheduleTabs(module) {
+  const tabs = ["Appt Note", "Wrap Up", "Activity", "Forms"];
+  const activeTab = state.detailTabByModule.schedule;
+  module.detail.tabs = tabs;
+  return `
+    <div class="detail-tabs" role="tablist" aria-label="Schedule detail tabs">
+      ${tabs.map((tab) => `
+        <button class="detail-tab ${activeTab === tab ? "active" : ""}" type="button" data-detail-tab="${tab}" role="tab" aria-selected="${activeTab === tab}">
+          ${tab}
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderScheduleDetailBody(appointment) {
+  const activeTab = state.detailTabByModule.schedule;
+  if (activeTab === "Wrap Up") {
+    return `
+      <div class="detail-body">
+        <section class="info-card">
+          <h3>Engagement</h3>
+          <div class="info-grid">
+            <div class="info-item"><span>Caregiver Mood</span><strong>Good</strong></div>
+            <div class="info-item"><span>Confidence</span><strong>High</strong></div>
+            <div class="info-item"><span>Participation</span><strong>Engaged</strong></div>
+            <div class="info-item"><span>Barriers</span><strong>None</strong></div>
+          </div>
+        </section>
+        <section class="info-card">
+          <h3>Next Appointment</h3>
+          <div class="info-grid">
+            <div class="info-item"><span>Next lesson</span><strong>Sugar</strong></div>
+            <div class="info-item"><span>Suggested date</span><strong>Tuesday, July 14, 2026</strong></div>
+            <div class="info-item"><span>Staff</span><strong>${appointment.staff}</strong></div>
+            <div class="info-item"><span>Notes</span><strong>Ready for scheduling workflow.</strong></div>
+          </div>
+        </section>
+      </div>
+    `;
+  }
+
+  if (activeTab === "Activity") {
+    return `
+      <div class="detail-body">
+        <section class="info-card">
+          <h3>Activity</h3>
+          <div class="activity-list">
+            ${appointment.activity.map(([date, title, note]) => `
+              <div class="activity-row">
+                <span>${date}</span>
+                <strong>${title}</strong>
+                <em>${note}</em>
+              </div>
+            `).join("")}
+          </div>
+        </section>
+      </div>
+    `;
+  }
+
+  if (activeTab === "Forms") {
+    return `
+      <div class="detail-body">
+        <section class="info-card">
+          <h3>Forms</h3>
+          <div class="info-grid">
+            <div class="info-item"><span>Enrollment appointment</span><strong>Forms 1, 2, 3</strong></div>
+            <div class="info-item"><span>Last appointment</span><strong>Forms 2, 4, 5</strong></div>
+            <div class="info-item wide"><span>Spanish packet</span><strong>Use SP versions when the family language is Spanish.</strong></div>
+          </div>
+        </section>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="detail-body">
+      <section class="info-card">
+        <h3>Family</h3>
+        <div class="info-grid">
+          <div class="info-item"><span>Caregiver</span><strong>${appointment.caregiver}</strong></div>
+          <div class="info-item"><span>Siblings</span><strong>${appointment.siblings.join(", ")}</strong></div>
+          <div class="info-item"><span>Language</span><strong>${appointment.language}</strong></div>
+          <div class="info-item"><span>Phone</span><strong>${appointment.phone}</strong></div>
+          <div class="info-item wide"><span>Address</span><strong>${appointment.address}</strong></div>
+        </div>
+      </section>
+      <section class="info-card">
+        <h3>Details</h3>
+        <div class="info-grid">
+          <div class="info-item"><span>Lesson</span><strong>${appointment.lesson}</strong></div>
+          <div class="info-item"><span>Staff</span><strong>${appointment.staff}</strong></div>
+          <div class="info-item"><span>Goal</span><strong>${appointment.goal}</strong></div>
+          <div class="info-item"><span>Notes</span><strong>${appointment.notes}</strong></div>
+        </div>
+      </section>
+      <section class="info-card">
+        <h3>Prep</h3>
+        <ul class="prep-list">
+          ${appointment.prep.map((item) => `<li>${item}</li>`).join("")}
+        </ul>
+      </section>
+    </div>
+  `;
+}
+
+function renderScheduleActions(appointment) {
+  return `
+    <div class="detail-actions">
+      <button class="primary-button" type="button" data-schedule-status="Completed">Mark Complete</button>
+      <button class="secondary-button" type="button" data-schedule-status="Reschedule">Reschedule</button>
+      <button class="secondary-button" type="button" data-schedule-status="No-show">No Show</button>
+    </div>
   `;
 }
 
@@ -490,7 +768,7 @@ function renderDetailActions(detail) {
 }
 
 function showToast(message) {
-  toast.textContent = `${message} clicked`;
+  toast.textContent = message;
   toast.classList.add("show");
   window.clearTimeout(showToast.timeout);
   showToast.timeout = window.setTimeout(() => toast.classList.remove("show"), 1800);
@@ -533,6 +811,22 @@ document.addEventListener("click", (event) => {
   if (button.dataset.detailTab) {
     state.detailTabByModule[state.module] = button.dataset.detailTab;
     render();
+    return;
+  }
+
+  if (button.dataset.scheduleStatus) {
+    const selectedIndex = Math.min(state.selectedRowByModule.schedule, scheduleAppointments.length - 1);
+    const selectedAppointment = scheduleAppointments[selectedIndex];
+    if (selectedAppointment) {
+      selectedAppointment.status = button.dataset.scheduleStatus;
+      selectedAppointment.activity.unshift([
+        "7/7/26",
+        button.dataset.scheduleStatus,
+        `${selectedAppointment.type} | ${selectedAppointment.staff}`
+      ]);
+      showToast(`${selectedAppointment.displayName} marked ${button.dataset.scheduleStatus}`);
+      render();
+    }
     return;
   }
 
