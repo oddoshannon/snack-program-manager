@@ -525,7 +525,7 @@ button {
 
 .fact {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-columns: 42px minmax(0, 1fr);
   gap: 10px;
   align-items: start;
   color: #344054;
@@ -533,8 +533,9 @@ button {
 }
 
 .fact-icon {
-  color: var(--muted);
-  text-align: center;
+  color: var(--module);
+  font-size: 12px;
+  text-align: left;
 }
 
 .profile-section {
@@ -674,22 +675,30 @@ button {
 .schedule-layout {
   display: grid;
   grid-template-columns: minmax(320px, 0.9fr) minmax(560px, 1.1fr);
-  gap: 24px;
-  align-items: start;
-}
-
-.schedule-board,
-.appointment-panel {
+  gap: 0;
+  align-items: stretch;
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #fff;
   box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.schedule-board,
+.appointment-panel {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
 }
 
 .schedule-board {
   display: grid;
   gap: 16px;
   padding: 18px;
+  border-right: 1px solid var(--line);
 }
 
 .date-controls {
@@ -706,6 +715,13 @@ button {
   color: #344054;
   padding: 0 14px;
   font-weight: 800;
+}
+
+.date-button:hover,
+.date-button:focus-visible {
+  border-color: var(--module-line);
+  background: var(--module-soft);
+  color: var(--module);
 }
 
 .day-grid {
@@ -1012,6 +1028,11 @@ button {
   .record-detail-panel {
     border-left: 0;
     border-top: 1px solid var(--line);
+  }
+
+  .schedule-board {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
   }
 }
 

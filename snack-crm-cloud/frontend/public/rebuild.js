@@ -709,7 +709,7 @@ function renderSchedule() {
           <button class="date-button" type="button" data-toast="Today selected">Today</button>
           <button class="date-button" type="button" data-toast="Previous clinic day selected">‹</button>
           <button class="date-button" type="button" data-toast="Next clinic day selected">›</button>
-          <button class="date-button" type="button" data-toast="Date picker opened">□ Tue, Jul 7, 2026</button>
+          <button class="date-button" type="button" data-toast="Date picker opened">Tue, Jul 7, 2026</button>
         </div>
         ${activeTab === "Day" ? renderDayView() : activeTab === "Week" ? renderWeekView() : renderMonthView()}
       </div>
@@ -853,9 +853,9 @@ function renderAppointmentAside(appt) {
       <div class="status-line"><span class="status-dot"></span>${appt.status}</div>
       <h2>${appt.displayName}</h2>
       <div class="profile-facts">
-        <div class="fact"><span class="fact-icon">□</span><span>${formatFullDate(appt.date)}</span></div>
-        <div class="fact"><span class="fact-icon">○</span><span>${appt.time} - ${appt.duration} min</span></div>
-        <div class="fact"><span class="fact-icon">□</span><span>${appt.type}</span></div>
+        <div class="fact"><span class="fact-icon">Date</span><span>${formatFullDate(appt.date)}</span></div>
+        <div class="fact"><span class="fact-icon">Time</span><span>${appt.time} - ${appt.duration} min</span></div>
+        <div class="fact"><span class="fact-icon">Type</span><span>${appt.type}</span></div>
       </div>
     </div>
     <section class="profile-section">
