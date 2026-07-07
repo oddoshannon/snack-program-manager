@@ -5,41 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SNACK Program Manager</title>
     <link rel="icon" type="image/png" href="./favicon.png">
-    <link rel="stylesheet" href="./rebuild.css?v=20260707-shell">
+    <link rel="stylesheet" href="./clean.css?v=20260707-clean1">
   </head>
   <body>
-    <div id="app" class="app-shell" data-sidebar="open">
-      <aside class="sidebar" aria-label="Main navigation">
-        <div class="brand-row">
-          <img class="brand-mark" src="./favicon.png" alt="">
-          <div class="brand-copy">
-            <strong>SNACK</strong>
-            <span>Program Manager</span>
-          </div>
-          <button id="sidebar-toggle" class="icon-button sidebar-toggle" type="button" aria-label="Collapse navigation" aria-expanded="true">
-            <span aria-hidden="true">‹</span>
-          </button>
-        </div>
-
-        <nav id="module-nav" class="module-nav" aria-label="Modules"></nav>
-
-        <section class="quick-actions" aria-labelledby="quick-actions-title">
-          <h2 id="quick-actions-title">Quick Actions</h2>
-          <div id="quick-actions-list"></div>
-        </section>
-
-        <section class="user-card" aria-label="Signed in user">
-          <span class="user-initials" aria-hidden="true">SO</span>
-          <strong>Shannon Oddo</strong>
-        </section>
-      </aside>
-
-      <main class="workspace">
-        <section id="module-root" class="module-page" aria-live="polite"></section>
-      </main>
-    </div>
+    <div id="app"></div>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script type="module" src="./rebuild.js?v=20260707-shell"></script>
+    <script type="module" src="./clean.js?v=20260707-clean1"></script>
   </body>
 </html>
