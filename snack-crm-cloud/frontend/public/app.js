@@ -28,12 +28,16 @@ const clientsPanel = document.querySelector("#clients-panel");
 const referralNetworkPanel = document.querySelector("#referral-network-panel");
 const outreachPanel = document.querySelector("#outreach-panel");
 const fundraisingPanel = document.querySelector("#fundraising-panel");
+const marketingPanel = document.querySelector("#marketing-panel");
+const operationsPanel = document.querySelector("#operations-panel");
 const schedulingPanel = document.querySelector("#scheduling-panel");
 const navDashboardButton = document.querySelector("#nav-dashboard");
 const navWorkflowButton = document.querySelector("#nav-workflow");
 const navCrmButton = document.querySelector("#nav-crm");
 const navOutreachButton = document.querySelector("#nav-outreach");
 const navFundraisingButton = document.querySelector("#nav-fundraising");
+const navMarketingButton = document.querySelector("#nav-marketing");
+const navOperationsButton = document.querySelector("#nav-operations");
 const navSchedulingButton = document.querySelector("#nav-scheduling");
 const crmTabs = document.querySelector("#crm-tabs");
 const crmTabReferralsButton = document.querySelector("#crm-tab-referrals");
@@ -1835,7 +1839,7 @@ function loadNavigationState() {
     const savedModule = legacyModule === "admin" && saved.activeAdminView === "grants" ? "fundraising" : legacyModule;
     const savedFundraisingView = saved.activeAdminView === "grants" ? "grants" : saved.activeFundraisingView;
     return {
-      activeModule: validValue(savedModule, ["workflow", "scheduling", "crm", "outreach", "fundraising", "admin"], defaults.activeModule),
+      activeModule: validValue(savedModule, ["workflow", "scheduling", "crm", "outreach", "fundraising", "marketing", "operations", "admin"], defaults.activeModule),
       activeCrmView: validValue(saved.activeCrmView, ["referrals", "clients", "referral-network"], defaults.activeCrmView),
       activeOutreachView: validValue(saved.activeOutreachView, ["dashboard", "events", "contacts"], defaults.activeOutreachView),
       activeAdminView: validValue(saved.activeAdminView, ["settings", "data-tools", "kpi", "work-plan"], defaults.activeAdminView),
@@ -5383,6 +5387,8 @@ function setActiveModule(moduleName) {
   const showFundraisingIndividualGiving = showFundraising && activeFundraisingView === "individual-giving";
   const showFundraisingCorporatePartnerships = showFundraising && activeFundraisingView === "corporate-partnerships";
   const showFundraisingEvents = showFundraising && activeFundraisingView === "events";
+  const showMarketing = moduleName === "marketing";
+  const showOperations = moduleName === "operations";
   const showCrm = moduleName === "crm";
   const showReferrals = showCrm && activeCrmView === "referrals";
   const showClients = showCrm && activeCrmView === "clients";
@@ -5392,6 +5398,8 @@ function setActiveModule(moduleName) {
   workflowPanel.hidden = !showWorkflow;
   dashboardPanel.hidden = !showAdmin;
   fundraisingPanel.hidden = !showFundraising;
+  marketingPanel.hidden = !showMarketing;
+  operationsPanel.hidden = !showOperations;
   crmTabs.hidden = !showCrm;
   referralsPanel.hidden = !showReferrals;
   clientsPanel.hidden = !showClients;
@@ -5411,7 +5419,7 @@ function setActiveModule(moduleName) {
   fundraisingCorporatePartnershipsView.hidden = !showFundraisingCorporatePartnerships;
   fundraisingEventsView.hidden = !showFundraisingEvents;
   fundraisingGrantsActions.hidden = !showFundraisingGrants;
-  dashboardTitle.textContent = showAdminDataTools ? "Data Tools" : showAdminKpi ? "KPI" : showAdminWorkPlan ? "Work Plan" : "Admin";
+  dashboardTitle.textContent = showAdminDataTools ? "Data Tools" : showAdminKpi ? "KPI" : showAdminWorkPlan ? "Work Plan" : "Settings";
   fundraisingTitle.textContent = showFundraisingSales ? "Sales"
     : showFundraisingIndividualGiving ? "Individual Giving"
       : showFundraisingCorporatePartnerships ? "Corporate Partnerships"
@@ -5422,12 +5430,16 @@ function setActiveModule(moduleName) {
   navCrmButton.classList.toggle("active", showCrm);
   navOutreachButton.classList.toggle("active", showOutreach);
   navFundraisingButton.classList.toggle("active", showFundraising);
+  navMarketingButton.classList.toggle("active", showMarketing);
+  navOperationsButton.classList.toggle("active", showOperations);
   navSchedulingButton.classList.toggle("active", showScheduling);
   navWorkflowButton.setAttribute("aria-current", showWorkflow ? "page" : "false");
   navDashboardButton.setAttribute("aria-current", showAdmin ? "page" : "false");
   navCrmButton.setAttribute("aria-current", showCrm ? "page" : "false");
   navOutreachButton.setAttribute("aria-current", showOutreach ? "page" : "false");
   navFundraisingButton.setAttribute("aria-current", showFundraising ? "page" : "false");
+  navMarketingButton.setAttribute("aria-current", showMarketing ? "page" : "false");
+  navOperationsButton.setAttribute("aria-current", showOperations ? "page" : "false");
   navSchedulingButton.setAttribute("aria-current", showScheduling ? "page" : "false");
   crmTabReferralsButton.classList.toggle("active", showReferrals);
   crmTabClientsButton.classList.toggle("active", showClients);
@@ -5493,6 +5505,12 @@ function setActiveModule(moduleName) {
     if (showFundraisingGrants) {
       renderGrants();
     }
+  } else if (showMarketing || showOperations) {
+    closeReferralModal();
+    closeClientModal();
+    closeNetworkModal();
+    closeOutreachModal();
+    closeAppointmentModal();
   } else if (showClients) {
     closeReferralModal();
     closeNetworkModal();
@@ -18264,6 +18282,8 @@ onAuthStateChanged(auth, (user) => {
   referralNetworkPanel.hidden = true;
   outreachPanel.hidden = true;
   fundraisingPanel.hidden = true;
+  marketingPanel.hidden = true;
+  operationsPanel.hidden = true;
   schedulingPanel.hidden = true;
   userEl.textContent = signedIn ? `Signed in as ${user.email}` : "Please sign in with your SNACK Google account.";
 
@@ -18394,6 +18414,8 @@ navDashboardButton.addEventListener("click", () => setActiveModule("admin"));
 navCrmButton.addEventListener("click", () => setActiveModule("crm"));
 navOutreachButton.addEventListener("click", () => setActiveModule("outreach"));
 navFundraisingButton.addEventListener("click", () => setActiveModule("fundraising"));
+navMarketingButton.addEventListener("click", () => setActiveModule("marketing"));
+navOperationsButton.addEventListener("click", () => setActiveModule("operations"));
 navSchedulingButton.addEventListener("click", () => setActiveModule("scheduling"));
 adminTabSettingsButton.addEventListener("click", () => setAdminView("settings"));
 adminTabDataToolsButton.addEventListener("click", () => setAdminView("data-tools"));

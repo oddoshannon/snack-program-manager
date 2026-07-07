@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SNACK Program Manager</title>
     <link rel="icon" type="image/png" href="./favicon.png">
-    <link rel="stylesheet" href="./styles.css?v=20260707-live-pass">
+    <link rel="stylesheet" href="./styles.css?v=20260707-modules-v2">
   </head>
   <body>
     <div class="app-shell">
@@ -25,7 +25,9 @@
           <button id="nav-crm" class="nav-item" type="button">CRM</button>
           <button id="nav-outreach" class="nav-item" type="button">Outreach</button>
           <button id="nav-fundraising" class="nav-item" type="button">Fundraising</button>
-          <button id="nav-dashboard" class="nav-item" type="button">Admin</button>
+          <button id="nav-marketing" class="nav-item" type="button">Marketing</button>
+          <button id="nav-operations" class="nav-item" type="button">Operations</button>
+          <button id="nav-dashboard" class="nav-item" type="button">Settings</button>
         </nav>
         <div class="sidebar-footer">
           <p id="user" class="user">Please sign in with your SNACK Google account.</p>
@@ -77,7 +79,7 @@
           </div>
         </section>
 
-        <section id="dashboard-panel" class="referrals-panel dashboard-panel" aria-labelledby="dashboard-title" hidden>
+        <section id="dashboard-panel" class="referrals-panel dashboard-panel module-v2-panel module-tone-settings" aria-labelledby="dashboard-title" hidden>
           <div class="module-tabs admin-tabs" role="tablist" aria-label="Admin views">
             <button id="admin-tab-settings" class="module-tab active" type="button" role="tab" aria-selected="true">Settings</button>
             <button id="admin-tab-data-tools" class="module-tab" type="button" role="tab" aria-selected="false">Data Tools</button>
@@ -87,8 +89,8 @@
 
           <header class="workspace-header">
             <div>
-              <p class="eyebrow">Admin</p>
-              <h2 id="dashboard-title">Admin</h2>
+              <p class="eyebrow">Settings</p>
+              <h2 id="dashboard-title">Settings</h2>
             </div>
           </header>
 
@@ -323,7 +325,7 @@
           </section>
         </section>
 
-        <section id="fundraising-panel" class="referrals-panel dashboard-panel" aria-labelledby="fundraising-title" hidden>
+        <section id="fundraising-panel" class="referrals-panel dashboard-panel module-v2-panel module-tone-fundraising" aria-labelledby="fundraising-title" hidden>
           <div class="module-tabs fundraising-tabs" role="tablist" aria-label="Fundraising views">
             <button id="fundraising-tab-grants" class="module-tab active" type="button" role="tab" aria-selected="true">Grants</button>
             <button id="fundraising-tab-sales" class="module-tab" type="button" role="tab" aria-selected="false">Sales</button>
@@ -518,48 +520,324 @@
           </section>
 
           <section id="fundraising-sales-view" class="fundraising-view" hidden>
-            <section class="dashboard-card empty-module-card" aria-labelledby="fundraising-sales-title">
+            <section class="dashboard-card module-v2-dashboard-card" aria-labelledby="fundraising-sales-title">
               <div class="dashboard-card-header">
                 <div>
-                  <h3 id="fundraising-sales-title">Sales</h3>
+                  <h3 id="fundraising-sales-title">Earned Income</h3>
+                  <p class="dashboard-card-note">Workbook sales, HRSN reimbursement, and class/event revenue.</p>
                 </div>
               </div>
-              <p class="empty-state">Nothing here yet.</p>
+              <div class="module-v2-card-grid">
+                <article class="module-v2-mini-card">
+                  <strong>Workbook Sales</strong>
+                  <span>Kindle Direct Publishing connector and manual sales import.</span>
+                </article>
+                <article class="module-v2-mini-card">
+                  <strong>HRSN Reimbursement</strong>
+                  <span>Claims to submit, expected payment, and reconciliation status.</span>
+                </article>
+                <article class="module-v2-mini-card">
+                  <strong>Class Revenue</strong>
+                  <span>Paid or sponsored cooking class registrations once kitchen scheduling is live.</span>
+                </article>
+              </div>
             </section>
           </section>
 
           <section id="fundraising-individual-giving-view" class="fundraising-view" hidden>
-            <section class="dashboard-card empty-module-card" aria-labelledby="fundraising-individual-giving-title">
+            <section class="dashboard-card module-v2-dashboard-card" aria-labelledby="fundraising-individual-giving-title">
               <div class="dashboard-card-header">
                 <div>
                   <h3 id="fundraising-individual-giving-title">Individual Giving</h3>
+                  <p class="dashboard-card-note">Donor profiles, appeals, stewardship, and recurring giving.</p>
                 </div>
               </div>
-              <p class="empty-state">Nothing here yet.</p>
+              <div class="module-v2-two-col">
+                <div class="module-v2-list">
+                  <button class="module-v2-list-row active" type="button">
+                    <strong>New donor welcome</strong>
+                    <span>Thank-you sequence and first follow-up task</span>
+                  </button>
+                  <button class="module-v2-list-row" type="button">
+                    <strong>Monthly donor program</strong>
+                    <span>Recurring gifts, retention, and upgrade prompts</span>
+                  </button>
+                  <button class="module-v2-list-row" type="button">
+                    <strong>Year-end appeal</strong>
+                    <span>Campaign audience, email copy, and mailed notes</span>
+                  </button>
+                </div>
+                <div class="module-v2-detail-box">
+                  <h4>Donor Profile Home</h4>
+                  <p>Next build: contact details, giving history, notes, preferred recognition, and relationship tasks.</p>
+                </div>
+              </div>
             </section>
           </section>
 
           <section id="fundraising-corporate-partnerships-view" class="fundraising-view" hidden>
-            <section class="dashboard-card empty-module-card" aria-labelledby="fundraising-corporate-partnerships-title">
+            <section class="dashboard-card module-v2-dashboard-card" aria-labelledby="fundraising-corporate-partnerships-title">
               <div class="dashboard-card-header">
                 <div>
-                  <h3 id="fundraising-corporate-partnerships-title">Corporate Partnerships</h3>
+                  <h3 id="fundraising-corporate-partnerships-title">Business Sponsors</h3>
+                  <p class="dashboard-card-note">Prospects, sponsorship packages, in-kind support, and deliverables.</p>
                 </div>
               </div>
-              <p class="empty-state">Nothing here yet.</p>
+              <div class="module-v2-card-grid">
+                <article class="module-v2-mini-card">
+                  <strong>Sponsor Pipeline</strong>
+                  <span>Prospect, contacted, pledged, fulfilled, and renew next year.</span>
+                </article>
+                <article class="module-v2-mini-card">
+                  <strong>Recognition Tracker</strong>
+                  <span>Logo, newsletter mention, social post, event signage, and thank-you status.</span>
+                </article>
+                <article class="module-v2-mini-card">
+                  <strong>In-Kind Support</strong>
+                  <span>Food, prizes, printing, venue support, and volunteer hours.</span>
+                </article>
+              </div>
             </section>
           </section>
 
           <section id="fundraising-events-view" class="fundraising-view" hidden>
-            <section class="dashboard-card empty-module-card" aria-labelledby="fundraising-events-title">
+            <section class="dashboard-card module-v2-dashboard-card" aria-labelledby="fundraising-events-title">
               <div class="dashboard-card-header">
                 <div>
-                  <h3 id="fundraising-events-title">Events</h3>
+                  <h3 id="fundraising-events-title">Fundraising Campaigns</h3>
+                  <p class="dashboard-card-note">Campaign planning, event logistics, donor lists, and outcomes.</p>
                 </div>
               </div>
-              <p class="empty-state">Nothing here yet.</p>
+              <div class="module-v2-two-col">
+                <div class="module-v2-list">
+                  <button class="module-v2-list-row active" type="button">
+                    <strong>Back-to-school appeal</strong>
+                    <span>Audience, goal, emails, and follow-up tasks</span>
+                  </button>
+                  <button class="module-v2-list-row" type="button">
+                    <strong>Giving Tuesday</strong>
+                    <span>Landing page, donor segments, and match sponsor</span>
+                  </button>
+                </div>
+                <div class="module-v2-detail-box">
+                  <h4>Campaign Builder</h4>
+                  <p>Future home for campaign pages, donor segments, MailerLite handoff, and revenue progress.</p>
+                </div>
+              </div>
             </section>
           </section>
+        </section>
+
+        <section id="marketing-panel" class="referrals-panel dashboard-panel module-v2-panel module-tone-marketing" aria-labelledby="marketing-title" hidden>
+          <div class="module-tabs" role="tablist" aria-label="Marketing views">
+            <button class="module-tab active" type="button" role="tab" aria-selected="true">Overview</button>
+            <button class="module-tab" type="button" role="tab" aria-selected="false">Campaigns</button>
+            <button class="module-tab" type="button" role="tab" aria-selected="false">Email</button>
+            <button class="module-tab" type="button" role="tab" aria-selected="false">Ad Grants</button>
+            <button class="module-tab" type="button" role="tab" aria-selected="false">Analytics</button>
+          </div>
+
+          <header class="workspace-header module-v2-header">
+            <div>
+              <p class="eyebrow">Marketing</p>
+              <h2 id="marketing-title">Marketing</h2>
+              <p class="module-v2-subtitle">Campaigns, newsletters, subscriber consent, and traffic dashboards.</p>
+            </div>
+            <div class="header-actions">
+              <button class="secondary-button" type="button">New Email Draft</button>
+              <button type="button">New Campaign</button>
+            </div>
+          </header>
+
+          <section class="summary-grid module-v2-summary" aria-label="Marketing summary">
+            <div class="summary-item"><strong>3</strong><span>Active campaigns</span></div>
+            <div class="summary-item"><strong>418</strong><span>Subscribers</span></div>
+            <div class="summary-item"><strong>2</strong><span>Ad Grant tasks</span></div>
+            <div class="summary-item"><strong>64</strong><span>Monthly leads</span></div>
+          </section>
+
+          <div class="module-v2-workspace">
+            <section class="dashboard-card module-v2-dashboard-card" aria-labelledby="marketing-email-title">
+              <div class="dashboard-card-header">
+                <div>
+                  <h3 id="marketing-email-title">Email Campaign Builder</h3>
+                  <p class="dashboard-card-note">Plan the message here, then send through MailerLite or another delivery service.</p>
+                </div>
+              </div>
+              <div class="module-v2-two-col">
+                <div class="module-v2-list">
+                  <button class="module-v2-list-row active" type="button">
+                    <strong>July newsletter</strong>
+                    <span>Program update, cooking class reminder, donor note</span>
+                  </button>
+                  <button class="module-v2-list-row" type="button">
+                    <strong>Referral partner update</strong>
+                    <span>Clinic availability, eligibility, and new public booking link</span>
+                  </button>
+                  <button class="module-v2-list-row" type="button">
+                    <strong>Cooking class follow-up</strong>
+                    <span>Photos, recipes, survey link, and next class</span>
+                  </button>
+                </div>
+                <div class="module-v2-detail-box">
+                  <h4>MailerLite Connector</h4>
+                  <p>Ready to map: subscriber groups, campaign drafts, unsubscribe status, and send results.</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="dashboard-card module-v2-dashboard-card" aria-labelledby="marketing-dashboards-title">
+              <div class="dashboard-card-header">
+                <div>
+                  <h3 id="marketing-dashboards-title">Traffic and Search</h3>
+                  <p class="dashboard-card-note">A single place for Google Analytics, Search Console, and Google Ad Grants.</p>
+                </div>
+              </div>
+              <div class="module-v2-card-grid">
+                <article class="module-v2-mini-card">
+                  <strong>Google Analytics</strong>
+                  <span>Traffic sources, booking conversions, and top content.</span>
+                </article>
+                <article class="module-v2-mini-card">
+                  <strong>Search Console</strong>
+                  <span>Search queries, indexing issues, and program page visibility.</span>
+                </article>
+                <article class="module-v2-mini-card">
+                  <strong>Google Ad Grants</strong>
+                  <span>Campaign health, conversion actions, and compliance tasks.</span>
+                </article>
+              </div>
+            </section>
+
+            <section class="dashboard-card module-v2-dashboard-card" aria-labelledby="marketing-consent-title">
+              <div class="dashboard-card-header">
+                <div>
+                  <h3 id="marketing-consent-title">Contacts and Consent</h3>
+                  <p class="dashboard-card-note">Newsletter signups from outreach, public booking, and referral partners.</p>
+                </div>
+              </div>
+              <div class="module-v2-card-grid">
+                <article class="module-v2-mini-card">
+                  <strong>Needs Import</strong>
+                  <span>Contacts collected offline or from event forms.</span>
+                </article>
+                <article class="module-v2-mini-card">
+                  <strong>Consent Check</strong>
+                  <span>Email and text permission before marketing sends.</span>
+                </article>
+                <article class="module-v2-mini-card">
+                  <strong>Segments</strong>
+                  <span>Families, donors, referral partners, volunteers, and sponsors.</span>
+                </article>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="operations-panel" class="referrals-panel dashboard-panel module-v2-panel module-tone-operations" aria-labelledby="operations-title" hidden>
+          <div class="module-tabs" role="tablist" aria-label="Operations views">
+            <button class="module-tab active" type="button" role="tab" aria-selected="true">Command Center</button>
+            <button class="module-tab" type="button" role="tab" aria-selected="false">KPI Hub</button>
+            <button class="module-tab" type="button" role="tab" aria-selected="false">Connector Health</button>
+            <button class="module-tab" type="button" role="tab" aria-selected="false">Data Quality</button>
+            <button class="module-tab" type="button" role="tab" aria-selected="false">Launch Queue</button>
+          </div>
+
+          <header class="workspace-header module-v2-header">
+            <div>
+              <p class="eyebrow">Operations</p>
+              <h2 id="operations-title">Operations</h2>
+              <p class="module-v2-subtitle">Launch readiness, KPI command center, integration health, and cleanup queues.</p>
+            </div>
+            <div class="header-actions">
+              <button class="secondary-button" type="button">Run Checks</button>
+              <button type="button">New Ops Task</button>
+            </div>
+          </header>
+
+          <section class="summary-grid module-v2-summary" aria-label="Operations summary">
+            <div class="summary-item"><strong>3</strong><span>Launch blockers</span></div>
+            <div class="summary-item"><strong>8</strong><span>Data alerts</span></div>
+            <div class="summary-item"><strong>4</strong><span>Reports due</span></div>
+            <div class="summary-item"><strong>5</strong><span>Connector checks</span></div>
+          </section>
+
+          <div class="module-v2-workspace">
+            <section class="dashboard-card module-v2-dashboard-card" aria-labelledby="operations-launch-title">
+              <div class="dashboard-card-header">
+                <div>
+                  <h3 id="operations-launch-title">Launch Readiness</h3>
+                  <p class="dashboard-card-note">One queue for production blockers and post-launch follow-up.</p>
+                </div>
+              </div>
+              <div class="module-v2-two-col">
+                <div class="module-v2-list">
+                  <button class="module-v2-list-row active" type="button">
+                    <strong>Scheduling launch blockers</strong>
+                    <span>Complete, no-show, reschedule, and public cancellation flow</span>
+                  </button>
+                  <button class="module-v2-list-row" type="button">
+                    <strong>CRM design refresh</strong>
+                    <span>Profile layout, linked family/provider records, and lesson progression</span>
+                  </button>
+                  <button class="module-v2-list-row" type="button">
+                    <strong>Settings visual pass</strong>
+                    <span>Scheduling defaults, staff list, export, and future JSON restore</span>
+                  </button>
+                </div>
+                <div class="module-v2-detail-box">
+                  <h4>Current Decision</h4>
+                  <p>Kitchen and school scheduling can remain coming soon while clinic scheduling, CRM, and public booking move toward production.</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="dashboard-card module-v2-dashboard-card" aria-labelledby="operations-integrations-title">
+              <div class="dashboard-card-header">
+                <div>
+                  <h3 id="operations-integrations-title">Connector Health</h3>
+                  <p class="dashboard-card-note">Integration feasibility and sync status across the systems SNACK uses.</p>
+                </div>
+              </div>
+              <div class="module-v2-card-grid">
+                <article class="module-v2-mini-card">
+                  <strong>MailerLite</strong>
+                  <span>Audience sync, campaign drafts, unsubscribes, and delivery metrics.</span>
+                </article>
+                <article class="module-v2-mini-card">
+                  <strong>Google Analytics</strong>
+                  <span>Traffic, conversion events, booking source, and program page performance.</span>
+                </article>
+                <article class="module-v2-mini-card">
+                  <strong>Kindle Direct Publishing</strong>
+                  <span>Workbook sales import or manual upload depending on reporting access.</span>
+                </article>
+              </div>
+            </section>
+
+            <section class="dashboard-card module-v2-dashboard-card" aria-labelledby="operations-data-title">
+              <div class="dashboard-card-header">
+                <div>
+                  <h3 id="operations-data-title">Data Quality Queue</h3>
+                  <p class="dashboard-card-note">Cleanup work that protects reports, imports, and future automation.</p>
+                </div>
+              </div>
+              <div class="module-v2-card-grid">
+                <article class="module-v2-mini-card">
+                  <strong>Duplicate Families</strong>
+                  <span>Potential sibling and caregiver duplicates after imports.</span>
+                </article>
+                <article class="module-v2-mini-card">
+                  <strong>Missing Next Appointment</strong>
+                  <span>Active clients who need a follow-up scheduled.</span>
+                </article>
+                <article class="module-v2-mini-card">
+                  <strong>Incomplete KPI Fields</strong>
+                  <span>Records missing the data needed for program reporting.</span>
+                </article>
+              </div>
+            </section>
+          </div>
         </section>
 
         <div id="grant-modal" class="modal-backdrop" hidden>
@@ -947,7 +1225,7 @@
           </div>
         </section>
 
-        <section id="outreach-panel" class="referrals-panel" aria-labelledby="outreach-title" hidden>
+        <section id="outreach-panel" class="referrals-panel module-v2-panel module-tone-outreach" aria-labelledby="outreach-title" hidden>
           <div class="module-tabs" role="tablist" aria-label="Outreach views">
             <button id="outreach-tab-dashboard" class="module-tab active" type="button" role="tab" aria-selected="true">Dashboard</button>
             <button id="outreach-tab-events" class="module-tab" type="button" role="tab" aria-selected="false">Events &amp; Classes</button>
