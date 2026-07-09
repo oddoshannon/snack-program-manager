@@ -12,6 +12,8 @@
   --faint: #98a2b3;
   --line: #e4e7ec;
   --soft-line: #f0f2f5;
+  --red: #e5484d;
+  --red-soft: #fff1f1;
   --module: #e5484d;
   --module-soft: #fff1f1;
   --module-line: #f4b4b6;
@@ -25,6 +27,8 @@
   --yellow-soft: #fff8df;
   --purple: #7651c7;
   --purple-soft: #f3f0ff;
+  --navy: #4969af;
+  --navy-soft: #eef5fb;
   --shadow: 0 12px 32px rgba(16, 24, 40, 0.04);
   --sidebar-open: 242px;
   --sidebar-closed: 78px;
@@ -132,14 +136,14 @@ svg {
 }
 
 .brand-copy strong {
-  color: var(--success);
+  color: var(--ink);
   font-size: 16px;
   font-weight: 700;
   line-height: 1.05;
 }
 
 .brand-copy span {
-  color: #1f2937;
+  color: var(--muted);
   font-size: 13px;
   font-weight: 400;
   line-height: 1.2;
@@ -167,6 +171,11 @@ svg {
   --item-soft: var(--blue-soft);
 }
 
+.module-group[data-tone="red"] {
+  --item-color: var(--red);
+  --item-soft: var(--red-soft);
+}
+
 .module-group[data-tone="orange"] {
   --item-color: var(--orange);
   --item-soft: var(--orange-soft);
@@ -185,6 +194,11 @@ svg {
 .module-group[data-tone="purple"] {
   --item-color: var(--purple);
   --item-soft: var(--purple-soft);
+}
+
+.module-group[data-tone="navy"] {
+  --item-color: var(--navy);
+  --item-soft: var(--navy-soft);
 }
 
 .nav-button,
@@ -291,14 +305,15 @@ svg {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: var(--success-soft);
-  color: var(--success);
+  border: 1px solid var(--line);
+  background: var(--surface-tint);
+  color: var(--text);
   font-size: 12px;
   font-weight: 700;
 }
 
 .account strong {
-  color: var(--success);
+  color: var(--ink);
   font-size: 16px;
   font-weight: 700;
 }
@@ -429,14 +444,14 @@ svg {
   font-size: 14px;
   font-weight: 400;
   white-space: nowrap;
-  box-shadow: 0 12px 24px rgba(229, 72, 77, 0.18);
+  box-shadow: 0 12px 24px color-mix(in srgb, var(--module) 18%, transparent);
 }
 
 .primary-action:hover,
 .primary-action:focus-visible,
 .primary-action.is-hover-demo {
-  background: #dc2626;
-  border-color: #dc2626;
+  background: color-mix(in srgb, var(--module) 86%, #101828);
+  border-color: color-mix(in srgb, var(--module) 86%, #101828);
   outline: none;
 }
 
@@ -485,7 +500,7 @@ svg {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(330px, 500px) minmax(440px, 1fr);
+  grid-template-columns: minmax(320px, 420px) minmax(500px, 1fr);
   gap: 20px;
   align-items: start;
 }
@@ -558,8 +573,20 @@ svg {
   --row-color: var(--blue);
 }
 
+.list-row[data-tone="module"] {
+  --row-color: var(--module);
+}
+
 .list-row[data-tone="orange"] {
   --row-color: var(--orange);
+}
+
+.list-row[data-tone="yellow"] {
+  --row-color: var(--yellow);
+}
+
+.list-row[data-tone="green"] {
+  --row-color: var(--success);
 }
 
 .list-row:hover,
@@ -599,7 +626,7 @@ svg {
 
 .detail-panel {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: 210px minmax(0, 1fr);
   overflow: hidden;
   min-width: 0;
 }
@@ -617,6 +644,10 @@ svg {
   color: var(--success);
   font-size: 12.5px;
   font-weight: 600;
+}
+
+.status-line.is-module-status {
+  color: var(--module);
 }
 
 .status-dot {
@@ -813,6 +844,12 @@ svg {
   text-align: center;
 }
 
+.footer-actions button:hover,
+.footer-actions button:focus-visible,
+.footer-actions button.is-hover-demo {
+  outline: none;
+}
+
 .footer-actions button:nth-child(1) {
   border: 1px solid #a8d8b8;
   color: var(--success);
@@ -825,13 +862,7 @@ svg {
 
 .footer-actions button:nth-child(3) {
   border: 1px solid #f4b4b6;
-  color: var(--module);
-}
-
-.footer-actions button:hover,
-.footer-actions button:focus-visible,
-.footer-actions button.is-hover-demo {
-  outline: none;
+  color: var(--red);
 }
 
 .footer-actions button:nth-child(1):hover,
@@ -846,7 +877,7 @@ svg {
 
 .footer-actions button:nth-child(3):hover,
 .footer-actions button:nth-child(3):focus-visible {
-  background: var(--module-soft);
+  background: var(--red-soft);
 }
 
 .app-shell.is-collapsed {
