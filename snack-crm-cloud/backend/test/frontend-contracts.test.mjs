@@ -684,8 +684,8 @@ test("public booking JavaScript uses public endpoints and guards submission", ()
   assert.match(stylesCss, /\.public-management-link/);
 });
 
-test("SNACK brand variables are present in the app stylesheet", () => {
-  for (const color of ["#e23a4d", "#d27354", "#f4c753", "#078b4d", "#039cbb", "#004aad", "#7a33c2"]) {
+test("SNACK brand variables match the locked visual rulebook palette", () => {
+  for (const color of ["#e5484d", "#d66a1f", "#cf9600", "#18724a", "#1570ef", "#7651c7", "#4969af"]) {
     assert.match(stylesCss, new RegExp(color.replace("#", "#")));
   }
   assert.match(stylesCss, /\.module-tabs\s*{[^}]*max-width: 100%;[^}]*overflow-x: auto;/s);

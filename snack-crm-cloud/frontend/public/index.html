@@ -6,7 +6,7 @@
     <title>SNACK Program Manager</title>
 
     <link rel="icon" type="image/png" href="./favicon.png">
-    <link rel="stylesheet" href="./styles.css?v=20260707-modules-v2">
+    <link rel="stylesheet" href="./styles.css?v=20260714-rulebook1">
   </head>
   <body>
     <div class="app-shell">
@@ -21,14 +21,14 @@
           </div>
         </div>
         <nav class="primary-nav" aria-label="Primary">
-          <button id="nav-workflow" class="nav-item active" type="button" aria-current="page">Workflow</button>
-          <button id="nav-scheduling" class="nav-item" type="button">Scheduling</button>
-          <button id="nav-crm" class="nav-item" type="button">CRM</button>
-          <button id="nav-outreach" class="nav-item" type="button">Outreach</button>
-          <button id="nav-fundraising" class="nav-item" type="button">Fundraising</button>
-          <button id="nav-marketing" class="nav-item" type="button">Marketing</button>
-          <button id="nav-operations" class="nav-item" type="button">Operations</button>
-          <button id="nav-dashboard" class="nav-item" type="button">Settings</button>
+          <button id="nav-workflow" class="nav-item active" type="button" aria-current="page"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m4 5.5 1 1 2-2M4 11.5l1 1 2-2M4 17.5l1 1 2-2"/></svg></span>Workflow</button>
+          <button id="nav-scheduling" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4M16 2v4M4 9h16M6 4h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg></span>Scheduling</button>
+          <button id="nav-crm" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="8" r="2.4"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M14.8 16.4A4.8 4.8 0 0 1 21 20"/></svg></span>CRM</button>
+          <button id="nav-outreach" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14h4l9 5V5l-9 5H4z"/><path d="M20 9.5a4 4 0 0 1 0 5"/></svg></span>Outreach</button>
+          <button id="nav-fundraising" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg></span>Fundraising</button>
+          <button id="nav-marketing" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 18-7-7 18-3-8-8-3zM11 14l10-10"/></svg></span>Marketing</button>
+          <button id="nav-operations" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15v-4M12 15V7M16 15v-6"/></svg></span>Operations</button>
+          <button id="nav-dashboard" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 7.04 4.3l.06.06A1.65 1.65 0 0 0 8.92 4a1.65 1.65 0 0 0 1-1.51V2a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.47.52.82 1 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Settings</button>
         </nav>
         <div class="sidebar-footer">
           <p id="user" class="user">Please sign in with your SNACK Google account.</p>
@@ -47,7 +47,7 @@
           <button id="refresh" class="secondary-button" type="button" disabled>Refresh connection</button>
         </section>
 
-        <section id="workflow-panel" class="referrals-panel dashboard-panel" aria-labelledby="workflow-title" hidden>
+        <section id="workflow-panel" class="referrals-panel dashboard-panel module-v2-panel module-tone-workflow" aria-labelledby="workflow-title" hidden>
           <div class="module-tabs workflow-tabs" role="tablist" aria-label="Workflow views">
             <button class="module-tab active" type="button" role="tab" aria-selected="true">Tasks</button>
           </div>
@@ -1093,7 +1093,7 @@
           <button id="crm-tab-referral-network" class="module-tab" type="button" role="tab" aria-selected="false">Referral Network</button>
         </div>
 
-        <section id="referrals-panel" class="referrals-panel" aria-labelledby="referrals-title" hidden>
+        <section id="referrals-panel" class="referrals-panel module-v2-panel module-tone-crm" aria-labelledby="referrals-title" hidden>
           <header class="workspace-header">
             <div>
               <p class="eyebrow">CRM</p>
@@ -1140,7 +1140,7 @@
           </div>
         </section>
 
-        <section id="clients-panel" class="referrals-panel" aria-labelledby="clients-title" hidden>
+        <section id="clients-panel" class="referrals-panel module-v2-panel module-tone-crm" aria-labelledby="clients-title" hidden>
           <header class="workspace-header">
             <div>
               <p class="eyebrow">CRM</p>
@@ -1187,7 +1187,7 @@
           </div>
         </section>
 
-        <section id="referral-network-panel" class="referrals-panel" aria-labelledby="referral-network-title" hidden>
+        <section id="referral-network-panel" class="referrals-panel module-v2-panel module-tone-crm" aria-labelledby="referral-network-title" hidden>
           <header class="workspace-header">
             <div>
               <p class="eyebrow">CRM</p>
@@ -1329,7 +1329,7 @@
           </div>
         </section>
 
-        <section id="scheduling-panel" class="referrals-panel" aria-labelledby="scheduling-title" hidden>
+        <section id="scheduling-panel" class="referrals-panel module-v2-panel module-tone-scheduling" aria-labelledby="scheduling-title" hidden>
           <div class="module-tabs scheduling-tabs" role="tablist" aria-label="Scheduling views">
             <button class="module-tab active" type="button" role="tab" aria-selected="true">Appointments</button>
           </div>
