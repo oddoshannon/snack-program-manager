@@ -1,0 +1,6 @@
+node_modules
+frontend/public/archive
+frontend/public/print-forms
+frontend/public/favicon.png
+frontend/public/todoist-complete.m4a
+package-lock.json
