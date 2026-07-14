@@ -31,6 +31,7 @@ import {
   cleanTaskPayload,
   clientPayloadFromReferral,
   daysBetweenDateStrings,
+  fetchAllDocuments,
   formatAppointmentTimeValue,
   hasRequiredPersonFields,
   isActiveTaskStatus,
@@ -909,4 +910,31 @@ test("public and protected API routes are registered with expected middleware", 
   assert.equal(bookingOptionsRoute.methods.get, true);
   assert.equal(messageRoute.methods.get, true);
   assert.equal(messageRoute.stack.length, 2);
+});
+
+test("fetchAllDocuments pages past the batch size instead of truncating", async () => {
+  function fakeQuery(docs, offset = 0) {
+    return {
+      limit(batchSize) {
+        return {
+          get: async () => ({ docs: docs.slice(offset, offset + batchSize) })
+        };
+      },
+      startAfter(cursor) {
+        return fakeQuery(docs, docs.indexOf(cursor) + 1);
+      }
+    };
+  }
+
+  const smallSet = Array.from({ length: 12 }, (_, index) => ({ id: `doc-${index}` }));
+  assert.deepEqual(await fetchAllDocuments(fakeQuery(smallSet)), smallSet);
+
+  const largeSet = Array.from({ length: 650 }, (_, index) => ({ id: `doc-${index}` }));
+  const fetched = await fetchAllDocuments(fakeQuery(largeSet));
+  assert.equal(fetched.length, 650);
+  assert.equal(fetched[0].id, "doc-0");
+  assert.equal(fetched[649].id, "doc-649");
+
+  const exactMultiple = Array.from({ length: 600 }, (_, index) => ({ id: `doc-${index}` }));
+  assert.equal((await fetchAllDocuments(fakeQuery(exactMultiple))).length, 600);
 });
