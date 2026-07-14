@@ -308,22 +308,20 @@ test("grant interactions open profiles, support question editing, and close on b
   assert.match(appJs, /updateGrantStatus\(grant, select\.value\)/);
 });
 
-test("scheduling module keeps calendar, today board, and bottom list views", () => {
+test("scheduling module keeps the hidden list view nodes app.js still targets", () => {
   assert.match(indexHtml, /id="appointment-summary"/);
-  assert.match(indexHtml, /id="scheduling-calendar"/);
-  assert.match(indexHtml, /id="scheduling-today-board"/);
   assert.match(indexHtml, /id="appointments-list"/);
 });
 
-test("scheduling module exposes a non-destructive v2 preview shell", () => {
-  assert.match(indexHtml, /id="scheduling-classic-view-button"/);
-  assert.match(indexHtml, /id="scheduling-v2-view-button"/);
+test("scheduling module renders the v2 design with v1 archived and disconnected", () => {
   assert.match(indexHtml, /id="scheduling-v2-preview"/);
-  assert.match(appJs, /function setSchedulingDesign/);
   assert.match(appJs, /function renderSchedulingV2Preview/);
   assert.match(appJs, /function renderSchedulingV2Sidebar/);
-  assert.match(appJs, /activeSchedulingDesign/);
   assert.match(stylesCss, /scheduling-v2-shell/);
+  assert.equal(indexHtml.includes('id="scheduling-classic-view-button"'), false);
+  assert.equal(indexHtml.includes('id="scheduling-v2-view-button"'), false);
+  assert.equal(appJs.includes("activeSchedulingDesign"), false);
+  assert.equal(appJs.includes("function setSchedulingDesign"), false);
 });
 
 test("scheduling v2 rendered actions have click handlers", () => {
@@ -487,7 +485,6 @@ test("CRM profile new appointment actions route into Scheduling V2 inline flow",
   assert.match(appJs, /function startSchedulingV2AppointmentFromProfile/);
   assert.match(bridge, /closeClientModal\(\)/);
   assert.match(bridge, /closeReferralModal\(\)/);
-  assert.match(bridge, /activeSchedulingDesign = "v2"/);
   assert.match(bridge, /activeSchedulingPreviewView = "day"/);
   assert.match(bridge, /setActiveModule\("scheduling"\)/);
   assert.match(bridge, /startSchedulingV2InlineForm\("new"/);

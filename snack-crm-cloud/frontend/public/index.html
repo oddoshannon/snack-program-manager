@@ -1340,10 +1340,6 @@
               <h2 id="scheduling-title">Appointments</h2>
             </div>
             <div class="header-actions">
-              <div class="view-toggle scheduling-design-toggle" role="group" aria-label="Scheduling design preview">
-                <button id="scheduling-classic-view-button" class="active" type="button">Classic</button>
-                <button id="scheduling-v2-view-button" type="button">V2 Preview</button>
-              </div>
               <button id="print-today-schedule" class="secondary-button" type="button" title="Print today's non-canceled appointments.">Print Today</button>
               <button id="print-prep-sheets" class="secondary-button" type="button" title="Print prep checklists for today's appointments.">Print Prep Sheets</button>
               <button id="print-note-sheets" class="secondary-button" type="button" title="Print handwritten note sheets for today's appointments.">Print Note Sheets</button>
@@ -1353,10 +1349,11 @@
 
           <section id="scheduling-v2-preview" class="scheduling-v2-preview" aria-label="Scheduling v2 preview" hidden></section>
 
-          <div id="scheduling-classic-view">
+          <!-- Retired scheduling v1 list view. Kept because app.js element constants and
+               render functions still target these nodes; permanently hidden in favor of
+               the v2 view above. See archive/scheduling-v1.js for the removed v1 design. -->
+          <div id="scheduling-classic-view" hidden>
             <section id="appointment-summary" class="summary-grid" aria-label="Appointment summary"></section>
-            <section id="scheduling-calendar" class="scheduling-calendar" aria-label="Scheduling calendar"></section>
-            <section id="scheduling-today-board" class="scheduling-today-board" aria-label="Today's appointment workflow"></section>
 
             <div class="referrals-layout">
               <section class="list-panel" aria-label="Appointment list">
