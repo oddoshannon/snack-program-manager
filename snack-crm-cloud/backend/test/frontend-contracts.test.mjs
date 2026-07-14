@@ -11,7 +11,13 @@ const stylesCss = await readFile(new URL("styles.css", publicDir), "utf8");
 const appConfigJs = await readFile(new URL("app-config.js", publicDir), "utf8");
 const firebaseJson = await readFile(new URL("../../firebase.json", import.meta.url), "utf8");
 const storageRules = await readFile(new URL("../../storage.rules", import.meta.url), "utf8");
-const serverJs = await readFile(new URL("../server.js", import.meta.url), "utf8");
+const serverEntry = await readFile(new URL("../server.js", import.meta.url), "utf8");
+const coreJs = await readFile(new URL("../lib/core.js", import.meta.url), "utf8");
+const routeFiles = (await readdir(new URL("../routes/", import.meta.url))).sort();
+const routesJs = (
+  await Promise.all(routeFiles.map((file) => readFile(new URL(`../routes/${file}`, import.meta.url), "utf8")))
+).join("\n");
+const serverJs = [serverEntry, coreJs, routesJs].join("\n");
 const printForms = await readdir(new URL("print-forms/", publicDir));
 
 function assertInOrder(source, values) {
@@ -108,12 +114,12 @@ test("admin data tools centralize operational import export and deletion", () =>
   assert.match(appJs, /\/api\/appointments\/import/);
   assert.match(stylesCss, /\.data-tools-list/);
   assert.match(stylesCss, /\.data-tool-card/);
-  assert.match(serverJs, /app\.get\("\/api\/admin\/data-counts"/);
-  assert.match(serverJs, /app\.get\("\/api\/admin\/export\/:collectionKey"/);
-  assert.match(serverJs, /app\.post\("\/api\/admin\/bulk-delete"/);
+  assert.match(serverJs, /router\.get\("\/api\/admin\/data-counts"/);
+  assert.match(serverJs, /router\.get\("\/api\/admin\/export\/:collectionKey"/);
+  assert.match(serverJs, /router\.post\("\/api\/admin\/bulk-delete"/);
   assert.match(serverJs, /ALLOW_ADMIN_BULK_DELETE/);
   assert.match(serverJs, /Bulk delete is disabled for this environment/);
-  assert.match(serverJs, /app\.post\("\/api\/appointments\/import"/);
+  assert.match(serverJs, /router\.post\("\/api\/appointments\/import"/);
   assert.match(serverJs, /confirmation !== "DELETE TEST DATA"/);
 });
 
