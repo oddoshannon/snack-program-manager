@@ -211,6 +211,29 @@ async function deleteCollectionDocuments(collectionRef) {
   return deletedCount;
 }
 
+const fetchAllBatchSize = 300;
+const fetchAllMaxDocuments = 20000;
+
+async function fetchAllDocuments(query) {
+  const documents = [];
+  let cursor = null;
+
+  while (documents.length < fetchAllMaxDocuments) {
+    const page = cursor ? query.startAfter(cursor).limit(fetchAllBatchSize) : query.limit(fetchAllBatchSize);
+    const snapshot = await page.get();
+    documents.push(...snapshot.docs);
+
+    if (snapshot.docs.length < fetchAllBatchSize) {
+      return documents;
+    }
+
+    cursor = snapshot.docs[snapshot.docs.length - 1];
+  }
+
+  console.warn(`fetchAllDocuments stopped at the ${fetchAllMaxDocuments} document safety ceiling; results may be incomplete.`);
+  return documents;
+}
+
 async function requireAuth(request, response, next) {
   const authHeader = request.get("Authorization") || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : "";
@@ -1410,9 +1433,9 @@ async function findExistingStartDayTask(payload) {
     return null;
   }
 
-  const snapshot = await tasks.orderBy("createdAt", "desc").limit(300).get();
+  const taskDocuments = await fetchAllDocuments(tasks.orderBy("createdAt", "desc"));
 
-  for (const doc of snapshot.docs) {
+  for (const doc of taskDocuments) {
     const task = toTask(doc);
     const sameDayGeneratedTask = isGeneratedTaskSource(task.source) && task.dueDate === payload.dueDate;
 
@@ -2408,13 +2431,13 @@ app.get("/api/admin/export/:collectionKey", requireAuth, async (request, respons
       return;
     }
 
-    const snapshot = await config.collection.limit(2000).get();
+    const documents = await fetchAllDocuments(config.collection);
 
     response.json({
       collection: collectionKey,
       label: config.label,
       exportedAt: new Date().toISOString(),
-      records: snapshot.docs.map(config.serializer)
+      records: documents.map(config.serializer)
     });
   } catch (error) {
     next(error);
@@ -2510,10 +2533,10 @@ app.patch("/api/admin/scheduling-settings", requireAuth, async (request, respons
 
 app.get("/api/referrals", requireAuth, async (_request, response, next) => {
   try {
-    const snapshot = await referrals.orderBy("createdAt", "desc").limit(200).get();
+    const documents = await fetchAllDocuments(referrals.orderBy("createdAt", "desc"));
 
     response.json({
-      referrals: snapshot.docs.map(toReferral)
+      referrals: documents.map(toReferral)
     });
   } catch (error) {
     next(error);
@@ -2522,10 +2545,10 @@ app.get("/api/referrals", requireAuth, async (_request, response, next) => {
 
 app.get("/api/clients", requireAuth, async (_request, response, next) => {
   try {
-    const snapshot = await clients.orderBy("createdAt", "desc").limit(150).get();
+    const documents = await fetchAllDocuments(clients.orderBy("createdAt", "desc"));
 
     response.json({
-      clients: snapshot.docs.map(toClient)
+      clients: documents.map(toClient)
     });
   } catch (error) {
     next(error);
@@ -2534,10 +2557,10 @@ app.get("/api/clients", requireAuth, async (_request, response, next) => {
 
 app.get("/api/appointments", requireAuth, async (_request, response, next) => {
   try {
-    const snapshot = await appointments.orderBy("appointmentDate", "desc").limit(500).get();
+    const documents = await fetchAllDocuments(appointments.orderBy("appointmentDate", "desc"));
 
     response.json({
-      appointments: snapshot.docs.map(toAppointment)
+      appointments: documents.map(toAppointment)
     });
   } catch (error) {
     next(error);
@@ -2623,10 +2646,10 @@ app.post("/api/appointments/import", requireAuth, async (request, response, next
       return;
     }
 
-    const clientSnapshot = await clients.limit(1000).get();
+    const clientDocuments = await fetchAllDocuments(clients);
     const clientsByName = new Map();
 
-    clientSnapshot.docs.forEach((doc) => {
+    clientDocuments.forEach((doc) => {
       const client = toClient(doc);
       const key = normalizedLookupKey(`${client.firstName || ""} ${client.lastName || ""}`);
       if (key && !clientsByName.has(key)) {
@@ -2796,10 +2819,10 @@ app.delete("/api/appointments/:appointmentId", requireAuth, async (request, resp
 
 app.get("/api/tasks", requireAuth, async (_request, response, next) => {
   try {
-    const snapshot = await tasks.orderBy("createdAt", "desc").limit(300).get();
+    const documents = await fetchAllDocuments(tasks.orderBy("createdAt", "desc"));
 
     response.json({
-      tasks: snapshot.docs.map(toTask)
+      tasks: documents.map(toTask)
     });
   } catch (error) {
     next(error);
@@ -2944,10 +2967,10 @@ app.delete("/api/tasks/:taskId", requireAuth, async (request, response, next) =>
 
 app.get("/api/activity-logs", requireAuth, async (_request, response, next) => {
   try {
-    const snapshot = await activityLogs.orderBy("occurredAt", "desc").limit(500).get();
+    const documents = await fetchAllDocuments(activityLogs.orderBy("occurredAt", "desc"));
 
     response.json({
-      activityLogs: snapshot.docs.map(toActivityLog)
+      activityLogs: documents.map(toActivityLog)
     });
   } catch (error) {
     next(error);
@@ -3016,10 +3039,10 @@ app.post("/api/activity-logs", requireAuth, async (request, response, next) => {
 
 app.get("/api/grants", requireAuth, async (_request, response, next) => {
   try {
-    const snapshot = await grants.orderBy("deadlineDate").limit(300).get();
+    const documents = await fetchAllDocuments(grants.orderBy("deadlineDate"));
 
     response.json({
-      grants: snapshot.docs.map(toGrant)
+      grants: documents.map(toGrant)
     });
   } catch (error) {
     next(error);
@@ -3114,10 +3137,10 @@ app.delete("/api/grants/:grantId", requireAuth, async (request, response, next) 
 
 app.get("/api/grant-questions", requireAuth, async (_request, response, next) => {
   try {
-    const snapshot = await grantQuestions.orderBy("updatedAt", "desc").limit(300).get();
+    const documents = await fetchAllDocuments(grantQuestions.orderBy("updatedAt", "desc"));
 
     response.json({
-      questions: snapshot.docs.map(toGrantQuestion)
+      questions: documents.map(toGrantQuestion)
     });
   } catch (error) {
     next(error);
@@ -3245,10 +3268,10 @@ app.patch("/api/grant-organization-info", requireAuth, async (request, response,
 
 app.get("/api/referral-network", requireAuth, async (_request, response, next) => {
   try {
-    const snapshot = await referralNetwork.orderBy("name").limit(100).get();
+    const documents = await fetchAllDocuments(referralNetwork.orderBy("name"));
 
     response.json({
-      entries: snapshot.docs.map(toReferralNetworkEntry)
+      entries: documents.map(toReferralNetworkEntry)
     });
   } catch (error) {
     next(error);
@@ -3302,10 +3325,10 @@ app.post("/api/referral-network/import", requireAuth, async (request, response, 
     }
 
     const now = new Date().toISOString();
-    const existingSnapshot = await referralNetwork.limit(500).get();
+    const existingDocuments = await fetchAllDocuments(referralNetwork);
     const existingByName = new Map();
 
-    existingSnapshot.docs.forEach((doc) => {
+    existingDocuments.forEach((doc) => {
       const data = doc.data();
       const key = normalizedLookupKey(data.name);
       if (key) {
@@ -3480,10 +3503,10 @@ app.delete("/api/referral-network/:entryId", requireAuth, async (request, respon
 
 app.get("/api/outreach-events", requireAuth, async (_request, response, next) => {
   try {
-    const snapshot = await outreachEvents.orderBy("eventDate", "desc").limit(200).get();
+    const documents = await fetchAllDocuments(outreachEvents.orderBy("eventDate", "desc"));
 
     response.json({
-      events: snapshot.docs.map(toOutreachEvent)
+      events: documents.map(toOutreachEvent)
     });
   } catch (error) {
     next(error);
@@ -3594,10 +3617,10 @@ app.delete("/api/outreach-events/:eventId", requireAuth, async (request, respons
 
 app.get("/api/outreach-contacts", requireAuth, async (_request, response, next) => {
   try {
-    const snapshot = await outreachContacts.orderBy("createdAt", "desc").limit(500).get();
+    const documents = await fetchAllDocuments(outreachContacts.orderBy("createdAt", "desc"));
 
     response.json({
-      contacts: snapshot.docs.map(toOutreachContact)
+      contacts: documents.map(toOutreachContact)
     });
   } catch (error) {
     next(error);
@@ -4742,6 +4765,7 @@ export {
   cleanTaskPayload,
   clientPayloadFromReferral,
   daysBetweenDateStrings,
+  fetchAllDocuments,
   formatAppointmentTimeValue,
   hasRequiredPersonFields,
   isActiveTaskStatus,
