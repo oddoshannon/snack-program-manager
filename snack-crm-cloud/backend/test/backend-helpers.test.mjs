@@ -864,10 +864,21 @@ test("date helpers validate date-only values", () => {
   assert.equal(daysBetweenDateStrings("bad", "2026-06-17"), null);
 });
 
+function collectRoutes(stack, routes = []) {
+  for (const layer of stack) {
+    if (layer.route) {
+      routes.push(layer.route);
+    } else if (layer.name === "router" && layer.handle?.stack) {
+      collectRoutes(layer.handle.stack, routes);
+    }
+  }
+
+  return routes;
+}
+
 test("public and protected API routes are registered with expected middleware", () => {
-  const routes = app._router.stack
-    .filter((layer) => layer.route)
-    .map((layer) => layer.route.path);
+  const registeredRoutes = collectRoutes(app._router.stack);
+  const routes = registeredRoutes.map((route) => route.path);
 
   assert.ok(routes.indexOf("/api/public/booking-options") < routes.indexOf("/api/message"));
   assert.ok(routes.indexOf("/api/public/availability") < routes.indexOf("/api/message"));
@@ -881,9 +892,9 @@ test("public and protected API routes are registered with expected middleware", 
   assert.ok(routes.includes("/api/grant-questions/:questionId"));
   assert.ok(routes.includes("/api/grant-organization-info"));
   assert.ok(routes.includes("/api/admin/scheduling-settings"));
-  const healthRoute = app._router.stack.find((layer) => layer.route?.path === "/health").route;
-  const bookingOptionsRoute = app._router.stack.find((layer) => layer.route?.path === "/api/public/booking-options").route;
-  const messageRoute = app._router.stack.find((layer) => layer.route?.path === "/api/message").route;
+  const healthRoute = registeredRoutes.find((route) => route.path === "/health");
+  const bookingOptionsRoute = registeredRoutes.find((route) => route.path === "/api/public/booking-options");
+  const messageRoute = registeredRoutes.find((route) => route.path === "/api/message");
 
   assert.equal(healthRoute.stack.length, 1);
   assert.equal(bookingOptionsRoute.stack.length, 1);
