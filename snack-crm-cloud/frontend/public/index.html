@@ -12,24 +12,103 @@
     <div class="app-shell">
       <aside class="sidebar" aria-label="App navigation">
         <div class="brand-block">
-          <span class="brand-mark" aria-hidden="true">
+          <button id="sidebar-collapse" class="brand-mark" type="button" aria-label="Collapse navigation">
             <img src="./favicon.png" alt="">
-          </span>
-          <div>
+          </button>
+          <div class="brand-copy">
             <p class="eyebrow">SNACK</p>
             <h1>Program Manager</h1>
           </div>
         </div>
-        <nav class="primary-nav" aria-label="Primary">
-          <button id="nav-workflow" class="nav-item active" type="button" aria-current="page"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m4 5.5 1 1 2-2M4 11.5l1 1 2-2M4 17.5l1 1 2-2"/></svg></span>Workflow</button>
-          <button id="nav-scheduling" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4M16 2v4M4 9h16M6 4h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg></span>Scheduling</button>
-          <button id="nav-crm" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="8" r="2.4"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M14.8 16.4A4.8 4.8 0 0 1 21 20"/></svg></span>CRM</button>
-          <button id="nav-outreach" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14h4l9 5V5l-9 5H4z"/><path d="M20 9.5a4 4 0 0 1 0 5"/></svg></span>Outreach</button>
-          <button id="nav-fundraising" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg></span>Fundraising</button>
-          <button id="nav-marketing" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 18-7-7 18-3-8-8-3zM11 14l10-10"/></svg></span>Marketing</button>
-          <button id="nav-operations" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15v-4M12 15V7M16 15v-6"/></svg></span>Operations</button>
-          <button id="nav-dashboard" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 7.04 4.3l.06.06A1.65 1.65 0 0 0 8.92 4a1.65 1.65 0 0 0 1-1.51V2a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.47.52.82 1 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Settings</button>
-        </nav>
+        <div class="sidebar-scroll">
+          <nav class="primary-nav" aria-label="Primary">
+            <div class="module-group">
+              <button id="nav-workflow" class="nav-item active" type="button" aria-current="page"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m4 5.5 1 1 2-2M4 11.5l1 1 2-2M4 17.5l1 1 2-2"/></svg></span><span class="nav-label">Workflow</span></button>
+              <div class="module-tabs workflow-tabs" role="tablist" aria-label="Workflow views">
+                <button class="module-tab active" type="button" role="tab" aria-selected="true">Tasks</button>
+              </div>
+            </div>
+            <div class="module-group">
+              <button id="nav-scheduling" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4M16 2v4M4 9h16M6 4h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg></span><span class="nav-label">Scheduling</span></button>
+              <div class="module-tabs scheduling-tabs" role="tablist" aria-label="Scheduling views">
+                <button class="module-tab active" type="button" role="tab" aria-selected="true">Appointments</button>
+              </div>
+            </div>
+            <div class="module-group">
+              <button id="nav-crm" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="8" r="2.4"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M14.8 16.4A4.8 4.8 0 0 1 21 20"/></svg></span><span class="nav-label">CRM</span></button>
+              <div id="crm-tabs" class="module-tabs crm-tabs" role="tablist" aria-label="CRM views" hidden>
+                <button id="crm-tab-referrals" class="module-tab active" type="button" role="tab" aria-selected="true">Referrals</button>
+                <button id="crm-tab-clients" class="module-tab" type="button" role="tab" aria-selected="false">Clients</button>
+                <button id="crm-tab-referral-network" class="module-tab" type="button" role="tab" aria-selected="false">Referral Network</button>
+              </div>
+            </div>
+            <div class="module-group">
+              <button id="nav-outreach" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14h4l9 5V5l-9 5H4z"/><path d="M20 9.5a4 4 0 0 1 0 5"/></svg></span><span class="nav-label">Outreach</span></button>
+              <div class="module-tabs" role="tablist" aria-label="Outreach views">
+                <button id="outreach-tab-dashboard" class="module-tab active" type="button" role="tab" aria-selected="true">Dashboard</button>
+                <button id="outreach-tab-events" class="module-tab" type="button" role="tab" aria-selected="false">Events &amp; Classes</button>
+                <button id="outreach-tab-contacts" class="module-tab" type="button" role="tab" aria-selected="false">Interest Contacts</button>
+              </div>
+            </div>
+            <div class="module-group">
+              <button id="nav-fundraising" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="nav-label">Fundraising</span></button>
+              <div class="module-tabs fundraising-tabs" role="tablist" aria-label="Fundraising views">
+                <button id="fundraising-tab-grants" class="module-tab active" type="button" role="tab" aria-selected="true">Grants</button>
+                <button id="fundraising-tab-sales" class="module-tab" type="button" role="tab" aria-selected="false">Sales</button>
+                <button id="fundraising-tab-individual-giving" class="module-tab" type="button" role="tab" aria-selected="false">Individual Giving</button>
+                <button id="fundraising-tab-corporate-partnerships" class="module-tab" type="button" role="tab" aria-selected="false">Corporate Partnerships</button>
+                <button id="fundraising-tab-events" class="module-tab" type="button" role="tab" aria-selected="false">Events</button>
+              </div>
+            </div>
+            <div class="module-group">
+              <button id="nav-marketing" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 18-7-7 18-3-8-8-3zM11 14l10-10"/></svg></span><span class="nav-label">Marketing</span></button>
+              <div class="module-tabs" role="tablist" aria-label="Marketing views">
+                <button class="module-tab active" type="button" role="tab" aria-selected="true">Overview</button>
+                <button class="module-tab" type="button" role="tab" aria-selected="false">Campaigns</button>
+                <button class="module-tab" type="button" role="tab" aria-selected="false">Email</button>
+                <button class="module-tab" type="button" role="tab" aria-selected="false">Ad Grants</button>
+                <button class="module-tab" type="button" role="tab" aria-selected="false">Analytics</button>
+              </div>
+            </div>
+            <div class="module-group">
+              <button id="nav-operations" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15v-4M12 15V7M16 15v-6"/></svg></span><span class="nav-label">Operations</span></button>
+              <div class="module-tabs" role="tablist" aria-label="Operations views">
+                <button class="module-tab active" type="button" role="tab" aria-selected="true">Command Center</button>
+                <button class="module-tab" type="button" role="tab" aria-selected="false">KPI Hub</button>
+                <button class="module-tab" type="button" role="tab" aria-selected="false">Connector Health</button>
+                <button class="module-tab" type="button" role="tab" aria-selected="false">Data Quality</button>
+                <button class="module-tab" type="button" role="tab" aria-selected="false">Launch Queue</button>
+              </div>
+            </div>
+            <div class="module-group">
+              <button id="nav-dashboard" class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 7.04 4.3l.06.06A1.65 1.65 0 0 0 8.92 4a1.65 1.65 0 0 0 1-1.51V2a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.47.52.82 1 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="nav-label">Settings</span></button>
+              <div class="module-tabs admin-tabs" role="tablist" aria-label="Admin views">
+                <button id="admin-tab-settings" class="module-tab active" type="button" role="tab" aria-selected="true">Settings</button>
+                <button id="admin-tab-data-tools" class="module-tab" type="button" role="tab" aria-selected="false">Data Tools</button>
+                <button id="admin-tab-kpi" class="module-tab" type="button" role="tab" aria-selected="false">KPI</button>
+                <button id="admin-tab-work-plan" class="module-tab" type="button" role="tab" aria-selected="false">Work Plan</button>
+              </div>
+            </div>
+          </nav>
+        </div>
+        <section class="quick-actions" aria-label="Quick actions">
+          <h2>Quick Actions</h2>
+          <div class="quick-group" data-quick-module="workflow">
+            <button class="quick-button" type="button" data-click-target="#start-day"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>Start the Day</button>
+            <button class="quick-button" type="button" data-click-target="#new-task"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>New Task</button>
+          </div>
+          <div class="quick-group" data-quick-module="crm" hidden>
+            <button class="quick-button" type="button" data-click-target="#new-referral"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>New Referral</button>
+            <button class="quick-button" type="button" data-click-target="#new-client"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>New Client</button>
+          </div>
+          <div class="quick-group" data-quick-module="outreach" hidden>
+            <button class="quick-button" type="button" data-click-target="#new-outreach-event"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>New Event</button>
+            <button class="quick-button" type="button" data-click-target="#new-outreach-contact"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>New Contact</button>
+          </div>
+          <div class="quick-group" data-quick-module="fundraising" hidden>
+            <button class="quick-button" type="button" data-click-target="#new-grant"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>New Grant</button>
+          </div>
+        </section>
         <div class="sidebar-footer">
           <p id="user" class="user">Please sign in with your SNACK Google account.</p>
           <button id="sign-in" type="button">Sign in with Google</button>
@@ -48,10 +127,6 @@
         </section>
 
         <section id="workflow-panel" class="referrals-panel dashboard-panel module-v2-panel module-tone-workflow" aria-labelledby="workflow-title" hidden>
-          <div class="module-tabs workflow-tabs" role="tablist" aria-label="Workflow views">
-            <button class="module-tab active" type="button" role="tab" aria-selected="true">Tasks</button>
-          </div>
-
           <header class="workspace-header">
             <div>
               <p class="eyebrow">Workflow</p>
@@ -81,13 +156,6 @@
         </section>
 
         <section id="dashboard-panel" class="referrals-panel dashboard-panel module-v2-panel module-tone-settings" aria-labelledby="dashboard-title" hidden>
-          <div class="module-tabs admin-tabs" role="tablist" aria-label="Admin views">
-            <button id="admin-tab-settings" class="module-tab active" type="button" role="tab" aria-selected="true">Settings</button>
-            <button id="admin-tab-data-tools" class="module-tab" type="button" role="tab" aria-selected="false">Data Tools</button>
-            <button id="admin-tab-kpi" class="module-tab" type="button" role="tab" aria-selected="false">KPI</button>
-            <button id="admin-tab-work-plan" class="module-tab" type="button" role="tab" aria-selected="false">Work Plan</button>
-          </div>
-
           <header class="workspace-header">
             <div>
               <p class="eyebrow">Settings</p>
@@ -327,14 +395,6 @@
         </section>
 
         <section id="fundraising-panel" class="referrals-panel dashboard-panel module-v2-panel module-tone-fundraising" aria-labelledby="fundraising-title" hidden>
-          <div class="module-tabs fundraising-tabs" role="tablist" aria-label="Fundraising views">
-            <button id="fundraising-tab-grants" class="module-tab active" type="button" role="tab" aria-selected="true">Grants</button>
-            <button id="fundraising-tab-sales" class="module-tab" type="button" role="tab" aria-selected="false">Sales</button>
-            <button id="fundraising-tab-individual-giving" class="module-tab" type="button" role="tab" aria-selected="false">Individual Giving</button>
-            <button id="fundraising-tab-corporate-partnerships" class="module-tab" type="button" role="tab" aria-selected="false">Corporate Partnerships</button>
-            <button id="fundraising-tab-events" class="module-tab" type="button" role="tab" aria-selected="false">Events</button>
-          </div>
-
           <header class="workspace-header">
             <div>
               <p class="eyebrow">Fundraising</p>
@@ -630,14 +690,6 @@
         </section>
 
         <section id="marketing-panel" class="referrals-panel dashboard-panel module-v2-panel module-tone-marketing" aria-labelledby="marketing-title" hidden>
-          <div class="module-tabs" role="tablist" aria-label="Marketing views">
-            <button class="module-tab active" type="button" role="tab" aria-selected="true">Overview</button>
-            <button class="module-tab" type="button" role="tab" aria-selected="false">Campaigns</button>
-            <button class="module-tab" type="button" role="tab" aria-selected="false">Email</button>
-            <button class="module-tab" type="button" role="tab" aria-selected="false">Ad Grants</button>
-            <button class="module-tab" type="button" role="tab" aria-selected="false">Analytics</button>
-          </div>
-
           <header class="workspace-header module-v2-header">
             <div>
               <p class="eyebrow">Marketing</p>
@@ -736,14 +788,6 @@
         </section>
 
         <section id="operations-panel" class="referrals-panel dashboard-panel module-v2-panel module-tone-operations" aria-labelledby="operations-title" hidden>
-          <div class="module-tabs" role="tablist" aria-label="Operations views">
-            <button class="module-tab active" type="button" role="tab" aria-selected="true">Command Center</button>
-            <button class="module-tab" type="button" role="tab" aria-selected="false">KPI Hub</button>
-            <button class="module-tab" type="button" role="tab" aria-selected="false">Connector Health</button>
-            <button class="module-tab" type="button" role="tab" aria-selected="false">Data Quality</button>
-            <button class="module-tab" type="button" role="tab" aria-selected="false">Launch Queue</button>
-          </div>
-
           <header class="workspace-header module-v2-header">
             <div>
               <p class="eyebrow">Operations</p>
@@ -1087,12 +1131,6 @@
           </section>
         </div>
 
-        <div id="crm-tabs" class="module-tabs crm-tabs" role="tablist" aria-label="CRM views" hidden>
-          <button id="crm-tab-referrals" class="module-tab active" type="button" role="tab" aria-selected="true">Referrals</button>
-          <button id="crm-tab-clients" class="module-tab" type="button" role="tab" aria-selected="false">Clients</button>
-          <button id="crm-tab-referral-network" class="module-tab" type="button" role="tab" aria-selected="false">Referral Network</button>
-        </div>
-
         <section id="referrals-panel" class="referrals-panel module-v2-panel module-tone-crm" aria-labelledby="referrals-title" hidden>
           <header class="workspace-header">
             <div>
@@ -1227,12 +1265,6 @@
         </section>
 
         <section id="outreach-panel" class="referrals-panel module-v2-panel module-tone-outreach" aria-labelledby="outreach-title" hidden>
-          <div class="module-tabs" role="tablist" aria-label="Outreach views">
-            <button id="outreach-tab-dashboard" class="module-tab active" type="button" role="tab" aria-selected="true">Dashboard</button>
-            <button id="outreach-tab-events" class="module-tab" type="button" role="tab" aria-selected="false">Events &amp; Classes</button>
-            <button id="outreach-tab-contacts" class="module-tab" type="button" role="tab" aria-selected="false">Interest Contacts</button>
-          </div>
-
           <header class="workspace-header">
             <div>
               <p class="eyebrow">Outreach</p>
@@ -1330,10 +1362,6 @@
         </section>
 
         <section id="scheduling-panel" class="referrals-panel module-v2-panel module-tone-scheduling" aria-labelledby="scheduling-title" hidden>
-          <div class="module-tabs scheduling-tabs" role="tablist" aria-label="Scheduling views">
-            <button class="module-tab active" type="button" role="tab" aria-selected="true">Appointments</button>
-          </div>
-
           <header class="workspace-header">
             <div>
               <p class="eyebrow">Scheduling</p>

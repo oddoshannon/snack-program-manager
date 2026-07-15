@@ -198,7 +198,7 @@ test("fundraising grants tab exposes deadlines, grant list, reusable answers, an
 });
 
 test("grant modal captures application details, portal info, awards, reports, and document uploads", () => {
-  const grantModal = indexHtml.slice(indexHtml.indexOf('id="grant-modal"'), indexHtml.indexOf('id="crm-tabs"'));
+  const grantModal = indexHtml.slice(indexHtml.indexOf('id="grant-modal"'), indexHtml.indexOf('id="grant-question-modal"'));
 
   for (const field of [
     "foundationName",
@@ -691,15 +691,10 @@ test("SNACK brand variables match the locked visual rulebook palette", () => {
   assert.match(stylesCss, /\.module-tabs\s*{[^}]*max-width: 100%;[^}]*overflow-x: auto;/s);
 });
 
-test("summary cards keep rainbow order for six-card modules", () => {
-  assertInOrder(stylesCss, [
-    ".summary-item:nth-child(1) { --summary-accent: var(--brand-red); }",
-    ".summary-item:nth-child(2) { --summary-accent: var(--brand-orange); }",
-    ".summary-item:nth-child(3) { --summary-accent: var(--brand-yellow); }",
-    ".summary-item:nth-child(4) { --summary-accent: var(--brand-green); }",
-    ".summary-item:nth-child(5) { --summary-accent: var(--brand-teal); }",
-    ".summary-item:nth-child(6) { --summary-accent: var(--brand-blue); }"
-  ]);
+test("summary strip is one module-colored bar per the rebuild rules", () => {
+  assert.match(stylesCss, /\.summary-grid\s*{[^}]*border-top: 3px solid var\(--module-accent, var\(--accent\)\);/s);
+  assert.match(stylesCss, /\.summary-item\s*{\s*--summary-accent: var\(--module-accent, var\(--accent\)\);/);
+  assert.match(stylesCss, /\.summary-item strong\s*{[^}]*color: var\(--summary-accent\);/s);
 });
 
 test("workflow task summary uses the shared counter-card system", () => {

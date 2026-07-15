@@ -5201,6 +5201,9 @@ function setActiveModule(moduleName) {
   navMarketingButton.setAttribute("aria-current", showMarketing ? "page" : "false");
   navOperationsButton.setAttribute("aria-current", showOperations ? "page" : "false");
   navSchedulingButton.setAttribute("aria-current", showScheduling ? "page" : "false");
+  document.querySelectorAll("[data-quick-module]").forEach((group) => {
+    group.hidden = group.dataset.quickModule !== moduleName;
+  });
   crmTabReferralsButton.classList.toggle("active", showReferrals);
   crmTabClientsButton.classList.toggle("active", showClients);
   crmTabReferralNetworkButton.classList.toggle("active", showReferralNetwork);
@@ -17701,6 +17704,14 @@ bindGrantDisclosureState(grantQuestionCard, "reusable-answers");
 bindGrantDocumentFileStatus(grantForm, grantDocumentFields);
 bindGrantDocumentFileStatus(grantOrgForm, grantOrgDocumentFields);
 
+document.querySelector("#sidebar-collapse")?.addEventListener("click", () => {
+  const shell = document.querySelector(".app-shell");
+  const collapsed = shell?.classList.toggle("is-collapsed");
+  document.querySelector("#sidebar-collapse")?.setAttribute("aria-label", collapsed ? "Expand navigation" : "Collapse navigation");
+});
+document.querySelectorAll("[data-click-target]").forEach((button) => {
+  button.addEventListener("click", () => document.querySelector(button.dataset.clickTarget)?.click());
+});
 signInButton.addEventListener("click", signIn);
 signOutButton.addEventListener("click", signOutUser);
 refreshButton.addEventListener("click", loadMessage);
