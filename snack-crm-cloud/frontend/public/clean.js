@@ -7,7 +7,14 @@ const icons = {
   operations: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15v-4M12 15V7M16 15v-6"/></svg>`,
   admin: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 7.04 4.3l.06.06A1.65 1.65 0 0 0 8.92 4a1.65 1.65 0 0 0 1-1.51V2a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.47.52.82 1 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
   plus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`,
-  search: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>`
+  search: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>`,
+  calendar: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4M16 2v4M4 9h16M6 4h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>`,
+  clock: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`,
+  check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>`,
+  history: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>`,
+  file: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l4 4v16H6zM14 2v5h5"/></svg>`,
+  chevronLeft: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>`,
+  chevronRight: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>`
 };
 
 const moduleOrder = ["schedule", "crm", "outreach", "fundraising", "marketing", "operations", "admin"];
@@ -20,70 +27,23 @@ const modules = {
     tone: "red",
     theme: ["var(--red)", "var(--red-soft)", "#f4b4b6"],
     subpages: ["Clinic", "Public Booking", "Unscheduled", "Print Forms", "Settings"],
-    views: ["Day", "Week", "Month"],
+    views: ["Day", "Week"],
     primaryAction: "New Appointment",
     quickActions: ["New Appointment", "Block Time", "Print Schedule"],
-    summary: [["2", "Today"], ["1", "Completed"], ["1", "No Show"], ["0", "Reschedule"]],
+    summary: [["0", "Today"], ["0", "Completed"], ["0", "No Show"], ["0", "Reschedule"]],
     listTitle: "Clinic",
     footerActions: ["Mark Complete", "Reschedule", "No Show"],
     detailTabs: ["Appt Note", "Wrap Up", "Activity", "Forms"],
+    detailTabIcons: ["calendar", "check", "history", "file"],
     sideTitle: "Family",
+    sideIcon: "crm",
     sideLink: "View Family Profile",
     sideFields: [["Caregiver", "caregiver"], ["Siblings", "siblings"], ["Language", "language"], ["Phone", "phone"]],
     cards: [
       { title: "Details", fields: [["Lesson", "lesson"], ["Staff", "staff"], ["Goal", "goal"], ["Notes", "notes"]] },
       { title: "Prep", fields: [["Forms", "forms"], ["Supplies", "supplies"]] }
     ],
-    items: [
-      {
-        id: "rafael-janney",
-        title: "Rafael & Janney",
-        subtitle: "2:30 PM | Enrollment | Completed",
-        status: "Completed",
-        caregiver: "Neiva",
-        siblings: "Rafael, Janney",
-        language: "Spanish",
-        phone: "(971) 447-2646",
-        lesson: "Enrollment",
-        staff: "Cynthia Esparza",
-        goal: "-",
-        notes: "-",
-        forms: "Enrollment packet and questionnaire",
-        supplies: "SNACK sticker and pen"
-      },
-      {
-        id: "lana-hamzah",
-        title: "Lana & Hamzah",
-        subtitle: "4:30 PM | Micronutrients | No-show",
-        status: "No-show",
-        caregiver: "Mariam",
-        siblings: "Lana, Hamzah",
-        language: "English",
-        phone: "(971) 208-1028",
-        lesson: "Micronutrients",
-        staff: "Cynthia Esparza",
-        goal: "BINGO",
-        notes: "Micronutrients: BINGO",
-        forms: "Prize from the bin",
-        supplies: "Food snack"
-      },
-      {
-        id: "cynthia-availability",
-        title: "Cynthia availability",
-        subtitle: "Office 1:00 PM to 6:00 PM | Appointments 1:30 PM to 5:30 PM",
-        status: "Settings",
-        caregiver: "-",
-        siblings: "-",
-        language: "-",
-        phone: "-",
-        lesson: "Availability",
-        staff: "Cynthia Esparza",
-        goal: "Adjustable in settings",
-        notes: "Office and appointment windows are separate.",
-        forms: "-",
-        supplies: "-"
-      }
-    ]
+    items: []
   },
   crm: {
     label: "CRM",
@@ -170,26 +130,26 @@ const modules = {
     tone: "yellow",
     theme: ["var(--yellow)", "var(--yellow-soft)", "#ead18a"],
     subpages: ["Events", "Contacts", "Tasks", "Reports"],
-    views: ["Overview", "Tasks", "Reports"],
+    views: ["Events", "Contacts", "Reports"],
     primaryAction: "New Event",
     quickActions: ["New Event", "Log Outcome", "Add Contact"],
     summary: [["12", "Annual events"], ["418", "Families reached"], ["96", "New contacts"], ["$1.8k", "Event costs"]],
     listTitle: "Events",
     footerActions: ["Log Outcome", "Add Contact", "Create Task"],
     detailTabs: ["Logistics", "Outcomes", "Contacts"],
-    sideTitle: "Point Person",
-    sideLink: "View Event File",
-    sideFields: [["Date", "date"], ["Place", "place"], ["Cost", "cost"], ["Contact", "contact"], ["Deadline", "deadline"]],
+    sideTitle: "Event Lead",
+    sideLink: "Open Event Plan",
+    sideFields: [["Date", "date"], ["Location", "place"], ["Cost", "cost"], ["Contact", "contact"], ["Deadline", "deadline"]],
     cards: [
       { title: "Logistics", fields: [["Registration", "registration"], ["Setup", "setup"], ["Contact", "contact"], ["Deadline", "deadline"]] },
-      { title: "Event Details", fields: [["Main activity", "activity"], ["Giveaways", "giveaways"], ["Families reached", "families"], ["Leads generated", "leads"]] },
-      { title: "Generated Contacts", fields: [["Maria Lopez", "contact1"], ["Jordan Kim", "contact2"], ["Ana Rivera", "contact3"]] }
+      { title: "Event Outcomes", fields: [["Main activity", "activity"], ["Giveaways", "giveaways"], ["Families interacted with", "families"], ["Leads and signups", "leads"]] },
+      { title: "Contacts Generated", fields: [["Maria Lopez", "contact1"], ["Jordan Kim", "contact2"], ["Ana Rivera", "contact3"]] }
     ],
     items: [
       {
         id: "fair",
         title: "Yamhill County Fair",
-        subtitle: "August 1-3, 2026 | Booth fee and prize supplies",
+        subtitle: "August 1-3, 2026 | Vendor portal and booth supplies",
         status: "Planning",
         date: "August 1-3, 2026",
         place: "Yamhill County Fairgrounds",
@@ -197,19 +157,19 @@ const modules = {
         contact: "Fair office",
         deadline: "Confirm by July 15",
         registration: "Vendor portal; insurance certificate required",
-        setup: "10x10 booth, tablecloth, prize wheel, newsletter QR",
+        setup: "10x10 booth, tablecloth, prize wheel, newsletter QR code",
         activity: "Prize wheel",
         giveaways: "SNACK stickers, pencils, recipe cards",
-        families: "Goal 180",
-        leads: "Newsletter and program interest signups",
+        families: "Goal: 180 families",
+        leads: "Newsletter signups and appointment interest",
         contact1: "Newsletter signup | prefers text",
-        contact2: "Interested in family nutrition appointments",
-        contact3: "Partner contact | school resource table"
+        contact2: "Family nutrition appointment interest",
+        contact3: "School resource table partner"
       },
       {
         id: "resource-night",
         title: "Family Resource Night",
-        subtitle: "Register by May 12 | Prize wheel activity",
+        subtitle: "May 20, 2026 | Prize wheel and bilingual interest forms",
         status: "Ready",
         date: "May 20, 2026",
         place: "Newberg Family Resource Center",
@@ -220,7 +180,7 @@ const modules = {
         setup: "Prize wheel, sticker basket, bilingual interest forms",
         activity: "Prize wheel",
         giveaways: "SNACK stickers, pencils, recipe cards",
-        families: "Goal 75",
+        families: "Goal: 75 families",
         leads: "Family appointment interest list",
         contact1: "Spanish appointment interest",
         contact2: "Newsletter signup",
@@ -229,7 +189,7 @@ const modules = {
       {
         id: "back-school",
         title: "Back to School Bash",
-        subtitle: "Lead capture and giveaway checklist",
+        subtitle: "August 28, 2026 | Lead capture and giveaway checklist",
         status: "Tasks",
         date: "August 28, 2026",
         place: "McMinnville Community Center",
@@ -240,7 +200,7 @@ const modules = {
         setup: "Bingo cards, newsletter QR, flyer packets",
         activity: "Bingo card",
         giveaways: "Pencils, stickers, workbook preview",
-        families: "Goal 110",
+        families: "Goal: 110 families",
         leads: "Newsletter signups and partner referrals",
         contact1: "Interested in cooking class",
         contact2: "Wants program flyer by text",
@@ -597,6 +557,10 @@ const modules = {
 };
 
 let selectedItemId = "";
+let scheduleVisibleDate = scheduleDateKey(new Date());
+let scheduleDataState = "loading";
+let scheduleDataMessage = "Loading appointments...";
+let scheduleCurrentUser = null;
 
 function currentModuleId() {
   const explicit = window.SNACK_MODULE_ID || document.body.dataset.module;
@@ -618,6 +582,15 @@ function pageUrl(id) {
 
 function fieldValue(item, key) {
   return item[key] || "-";
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 function renderNav(activeId) {
@@ -658,6 +631,112 @@ function renderListRows(module) {
   `).join("");
 }
 
+function scheduleDateFromKey(dateKey) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function scheduleDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatScheduleDate(dateKey) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  }).format(scheduleDateFromKey(dateKey));
+}
+
+function formatAppointmentDate(dateKey) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  }).format(scheduleDateFromKey(dateKey));
+}
+
+function offsetScheduleDate(dateKey, dayOffset) {
+  const date = scheduleDateFromKey(dateKey);
+  date.setDate(date.getDate() + dayOffset);
+  return scheduleDateKey(date);
+}
+
+function scheduleTimeMinutes(time) {
+  const [hour, minute] = String(time || "").split(":").map(Number);
+  return Number.isFinite(hour) && Number.isFinite(minute) ? (hour * 60) + minute : null;
+}
+
+function formatScheduleTime(totalMinutes) {
+  const hour = Math.floor(totalMinutes / 60);
+  const minute = totalMinutes % 60;
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
+function renderScheduleTimeline(module, dateKey) {
+  const startMinutes = 13 * 60;
+  const endMinutes = 18 * 60;
+  const intervalMinutes = 30;
+  const totalSlots = (endMinutes - startMinutes) / intervalMinutes;
+  const visibleAppointments = module.items.filter((item) => item.date === dateKey);
+
+  return `
+    <div class="schedule-day-timeline" style="--schedule-slot-count: ${totalSlots};">
+      ${Array.from({ length: totalSlots + 1 }, (_, index) => `
+        <div class="schedule-time-marker" style="--slot-index: ${index};">
+          <time>${formatScheduleTime(startMinutes + (index * intervalMinutes))}</time>
+          <span></span>
+        </div>
+      `).join("")}
+      ${visibleAppointments.map((item) => {
+        const appointmentMinutes = scheduleTimeMinutes(item.time);
+        const startSlot = (appointmentMinutes - startMinutes) / intervalMinutes;
+        const durationSlots = Math.max(1, item.duration / intervalMinutes);
+        return `
+          <button
+            class="schedule-appointment ${item.id === selectedItemId ? "is-selected" : ""}"
+            data-row-id="${escapeHtml(item.id)}"
+            type="button"
+            style="--start-slot: ${startSlot}; --duration-slots: ${durationSlots}; --row-color: ${escapeHtml(item.accent)};"
+          >
+            <strong>${escapeHtml(item.title)}</strong>
+            <span class="status-pill">${escapeHtml(item.status)}</span>
+            <span>${escapeHtml(item.subtitle)}</span>
+          </button>
+        `;
+      }).join("")}
+      ${visibleAppointments.length ? "" : `<p class="schedule-empty">${escapeHtml(scheduleDataState === "ready" ? "No appointments scheduled." : scheduleDataMessage)}</p>`}
+    </div>
+  `;
+}
+
+function renderScheduleDayPanel(module) {
+  return `
+    <div class="panel list-panel schedule-day-panel">
+      <div class="schedule-date-controls">
+        <button data-schedule-date-action="today" type="button">Today</button>
+        <button class="schedule-date-arrow" data-schedule-date-action="previous" type="button" aria-label="Previous day">${icons.chevronLeft}</button>
+        <button class="schedule-date-arrow" data-schedule-date-action="next" type="button" aria-label="Next day">${icons.chevronRight}</button>
+        <label class="schedule-date-picker">
+          ${icons.calendar}
+          <span data-schedule-date-label>${formatScheduleDate(scheduleVisibleDate)}</span>
+          <input data-schedule-date-input type="date" value="${scheduleVisibleDate}" aria-label="Choose schedule date">
+        </label>
+      </div>
+      <div data-schedule-timeline>
+        ${renderScheduleTimeline(module, scheduleVisibleDate)}
+      </div>
+    </div>
+  `;
+}
+
 function renderFields(fields) {
   return fields.map(([label, key]) => `
     <div class="field">
@@ -685,9 +764,57 @@ function renderSideRows(module) {
   `).join("");
 }
 
+function renderScheduleAppointmentMeta() {
+  return `
+    <div class="appointment-meta-row">
+      <span class="appointment-meta-icon">${icons.calendar}</span>
+      <strong data-appointment-date></strong>
+    </div>
+    <div class="appointment-meta-row">
+      <span class="appointment-meta-icon">${icons.clock}</span>
+      <strong data-appointment-time></strong>
+    </div>
+    <div class="appointment-meta-row">
+      <span class="appointment-meta-icon">${icons.file}</span>
+      <strong data-field="type"></strong>
+    </div>
+  `;
+}
+
+function renderScheduleFamilyRows(module) {
+  return module.sideFields.map(([label, key]) => `
+    <div class="meta-row">
+      <span>${label}</span>
+      <strong class="${key === "siblings" ? "is-stacked-list" : ""}" data-field="${key}"></strong>
+    </div>
+  `).join("");
+}
+
+function renderPrepCard(card) {
+  return `
+    <section class="detail-card prep-card">
+      <div class="card-heading">
+        <h3>${card.title}</h3>
+        <div class="prep-heading-actions">
+          <span class="prep-save-status" data-prep-save-status role="status" aria-live="polite"></span>
+          <button class="edit-button" type="button">Edit</button>
+        </div>
+      </div>
+      <div class="prep-grid">
+        ${card.fields.map(([label, key]) => `
+          <section class="prep-column">
+            <h4>${label}</h4>
+            <div class="prep-list" data-prep-list="${key}"></div>
+          </section>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function renderCards(module) {
   return module.cards.map((card) => `
-    <section class="detail-card">
+    ${module.label === "Schedule" && card.title === "Prep" ? renderPrepCard(card) : `<section class="detail-card">
       <div class="card-heading">
         <h3>${card.title}</h3>
         <button class="edit-button" type="button">Edit</button>
@@ -695,13 +822,13 @@ function renderCards(module) {
       <div class="field-grid">
         ${renderFields(card.fields)}
       </div>
-    </section>
+    </section>`}
   `).join("");
 }
 
 function renderModulePage(moduleId) {
   const module = modules[moduleId];
-  selectedItemId = module.items[0].id;
+  selectedItemId = module.items[0]?.id || "";
   document.title = `SNACK Program Manager ${module.label}`;
 
   const app = document.querySelector("#app");
@@ -709,6 +836,7 @@ function renderModulePage(moduleId) {
     <div
       class="app-shell"
       data-shell
+      data-module-id="${moduleId}"
       style="--module: ${module.theme[0]}; --module-soft: ${module.theme[1]}; --module-line: ${module.theme[2]};"
     >
       <aside class="sidebar" aria-label="Main navigation">
@@ -737,7 +865,7 @@ function renderModulePage(moduleId) {
 
         <div class="account">
           <span class="avatar">SO</span>
-          <strong>Shannon Oddo</strong>
+          <strong data-account-name>Shannon Oddo</strong>
         </div>
       </aside>
 
@@ -748,7 +876,7 @@ function renderModulePage(moduleId) {
           </div>
 
           <div class="header-actions">
-            <div class="view-switch" role="group" aria-label="${module.label} views">
+            <div class="view-switch" role="group" aria-label="${module.label} views" style="grid-template-columns: repeat(${module.views.length}, minmax(86px, 1fr));">
               ${module.views.map((view, index) => `
                 <button class="${index === 0 ? "is-active" : ""}" type="button">${view}</button>
               `).join("")}
@@ -759,15 +887,15 @@ function renderModulePage(moduleId) {
 
         <section class="summary-strip" aria-label="${module.label} summary">
           ${module.summary.map(([value, label]) => `
-            <div class="summary-item">
-              <strong>${value}</strong>
+            <div class="summary-item" data-summary-label="${escapeHtml(label)}">
+              <strong>${escapeHtml(value)}</strong>
               <span>${label}</span>
             </div>
           `).join("")}
         </section>
 
         <section class="workspace">
-          <div class="panel list-panel">
+          ${moduleId === "schedule" ? renderScheduleDayPanel(module) : `<div class="panel list-panel">
             <div class="panel-header">
               <div>
                 <h2>${module.listTitle}</h2>
@@ -777,7 +905,7 @@ function renderModulePage(moduleId) {
             <div class="list">
               ${renderListRows(module)}
             </div>
-          </div>
+          </div>`}
 
           <article class="panel detail-panel">
             <aside class="detail-side">
@@ -786,12 +914,12 @@ function renderModulePage(moduleId) {
                 <span data-detail-status></span>
               </div>
               <h2 data-detail-title></h2>
-              <div class="meta-list">
-                ${renderMetaRows(module.sideFields)}
+              <div class="meta-list ${moduleId === "schedule" ? "appointment-meta" : ""}">
+                ${moduleId === "schedule" ? renderScheduleAppointmentMeta() : renderMetaRows(module.sideFields)}
               </div>
               <section class="side-section">
-                <h3>${module.sideTitle}</h3>
-                ${renderSideRows(module)}
+                <h3>${module.sideIcon ? `<span class="section-icon">${icons[module.sideIcon]}</span>` : ""}${module.sideTitle}</h3>
+                ${moduleId === "schedule" ? renderScheduleFamilyRows(module) : renderSideRows(module)}
                 <button class="text-link" type="button">${module.sideLink}</button>
               </section>
             </aside>
@@ -799,7 +927,10 @@ function renderModulePage(moduleId) {
             <div class="detail-main">
               <div class="tabs" role="tablist" aria-label="${module.label} detail tabs">
                 ${module.detailTabs.map((tab, index) => `
-                  <button class="${index === 0 ? "is-active" : ""}" type="button">${tab}</button>
+                  <button class="${index === 0 ? "is-active" : ""}" type="button">
+                    ${module.detailTabIcons?.[index] ? `<span class="detail-tab-icon">${icons[module.detailTabIcons[index]]}</span>` : ""}
+                    <span>${tab}</span>
+                  </button>
                 `).join("")}
               </div>
 
@@ -820,18 +951,397 @@ function renderModulePage(moduleId) {
 
 function updateDetail(module, itemId) {
   selectedItemId = itemId;
-  const item = module.items.find((candidate) => candidate.id === itemId) || module.items[0];
+  const item = itemId ? module.items.find((candidate) => candidate.id === itemId) : null;
 
-  document.querySelectorAll(".list-row").forEach((row) => {
+  if (!item) {
+    document.querySelectorAll(".list-row, .schedule-appointment").forEach((row) => row.classList.remove("is-selected"));
+    document.querySelector("[data-detail-title]").textContent = "No appointment selected";
+    document.querySelector("[data-detail-status]").textContent = "";
+    document.querySelector(".status-line")?.setAttribute("hidden", "");
+    document.querySelectorAll("[data-appointment-date], [data-appointment-time], [data-field]").forEach((field) => {
+      field.textContent = "-";
+    });
+    document.querySelectorAll("[data-prep-list]").forEach((list) => list.replaceChildren());
+    setPrepSaveStatus("");
+    return;
+  }
+
+  document.querySelectorAll(".list-row, .schedule-appointment").forEach((row) => {
     row.classList.toggle("is-selected", row.dataset.rowId === item.id);
   });
 
   document.querySelector("[data-detail-title]").textContent = item.title;
   document.querySelector("[data-detail-status]").textContent = item.status;
+  document.querySelector(".status-line")?.removeAttribute("hidden");
+
+  const appointmentDate = document.querySelector("[data-appointment-date]");
+  if (appointmentDate) {
+    appointmentDate.textContent = formatAppointmentDate(item.date);
+  }
+
+  const appointmentTime = document.querySelector("[data-appointment-time]");
+  if (appointmentTime) {
+    appointmentTime.textContent = `${formatScheduleTime(scheduleTimeMinutes(item.time))} - ${item.duration} min`;
+  }
 
   document.querySelectorAll("[data-field]").forEach((field) => {
-    field.textContent = fieldValue(item, field.dataset.field);
+    const value = fieldValue(item, field.dataset.field);
+    if (field.classList.contains("is-stacked-list")) {
+      const names = value.split(",").map((name) => name.trim()).filter(Boolean);
+      field.replaceChildren(...names.map((name) => {
+        const line = document.createElement("span");
+        line.textContent = name;
+        return line;
+      }));
+      return;
+    }
+    field.textContent = value;
   });
+
+  document.querySelectorAll("[data-prep-list]").forEach((list) => {
+    const value = item[list.dataset.prepList];
+    const items = (Array.isArray(value) ? value : [value]).filter(Boolean);
+
+    list.replaceChildren(...items.map((entry) => {
+      const prepItem = typeof entry === "string" ? { key: "", text: entry } : entry;
+      const label = document.createElement("label");
+      label.className = "prep-check";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.dataset.prepItemKey = prepItem.key;
+      checkbox.checked = Boolean(item.prepChecklist?.[prepItem.key]);
+
+      const wording = document.createElement("span");
+      wording.textContent = prepItem.text;
+
+      label.append(checkbox, wording);
+      return label;
+    }));
+  });
+
+  setPrepSaveStatus("");
+}
+
+function updateScheduleDate(module, nextDateKey) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(nextDateKey)) {
+    return;
+  }
+
+  scheduleVisibleDate = nextDateKey;
+  const label = document.querySelector("[data-schedule-date-label]");
+  const input = document.querySelector("[data-schedule-date-input]");
+  const timeline = document.querySelector("[data-schedule-timeline]");
+
+  if (label) {
+    label.textContent = formatScheduleDate(scheduleVisibleDate);
+  }
+  if (input) {
+    input.value = scheduleVisibleDate;
+  }
+  if (timeline) {
+    timeline.innerHTML = renderScheduleTimeline(module, scheduleVisibleDate);
+  }
+
+  const visibleAppointments = module.items.filter((item) => item.date === scheduleVisibleDate);
+  const selectedVisible = visibleAppointments.find((item) => item.id === selectedItemId);
+  updateDetail(module, selectedVisible?.id || visibleAppointments[0]?.id || "");
+  updateScheduleSummary(module);
+}
+
+function updateScheduleSummary(module) {
+  const appointments = module.items.filter((item) => item.date === scheduleVisibleDate && item.status !== "Canceled");
+  const counts = {
+    Today: appointments.length,
+    Completed: appointments.filter((item) => item.status === "Completed").length,
+    "No Show": appointments.filter((item) => item.status === "No-show").length,
+    Reschedule: appointments.filter((item) => item.status === "Rescheduled").length
+  };
+
+  document.querySelectorAll("[data-summary-label]").forEach((summary) => {
+    const value = counts[summary.dataset.summaryLabel];
+    if (value !== undefined) {
+      summary.querySelector("strong").textContent = value;
+    }
+  });
+}
+
+function cleanAppointmentType(value, lesson) {
+  const fallback = lesson ? "Nutrition Education" : "Enrollment";
+  return String(value || fallback).replace(/\s+Appointment$/i, "").trim() || fallback;
+}
+
+function normalizeAppointmentTime(value) {
+  const raw = String(value || "").trim();
+  const twentyFourHour = raw.match(/^(\d{1,2}):(\d{2})$/);
+  if (twentyFourHour) {
+    return `${String(Number(twentyFourHour[1])).padStart(2, "0")}:${twentyFourHour[2]}`;
+  }
+
+  const twelveHour = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!twelveHour) {
+    return "13:00";
+  }
+
+  let hour = Number(twelveHour[1]) % 12;
+  if (twelveHour[3].toUpperCase() === "PM") {
+    hour += 12;
+  }
+  return `${String(hour).padStart(2, "0")}:${twelveHour[2]}`;
+}
+
+function clientFullName(client) {
+  return [client?.firstName, client?.lastName].filter(Boolean).join(" ").trim();
+}
+
+function firstName(value) {
+  return String(value || "").trim().split(/\s+/)[0] || "";
+}
+
+function formatFirstNames(names) {
+  const values = names.map(firstName).filter(Boolean);
+  if (values.length < 2) {
+    return values[0] || "Unknown client";
+  }
+  if (values.length === 2) {
+    return `${values[0]} & ${values[1]}`;
+  }
+  return `${values.slice(0, -1).join(", ")} & ${values.at(-1)}`;
+}
+
+function formatPhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  const local = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+  return local.length === 10 ? `(${local.slice(0, 3)}) ${local.slice(3, 6)}-${local.slice(6)}` : String(value || "-");
+}
+
+function prepForAppointment(type) {
+  if (/enrollment|inscripci[oó]n/i.test(type)) {
+    return {
+      forms: [
+        { key: "formsAtReception", text: "Place forms at reception before the appointment." },
+        { key: "enrollmentForm", text: "Enrollment form (file cabinet); siblings can share one form." },
+        { key: "questionnaire", text: "Questionnaire for each child (file cabinet); each child needs their own." },
+        { key: "markPre", text: "Write client name in the top right corner, initial code on the back, and circle PRE." }
+      ],
+      supplies: [
+        { key: "sticker", text: "SNACK sticker." },
+        { key: "penPencil", text: "SNACK pen or pencil." }
+      ]
+    };
+  }
+
+  return {
+    forms: [{ key: "prize", text: "Prize from the bin." }],
+    supplies: [{ key: "foodSnack", text: "Food snack." }]
+  };
+}
+
+function appointmentAccent(status) {
+  if (status === "Completed") return "#6b7b7f";
+  if (status === "No-show") return "#0891b2";
+  if (status === "Rescheduled") return "#c98608";
+  return "#e94b55";
+}
+
+function normalizeAppointmentStatus(value) {
+  const status = String(value || "Scheduled").trim();
+  if (/^complete$/i.test(status)) return "Completed";
+  if (/^no[ -]?show$/i.test(status)) return "No-show";
+  if (/^(needs )?reschedule(d)?$/i.test(status)) return "Rescheduled";
+  if (/^cancel(l)?ed$/i.test(status)) return "Canceled";
+  return status || "Scheduled";
+}
+
+function mapAppointment(appointment, clientsById) {
+  const clientIds = Array.isArray(appointment.clientIds) && appointment.clientIds.length
+    ? appointment.clientIds
+    : appointment.clientId ? [appointment.clientId] : [];
+  const clientRecords = clientIds.map((id) => clientsById.get(id)).filter(Boolean);
+  const storedNames = Array.isArray(appointment.clientNames) && appointment.clientNames.length
+    ? appointment.clientNames
+    : appointment.clientName ? [appointment.clientName] : [];
+  const names = clientRecords.map(clientFullName).filter(Boolean);
+  const displayNames = names.length ? names : storedNames;
+  const primaryClient = clientRecords[0];
+  const type = cleanAppointmentType(appointment.appointmentType, appointment.lesson);
+  const prep = prepForAppointment(type);
+
+  const status = normalizeAppointmentStatus(appointment.status);
+
+  return {
+    id: appointment.id,
+    title: formatFirstNames(displayNames),
+    subtitle: type,
+    status,
+    date: appointment.appointmentDate,
+    time: normalizeAppointmentTime(appointment.appointmentTime),
+    duration: Number(appointment.durationMinutes) || 30,
+    type,
+    accent: appointmentAccent(status),
+    caregiver: primaryClient?.parentName || "-",
+    siblings: displayNames.map(firstName).filter(Boolean).join(", ") || "-",
+    language: primaryClient?.preferredLanguage || "-",
+    phone: formatPhone(primaryClient?.phone),
+    lesson: appointment.lesson || type,
+    staff: appointment.staffMember || "-",
+    goal: appointment.goal || "-",
+    notes: appointment.notes || "-",
+    prepChecklist: appointment.prepChecklist || {},
+    forms: prep.forms,
+    supplies: prep.supplies
+  };
+}
+
+function setPrepSaveStatus(message, state = "") {
+  const status = document.querySelector("[data-prep-save-status]");
+  if (!status) {
+    return;
+  }
+
+  status.textContent = message;
+  status.dataset.state = state;
+}
+
+async function savePrepCheckbox(module, checkbox) {
+  const item = module.items.find((candidate) => candidate.id === selectedItemId);
+  const key = checkbox.dataset.prepItemKey;
+  const previousChecked = !checkbox.checked;
+
+  if (!item || !key || !scheduleCurrentUser) {
+    checkbox.checked = previousChecked;
+    setPrepSaveStatus("Could not save", "error");
+    return;
+  }
+
+  checkbox.disabled = true;
+  setPrepSaveStatus("");
+
+  try {
+    const token = await scheduleCurrentUser.getIdToken();
+    const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL || "";
+    const response = await fetch(`${apiBaseUrl}/api/appointments/${encodeURIComponent(item.id)}/prep`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ key, checked: checkbox.checked })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Prep checklist save returned ${response.status}`);
+    }
+
+    const result = await response.json();
+    item.prepChecklist = result.prepChecklist || {
+      ...item.prepChecklist,
+      [key]: checkbox.checked
+    };
+    setPrepSaveStatus("");
+  } catch (error) {
+    console.error(error);
+    checkbox.checked = previousChecked;
+    setPrepSaveStatus("Could not save", "error");
+  } finally {
+    checkbox.disabled = false;
+  }
+}
+
+async function loadScheduleData(user) {
+  const module = modules.schedule;
+  scheduleDataState = "loading";
+  scheduleDataMessage = "Loading appointments...";
+  updateScheduleDate(module, scheduleVisibleDate);
+
+  try {
+    const token = await user.getIdToken();
+    const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL || "";
+    const headers = { Authorization: `Bearer ${token}` };
+    const [appointmentsResponse, clientsResponse] = await Promise.all([
+      fetch(`${apiBaseUrl}/api/appointments`, { headers }),
+      fetch(`${apiBaseUrl}/api/clients`, { headers })
+    ]);
+
+    if (!appointmentsResponse.ok || !clientsResponse.ok) {
+      throw new Error(`Data service returned ${appointmentsResponse.status}/${clientsResponse.status}`);
+    }
+
+    const [{ appointments = [] }, { clients = [] }] = await Promise.all([
+      appointmentsResponse.json(),
+      clientsResponse.json()
+    ]);
+    const clientsById = new Map(clients.map((client) => [client.id, client]));
+    module.items = appointments
+      .filter((appointment) => appointment.status !== "Canceled")
+      .map((appointment) => mapAppointment(appointment, clientsById))
+      .filter((appointment) => appointment.date && appointment.time)
+      .sort((first, second) => first.date.localeCompare(second.date) || first.time.localeCompare(second.time));
+
+    scheduleDataState = "ready";
+    scheduleDataMessage = "";
+    updateScheduleDate(module, scheduleVisibleDate);
+  } catch (error) {
+    console.error(error);
+    scheduleDataState = "error";
+    scheduleDataMessage = "Appointments could not be loaded. Check the local data service and try again.";
+    module.items = [];
+    updateScheduleDate(module, scheduleVisibleDate);
+  }
+}
+
+async function initializeScheduleData() {
+  if (currentModuleId() !== "schedule") {
+    return;
+  }
+
+  try {
+    const [{ initializeApp }, { GoogleAuthProvider, getAuth, onAuthStateChanged, signInWithPopup }] = await Promise.all([
+      import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js")
+    ]);
+    const auth = getAuth(initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG));
+    const provider = new GoogleAuthProvider();
+
+    const account = document.querySelector(".account");
+    const accountName = document.querySelector("[data-account-name]");
+    const openSignIn = () => {
+      if (!scheduleCurrentUser) {
+        signInWithPopup(auth, provider).catch((error) => console.error(error));
+      }
+    };
+    account?.setAttribute("role", "button");
+    account?.setAttribute("tabindex", "0");
+    account?.setAttribute("title", "Sign in to load appointments");
+    account?.addEventListener("click", openSignIn);
+    account?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openSignIn();
+      }
+    });
+
+    onAuthStateChanged(auth, (user) => {
+      scheduleCurrentUser = user;
+      if (user) {
+        if (accountName) accountName.textContent = "Shannon Oddo";
+        account?.removeAttribute("title");
+        loadScheduleData(user);
+        return;
+      }
+      if (accountName) accountName.textContent = "Sign in";
+      account?.setAttribute("title", "Sign in to load appointments");
+      scheduleDataState = "signed-out";
+      scheduleDataMessage = "Sign in with your SNACK Google account to load appointments.";
+      modules.schedule.items = [];
+      updateScheduleDate(modules.schedule, scheduleVisibleDate);
+    });
+  } catch (error) {
+    console.error(error);
+    scheduleDataState = "error";
+    scheduleDataMessage = "The secure sign-in connection could not be started.";
+    updateScheduleDate(modules.schedule, scheduleVisibleDate);
+  }
 }
 
 function bindModulePage(moduleId) {
@@ -861,6 +1371,16 @@ function bindModulePage(moduleId) {
       return;
     }
 
+    const scheduleDateAction = event.target.closest("[data-schedule-date-action]");
+    if (moduleId === "schedule" && scheduleDateAction) {
+      const action = scheduleDateAction.dataset.scheduleDateAction;
+      const nextDate = action === "today"
+        ? scheduleDateKey(new Date())
+        : offsetScheduleDate(scheduleVisibleDate, action === "previous" ? -1 : 1);
+      updateScheduleDate(module, nextDate);
+      return;
+    }
+
     const viewTab = event.target.closest(".view-switch button");
     if (viewTab) {
       document.querySelectorAll(".view-switch button").forEach((item) => item.classList.remove("is-active"));
@@ -874,8 +1394,20 @@ function bindModulePage(moduleId) {
       detailTab.classList.add("is-active");
     }
   });
+
+  document.addEventListener("change", (event) => {
+    if (moduleId === "schedule" && event.target.matches("[data-schedule-date-input]")) {
+      updateScheduleDate(module, event.target.value);
+      return;
+    }
+
+    if (moduleId === "schedule" && event.target.matches("[data-prep-item-key]")) {
+      savePrepCheckbox(module, event.target);
+    }
+  });
 }
 
 const moduleId = currentModuleId();
 renderModulePage(moduleId);
 bindModulePage(moduleId);
+initializeScheduleData();

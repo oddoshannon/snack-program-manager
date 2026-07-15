@@ -9,6 +9,7 @@ import {
   appointmentRangesOverlap,
   appointmentTimeMinutes,
   cleanActivityLogPayload,
+  cleanAppointmentPrepChecklist,
   cleanAppointmentPayload,
   cleanBoolean,
   cleanGrantDocumentLink,
@@ -105,6 +106,19 @@ test("cleanBoolean accepts checked-style true values", () => {
   for (const value of [false, "false", "no", "0", "", null]) {
     assert.equal(cleanBoolean(value), false);
   }
+});
+
+test("appointment prep checklist keeps only supported checkbox values", () => {
+  assert.deepEqual(cleanAppointmentPrepChecklist({
+    sticker: true,
+    penPencil: "checked",
+    questionnaire: false,
+    unknownItem: true
+  }), {
+    sticker: true,
+    penPencil: true,
+    questionnaire: false
+  });
 });
 
 test("admin bulk delete is disabled unless explicitly enabled", () => {
@@ -835,7 +849,12 @@ test("public booking validation rejects spam traps and malformed public input", 
 test("serializers produce stable API shapes", () => {
   const referral = toReferral(snapshot("r1", { firstName: "Ana", ycco: "yes", siblingIds: ["r2"] }));
   const client = toClient(snapshot("c1", { firstName: "Ana", hrsn: "checked", providerLinks: [{ providerName: "William" }] }));
-  const appointment = toAppointment(snapshot("a1", { clientIds: ["c1"], appointmentTime: "13:00", durationMinutes: 15 }));
+  const appointment = toAppointment(snapshot("a1", {
+    clientIds: ["c1"],
+    appointmentTime: "13:00",
+    durationMinutes: 15,
+    prepChecklist: { sticker: true, unknownItem: true }
+  }));
   const task = toTask(snapshot("t1", { title: "Call", type: "forms", status: "Open" }));
   const activity = toActivityLog(snapshot("l1", { type: "Call", direction: "Outbound" }));
   const grant = toGrant(snapshot("g1", { foundationName: "Foundation", pastGrantReceived: true, documents: [{ title: "Application" }] }));
@@ -850,6 +869,7 @@ test("serializers produce stable API shapes", () => {
   assert.equal(client.hrsn, true);
   assert.equal(client.providerLinks[0].providerName, "William");
   assert.equal(appointment.durationMinutes, 15);
+  assert.deepEqual(appointment.prepChecklist, { sticker: true });
   assert.equal(task.type, "Form");
   assert.equal(activity.direction, "Outbound");
   assert.equal(grant.pastGrantReceived, true);

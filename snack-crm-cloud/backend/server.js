@@ -42,6 +42,16 @@ const allowedClientStatuses = new Set([
   "Closed"
 ]);
 const allowedAppointmentStatuses = new Set(["Scheduled", "Completed", "No-show", "Rescheduled", "Blocked", "Canceled"]);
+const allowedAppointmentPrepKeys = new Set([
+  "formsAtReception",
+  "enrollmentForm",
+  "questionnaire",
+  "markPre",
+  "sticker",
+  "penPencil",
+  "prize",
+  "foodSnack"
+]);
 const allowedTaskStatuses = new Set(["Open", "In Progress", "Waiting", "Done", "Canceled"]);
 const allowedTaskPriorities = new Set(["Low", "Normal", "Urgent"]);
 const allowedTaskTypes = new Set(["Call", "Text", "Form", "Task"]);
@@ -356,6 +366,18 @@ function cleanBoolean(value) {
   return ["true", "yes", "y", "1", "checked"].includes(normalized);
 }
 
+function cleanAppointmentPrepChecklist(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => allowedAppointmentPrepKeys.has(key))
+      .map(([key, checked]) => [key, cleanBoolean(checked)])
+  );
+}
+
 function normalizeStatus(status) {
   const cleaned = cleanString(status);
   return legacyStatusMap[cleaned] || cleaned || "New";
@@ -540,6 +562,7 @@ function toAppointment(snapshot) {
     participation: data.participation,
     barriers: data.barriers,
     notes: data.notes,
+    prepChecklist: cleanAppointmentPrepChecklist(data.prepChecklist),
     createdAt: data.createdAt,
     updatedAt: data.updatedAt
   };
@@ -2763,6 +2786,46 @@ app.patch("/api/appointments/:appointmentId", requireAuth, async (request, respo
   }
 });
 
+app.patch("/api/appointments/:appointmentId/prep", requireAuth, async (request, response, next) => {
+  try {
+    const appointmentId = cleanString(request.params.appointmentId);
+    const key = cleanString(request.body?.key);
+
+    if (!appointmentId) {
+      response.status(400).json({ error: "Appointment ID is required." });
+      return;
+    }
+
+    if (!allowedAppointmentPrepKeys.has(key) || typeof request.body?.checked !== "boolean") {
+      response.status(400).json({ error: "A valid prep item and checked state are required." });
+      return;
+    }
+
+    const docRef = appointments.doc(appointmentId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({ error: "Appointment was not found." });
+      return;
+    }
+
+    const prepChecklist = {
+      ...cleanAppointmentPrepChecklist(snapshot.data().prepChecklist),
+      [key]: request.body.checked
+    };
+
+    await docRef.update({
+      prepChecklist,
+      updatedAt: new Date().toISOString(),
+      updatedBy: request.user.email
+    });
+
+    response.json({ prepChecklist });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.delete("/api/appointments/:appointmentId", requireAuth, async (request, response, next) => {
   try {
     const appointmentId = cleanString(request.params.appointmentId);
@@ -4721,6 +4784,7 @@ export {
   appointmentRangesOverlap,
   appointmentTimeMinutes,
   cleanActivityLogPayload,
+  cleanAppointmentPrepChecklist,
   cleanAppointmentPayload,
   cleanBoolean,
   cleanGrantDocumentLink,
