@@ -979,7 +979,7 @@ h4 {
 .summary-item-copy small {
   color: var(--muted);
   font-size: 0.76rem;
-  font-weight: 850;
+  font-weight: 700;
   line-height: 1;
   text-transform: capitalize;
 }
@@ -1355,7 +1355,7 @@ h4 {
 .data-tool-count span {
   color: var(--muted);
   font-size: 0.72rem;
-  font-weight: 850;
+  font-weight: 700;
   text-transform: none;
 }
 
@@ -1416,7 +1416,7 @@ h4 {
   gap: 8px;
   color: var(--ink);
   font-size: 0.82rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .dashboard-day-count {
@@ -1502,7 +1502,7 @@ h4 {
   background: color-mix(in srgb, var(--attention-accent, var(--brand-green)) 12%, var(--surface));
   color: var(--ink);
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 700;
   text-align: center;
 }
 
@@ -1545,7 +1545,7 @@ h4 {
   position: relative;
   color: var(--ink);
   font-size: 0.88rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .dashboard-metric-card h4 {
@@ -1581,7 +1581,7 @@ h4 {
 .admin-settings-form span {
   color: var(--muted);
   font-size: 0.74rem;
-  font-weight: 900;
+  font-weight: 700;
   text-transform: none;
 }
 
@@ -1592,7 +1592,7 @@ h4 {
 .admin-settings-form label {
   color: var(--ink);
   font-size: 0.88rem;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .admin-settings-form fieldset label {
@@ -1702,7 +1702,7 @@ h4 {
   background: var(--green-soft);
   color: var(--ink);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .workflow-layout {
@@ -1771,7 +1771,7 @@ h4 {
   color: inherit;
   text-align: center;
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .task-column-body {
@@ -1908,7 +1908,7 @@ h4 {
   background: var(--soft);
   color: var(--ink);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -1957,7 +1957,7 @@ h4 {
   box-shadow: 0 16px 38px rgba(23, 33, 38, 0.2);
   color: var(--ink);
   font-size: 0.9rem;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .task-undo-toast[hidden] {
@@ -1987,7 +1987,7 @@ h4 {
   gap: 7px;
   color: var(--muted);
   font-size: 0.82rem;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .task-form .full-field {
@@ -2169,7 +2169,7 @@ h4 {
   background: var(--green-soft);
   color: var(--ink);
   font-size: 0.78rem;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .selected-client-pill button {
@@ -2235,7 +2235,7 @@ h4 {
   background: #ffffff;
   color: var(--accent-dark);
   font-size: 1rem;
-  font-weight: 900;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -2344,7 +2344,7 @@ h4 {
   min-height: 38px;
   color: var(--muted);
   font-size: 0.74rem;
-  font-weight: 900;
+  font-weight: 700;
   text-transform: none;
 }
 
@@ -2374,7 +2374,7 @@ h4 {
   padding: 6px 6px 0 0;
   color: var(--muted);
   font-size: 0.68rem;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .calendar-hour-cell {
@@ -2487,7 +2487,7 @@ h4 {
 .appointment-detail-prep span {
   color: var(--muted);
   font-size: 0.74rem;
-  font-weight: 850;
+  font-weight: 700;
   text-transform: none;
 }
 
@@ -2497,7 +2497,7 @@ h4 {
   margin: 0;
   color: var(--ink);
   font-size: 0.95rem;
-  font-weight: 850;
+  font-weight: 700;
   white-space: pre-line;
 }
 
@@ -2580,7 +2580,7 @@ h4 {
   background: var(--green-soft);
   color: var(--ink);
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 700;
   text-align: center;
 }
 
@@ -2626,7 +2626,7 @@ h4 {
 
 .scheduling-card-name {
   font-size: 0.95rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .scheduling-card-detail {
@@ -2673,7 +2673,7 @@ h4 {
   padding: 0 11px;
   background: transparent;
   color: var(--ink);
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .scheduling-design-toggle button.active {
@@ -2764,7 +2764,7 @@ body.scheduling-v2-preview-mode #scheduling-panel {
   display: block;
   color: var(--v2-green);
   font-size: 1rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.1;
 }
 
@@ -2792,7 +2792,7 @@ body.scheduling-v2-preview-mode #scheduling-panel {
   margin: 0;
   color: #475467;
   font-size: 0.74rem;
-  font-weight: 850;
+  font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -2870,7 +2870,7 @@ body.scheduling-v2-preview-mode #scheduling-panel {
   background: var(--v2-green-soft);
   color: var(--v2-green);
   font-size: 0.74rem;
-  font-weight: 950;
+  font-weight: 700;
 }
 
 .scheduling-v2-main {
@@ -2963,7 +2963,7 @@ body.scheduling-v2-preview-mode #scheduling-panel {
   background: var(--v2-red);
   color: #ffffff;
   font-size: 0.66rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .scheduling-v2-user-menu {
@@ -2983,7 +2983,7 @@ body.scheduling-v2-preview-mode #scheduling-panel {
   background: #dff1e6;
   color: var(--v2-green);
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .scheduling-v2-user-menu strong {
@@ -3048,7 +3048,7 @@ body.scheduling-v2-preview-mode #scheduling-panel {
   background: #ffffff;
   color: var(--v2-text);
   font-size: 0.88rem;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .scheduling-v2-primary,
@@ -3271,7 +3271,7 @@ body.scheduling-v2-preview-mode #scheduling-panel {
   grid-column: 1 / -1;
   color: var(--v2-ink);
   font-size: 0.78rem;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .scheduling-v2-appointment-card span {
@@ -3279,7 +3279,7 @@ body.scheduling-v2-preview-mode #scheduling-panel {
   overflow: hidden;
   color: var(--v2-ink);
   font-size: 0.93rem;
-  font-weight: 950;
+  font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -3332,7 +3332,7 @@ body.scheduling-v2-preview-mode #scheduling-panel {
   align-items: center;
   color: var(--v2-green);
   font-size: 0.74rem;
-  font-weight: 950;
+  font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -3372,7 +3372,7 @@ body.scheduling-v2-preview-mode #scheduling-panel {
   margin: 0;
   color: var(--v2-text);
   font-size: 0.86rem;
-  font-weight: 950;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -3387,7 +3387,7 @@ body.scheduling-v2-preview-mode #scheduling-panel {
   align-items: center;
   color: var(--v2-muted);
   font-size: 0.72rem;
-  font-weight: 850;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -3423,7 +3423,7 @@ body.scheduling-v2-preview-mode #scheduling-panel {
   padding: 0 2px;
   background: transparent;
   color: var(--v2-muted);
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .scheduling-v2-detail-tabs button.active {
@@ -5527,7 +5527,7 @@ body.scheduling-v2-preview-mode #scheduling-panel {
   background: color-mix(in srgb, var(--flow-header-text, #ffffff) 18%, transparent);
   color: var(--flow-header-text, #ffffff);
   font-size: 0.76rem;
-  font-weight: 900;
+  font-weight: 700;
   text-align: center;
 }
 
@@ -5574,7 +5574,7 @@ body.scheduling-v2-preview-mode #scheduling-panel {
   overflow-wrap: anywhere;
   line-height: 1.15;
   font-size: 1rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .flow-card-detail,
@@ -5594,7 +5594,7 @@ body.scheduling-v2-preview-mode #scheduling-panel {
   background: color-mix(in srgb, var(--flow-accent, var(--brand-green)) 12%, var(--surface));
   color: var(--ink);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .flow-archives {
@@ -5648,7 +5648,7 @@ body.scheduling-v2-preview-mode #scheduling-panel {
   background: color-mix(in srgb, var(--flow-accent, var(--brand-blue)) 12%, var(--surface));
   color: var(--ink);
   font-size: 0.82rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .archive-modal-card {
@@ -5742,7 +5742,7 @@ label {
 
 .required-marker {
   color: var(--brand-red);
-  font-weight: 900;
+  font-weight: 700;
 }
 
 input,
@@ -5909,7 +5909,7 @@ textarea {
   background: #fbfcfb;
   color: var(--accent-dark);
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 700;
   text-transform: none;
 }
 
@@ -5936,7 +5936,7 @@ textarea {
   background: var(--accent-soft);
   color: var(--accent-dark);
   font-size: 1rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -6252,7 +6252,7 @@ textarea {
   background: var(--green-soft);
   color: var(--ink);
   font-size: 1.35rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .referral-avatar {
@@ -6336,7 +6336,7 @@ textarea {
   background: var(--brand-blue-soft);
   color: var(--ink);
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .lesson-dots {
@@ -6384,7 +6384,7 @@ textarea {
 .lesson-dot span {
   min-height: 1em;
   font-size: 0.68rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .lesson-dot.done {
@@ -6431,7 +6431,7 @@ textarea {
 .goal-row span {
   color: var(--muted);
   font-size: 0.74rem;
-  font-weight: 900;
+  font-weight: 700;
   text-transform: none;
 }
 
@@ -6477,7 +6477,7 @@ textarea {
 .profile-detail-line > span {
   color: var(--muted);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 700;
   text-transform: none;
 }
 
@@ -6498,7 +6498,7 @@ textarea {
   align-items: center;
   color: var(--ink);
   font-size: 0.82rem;
-  font-weight: 850;
+  font-weight: 700;
   text-transform: none;
 }
 
@@ -6535,7 +6535,7 @@ textarea {
   border-radius: 999px;
   color: var(--accent-dark);
   font-size: 0.86rem;
-  font-weight: 900;
+  font-weight: 700;
   text-align: left;
 }
 
@@ -6547,7 +6547,7 @@ textarea {
 .client-profile-field .profile-source-text {
   color: var(--accent-dark);
   font-size: 0.86rem;
-  font-weight: 900;
+  font-weight: 700;
   text-transform: none;
 }
 
@@ -6558,7 +6558,7 @@ textarea {
 .profile-add-button {
   justify-self: start;
   font-size: 0.86rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .profile-linked-row {
@@ -6578,7 +6578,7 @@ textarea {
   padding: 0;
   color: var(--ink);
   font-size: 0.82rem;
-  font-weight: 850;
+  font-weight: 700;
   text-align: left;
 }
 
@@ -6667,7 +6667,7 @@ textarea {
 .form-link-row span {
   color: var(--ink);
   font-size: 0.84rem;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .form-link-controls select,
@@ -6682,7 +6682,7 @@ textarea {
   background: var(--green-soft);
   color: var(--ink);
   font-size: 0.76rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .client-appointments-panel {
@@ -6783,7 +6783,7 @@ textarea {
   overflow: hidden;
   color: var(--ink);
   font-size: 0.92rem;
-  font-weight: 900;
+  font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -6796,7 +6796,7 @@ textarea {
   background: color-mix(in srgb, var(--profile-accent, var(--brand-green)) 10%, #ffffff);
   color: var(--ink);
   font-size: 0.72rem;
-  font-weight: 850;
+  font-weight: 700;
   line-height: 1.1;
 }
 
@@ -6833,7 +6833,7 @@ textarea {
   gap: 7px;
   color: var(--profile-accent);
   font-size: 0.82rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .profile-v2-status::before {
@@ -6884,7 +6884,7 @@ textarea {
 .profile-v2-field strong {
   color: var(--ink);
   font-size: 0.95rem;
-  font-weight: 900;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
@@ -6923,7 +6923,7 @@ textarea {
   padding: 0;
   background: transparent;
   color: var(--profile-accent);
-  font-weight: 900;
+  font-weight: 700;
   text-align: left;
 }
 
@@ -6968,7 +6968,7 @@ textarea {
   background: transparent;
   color: var(--muted);
   font-size: 0.95rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .profile-v2-tabs button:hover,
@@ -7119,7 +7119,7 @@ textarea {
   background: color-mix(in srgb, var(--profile-accent) 7%, #ffffff);
   color: var(--profile-accent);
   font-size: 0.75rem;
-  font-weight: 850;
+  font-weight: 700;
   text-decoration: none;
 }
 
@@ -7794,7 +7794,7 @@ dd {
   min-width: 0;
   color: var(--muted);
   font-size: 0.76rem;
-  font-weight: 850;
+  font-weight: 700;
   text-align: left;
   text-transform: none;
 }
@@ -7829,7 +7829,7 @@ dd {
   align-items: center;
   color: var(--ink);
   font-size: 0.86rem;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .profile-edit-check input {
@@ -7880,12 +7880,18 @@ dd {
   box-shadow: 0 28px 70px rgba(23, 33, 38, 0.25);
 }
 
-/* Record-profile modals dock as right-side detail drawers, echoing the
-   template's list + detail workspace while every open/close flow stays. */
+/* Record profiles open as a side-by-side detail panel: no scrim, the page
+   content shifts left so the list stays visible and interactive beside it.
+   Same modal elements and open/close flows underneath. */
+:root {
+  --detail-panel-width: min(860px, 58vw);
+}
+
 .profile-drawer {
   display: block;
   padding: 0;
-  background: rgba(16, 24, 40, 0.24);
+  background: transparent;
+  pointer-events: none;
 }
 
 .profile-drawer .modal-card {
@@ -7894,13 +7900,23 @@ dd {
   right: 0;
   bottom: 0;
   height: 100%;
-  width: min(980px, 84vw);
+  width: var(--detail-panel-width);
   max-height: none;
   border: 0;
   border-left: 1px solid var(--line);
   border-radius: 0;
-  box-shadow: -24px 0 60px rgba(16, 24, 40, 0.16);
+  background: var(--surface);
+  box-shadow: -16px 0 40px rgba(16, 24, 40, 0.08);
+  pointer-events: auto;
   animation: drawer-in 160ms ease-out;
+}
+
+body:has(.profile-drawer:not([hidden])) .workspace {
+  margin-right: var(--detail-panel-width);
+}
+
+body.modal-open:has(.profile-drawer:not([hidden])) {
+  overflow: auto;
 }
 
 @keyframes drawer-in {
@@ -7949,7 +7965,7 @@ dd {
   order: initial;
   color: var(--muted);
   font-size: 0.82rem;
-  font-weight: 850;
+  font-weight: 700;
   text-align: left;
 }
 
@@ -7972,7 +7988,7 @@ dd {
   justify-self: start;
   color: var(--ink);
   font-size: 0.88rem;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .appointment-complete-form > .appointment-complete-checkbox input {
@@ -8505,7 +8521,7 @@ dd {
   background: var(--green-soft);
   color: var(--brand-green);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .kpi-table {
@@ -8527,7 +8543,7 @@ dd {
   border-bottom: 1px solid var(--line);
   padding: 9px 10px;
   font-size: 0.78rem;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .kpi-table-heading {
@@ -8543,7 +8559,7 @@ dd {
 
 .kpi-table-cell:nth-child(7n + 1) {
   color: var(--muted);
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .work-plan-card {
@@ -8623,7 +8639,7 @@ dd {
   flex: 0 0 auto;
   color: var(--brand-green);
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .grant-reference-card:not([open]) .grant-reference-summary::after {
@@ -8713,7 +8729,7 @@ dd {
   background: rgba(14, 121, 69, 0.08);
   color: var(--accent-dark);
   font-size: 0.74rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .grant-status-pill.status-group-grant-upcoming {
@@ -8751,7 +8767,7 @@ dd {
   min-height: 34px;
   padding: 6px 28px 6px 10px;
   font-size: 0.8rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .grant-status-select.status-group-grant-upcoming {
@@ -8814,7 +8830,7 @@ dd {
   min-height: 34px;
   padding: 6px 28px 6px 10px;
   font-size: 0.8rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .outreach-status-select.status-group-outreach-upcoming {
@@ -8946,7 +8962,7 @@ dd {
   border: 1px solid rgba(7, 139, 77, 0.24);
   border-radius: 999px;
   color: var(--brand-green);
-  font-weight: 900;
+  font-weight: 700;
   text-decoration: none;
   background: rgba(7, 139, 77, 0.06);
 }
