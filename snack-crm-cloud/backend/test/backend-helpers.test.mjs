@@ -912,13 +912,17 @@ test("public and protected API routes are registered with expected middleware", 
   assert.ok(routes.includes("/api/grant-questions/:questionId"));
   assert.ok(routes.includes("/api/grant-organization-info"));
   assert.ok(routes.includes("/api/admin/scheduling-settings"));
+  assert.ok(routes.includes("/api/appointments/:appointmentId/prep"));
   const healthRoute = registeredRoutes.find((route) => route.path === "/health");
   const bookingOptionsRoute = registeredRoutes.find((route) => route.path === "/api/public/booking-options");
+  const prepRoute = registeredRoutes.find((route) => route.path === "/api/appointments/:appointmentId/prep");
   const messageRoute = registeredRoutes.find((route) => route.path === "/api/message");
 
   assert.equal(healthRoute.stack.length, 1);
   assert.equal(bookingOptionsRoute.stack.length, 1);
   assert.equal(bookingOptionsRoute.methods.get, true);
+  assert.equal(prepRoute.methods.patch, true);
+  assert.equal(prepRoute.stack.length, 2);
   assert.equal(messageRoute.methods.get, true);
   assert.equal(messageRoute.stack.length, 2);
 });

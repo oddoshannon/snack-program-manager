@@ -1,3 +1,7 @@
+// Historical checks for the retired single-page interface. These are preserved
+// as a reference while useful behavior moves into the clean module pages, but
+// they are intentionally excluded from the active *.test.mjs test run.
+
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import { test } from "node:test";

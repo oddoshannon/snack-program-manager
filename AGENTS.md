@@ -1,43 +1,54 @@
-# SNACK CRM — Agent Instructions
+# SNACK Program Manager - Agent Instructions
 
-Read this before making any change. It reflects a structural refactor completed July 2026 on the `clod-refactor` branch (details in `TECH-DEBT-ASSESSMENT.md` and `snack-crm-cloud/README.md`).
+Read this file and `snack-crm-cloud/README.md` before changing the app.
 
-## What this repo is
+## Active application
 
-The active app is **`snack-crm-cloud/`** — a Firebase Hosting + Cloud Run (Express) + Firestore CRM for the SNACK Program. The `.gs` / `WebApp.html` files in the repo root are a **retired** Google Apps Script version: never edit or extend them.
+The active application is `snack-crm-cloud/`, a Firebase Hosting, Cloud Run, and Firestore system for the SNACK Program. The `.gs` and `WebApp.html` files in the repository root are retired and must not be edited.
 
-## Structure (do not fight it)
+The staff interface uses the clean visual-rulebook pages in `frontend/public/`:
+
+- `schedule.html`, `crm.html`, `outreach.html`, `fundraising.html`, `marketing.html`, `operations.html`, and `admin.html`
+- `clean.js` for the shared staff interface and module behavior
+- `clean.css` for the locked shared visual system
+- `template.html` and `template.js` as the visual rulebook reference
+
+Do not rebuild staff pages from the older `app.js`, `styles.css`, or the old single-page `index.html` structure. Those files remain only as legacy functionality and public-booking references while useful behavior is moved into the clean interface.
+
+## Backend structure
 
 ```text
-snack-crm-cloud/
-  backend/
-    server.js         Composition root ONLY (app setup, router mounts). Do not add routes or helpers here.
-    lib/core.js       Config, Firestore collections, requireAuth, all shared helpers. Exported names; server.js re-exports for tests.
-    routes/*.js       One Express router per domain (referrals, clients, appointments, tasks, grants,
-                      outreach, referral-network, activity-logs, admin, public-booking, messages).
-  frontend/public/
-    app.js            Main app module (large; being split — help shrink it, never grow it needlessly).
-    modules/format.js Pure date/time/phone/string helpers. Pure modules must not touch the DOM or app state.
-    archive/          Retired scheduling v1 design. NOT loaded by the app. Never import, load, or edit it.
+snack-crm-cloud/backend/
+  server.js         App setup and feature-file registration only
+  lib/core.js       Database setup, sign-in protection, serializers, and shared rules
+  routes/*.js       One server file per feature area
 ```
 
-## Hard rules
+## Required rules
 
-1. **New API endpoints** go in the matching `backend/routes/<domain>.js`. Shared logic goes in `lib/core.js` and is added to its export list.
-2. **Never add `.limit(n)` caps to list reads.** Use `fetchAllDocuments(query)` from `lib/core.js` — fixed caps silently hide records and previously looked like data loss.
-3. **New frontend helpers** that are pure (no DOM, no app state) go in `frontend/public/modules/` and are imported by `app.js`. When you touch a feature area in `app.js`, prefer extracting its helpers over adding more inline code.
-4. **Scheduling UI is v2 only.** There is no design toggle. Do not resurrect anything from `archive/`.
-5. **Interpolated HTML must go through `escapeHtml`** (from `modules/format.js`) exactly as existing render functions do.
-6. **Tests:** run `cd snack-crm-cloud/backend && npm test` (98 tests must pass) before finishing any change. Add unit tests for new backend helpers in `test/backend-helpers.test.mjs`.
-7. **Do not add new regex-on-source-text assertions** to `test/frontend-contracts.test.mjs`. That style blocks refactoring without catching bugs and is being phased out.
-8. **Lint:** run `cd snack-crm-cloud && npm run lint`. Zero errors required; do not introduce new warnings. The existing ~65 warnings are dead functions queued for deletion.
-9. **Auth:** all `/api/**` routes except `/api/public/**` must use `requireAuth`. Public booking endpoints stay rate-limited and manage-token-guarded.
-10. Keep the existing code style: verbose, explicit, `camelCase`, double quotes, no clever abstractions. Match `.prettierrc.json`.
+1. Put new server actions in the matching `backend/routes/<feature>.js` file. Put genuinely shared rules in `backend/lib/core.js` and export them there.
+2. Use `fetchAllDocuments(query)` for list reads. Never add a fixed total-record cap that can silently hide older records.
+3. Keep `backend/server.js` small. Do not add feature actions or data-cleaning rules there.
+4. Keep staff-interface changes in the clean page system. Refer to `template.html`, `template.js`, and `clean.css` before changing shared layout, typography, colors, navigation, tabs, counters, hover behavior, or spacing.
+5. Preserve the approved visual rules. Do not reintroduce the old green styling, all-capital labels, dark-green hovers, or older single-page layout.
+6. Escape any data inserted into HTML by using the existing `escapeHtml` helper.
+7. All `/api/**` server actions except `/api/public/**` must require verified staff sign-in.
+8. Public booking must remain rate-limited and protected by booking-management tokens for canceling and rescheduling.
+9. Run `npm test` in `snack-crm-cloud/backend/` and `npm run lint` in `snack-crm-cloud/` before finishing a change. Every test must pass, and no new lint errors or warnings may be introduced.
+10. Add behavior tests for new shared backend and clean-interface rules. Do not reactivate or add to `frontend-contracts.legacy.mjs`; it is only a historical record of the retired interface.
 
-## Roadmap priorities (in order)
+## Working with Shannon
 
-1. Role-based access (admin/staff/viewer) via Firebase custom claims; gate delete/export to admin.
-2. Continue splitting `app.js` into domain modules (API layer, scheduling v2, profiles).
-3. Delete the dead functions flagged by lint warnings.
-4. Replace `frontend-contracts.test.mjs` with Firestore-emulator integration tests.
-5. Split `styles.css` per module once app.js domains exist.
+- Explain progress in plain product language first.
+- When a technical term is necessary, define it immediately in parentheses.
+- Avoid unexplained terms such as scaffold, ported, tracked, untracked, committed, deployed, and checkpoint.
+- Do not change approved visual structure to make content easier to fit without Shannon's approval.
+- At the end of a work summary, include what comes next and what input, if any, Shannon needs to provide.
+
+## Current priorities
+
+1. Complete and verify the clean Scheduling workflow.
+2. Carry working CRM behavior into the clean CRM interface.
+3. Connect the remaining clean module pages to real data and actions.
+4. Add staff access levels before onboarding additional users.
+5. Replace older source-text checks with behavior tests and continue retiring unused legacy frontend code.

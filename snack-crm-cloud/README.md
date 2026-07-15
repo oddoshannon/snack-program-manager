@@ -1,138 +1,133 @@
-# SNACK CRM Cloud
+# SNACK Program Manager
 
-The operations system for the SNACK Program: referrals, clients, appointment scheduling, tasks, activity logging, outreach, fundraising/grants, KPI dashboards, public self-booking, CSV imports, and admin data tools.
+The SNACK Program's operations system for scheduling, referrals, clients, outreach, fundraising, marketing, operations, public booking, and administrative tools.
 
-- **Production frontend:** https://snack-crm.web.app (Firebase Hosting)
-- **Production API:** Cloud Run service `snack-crm-api` (see [DEPLOYMENT.md](DEPLOYMENT.md) for URLs and deploy commands)
-- **Database:** Firestore, project `snack-crm`
-- **Sign-in:** Firebase Authentication (Google), restricted to `@snackprogram.org` accounts, verified server-side
+- Production staff site: https://snack-crm.web.app
+- Database: Firestore in the `snack-crm` Google Cloud project
+- Staff sign-in: Google accounts restricted to `@snackprogram.org`
+- Public booking: standalone client-facing booking and booking-management pages
 
-The Google Apps Script files in the repo root are an earlier, retired version of this CRM and are not part of this app.
+The Google Apps Script files in the repository root are retired and are not part of this application.
 
-## Architecture
-
-```text
-Browser (frontend/public, vanilla JS ES modules)
-   │  Firebase Auth ID token on every /api call
-   ▼
-Firebase Hosting ── rewrites /api/** and /health ──► Cloud Run (backend, Express)
-                                                        │
-                                                        ▼
-                                                     Firestore
-```
-
-## Repo Map
+## How the application is organized
 
 ```text
-snack-crm-cloud/
-  package.json             Lint/format tooling (eslint, prettier)
-  eslint.config.js         Flat config: node globals for backend, browser for frontend
-  firebase.json            Hosting config + /api rewrite to Cloud Run
-  storage.rules            Firebase Storage rules (staff-only grant documents)
-  DEPLOYMENT.md            Live URLs, deploy commands, verification steps
-
-  backend/
-    server.js              Thin composition root: express app, middleware, router mounts
-    lib/core.js            Config, Firestore setup, auth middleware, all shared helpers
-    routes/                One Express router per domain:
-      public-booking.js      /api/public/** (no auth, rate-limited, hashed manage tokens)
-      messages.js            /api/message
-      admin.js               /api/admin/** (data counts, export, bulk delete, settings)
-      referrals.js           /api/referrals**
-      clients.js             /api/clients**
-      appointments.js        /api/appointments**
-      tasks.js               /api/tasks**
-      activity-logs.js       /api/activity-logs
-      grants.js              /api/grants**, grant questions, organization info
-      referral-network.js    /api/referral-network**
-      outreach.js            /api/outreach-events**, /api/outreach-contacts**
-    test/
-      backend-helpers.test.mjs     Unit tests for exported helpers and route registration
-      frontend-contracts.test.mjs  Source-text contract checks (legacy; being phased out)
-      qa-public-booking-api.mjs    Manual QA script against a running server
-
-  frontend/public/
-    index.html             App shell: all panels and modals as static markup
-    app.js                 Main application module (state, rendering, event wiring)
-    modules/format.js      Pure date/time/phone/string helpers (no DOM, no state)
-    booking.html/.js       Public self-booking page
-    styles.css             All styling
-    app-config.js          API base URL per environment
-    archive/scheduling-v1.js  Retired "classic" scheduling design (not loaded)
-    print-forms/           Printable enrollment/feedback packets (docx/xlsx)
+Staff or client browser
+        |
+        | secure staff token for protected actions
+        v
+Firebase Hosting ---- /api requests ----> Cloud Run server
+                                                |
+                                                v
+                                             Firestore
 ```
 
-## Firestore Collections
+### Backend
 
-`referrals`, `clients`, `appointments`, `tasks`, `activityLogs`, `grants`, `grantQuestions`, `referralNetwork`, `outreachEvents`, `outreachContacts`, `adminSettings` (scheduling settings doc), `messages` (connection check).
+```text
+backend/
+  server.js              Small setup file that registers feature files
+  lib/core.js            Shared database, sign-in, cleaning, and serialization rules
+  routes/
+    appointments.js      Appointment and prep-checklist actions
+    clients.js           Client actions
+    referrals.js         Referral actions
+    tasks.js             Task actions
+    activity-logs.js     Calls and texts
+    grants.js            Grant tracking
+    outreach.js          Outreach events and contacts
+    referral-network.js  Provider and organization contacts
+    admin.js             Counts, exports, deletion controls, and settings
+    public-booking.js    Public booking, canceling, and rescheduling
+    messages.js          Connection check
+  test/
+    backend-helpers.test.mjs
+    clean-schedule.test.mjs
+    frontend-contracts.legacy.mjs  Historical checks for the retired interface
+    qa-public-booking-api.mjs
+```
 
-All list endpoints page through the full collection with a batched cursor loop (`fetchAllDocuments` in `lib/core.js`) — there are no fixed row caps.
+List actions use `fetchAllDocuments()` to load every record in batches. There is no fixed total-record ceiling that can make older records disappear.
 
-## Local Development
+### Staff interface
+
+The clean staff interface is built from one locked visual system:
+
+```text
+frontend/public/
+  clean.css              Shared approved colors, typography, spacing, and interaction rules
+  clean.js               Shared navigation, module rendering, and connected behavior
+  modules/schedule.js    Testable schedule data and formatting rules
+  template.html          Visual rulebook preview
+  template.js            Generic rulebook content and interactions
+  schedule.html          Clean Scheduling page
+  crm.html               Clean CRM page
+  outreach.html          Clean Outreach page
+  fundraising.html       Clean Fundraising page
+  marketing.html         Clean Marketing page
+  operations.html        Clean Operations page
+  admin.html             Clean Admin page
+  index.html             Current default clean module entry page
+  app-config.js          Local and production server addresses
+```
+
+The older `app.js` and `styles.css` files remain temporarily as functionality and public-booking references. They are not the design foundation for clean staff pages and should not be expanded.
+
+### Public booking
+
+`booking.html` and `booking.js` provide public appointment selection, multi-child booking, and booking management. Public actions do not require staff sign-in, but they are rate-limited and cancel/reschedule actions require a secure management token.
+
+## Database collections
+
+`referrals`, `clients`, `appointments`, `tasks`, `activityLogs`, `grants`, `grantQuestions`, `referralNetwork`, `outreachEvents`, `outreachContacts`, `adminSettings`, and `messages`.
+
+## Local development
+
+Start the backend from `snack-crm-cloud/backend/`:
 
 ```bash
-# Backend (terminal 1)
-cd backend
-cp .env.example .env      # points at the Firestore emulator
 npm install
-npm run dev               # http://localhost:8080
-
-# Firestore + Hosting emulators (terminal 2, repo folder snack-crm-cloud/)
-firebase emulators:start --only firestore,hosting --project demo-snack-crm
-# frontend at http://localhost:5002
+npm run dev
 ```
 
-## Tests and Lint
+The backend runs at `http://127.0.0.1:8080` unless configured otherwise.
+
+Serve `snack-crm-cloud/frontend/public/` with a local static server. The clean Scheduling page is `schedule.html`, and the visual reference is `template.html`.
+
+## Required checks
+
+Run the backend tests:
 
 ```bash
-cd backend && npm test        # 98 tests (node --test)
-cd .. && npm install && npm run lint    # eslint: errors fail CI, warnings tolerated
+cd snack-crm-cloud/backend
+npm test
 ```
 
-CI (GitHub Actions, `.github/workflows/ci.yml` at repo root) runs both on every push and pull request.
-
-## Deploying
-
-See [DEPLOYMENT.md](DEPLOYMENT.md). Short version:
+Run the shared code-quality check:
 
 ```bash
-# Backend
-cd backend
-gcloud run deploy snack-crm-api --source . --region us-central1 --project snack-crm \
-  --update-env-vars FIREBASE_AUTH_PROJECT_ID=snack-crm,ALLOWED_EMAIL_DOMAIN=snackprogram.org,ALLOW_ADMIN_BULK_DELETE=false
-
-# Frontend
-cd ..
-firebase deploy --only hosting --project snack-crm
+cd snack-crm-cloud
+npm install
+npm run lint
 ```
 
-## Security Model (current state)
+GitHub automatically runs both checks whenever a branch is pushed or proposed for inclusion in the main version.
 
-- API requires a verified Firebase ID token from an `@snackprogram.org` Google account (checked in `requireAuth`, `lib/core.js`).
-- Public booking endpoints are unauthenticated by design: rate-limited, length-capped fields, and reschedule/cancel guarded by hashed manage tokens.
-- Admin bulk delete is disabled unless `ALLOW_ADMIN_BULK_DELETE=true` (keep it `false` in production).
-- **There are no roles yet.** Every staff account can view, edit, delete, and export everything. Role-based access (admin/staff/viewer via Firebase custom claims) is the top item on the roadmap before onboarding more staff.
+## Security
 
-## Refactor Status and Roadmap
+- Protected server actions verify a Firebase sign-in token and require an `@snackprogram.org` account.
+- Public booking actions have separate protections appropriate for clients who do not have staff accounts.
+- Mass deletion is disabled unless `ALLOW_ADMIN_BULK_DELETE=true`; production should keep it disabled.
+- Staff access levels are not implemented yet. Current staff accounts have the same server permissions.
 
-A structural refactor started in July 2026 (see [TECH-DEBT-ASSESSMENT.md](../TECH-DEBT-ASSESSMENT.md) at the repo root). Done so far:
+## Current combination work
 
-1. Scheduling v1 ("classic") archived to `frontend/public/archive/`; the app is v2-only.
-2. Silent list caps replaced with full paged reads.
-3. Backend split from a 4,700-line `server.js` into `lib/core.js` + 11 domain routers.
-4. Frontend modularization started: pure helpers in `modules/format.js`.
-5. ESLint + Prettier + CI added.
+This branch combines the clean visual-rulebook interface with the July 2026 backend reorganization:
 
-Next, in rough priority order:
+1. The clean module pages and visual template remain the staff-interface foundation.
+2. The backend is separated into feature-specific files.
+3. Full-record loading replaces fixed list limits.
+4. Scheduling prep checkboxes save through the appointment feature file.
+5. Automatic tests and code-quality checks run locally and on GitHub.
 
-1. **Roles** (admin/staff/viewer) via Firebase custom claims; gate delete and export to admin.
-2. **Continue splitting `app.js`** (~18,000 lines) into domain modules — next candidates: API layer (`authedFetch` + load functions), scheduling v2, client/referral profiles.
-3. **Delete dead code** — `npm run lint` warnings list ~65 unused functions.
-4. **Replace `frontend-contracts.test.mjs`** (regex checks on source text) with API integration tests against the Firestore emulator.
-5. **Split `styles.css`** (~8,000 lines) per module once app.js domains exist.
-
-Conventions for new code:
-
-- New frontend helpers go in `frontend/public/modules/` (pure modules must not touch the DOM or app state).
-- New API endpoints go in the matching `backend/routes/*.js` file; shared logic goes in `lib/core.js`.
-- Run `npm test` (backend) and `npm run lint` (repo folder) before deploying.
+The rejected rulebook restyling of the older single-page interface is not included.

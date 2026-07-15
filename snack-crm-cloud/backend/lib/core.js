@@ -39,6 +39,16 @@ const allowedClientStatuses = new Set([
   "Closed"
 ]);
 const allowedAppointmentStatuses = new Set(["Scheduled", "Completed", "No-show", "Rescheduled", "Blocked", "Canceled"]);
+const allowedAppointmentPrepKeys = new Set([
+  "formsAtReception",
+  "enrollmentForm",
+  "questionnaire",
+  "markPre",
+  "sticker",
+  "penPencil",
+  "prize",
+  "foodSnack"
+]);
 const allowedTaskStatuses = new Set(["Open", "In Progress", "Waiting", "Done", "Canceled"]);
 const allowedTaskPriorities = new Set(["Low", "Normal", "Urgent"]);
 const allowedTaskTypes = new Set(["Call", "Text", "Form", "Task"]);
@@ -200,13 +210,12 @@ async function deleteCollectionDocuments(collectionRef) {
 }
 
 const fetchAllBatchSize = 300;
-const fetchAllMaxDocuments = 20000;
 
 async function fetchAllDocuments(query) {
   const documents = [];
   let cursor = null;
 
-  while (documents.length < fetchAllMaxDocuments) {
+  while (true) {
     const page = cursor ? query.startAfter(cursor).limit(fetchAllBatchSize) : query.limit(fetchAllBatchSize);
     const snapshot = await page.get();
     documents.push(...snapshot.docs);
@@ -217,9 +226,6 @@ async function fetchAllDocuments(query) {
 
     cursor = snapshot.docs[snapshot.docs.length - 1];
   }
-
-  console.warn(`fetchAllDocuments stopped at the ${fetchAllMaxDocuments} document safety ceiling; results may be incomplete.`);
-  return documents;
 }
 
 async function requireAuth(request, response, next) {
@@ -365,6 +371,18 @@ function cleanBoolean(value) {
 
   const normalized = cleanString(value).toLowerCase();
   return ["true", "yes", "y", "1", "checked"].includes(normalized);
+}
+
+function cleanAppointmentPrepChecklist(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => allowedAppointmentPrepKeys.has(key))
+      .map(([key, checked]) => [key, cleanBoolean(checked)])
+  );
 }
 
 function normalizeStatus(status) {
@@ -551,6 +569,7 @@ function toAppointment(snapshot) {
     participation: data.participation,
     barriers: data.barriers,
     notes: data.notes,
+    prepChecklist: cleanAppointmentPrepChecklist(data.prepChecklist),
     createdAt: data.createdAt,
     updatedAt: data.updatedAt
   };
@@ -1942,6 +1961,7 @@ export {
   adminSettings,
   allowedActivityDirections,
   allowedActivityTypes,
+  allowedAppointmentPrepKeys,
   allowedAppointmentStatuses,
   allowedClientStatuses,
   allowedEmailDomain,
@@ -1960,6 +1980,7 @@ export {
   appointmentShouldCompleteRescheduleTasks,
   appointmentTimeMinutes,
   cleanActivityLogPayload,
+  cleanAppointmentPrepChecklist,
   cleanAppointmentPayload,
   cleanBoolean,
   cleanGrantCopyBlock,
@@ -1998,7 +2019,6 @@ export {
   existingPublicManageClientRefs,
   fetchAllBatchSize,
   fetchAllDocuments,
-  fetchAllMaxDocuments,
   findAppointmentConflict,
   findExistingStartDayTask,
   firebaseAuthProjectId,

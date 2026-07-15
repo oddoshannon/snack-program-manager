@@ -1,7 +1,9 @@
 import express from "express";
 import {
+  allowedAppointmentPrepKeys,
   appointmentFitsSchedulingWindow,
   appointments,
+  cleanAppointmentPrepChecklist,
   cleanAppointmentPayload,
   cleanString,
   clients,
@@ -247,6 +249,46 @@ router.patch("/api/appointments/:appointmentId", requireAuth, async (request, re
       appointment: toAppointment(updated),
       completedRescheduleTasks
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/api/appointments/:appointmentId/prep", requireAuth, async (request, response, next) => {
+  try {
+    const appointmentId = cleanString(request.params.appointmentId);
+    const key = cleanString(request.body?.key);
+
+    if (!appointmentId) {
+      response.status(400).json({ error: "Appointment ID is required." });
+      return;
+    }
+
+    if (!allowedAppointmentPrepKeys.has(key) || typeof request.body?.checked !== "boolean") {
+      response.status(400).json({ error: "A valid prep item and checked state are required." });
+      return;
+    }
+
+    const docRef = appointments.doc(appointmentId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({ error: "Appointment was not found." });
+      return;
+    }
+
+    const prepChecklist = {
+      ...cleanAppointmentPrepChecklist(snapshot.data().prepChecklist),
+      [key]: request.body.checked
+    };
+
+    await docRef.update({
+      prepChecklist,
+      updatedAt: new Date().toISOString(),
+      updatedBy: request.user.email
+    });
+
+    response.json({ prepChecklist });
   } catch (error) {
     next(error);
   }
