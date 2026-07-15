@@ -1,9 +1,11 @@
 import {
+  appointmentStatusPayload,
   formatAppointmentDate,
   formatScheduleDate,
   formatScheduleTime,
   mapAppointment,
   offsetScheduleDate,
+  rescheduleAppointmentPayloads,
   scheduleDateKey,
   scheduleTimeMinutes
 } from "./modules/schedule.js";
@@ -571,6 +573,7 @@ let scheduleVisibleDate = scheduleDateKey(new Date());
 let scheduleDataState = "loading";
 let scheduleDataMessage = "Loading appointments...";
 let scheduleCurrentUser = null;
+let scheduleActionBusy = false;
 
 function currentModuleId() {
   const explicit = window.SNACK_MODULE_ID || document.body.dataset.module;
@@ -751,6 +754,48 @@ function renderScheduleFamilyRows(module) {
   `).join("");
 }
 
+function renderRescheduleDialog() {
+  return `
+    <dialog class="schedule-dialog" data-reschedule-dialog>
+      <form class="schedule-dialog-form" data-reschedule-form>
+        <div class="schedule-dialog-heading">
+          <div>
+            <span>Reschedule</span>
+            <h2 data-reschedule-title>Appointment</h2>
+          </div>
+          <button class="schedule-dialog-close" data-close-reschedule type="button" aria-label="Close">&times;</button>
+        </div>
+        <div class="schedule-dialog-fields">
+          <label>
+            <span>Date</span>
+            <input data-reschedule-date type="date" required>
+          </label>
+          <label>
+            <span>Time</span>
+            <input data-reschedule-time type="time" step="900" required>
+          </label>
+          <label>
+            <span>Staff</span>
+            <select data-reschedule-staff required>
+              <option value="Cynthia Esparza">Cynthia Esparza</option>
+              <option value="Shannon Oddo">Shannon Oddo</option>
+            </select>
+          </label>
+          <label class="is-full-width">
+            <span>Notes</span>
+            <textarea data-reschedule-notes rows="3"></textarea>
+          </label>
+        </div>
+        <p class="schedule-dialog-status" data-reschedule-status role="status" aria-live="polite"></p>
+        <div class="schedule-dialog-actions">
+          <button data-close-reschedule type="button">Cancel</button>
+          <button class="is-primary" data-save-reschedule type="submit">Save Appointment</button>
+        </div>
+      </form>
+    </dialog>
+  `;
+}
+
 function renderPrepCard(card) {
   return `
     <section class="detail-card prep-card">
@@ -897,14 +942,16 @@ function renderModulePage(moduleId) {
 
               ${renderCards(module)}
 
+              ${moduleId === "schedule" ? `<p class="schedule-action-status" data-schedule-action-status role="status" aria-live="polite"></p>` : ""}
               <div class="footer-actions">
-                ${module.footerActions.map((action) => `<button type="button">${action}</button>`).join("")}
+                ${module.footerActions.map((action) => `<button ${moduleId === "schedule" ? `data-schedule-action="${action.toLowerCase().replace("mark ", "").replaceAll(" ", "-")}"` : ""} type="button">${action}</button>`).join("")}
               </div>
             </div>
           </article>
         </section>
       </main>
     </div>
+    ${moduleId === "schedule" ? renderRescheduleDialog() : ""}
   `;
 
   updateDetail(module, selectedItemId);
@@ -924,6 +971,7 @@ function updateDetail(module, itemId) {
     });
     document.querySelectorAll("[data-prep-list]").forEach((list) => list.replaceChildren());
     setPrepSaveStatus("");
+    updateScheduleActionAvailability(null);
     return;
   }
 
@@ -982,6 +1030,7 @@ function updateDetail(module, itemId) {
   });
 
   setPrepSaveStatus("");
+  updateScheduleActionAvailability(item);
 }
 
 function updateScheduleDate(module, nextDateKey) {
@@ -1079,6 +1128,222 @@ async function savePrepCheckbox(module, checkbox) {
     setPrepSaveStatus("Could not save", "error");
   } finally {
     checkbox.disabled = false;
+  }
+}
+
+function setScheduleActionStatus(message, state = "") {
+  const status = document.querySelector("[data-schedule-action-status]");
+  if (!status) {
+    return;
+  }
+
+  status.textContent = message;
+  status.dataset.state = state;
+}
+
+function updateScheduleActionAvailability(item = modules.schedule.items.find((candidate) => candidate.id === selectedItemId)) {
+  document.querySelectorAll("[data-schedule-action]").forEach((button) => {
+    const currentStatus = item?.status || "";
+    const duplicateOutcome = (button.dataset.scheduleAction === "complete" && currentStatus === "Completed")
+      || (button.dataset.scheduleAction === "no-show" && currentStatus === "No-show")
+      || (button.dataset.scheduleAction === "reschedule" && currentStatus === "Rescheduled");
+    button.disabled = scheduleActionBusy || !item || duplicateOutcome;
+  });
+}
+
+function setScheduleActionBusy(busy) {
+  scheduleActionBusy = busy;
+  updateScheduleActionAvailability();
+  document.querySelector("[data-reschedule-dialog]")?.setAttribute("aria-busy", String(busy));
+}
+
+async function scheduleAuthedFetch(path, options = {}) {
+  if (!scheduleCurrentUser) {
+    throw new Error("Sign in before changing an appointment.");
+  }
+
+  const token = await scheduleCurrentUser.getIdToken();
+  const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL || "";
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {})
+    }
+  });
+
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(result.error || `The appointment service returned ${response.status}.`);
+  }
+
+  return response.json().catch(() => ({}));
+}
+
+function appointmentOccursAfter(candidate, item) {
+  return `${candidate.date}T${candidate.time}` > `${item.date}T${item.time}`;
+}
+
+function mostRecentCompletedDate(module, clientId, excludedAppointmentId) {
+  return module.items
+    .filter((candidate) => candidate.id !== excludedAppointmentId
+      && candidate.status === "Completed"
+      && candidate.clientIds.includes(clientId))
+    .map((candidate) => candidate.date)
+    .filter(Boolean)
+    .sort()
+    .at(-1) || "";
+}
+
+async function updateScheduleClients(module, item, status) {
+  for (const clientId of item.clientIds) {
+    const updates = {};
+
+    if (status === "Completed") {
+      const hasFutureAppointment = module.items.some((candidate) => candidate.id !== item.id
+        && candidate.status === "Scheduled"
+        && candidate.clientIds.includes(clientId)
+        && appointmentOccursAfter(candidate, item));
+      updates.status = hasFutureAppointment ? "Active" : "Needs Reschedule";
+      updates.mostRecentAppointmentDate = item.date;
+    }
+
+    if (status === "No-show") {
+      updates.status = "Needs Reschedule";
+      updates.mostRecentAppointmentDate = mostRecentCompletedDate(module, clientId, item.id);
+    }
+
+    if (status === "Scheduled") {
+      updates.status = /enrollment|inscripci[oó]n/i.test(item.type) ? "Scheduled" : "Active";
+    }
+
+    if (Object.keys(updates).length) {
+      await scheduleAuthedFetch(`/api/clients/${encodeURIComponent(clientId)}`, {
+        method: "PATCH",
+        body: JSON.stringify(updates)
+      });
+    }
+  }
+}
+
+async function saveScheduleOutcome(module, status) {
+  const item = module.items.find((candidate) => candidate.id === selectedItemId);
+  if (!item || scheduleActionBusy) {
+    return;
+  }
+
+  setScheduleActionStatus("");
+  setScheduleActionBusy(true);
+
+  try {
+    await scheduleAuthedFetch(`/api/appointments/${encodeURIComponent(item.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(appointmentStatusPayload(item, status))
+    });
+    await updateScheduleClients(module, item, status);
+    selectedItemId = item.id;
+    await loadScheduleData(scheduleCurrentUser);
+    setScheduleActionStatus("");
+  } catch (error) {
+    console.error(error);
+    setScheduleActionStatus(status === "Completed" ? "Could not complete appointment." : "Could not mark no show.", "error");
+  } finally {
+    setScheduleActionBusy(false);
+  }
+}
+
+function openRescheduleDialog(module) {
+  const item = module.items.find((candidate) => candidate.id === selectedItemId);
+  const dialog = document.querySelector("[data-reschedule-dialog]");
+  if (!item || !dialog || scheduleActionBusy) {
+    return;
+  }
+
+  dialog.querySelector("[data-reschedule-title]").textContent = item.title;
+  dialog.querySelector("[data-reschedule-date]").value = item.date;
+  dialog.querySelector("[data-reschedule-time]").value = item.time;
+  dialog.querySelector("[data-reschedule-notes]").value = item.source?.notes || "";
+  const staff = dialog.querySelector("[data-reschedule-staff]");
+  if (item.staff && ![...staff.options].some((option) => option.value === item.staff)) {
+    staff.add(new Option(item.staff, item.staff));
+  }
+  staff.value = item.staff || "Cynthia Esparza";
+  dialog.querySelector("[data-reschedule-status]").textContent = "";
+  dialog.showModal();
+}
+
+function closeRescheduleDialog() {
+  const dialog = document.querySelector("[data-reschedule-dialog]");
+  if (dialog?.open && !scheduleActionBusy) {
+    dialog.close();
+  }
+}
+
+async function saveReschedule(module, form) {
+  const item = module.items.find((candidate) => candidate.id === selectedItemId);
+  if (!item || scheduleActionBusy) {
+    return;
+  }
+
+  const values = {
+    appointmentDate: form.querySelector("[data-reschedule-date]").value,
+    appointmentTime: form.querySelector("[data-reschedule-time]").value,
+    staffMember: form.querySelector("[data-reschedule-staff]").value,
+    notes: form.querySelector("[data-reschedule-notes]").value
+  };
+  const status = form.querySelector("[data-reschedule-status]");
+
+  if (!values.appointmentDate || !values.appointmentTime) {
+    status.textContent = "Add a date and time.";
+    return;
+  }
+
+  if (values.appointmentDate === item.date && values.appointmentTime === item.time) {
+    status.textContent = "Choose a new date or time.";
+    return;
+  }
+
+  const { original, replacement } = rescheduleAppointmentPayloads(item, values);
+  const saveButton = form.querySelector("[data-save-reschedule]");
+  let originalRetired = false;
+  let replacementCreated = false;
+
+  status.textContent = "";
+  saveButton.disabled = true;
+  setScheduleActionBusy(true);
+
+  try {
+    await scheduleAuthedFetch(`/api/appointments/${encodeURIComponent(item.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(original)
+    });
+    originalRetired = true;
+
+    const result = await scheduleAuthedFetch("/api/appointments", {
+      method: "POST",
+      body: JSON.stringify(replacement)
+    });
+    replacementCreated = true;
+    await updateScheduleClients(module, item, "Scheduled");
+
+    scheduleVisibleDate = values.appointmentDate;
+    selectedItemId = result.appointment?.id || "";
+    form.closest("dialog")?.close();
+    await loadScheduleData(scheduleCurrentUser);
+    setScheduleActionStatus("");
+  } catch (error) {
+    console.error(error);
+    if (originalRetired && !replacementCreated) {
+      await scheduleAuthedFetch(`/api/appointments/${encodeURIComponent(item.id)}`, {
+        method: "PATCH",
+        body: JSON.stringify(appointmentStatusPayload(item, item.source?.status || item.status))
+      }).catch((restoreError) => console.error("Could not restore the original appointment.", restoreError));
+    }
+    status.textContent = error.message || "Could not reschedule appointment.";
+  } finally {
+    saveButton.disabled = false;
+    setScheduleActionBusy(false);
   }
 }
 
@@ -1215,6 +1480,24 @@ function bindModulePage(moduleId) {
       return;
     }
 
+    const scheduleAction = event.target.closest("[data-schedule-action]");
+    if (moduleId === "schedule" && scheduleAction) {
+      const action = scheduleAction.dataset.scheduleAction;
+      if (action === "complete") {
+        saveScheduleOutcome(module, "Completed");
+      } else if (action === "no-show") {
+        saveScheduleOutcome(module, "No-show");
+      } else if (action === "reschedule") {
+        openRescheduleDialog(module);
+      }
+      return;
+    }
+
+    if (moduleId === "schedule" && event.target.closest("[data-close-reschedule]")) {
+      closeRescheduleDialog();
+      return;
+    }
+
     const viewTab = event.target.closest(".view-switch button");
     if (viewTab) {
       document.querySelectorAll(".view-switch button").forEach((item) => item.classList.remove("is-active"));
@@ -1237,6 +1520,19 @@ function bindModulePage(moduleId) {
 
     if (moduleId === "schedule" && event.target.matches("[data-prep-item-key]")) {
       savePrepCheckbox(module, event.target);
+    }
+  });
+
+  document.addEventListener("submit", (event) => {
+    if (moduleId === "schedule" && event.target.matches("[data-reschedule-form]")) {
+      event.preventDefault();
+      saveReschedule(module, event.target);
+    }
+  });
+
+  document.querySelector("[data-reschedule-dialog]")?.addEventListener("cancel", (event) => {
+    if (scheduleActionBusy) {
+      event.preventDefault();
     }
   });
 }

@@ -1213,6 +1213,196 @@ svg {
   background: var(--red-soft);
 }
 
+.footer-actions button:disabled {
+  cursor: default;
+  opacity: 0.46;
+}
+
+.schedule-action-status {
+  margin: 0;
+  padding: 0 20px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.schedule-action-status:empty {
+  display: none;
+}
+
+.schedule-action-status[data-state="error"] {
+  color: #d92d20;
+}
+
+.schedule-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  margin: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 24px 64px rgba(16, 24, 40, 0.18);
+}
+
+.schedule-dialog::backdrop {
+  background: rgba(16, 24, 40, 0.36);
+}
+
+.schedule-dialog-form {
+  display: grid;
+}
+
+.schedule-dialog-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid var(--line);
+  padding: 20px 22px;
+}
+
+.schedule-dialog-heading span {
+  color: var(--red);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.schedule-dialog-heading h2 {
+  margin: 3px 0 0;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.schedule-dialog-close {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.schedule-dialog-close:hover,
+.schedule-dialog-close:focus-visible {
+  border-color: var(--module-line);
+  background: var(--module-soft);
+  color: var(--module);
+  outline: none;
+}
+
+.schedule-dialog-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 22px;
+}
+
+.schedule-dialog-fields label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.schedule-dialog-fields .is-full-width {
+  grid-column: 1 / -1;
+}
+
+.schedule-dialog-fields input,
+.schedule-dialog-fields select,
+.schedule-dialog-fields textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 400;
+  outline: none;
+}
+
+.schedule-dialog-fields input,
+.schedule-dialog-fields select {
+  min-height: 42px;
+}
+
+.schedule-dialog-fields textarea {
+  resize: vertical;
+}
+
+.schedule-dialog-fields input:focus,
+.schedule-dialog-fields select:focus,
+.schedule-dialog-fields textarea:focus {
+  border-color: var(--module);
+  box-shadow: 0 0 0 3px var(--module-soft);
+}
+
+.schedule-dialog-status {
+  margin: 0;
+  padding: 0 22px 16px;
+  color: #d92d20;
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.schedule-dialog-status:empty {
+  display: none;
+}
+
+.schedule-dialog-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 14px 22px;
+  background: var(--surface-soft);
+}
+
+.schedule-dialog-actions button {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.schedule-dialog-actions button:hover,
+.schedule-dialog-actions button:focus-visible {
+  border-color: var(--module-line);
+  background: var(--module-soft);
+  color: var(--module);
+  outline: none;
+}
+
+.schedule-dialog-actions .is-primary {
+  border-color: var(--module);
+  background: var(--module);
+  color: #ffffff;
+}
+
+.schedule-dialog-actions .is-primary:hover,
+.schedule-dialog-actions .is-primary:focus-visible {
+  border-color: var(--module);
+  background: #d93d42;
+  color: #ffffff;
+}
+
+.schedule-dialog-actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
 .app-shell.is-collapsed {
   --sidebar-open: var(--sidebar-closed);
 }
@@ -1430,6 +1620,11 @@ svg {
 
   .field-grid,
   .footer-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-dialog-fields,
+  .schedule-dialog-actions {
     grid-template-columns: 1fr;
   }
 }

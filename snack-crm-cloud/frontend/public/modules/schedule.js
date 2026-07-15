@@ -136,6 +136,30 @@ export function normalizeAppointmentStatus(value) {
   return status || "Scheduled";
 }
 
+export function appointmentStatusPayload(item, status) {
+  return {
+    ...(item?.source || {}),
+    clientId: item?.clientIds?.[0] || item?.source?.clientId || "",
+    clientIds: item?.clientIds || item?.source?.clientIds || [],
+    clientName: item?.clientNames?.[0] || item?.source?.clientName || "",
+    clientNames: item?.clientNames || item?.source?.clientNames || [],
+    status
+  };
+}
+
+export function rescheduleAppointmentPayloads(item, values) {
+  const original = appointmentStatusPayload(item, "Rescheduled");
+  const replacement = appointmentStatusPayload(item, "Scheduled");
+
+  delete replacement.id;
+  replacement.appointmentDate = values.appointmentDate;
+  replacement.appointmentTime = normalizeAppointmentTime(values.appointmentTime);
+  replacement.staffMember = String(values.staffMember || item?.staff || "").trim();
+  replacement.notes = String(values.notes ?? item?.notes ?? "").trim();
+
+  return { original, replacement };
+}
+
 export function mapAppointment(appointment, clientsById) {
   const clientIds = Array.isArray(appointment.clientIds) && appointment.clientIds.length
     ? appointment.clientIds
@@ -153,6 +177,9 @@ export function mapAppointment(appointment, clientsById) {
 
   return {
     id: appointment.id,
+    source: { ...appointment },
+    clientIds,
+    clientNames: displayNames,
     title: formatFirstNames(displayNames),
     subtitle: type,
     status,

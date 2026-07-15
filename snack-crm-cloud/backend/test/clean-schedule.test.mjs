@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  appointmentStatusPayload,
   cleanAppointmentType,
   formatScheduleTime,
   mapAppointment,
   normalizeAppointmentStatus,
   offsetScheduleDate,
   prepForAppointment,
+  rescheduleAppointmentPayloads,
   scheduleTimeMinutes
 } from "../../frontend/public/modules/schedule.js";
 
@@ -93,7 +95,45 @@ test("multi-client appointments map into the approved schedule details", () => {
   assert.equal(mapped.language, "Spanish");
   assert.equal(mapped.phone, "(971) 447-2646");
   assert.equal(mapped.staff, "Cynthia Esparza");
+  assert.deepEqual(mapped.clientIds, ["rafael", "janney"]);
   assert.deepEqual(mapped.prepChecklist, { enrollmentForm: true });
   assert.equal(mapped.forms.length, 4);
   assert.equal(mapped.supplies.length, 2);
+});
+
+test("appointment outcomes preserve the complete appointment data", () => {
+  const item = {
+    id: "appointment-1",
+    clientIds: ["rafael", "janney"],
+    clientNames: ["Rafael Hernandez", "Janney Hernandez"],
+    staff: "Cynthia Esparza",
+    notes: "Bring workbook",
+    source: {
+      id: "appointment-1",
+      appointmentDate: "2026-07-07",
+      appointmentTime: "14:30",
+      appointmentType: "Enrollment",
+      durationMinutes: 30,
+      status: "Scheduled"
+    }
+  };
+
+  const completed = appointmentStatusPayload(item, "Completed");
+  assert.equal(completed.status, "Completed");
+  assert.deepEqual(completed.clientIds, ["rafael", "janney"]);
+  assert.equal(completed.appointmentDate, "2026-07-07");
+
+  const { original, replacement } = rescheduleAppointmentPayloads(item, {
+    appointmentDate: "2026-07-14",
+    appointmentTime: "3:30 PM",
+    staffMember: "Shannon Oddo",
+    notes: "Updated note"
+  });
+  assert.equal(original.status, "Rescheduled");
+  assert.equal(original.appointmentDate, "2026-07-07");
+  assert.equal(replacement.status, "Scheduled");
+  assert.equal(replacement.appointmentDate, "2026-07-14");
+  assert.equal(replacement.appointmentTime, "15:30");
+  assert.equal(replacement.staffMember, "Shannon Oddo");
+  assert.equal(replacement.notes, "Updated note");
 });
