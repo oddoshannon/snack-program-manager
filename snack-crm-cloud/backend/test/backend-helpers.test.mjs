@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import {
   app,
@@ -81,6 +82,14 @@ import {
   toReferral,
   toTask
 } from "../server.js";
+
+const dockerfile = await readFile(new URL("../Dockerfile", import.meta.url), "utf8");
+
+test("Cloud Run container includes the reorganized backend files", () => {
+  assert.match(dockerfile, /^COPY server\.js \.\/$/m);
+  assert.match(dockerfile, /^COPY lib \.\/lib$/m);
+  assert.match(dockerfile, /^COPY routes \.\/routes$/m);
+});
 
 function snapshot(id, data) {
   return {
