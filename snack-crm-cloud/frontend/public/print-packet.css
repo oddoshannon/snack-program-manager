@@ -1,0 +1,88 @@
+.print-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 24px;
+  background: #ffffff;
+}
+
+.print-toolbar strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.print-toolbar button {
+  border: 1px solid var(--ink);
+  border-radius: 6px;
+  padding: 8px 18px;
+  background: var(--ink);
+  color: #ffffff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.print-packet {
+  gap: 28px;
+}
+
+.print-packet > .print-page {
+  flex: 0 0 auto;
+}
+
+.enrollment-prompt-grid,
+.check-in-prompt-grid,
+.enrollment-next-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.enrollment-prompt-box {
+  min-height: 82px;
+}
+
+.enrollment-prompt-grid .enrollment-prompt-box:first-child {
+  grid-column: 1 / -1;
+}
+
+.enrollment-next-box {
+  min-height: 62px;
+}
+
+.check-in-goal-box {
+  min-height: 116px;
+}
+
+.check-in-prompt-box {
+  min-height: 120px;
+}
+
+.check-in-new-goal-box {
+  min-height: 82px;
+}
+
+@media print {
+  .print-toolbar {
+    display: none;
+  }
+
+  .print-packet {
+    display: block;
+    padding: 0;
+  }
+
+  .print-packet > .print-page {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .print-packet > .print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+}

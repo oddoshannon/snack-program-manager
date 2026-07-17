@@ -56,4 +56,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 }
 
 export * from "./lib/core.js";
+export * from "./lib/public-booking-confirmation.js";
 export { app };

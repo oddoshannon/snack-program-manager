@@ -1,0 +1,300 @@
+.note-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.note-title h1 {
+  min-width: 0;
+}
+
+.note-page .print-date span {
+  font-size: 10pt;
+}
+
+.visit-summary {
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--ink);
+  border-radius: 8px;
+  margin-top: 18px;
+  background: #ffffff;
+}
+
+.visit-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 11px 20px;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+.visit-details div {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.visit-details .client-detail {
+  grid-column: span 2;
+}
+
+.visit-details dt {
+  color: var(--muted);
+  font-size: 10pt;
+  font-weight: 400;
+}
+
+.visit-details dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 10pt;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.birthdate-list {
+  display: grid;
+  gap: 1px;
+}
+
+.current-goal {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding: 9px 14px 10px;
+}
+
+.current-goal strong {
+  color: var(--text);
+  font-size: 10pt;
+  font-weight: 500;
+}
+
+.current-goal span {
+  color: var(--ink);
+  font-size: 10pt;
+  font-weight: 500;
+}
+
+.note-section {
+  margin-top: 15px;
+}
+
+.note-section h2 {
+  margin: 0 0 7px;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.writing-box {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+}
+
+.writing-box > span {
+  color: var(--text);
+  font-size: 10pt;
+  font-weight: 500;
+}
+
+.goal-check-box {
+  min-height: 126px;
+}
+
+.lesson-box {
+  min-height: 160px;
+}
+
+.goal-box {
+  min-height: 88px;
+}
+
+.next-appointment-row {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-top: 8px;
+  padding: 9px 12px;
+  color: var(--text);
+  font-size: 10pt;
+}
+
+.next-appointment-choice,
+.next-appointment-date {
+  display: grid;
+  align-items: center;
+  gap: 5px;
+}
+
+.next-appointment-choice {
+  grid-template-columns: max-content 13px;
+}
+
+.next-appointment-date {
+  grid-template-columns: max-content 180px;
+}
+
+.next-appointment-choice strong,
+.next-appointment-date span {
+  font-weight: 500;
+}
+
+.next-appointment-choice i {
+  width: 13px;
+  height: 13px;
+  border: 1px solid var(--text);
+  border-radius: 2px;
+}
+
+.next-appointment-date em {
+  height: 15px;
+  border-bottom: 1px solid var(--text);
+}
+
+.follow-up-box {
+  min-height: 74px;
+  margin-top: 8px;
+}
+
+.healthy-habits-page .note-section {
+  margin-top: 8px;
+}
+
+.healthy-habits-page .note-section h2 {
+  margin-bottom: 6px;
+  font-size: 16px;
+}
+
+.healthy-goal-check-box {
+  min-height: 104px;
+}
+
+.knowledge-list {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(6, auto);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.knowledge-list > div {
+  display: grid;
+  grid-template-columns: minmax(0, 245px) auto auto;
+  align-items: center;
+  justify-content: start;
+  gap: 8px;
+  min-height: 21px;
+  padding: 3px 10px;
+  color: var(--text);
+  font-size: 10pt;
+}
+
+.knowledge-list > div:nth-child(n + 2):nth-child(-n + 6),
+.knowledge-list > div:nth-child(n + 8) {
+  border-top: 1px solid var(--line);
+}
+
+.knowledge-list > div:nth-child(n + 7) {
+  border-left: 1px solid var(--line);
+}
+
+.knowledge-list.is-variable {
+  grid-template-rows: repeat(var(--knowledge-rows), auto);
+}
+
+.knowledge-list.is-variable.is-one-column {
+  grid-auto-flow: row;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.knowledge-list.is-variable > div {
+  border-top: 0;
+  border-left: 0;
+}
+
+.knowledge-list.is-variable > .has-row-border {
+  border-top: 1px solid var(--line);
+}
+
+.knowledge-list.is-variable > .is-column-start {
+  border-left: 1px solid var(--line);
+}
+
+.knowledge-list.is-variable.is-one-column > div {
+  grid-template-columns: minmax(0, 360px) auto auto;
+}
+
+.knowledge-list > div > span:first-child,
+.knowledge-list strong {
+  font-weight: 500;
+}
+
+.knowledge-choice {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.knowledge-choice i {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--text);
+  border-radius: 2px;
+}
+
+.healthy-lesson-box {
+  min-height: 104px;
+}
+
+.healthy-goal-box {
+  min-height: 42px;
+}
+
+.healthy-follow-up-box {
+  min-height: 38px;
+  margin-top: 8px;
+}
+
+.has-retention .note-section {
+  margin-top: 8px;
+}
+
+.has-retention .note-section h2 {
+  margin-bottom: 6px;
+  font-size: 16px;
+}
+
+.retention-goal-check-box,
+.retention-lesson-box {
+  min-height: 104px;
+}
+
+.retention-goal-box {
+  min-height: 42px;
+}
+
+.retention-follow-up-box {
+  min-height: 38px;
+  margin-top: 8px;
+}
+
+@media print {
+  .visit-summary,
+  .note-section,
+  .writing-box,
+  .next-appointment-row {
+    break-inside: avoid;
+  }
+}

@@ -1,0 +1,221 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
+
+:root {
+  color-scheme: light;
+  --ink: #101828;
+  --text: #344054;
+  --muted: #667085;
+  --line: #e4e7ec;
+  --soft-line: #f0f2f5;
+  --schedule: #101828;
+  --schedule-soft: #f9fafb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #f2f4f7;
+  color: var(--ink);
+  font-family: "Inter", Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+
+.print-preview {
+  min-height: 100vh;
+  display: grid;
+  place-items: start center;
+  padding: 32px;
+}
+
+.print-page {
+  width: 8.5in;
+  min-height: 11in;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  padding: 0.46in 0.5in 0.36in;
+  box-shadow: 0 18px 48px rgba(16, 24, 40, 0.12);
+}
+
+.print-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  border-bottom: 3px solid var(--schedule);
+  padding-bottom: 14px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.12;
+}
+
+.print-date {
+  display: grid;
+  gap: 2px;
+  min-width: 190px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.print-date span {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.print-date strong {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.schedule-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.schedule-row {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 16px;
+  break-inside: avoid;
+}
+
+.schedule-row > time {
+  padding-top: 13px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.appointment-main {
+  position: relative;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--ink);
+  border-radius: 8px;
+  padding: 11px 14px 10px;
+  background: #ffffff;
+}
+
+.appointment-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.appointment-heading h2 {
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.appointment-heading span {
+  flex: 0 0 auto;
+  border: 1px solid #d0d5dd;
+  border-radius: 999px;
+  padding: 3px 9px;
+  background: #ffffff;
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 20px;
+  margin: 7px 0 0;
+}
+
+dl div {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+dt {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+dd {
+  margin: 0;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.blocked .appointment-main {
+  background: #f9fafb;
+}
+
+.print-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  border-top: 1px solid var(--line);
+  margin-top: auto;
+  padding-top: 11px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+@media (max-width: 880px) {
+  .print-preview {
+    display: block;
+    padding: 16px;
+    overflow-x: auto;
+  }
+
+  .print-page {
+    width: 100%;
+    min-width: 700px;
+  }
+}
+
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    background: #ffffff;
+  }
+
+  .print-preview {
+    display: block;
+    min-height: 0;
+    padding: 0;
+  }
+
+  .print-page {
+    width: 8.5in;
+    height: 11in;
+    min-height: 11in;
+    border: 0;
+    box-shadow: none;
+  }
+}

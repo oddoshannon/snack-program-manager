@@ -108,10 +108,12 @@ gcloud run deploy snack-crm-api \
   --source . \
   --region us-central1 \
   --project snack-crm \
-  --update-env-vars FIREBASE_AUTH_PROJECT_ID=snack-crm,ALLOWED_EMAIL_DOMAIN=snackprogram.org,ALLOW_ADMIN_BULK_DELETE=false
+  --update-env-vars FIREBASE_AUTH_PROJECT_ID=snack-crm,ALLOWED_EMAIL_DOMAIN=snackprogram.org,ALLOW_ADMIN_BULK_DELETE=false,PUBLIC_BOOKING_CONFIRMATION_MODE=disabled,PUBLIC_BOOKING_PAGE_URL=https://snack-crm.web.app/book.html
 ```
 
 Keep `ALLOW_ADMIN_BULK_DELETE=false` for production. Only set it to `true` temporarily in a test environment when intentionally clearing imported test data.
+
+Keep `PUBLIC_BOOKING_CONFIRMATION_MODE=disabled` until an email or text provider has been selected and separately tested. Clients will still see the private cancel/reschedule link on the booking confirmation screen.
 
 ## Deploy Frontend
 

@@ -21,7 +21,7 @@ export function formatScheduleDate(dateKey) {
 
 export function formatAppointmentDate(dateKey) {
   return new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
+    weekday: "short",
     month: "long",
     day: "numeric",
     year: "numeric"
@@ -32,6 +32,45 @@ export function offsetScheduleDate(dateKey, dayOffset) {
   const date = scheduleDateFromKey(dateKey);
   date.setDate(date.getDate() + dayOffset);
   return scheduleDateKey(date);
+}
+
+export function scheduleWeekDates(dateKey, weekdays = [2, 3, 4]) {
+  const selectedDate = scheduleDateFromKey(dateKey);
+  const weekStart = new Date(selectedDate);
+  weekStart.setDate(selectedDate.getDate() - selectedDate.getDay());
+
+  const clinicDays = [...new Set((Array.isArray(weekdays) ? weekdays : [2, 3, 4])
+    .map(Number)
+    .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6))]
+    .sort((first, second) => first - second);
+
+  return (clinicDays.length ? clinicDays : [2, 3, 4]).map((weekday) => {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + weekday);
+    return scheduleDateKey(date);
+  });
+}
+
+export function formatScheduleWeekRange(dateKeys = []) {
+  const dates = dateKeys.map(scheduleDateFromKey).filter((date) => !Number.isNaN(date.getTime()));
+  if (!dates.length) {
+    return "";
+  }
+
+  const first = dates[0];
+  const last = dates.at(-1);
+  const firstMonth = new Intl.DateTimeFormat("en-US", { month: "short" }).format(first);
+  const lastMonth = new Intl.DateTimeFormat("en-US", { month: "short" }).format(last);
+  const firstYear = first.getFullYear();
+  const lastYear = last.getFullYear();
+
+  if (firstYear === lastYear && first.getMonth() === last.getMonth()) {
+    return `${firstMonth} ${first.getDate()} - ${last.getDate()}, ${lastYear}`;
+  }
+  if (firstYear === lastYear) {
+    return `${firstMonth} ${first.getDate()} - ${lastMonth} ${last.getDate()}, ${lastYear}`;
+  }
+  return `${firstMonth} ${first.getDate()}, ${firstYear} - ${lastMonth} ${last.getDate()}, ${lastYear}`;
 }
 
 export function scheduleTimeMinutes(time) {
@@ -45,6 +84,87 @@ export function formatScheduleTime(totalMinutes) {
   const suffix = hour >= 12 ? "PM" : "AM";
   const displayHour = hour % 12 || 12;
   return `${displayHour}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
+export const newAppointmentServices = Object.freeze([
+  Object.freeze({
+    id: "enrollment",
+    label: "Enrollment Appointment",
+    appointmentType: "Enrollment",
+    durationMinutes: 30
+  }),
+  Object.freeze({
+    id: "nutrition-education",
+    label: "Nutrition Education Appointment",
+    appointmentType: "Nutrition Education",
+    durationMinutes: 30
+  }),
+  Object.freeze({
+    id: "spanish-enrollment",
+    label: "Cita de inscripción en español",
+    appointmentType: "Enrollment",
+    durationMinutes: 30
+  }),
+  Object.freeze({
+    id: "spanish-nutrition-education",
+    label: "Cita de educación nutricional en español",
+    appointmentType: "Nutrition Education",
+    durationMinutes: 30
+  })
+]);
+
+export function newAppointmentService(serviceId) {
+  return newAppointmentServices.find((service) => service.id === serviceId) || newAppointmentServices[0];
+}
+
+export function scheduleTimeOptions(settings = {}, durationMinutes = 30) {
+  const start = scheduleTimeMinutes(settings.bookableStartTime) ?? (13 * 60 + 30);
+  const end = scheduleTimeMinutes(settings.bookableEndTime) ?? (18 * 60);
+  const interval = [5, 10, 15, 30].includes(Number(settings.slotIntervalMinutes))
+    ? Number(settings.slotIntervalMinutes)
+    : 15;
+  const duration = Math.max(1, Number(durationMinutes) || 30);
+  const latestStart = end - duration;
+  const times = [];
+
+  for (let minutes = start; minutes <= latestStart; minutes += interval) {
+    times.push(`${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`);
+  }
+
+  return times;
+}
+
+export function scheduleTimeKey(totalMinutes) {
+  return `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
+}
+
+export function blockTimeEndOptions(startTime, settings = {}) {
+  if (!String(startTime || "").trim()) {
+    return [];
+  }
+
+  const start = scheduleTimeMinutes(normalizeAppointmentTime(startTime));
+  const end = scheduleTimeMinutes(settings.bookableEndTime) ?? (18 * 60);
+  const interval = [5, 10, 15, 30].includes(Number(settings.slotIntervalMinutes))
+    ? Number(settings.slotIntervalMinutes)
+    : 15;
+  const times = [];
+
+  for (let minutes = start + interval; minutes <= end; minutes += interval) {
+    times.push(scheduleTimeKey(minutes));
+  }
+
+  return times;
+}
+
+export function blockTimeDurationMinutes(startTime, endTime) {
+  if (!String(startTime || "").trim() || !String(endTime || "").trim()) {
+    return 0;
+  }
+
+  const start = scheduleTimeMinutes(normalizeAppointmentTime(startTime));
+  const end = scheduleTimeMinutes(normalizeAppointmentTime(endTime));
+  return end > start ? end - start : 0;
 }
 
 export function cleanAppointmentType(value, lesson) {
@@ -73,6 +193,55 @@ export function normalizeAppointmentTime(value) {
 
 export function clientFullName(client) {
   return [client?.firstName, client?.lastName].filter(Boolean).join(" ").trim();
+}
+
+export function newAppointmentPayload(values = {}, selectedClients = []) {
+  const service = newAppointmentService(values.serviceId);
+  const clients = selectedClients.filter((client, index, items) => client?.id
+    && items.findIndex((candidate) => candidate?.id === client.id) === index);
+  const clientIds = clients.map((client) => client.id);
+  const clientNames = clients.map(clientFullName).filter(Boolean);
+  const isNutritionEducation = service.appointmentType === "Nutrition Education";
+  const allowedStatuses = new Set(["Scheduled", "Completed", "No-show", "Rescheduled"]);
+  const status = allowedStatuses.has(values.status) ? values.status : "Scheduled";
+
+  return {
+    clientId: clientIds[0] || "",
+    clientIds,
+    clientName: clientNames[0] || "",
+    clientNames,
+    appointmentDate: String(values.appointmentDate || "").trim(),
+    appointmentTime: values.appointmentTime ? normalizeAppointmentTime(values.appointmentTime) : "",
+    appointmentType: service.appointmentType,
+    publicBookingServiceId: service.id,
+    publicBookingServiceLabel: service.label,
+    durationMinutes: service.durationMinutes,
+    status,
+    lesson: isNutritionEducation ? String(values.lesson || "").trim() : "",
+    goal: isNutritionEducation ? String(values.goal || "").trim() : "",
+    staffMember: String(values.staffMember || "").trim(),
+    notes: String(values.notes || "").trim()
+  };
+}
+
+export function blockTimePayload(values = {}) {
+  const selectedDuration = blockTimeDurationMinutes(values.appointmentTime, values.endTime);
+
+  return {
+    clientId: "",
+    clientIds: [],
+    clientName: "Blocked Time",
+    clientNames: ["Blocked Time"],
+    appointmentDate: String(values.appointmentDate || "").trim(),
+    appointmentTime: values.appointmentTime ? normalizeAppointmentTime(values.appointmentTime) : "",
+    appointmentType: "Administrative",
+    durationMinutes: selectedDuration || Math.max(1, Number(values.durationMinutes) || 30),
+    status: "Blocked",
+    lesson: "",
+    goal: "",
+    staffMember: String(values.staffMember || "").trim(),
+    notes: String(values.notes || "Blocked time").trim() || "Blocked time"
+  };
 }
 
 export function firstName(value) {
@@ -120,11 +289,206 @@ export function prepForAppointment(type) {
   };
 }
 
-export function appointmentAccent(status) {
-  if (status === "Completed") return "#6b7b7f";
-  if (status === "No-show") return "#0891b2";
-  if (status === "Rescheduled") return "#c98608";
-  return "#e94b55";
+const appointmentLessonAccents = [
+  "#667085",
+  "#e23a4d",
+  "#d27354",
+  "#f4c753",
+  "#078b4d",
+  "#039cbb",
+  "#004aad",
+  "#7a33c2"
+];
+
+const appointmentLessonNames = new Map([
+  ["nutrient density", 1],
+  ["nutrient dense", 1],
+  ["nd", 1],
+  ["sugar", 2],
+  ["food group", 3],
+  ["food groups", 3],
+  ["fg", 3],
+  ["macronutrient", 4],
+  ["macronutrients", 4],
+  ["macro", 4],
+  ["macros", 4],
+  ["micronutrient", 5],
+  ["micronutrients", 5],
+  ["micro", 5],
+  ["micros", 5],
+  ["mindful eating", 6],
+  ["me", 6],
+  ["healthy habit", 7],
+  ["healthy habits", 7],
+  ["hh", 7]
+]);
+
+export function appointmentLessonNumber(value) {
+  const lesson = String(value || "").trim().toLowerCase();
+  const numeric = Number.parseInt(lesson.replace(/\D/g, ""), 10);
+
+  if (Number.isFinite(numeric) && numeric >= 1 && numeric <= 7) {
+    return numeric;
+  }
+
+  return appointmentLessonNames.get(lesson) || 0;
+}
+
+export const appointmentLessonTitles = Object.freeze({
+  1: "Nutrient Density",
+  2: "Sugar",
+  3: "Food Groups",
+  4: "Macronutrients",
+  5: "Micronutrients",
+  6: "Mindful Eating",
+  7: "Healthy Habits"
+});
+
+export const appointmentWrapUpDefaults = Object.freeze({
+  caregiverMood: "Good",
+  confidence: "High",
+  participation: "Engaged",
+  barriers: "None"
+});
+
+export const appointmentWrapUpOptions = Object.freeze({
+  caregiverMood: Object.freeze(["Good", "Okay", "Stressed", "Concerned"]),
+  confidence: Object.freeze(["High", "Medium", "Low"]),
+  participation: Object.freeze(["Engaged", "Somewhat Engaged", "Quiet", "Not Engaged"]),
+  barriers: Object.freeze(["None", "Transportation", "Schedule", "Food access", "Language", "Caregiver capacity", "Other"])
+});
+
+export function nextAppointmentLessonNumber(item = {}) {
+  const type = cleanAppointmentType(item.type || item.source?.appointmentType, item.lesson || item.source?.lesson);
+
+  if (type === "Administrative") {
+    return null;
+  }
+
+  if (type === "Enrollment") {
+    return 1;
+  }
+
+  const currentLesson = appointmentLessonNumber(item.lesson || item.source?.lesson);
+  if (!currentLesson) {
+    return 1;
+  }
+
+  return currentLesson < 7 ? currentLesson + 1 : null;
+}
+
+export function defaultNextAppointmentDate(item = {}) {
+  const appointmentDate = item.date || item.source?.appointmentDate;
+  return appointmentDate ? offsetScheduleDate(appointmentDate, 7) : "";
+}
+
+export function completedAppointmentPayload(item, values = {}) {
+  return {
+    ...appointmentStatusPayload(item, "Completed"),
+    appointmentNote: String(values.appointmentNote ?? item?.source?.appointmentNote ?? "").trim(),
+    caregiverMood: String(values.caregiverMood || appointmentWrapUpDefaults.caregiverMood).trim(),
+    confidence: String(values.confidence || appointmentWrapUpDefaults.confidence).trim(),
+    participation: String(values.participation || appointmentWrapUpDefaults.participation).trim(),
+    barriers: String(values.barriers || appointmentWrapUpDefaults.barriers).trim()
+  };
+}
+
+export function appointmentNotePayload(item, appointmentNote) {
+  const payload = {
+    ...appointmentStatusPayload(item, item?.source?.status || item?.status || "Scheduled"),
+    appointmentNote: String(appointmentNote || "").trim()
+  };
+  const sourceNote = String(item?.source?.notes || "").trim();
+  const usesLegacyAppointmentNote = item?.status === "Completed"
+    && !String(item?.source?.appointmentNote || "").trim()
+    && String(item?.appointmentNote || "").trim() === sourceNote;
+
+  if (usesLegacyAppointmentNote) {
+    payload.notes = "";
+  }
+
+  return payload;
+}
+
+export function nextAppointmentPayload(item, values = {}) {
+  const nextLesson = nextAppointmentLessonNumber(item);
+  if (!nextLesson) {
+    return null;
+  }
+
+  const clientIds = item?.clientIds || item?.source?.clientIds || [];
+  const clientNames = item?.clientNames || item?.source?.clientNames || [];
+  const sourceServiceId = String(item?.source?.publicBookingServiceId || "");
+  const useSpanishService = sourceServiceId.startsWith("spanish-") || /^spanish$/i.test(String(item?.language || ""));
+  const service = newAppointmentService(useSpanishService ? "spanish-nutrition-education" : "nutrition-education");
+
+  return {
+    clientId: clientIds[0] || item?.source?.clientId || "",
+    clientIds,
+    clientName: clientNames[0] || item?.source?.clientName || "",
+    clientNames,
+    appointmentDate: String(values.appointmentDate || defaultNextAppointmentDate(item)).trim(),
+    appointmentTime: normalizeAppointmentTime(values.appointmentTime || item?.time || item?.source?.appointmentTime),
+    appointmentType: service.appointmentType,
+    publicBookingServiceId: service.id,
+    publicBookingServiceLabel: service.label,
+    durationMinutes: service.durationMinutes,
+    status: "Scheduled",
+    lesson: String(nextLesson),
+    goal: String(values.goal || "").trim(),
+    staffMember: String(values.staffMember || item?.staff || item?.source?.staffMember || "").trim(),
+    notes: String(values.notes || "").trim()
+  };
+}
+
+export function appointmentActivityItems(item = {}, activityLogs = []) {
+  const clientIds = new Set(item.clientIds || item.source?.clientIds || []);
+  const clientActivity = activityLogs
+    .filter((log) => log.relatedType === "client" && clientIds.has(log.relatedId))
+    .map((log) => ({
+      title: log.title || `${log.direction || "Outbound"} ${log.type || "Activity"}`,
+      detail: [log.result, log.description].filter(Boolean).join(" | ") || log.type || "Activity",
+      date: log.activityDate || String(log.occurredAt || "").slice(0, 10),
+      sortKey: log.occurredAt || `${log.activityDate || ""}T${normalizeAppointmentTime(log.activityTime || "00:00")}`
+    }));
+  const lessonNumber = appointmentLessonNumber(item.lesson || item.source?.lesson);
+  const lessonTitle = appointmentLessonTitles[lessonNumber] || item.lesson || item.type || "Appointment";
+  const source = item.source || {};
+  const appointmentActivity = [
+    {
+      title: item.status || normalizeAppointmentStatus(source.status),
+      detail: [lessonTitle, item.staff || source.staffMember].filter(Boolean).join(" | "),
+      date: item.date || source.appointmentDate,
+      sortKey: `${item.date || source.appointmentDate || ""}T${item.time || normalizeAppointmentTime(source.appointmentTime)}`
+    },
+    source.createdAt ? {
+      title: "Appointment created",
+      detail: formatScheduleTime(scheduleTimeMinutes(item.time || normalizeAppointmentTime(source.appointmentTime))),
+      date: String(source.createdAt).slice(0, 10),
+      sortKey: source.createdAt
+    } : null,
+    source.updatedAt ? {
+      title: "Last updated",
+      detail: item.status || normalizeAppointmentStatus(source.status),
+      date: String(source.updatedAt).slice(0, 10),
+      sortKey: source.updatedAt
+    } : null
+  ].filter(Boolean);
+
+  return [...clientActivity, ...appointmentActivity]
+    .sort((first, second) => String(second.sortKey || "").localeCompare(String(first.sortKey || "")))
+    .slice(0, 8);
+}
+
+export function appointmentLessonAccent(appointment = {}) {
+  const type = cleanAppointmentType(appointment.appointmentType || appointment.type, appointment.lesson);
+
+  if (type !== "Nutrition Education") {
+    return appointmentLessonAccents[0];
+  }
+
+  const lessonNumber = appointmentLessonNumber(appointment.lesson);
+  return appointmentLessonAccents[lessonNumber || 1];
 }
 
 export function normalizeAppointmentStatus(value) {
@@ -144,6 +508,20 @@ export function appointmentStatusPayload(item, status) {
     clientName: item?.clientNames?.[0] || item?.source?.clientName || "",
     clientNames: item?.clientNames || item?.source?.clientNames || [],
     status
+  };
+}
+
+export function appointmentEditPayload(item, values = {}) {
+  const appointmentType = cleanAppointmentType(values.appointmentType || item?.type);
+  const isNutritionEducation = appointmentType === "Nutrition Education";
+
+  return {
+    ...appointmentStatusPayload(item, item?.source?.status || item?.status || "Scheduled"),
+    appointmentType,
+    staffMember: String(values.staffMember || item?.staff || "").trim(),
+    lesson: isNutritionEducation ? String(values.lesson || "").trim() : "",
+    goal: isNutritionEducation ? String(values.goal || "").trim() : "",
+    notes: String(values.notes ?? item?.notes ?? "").trim()
   };
 }
 
@@ -174,20 +552,33 @@ export function mapAppointment(appointment, clientsById) {
   const type = cleanAppointmentType(appointment.appointmentType, appointment.lesson);
   const prep = prepForAppointment(type);
   const status = normalizeAppointmentStatus(appointment.status);
+  const storedAppointmentNote = String(appointment.appointmentNote || "").trim();
+  const legacyAppointmentNote = !storedAppointmentNote && status === "Completed"
+    ? String(appointment.notes || "").trim()
+    : "";
+  const detailsNote = status === "Completed" && (legacyAppointmentNote || storedAppointmentNote === String(appointment.notes || "").trim())
+    ? ""
+    : String(appointment.notes || "").trim();
+  const isBlockedTime = status === "Blocked";
+  const appointmentTime = normalizeAppointmentTime(appointment.appointmentTime);
+  const duration = Number(appointment.durationMinutes) || 30;
+  const startMinutes = scheduleTimeMinutes(appointmentTime);
 
   return {
     id: appointment.id,
     source: { ...appointment },
     clientIds,
     clientNames: displayNames,
-    title: formatFirstNames(displayNames),
+    title: isBlockedTime ? "Blocked Time" : formatFirstNames(displayNames),
     subtitle: type,
     status,
     date: appointment.appointmentDate,
-    time: normalizeAppointmentTime(appointment.appointmentTime),
-    duration: Number(appointment.durationMinutes) || 30,
+    time: appointmentTime,
+    endTime: scheduleTimeKey(startMinutes + duration),
+    duration,
     type,
-    accent: appointmentAccent(status),
+    accent: appointmentLessonAccent(appointment),
+    compact: duration <= 15,
     caregiver: primaryClient?.parentName || "-",
     siblings: displayNames.map(firstName).filter(Boolean).join(", ") || "-",
     language: primaryClient?.preferredLanguage || "-",
@@ -195,7 +586,8 @@ export function mapAppointment(appointment, clientsById) {
     lesson: appointment.lesson || type,
     staff: appointment.staffMember || "-",
     goal: appointment.goal || "-",
-    notes: appointment.notes || "-",
+    notes: detailsNote || "-",
+    appointmentNote: storedAppointmentNote || legacyAppointmentNote,
     prepChecklist: appointment.prepChecklist || {},
     forms: prep.forms,
     supplies: prep.supplies

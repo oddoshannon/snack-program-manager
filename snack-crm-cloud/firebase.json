@@ -23,6 +23,10 @@
         "destination": "/booking.html"
       },
       {
+        "source": "/book",
+        "destination": "/book.html"
+      },
+      {
         "source": "/api/**",
         "run": {
           "serviceId": "snack-crm-api",

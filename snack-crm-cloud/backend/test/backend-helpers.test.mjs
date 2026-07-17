@@ -31,6 +31,7 @@ import {
   cleanTaskPayload,
   clientPayloadFromReferral,
   daysBetweenDateStrings,
+  defaultSchedulingSettingsNormalized,
   fetchAllDocuments,
   formatAppointmentTimeValue,
   hasRequiredPersonFields,
@@ -38,6 +39,7 @@ import {
   isAdminBulkDeleteEnabled,
   isGeneratedTaskSource,
   isPublicBookableDate,
+  isPublicAppointmentAtLeastHoursAhead,
   normalizeActivityDirection,
   normalizeActivityType,
   normalizeAppointmentStatus,
@@ -49,10 +51,15 @@ import {
   normalizedLookupKey,
   normalizedTaskTitle,
   publicAppointmentDraft,
+  buildPublicBookingConfirmation,
+  previewPublicBookingConfirmationDelivery,
+  publicBookingConfirmationDeliverySummary,
+  publicBookingConfirmationMode,
   publicBookingServiceFromId,
   publicBookingServices,
   publicBookingValidationError,
   publicManageClientIdsFromAppointment,
+  publicBookingManageUrl,
   publicManageTokenHash,
   publicManageTokensMatch,
   publicSlotValuesForDate,
@@ -504,8 +511,8 @@ test("appointment blocking includes scheduled, completed, and blocked records", 
   assert.equal(appointmentBlocksSchedule({ status: "No-show" }), false);
 });
 
-test("appointment scheduling window allows appointments ending by 6 PM", () => {
-  assert.equal(appointmentFitsSchedulingWindow({ appointmentTime: "13:00", durationMinutes: 30 }), false);
+test("appointment scheduling window allows appointments from 1 PM through 6 PM", () => {
+  assert.equal(appointmentFitsSchedulingWindow({ appointmentTime: "13:00", durationMinutes: 30 }), true);
   assert.equal(appointmentFitsSchedulingWindow({ appointmentTime: "13:30", durationMinutes: 30 }), true);
   assert.equal(appointmentFitsSchedulingWindow({ appointmentTime: "17:30", durationMinutes: 30 }), true);
   assert.equal(appointmentFitsSchedulingWindow({ appointmentTime: "17:45", durationMinutes: 30 }), false);
@@ -562,7 +569,9 @@ test("cleanAppointmentPayload supports CSV-like client fields and public duratio
     caregiverMood: " Good ",
     confidence: " High ",
     participation: " Engaged ",
-    barriers: " None "
+    barriers: " None ",
+    notes: " Bring workbook ",
+    appointmentNote: " Discussed nutrient density. "
   });
 
   assert.deepEqual(payload.clientIds, ["a", "b"]);
@@ -574,6 +583,8 @@ test("cleanAppointmentPayload supports CSV-like client fields and public duratio
   assert.equal(payload.confidence, "High");
   assert.equal(payload.participation, "Engaged");
   assert.equal(payload.barriers, "None");
+  assert.equal(payload.notes, "Bring workbook");
+  assert.equal(payload.appointmentNote, "Discussed nutrient density.");
 });
 
 test("resolveAppointmentImportClients matches CSV client names to existing clients", async () => {
@@ -718,9 +729,11 @@ test("public appointment drafts are scheduled and private-safe", () => {
 test("public slots respect service duration and appointment conflicts", () => {
   const date = nextUtcWeekday(3);
   const service = publicBookingServiceFromId("enrollment");
+  const historicalNow = new Date(`${date}T00:00:00Z`);
+  historicalNow.setUTCDate(historicalNow.getUTCDate() - 1);
   const slots = publicSlotValuesForDate(date, service, [
     { appointmentDate: date, appointmentTime: "13:00", durationMinutes: 30, status: "Scheduled" }
-  ]);
+  ], defaultSchedulingSettingsNormalized, historicalNow);
   const values = slots.map((slot) => slot.value);
 
   assert.equal(values.includes("13:00"), false);
@@ -730,9 +743,9 @@ test("public slots respect service duration and appointment conflicts", () => {
 
   const nonblockingSlots = publicSlotValuesForDate(nextUtcWeekday(4), service, [
     { appointmentDate: date, appointmentTime: "13:00", durationMinutes: 30, status: "Canceled" }
-  ]);
+  ], defaultSchedulingSettingsNormalized, historicalNow);
 
-  assert.equal(nonblockingSlots[0].value, "13:30");
+  assert.equal(nonblockingSlots[0].value, "13:00");
 });
 
 test("public slots follow configurable appointment days and hours", () => {
@@ -753,6 +766,24 @@ test("public slots follow configurable appointment days and hours", () => {
     "14:30"
   ]);
   assert.deepEqual(publicSlotValuesForDate(nextUtcWeekday(4), service, [], customSettings), []);
+});
+
+test("public booking requires at least 24 hours notice in Pacific time", () => {
+  const now = new Date("2026-07-15T20:15:00Z");
+
+  assert.equal(isPublicAppointmentAtLeastHoursAhead("2026-07-16", "13:00", now), false);
+  assert.equal(isPublicAppointmentAtLeastHoursAhead("2026-07-16", "13:15", now), true);
+
+  const service = publicBookingServiceFromId("enrollment");
+  const slots = publicSlotValuesForDate(
+    "2026-07-16",
+    service,
+    [],
+    defaultSchedulingSettingsNormalized,
+    now
+  );
+
+  assert.equal(slots[0].value, "13:15");
 });
 
 test("public management tokens and serialized bookings are private-safe", () => {
@@ -778,6 +809,87 @@ test("public management tokens and serialized bookings are private-safe", () => 
   assert.equal(booking.appointmentTimeLabel, "2:30 PM");
   assert.equal(booking.clientName, "Rafael Hernandez, Janney Hernandez");
   assert.equal(Object.hasOwn(booking, "publicManageTokenHash"), false);
+});
+
+test("public booking confirmation content includes the private management link", () => {
+  const confirmation = buildPublicBookingConfirmation({
+    appointmentId: "appt-1",
+    manageToken: "private-token",
+    bookingPageUrl: "https://booking.example.org/booking.html?old=value#section",
+    caregiverName: "Neiva",
+    clientNames: ["Rafael Hernandez", "Janney Hernandez"],
+    serviceLabel: "Nutrition Education Appointment",
+    appointmentDate: "2026-07-21",
+    appointmentTimeLabel: "2:30 PM",
+    preferredLanguage: "English",
+    email: "family@example.com",
+    phone: "(503) 555-0100"
+  });
+
+  assert.equal(
+    confirmation.manageUrl,
+    "https://booking.example.org/booking.html?appointmentId=appt-1&token=private-token"
+  );
+  assert.match(confirmation.email.subject, /appointment is confirmed/i);
+  assert.match(confirmation.email.text, /Rafael Hernandez and Janney Hernandez/);
+  assert.match(confirmation.email.text, /Tuesday, July 21, 2026/);
+  assert.match(confirmation.email.text, /private link/);
+  assert.match(confirmation.email.html, /appointmentId=appt-1&amp;token=private-token/);
+  assert.match(confirmation.text.body, /Manage appointment:/);
+});
+
+test("public booking confirmation content follows the family's preferred language", () => {
+  const confirmation = buildPublicBookingConfirmation({
+    appointmentId: "appt-2",
+    manageToken: "private-token",
+    bookingPageUrl: "https://booking.example.org/booking.html",
+    caregiverName: "María",
+    clientNames: ["Lana", "Hamzah"],
+    serviceLabel: "Cita de educación nutricional en español",
+    appointmentDate: "2026-07-22",
+    appointmentTimeLabel: "3:00 PM",
+    preferredLanguage: "Spanish",
+    email: "familia@example.com",
+    phone: "(503) 555-0101"
+  });
+
+  assert.match(confirmation.email.subject, /cita.*confirmada/i);
+  assert.match(confirmation.email.text, /Hola María/);
+  assert.match(confirmation.email.text, /Lana y Hamzah/);
+  assert.match(confirmation.email.text, /cancelar o elegir una nueva hora/);
+  assert.match(confirmation.text.body, /Administrar cita:/);
+});
+
+test("confirmation delivery remains disabled or preview-only", () => {
+  const details = {
+    appointmentId: "appt-3",
+    manageToken: "private-token",
+    bookingPageUrl: "https://booking.example.org/booking.html",
+    caregiverName: "Neiva",
+    clientNames: ["Rafael"],
+    serviceLabel: "Enrollment Appointment",
+    appointmentDate: "2026-07-23",
+    appointmentTimeLabel: "1:00 PM",
+    preferredLanguage: "English",
+    email: "family@example.com",
+    phone: "(503) 555-0102"
+  };
+  const disabled = previewPublicBookingConfirmationDelivery(details, "live");
+  const preview = previewPublicBookingConfirmationDelivery(details, "preview");
+  const summary = publicBookingConfirmationDeliverySummary(preview);
+
+  assert.equal(publicBookingConfirmationMode("live"), "disabled");
+  assert.deepEqual(disabled, { status: "disabled", channels: [] });
+  assert.equal(preview.status, "preview");
+  assert.deepEqual(preview.channels, ["email", "text"]);
+  assert.deepEqual(summary, { status: "preview", channels: ["email", "text"] });
+  assert.equal(JSON.stringify(summary).includes("family@example.com"), false);
+  assert.equal(JSON.stringify(summary).includes("private-token"), false);
+});
+
+test("public booking management URLs require both private values", () => {
+  assert.equal(publicBookingManageUrl({ appointmentId: "appt-1", manageToken: "" }), "");
+  assert.equal(publicBookingManageUrl({ appointmentId: "", manageToken: "token" }), "");
 });
 
 test("public management client IDs include fallback client and avoid duplicates", () => {
@@ -845,6 +957,16 @@ test("public booking validation rejects spam traps and malformed public input", 
   assert.match(publicBookingValidationError({ ...validPayload, email: "" }), /required/);
   assert.match(publicBookingValidationError({ ...validPayload, consentReminders: false }), /required/);
   assert.match(publicBookingValidationError({ ...validPayload, notes: "x".repeat(601) }), /shorten/);
+
+  const tooSoonPayload = {
+    ...validPayload,
+    appointmentDate: "2026-07-16",
+    appointmentTime: "13:00"
+  };
+  assert.match(
+    publicBookingValidationError(tooSoonPayload, defaultSchedulingSettingsNormalized, new Date("2026-07-15T20:15:00Z")),
+    /at least 24 hours/
+  );
 });
 
 test("serializers produce stable API shapes", () => {

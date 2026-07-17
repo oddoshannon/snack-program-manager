@@ -1,5 +1,9 @@
 import express from "express";
 import {
+  previewPublicBookingConfirmationDelivery,
+  publicBookingConfirmationDeliverySummary
+} from "../lib/public-booking-confirmation.js";
+import {
   addDaysToDateString,
   appointmentBlocksSchedule,
   appointmentFitsSchedulingWindow,
@@ -243,6 +247,19 @@ router.post("/api/public/bookings", publicBookingRateLimit, async (request, resp
     batch.set(taskRef, taskRecord);
     await batch.commit();
 
+    const confirmationDelivery = previewPublicBookingConfirmationDelivery({
+      appointmentId: appointmentRef.id,
+      manageToken: publicManageToken,
+      caregiverName: payload.parentName,
+      clientNames,
+      serviceLabel: payload.service.label,
+      appointmentDate: payload.appointmentDate,
+      appointmentTimeLabel: formatAppointmentTimeValue(payload.appointmentTime),
+      preferredLanguage: payload.preferredLanguage,
+      email: payload.email,
+      phone: payload.phone
+    });
+
     response.status(201).json({
       booking: {
         clientName: clientNames.length > 1 ? clientNames.join(", ") : clientName,
@@ -254,7 +271,8 @@ router.post("/api/public/bookings", publicBookingRateLimit, async (request, resp
         durationMinutes: payload.service.durationMinutes,
         appointmentId: appointmentRef.id,
         manageToken: publicManageToken
-      }
+      },
+      confirmationDelivery: publicBookingConfirmationDeliverySummary(confirmationDelivery)
     });
   } catch (error) {
     next(error);

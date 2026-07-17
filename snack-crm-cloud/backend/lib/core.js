@@ -68,15 +68,17 @@ const defaultAppointmentDurationMinutes = 30;
 const defaultSchedulingSettings = Object.freeze({
   officeStartTime: "13:00",
   officeEndTime: "18:00",
-  bookableStartTime: "13:30",
+  bookableStartTime: "13:00",
   bookableEndTime: "18:00",
   weekdays: [2, 3, 4],
   defaultDurationMinutes: defaultAppointmentDurationMinutes,
   slotIntervalMinutes: 15
 });
 const publicAvailabilityDefaultDays = 21;
-const publicAvailabilityMaxDays = 45;
-const publicBookingMaxAdvanceDays = 120;
+const publicAvailabilityMaxDays = 93;
+const publicBookingMaxAdvanceDays = 93;
+const publicBookingMinimumNoticeHours = 24;
+const publicBookingTimeZone = "America/Los_Angeles";
 const publicBookingMaxLengths = {
   childName: 120,
   dateOfBirth: 20,
@@ -569,6 +571,7 @@ function toAppointment(snapshot) {
     participation: data.participation,
     barriers: data.barriers,
     notes: data.notes,
+    appointmentNote: data.appointmentNote,
     prepChecklist: cleanAppointmentPrepChecklist(data.prepChecklist),
     createdAt: data.createdAt,
     updatedAt: data.updatedAt
@@ -1035,7 +1038,8 @@ function cleanAppointmentPayload(body) {
     lesson,
     goal: cleanString(body.goal) || inferAppointmentGoalFromNotes(notes, lesson),
     staffMember: cleanString(body.staffMember),
-    notes
+    notes,
+    appointmentNote: cleanString(body.appointmentNote)
   };
   for (const field of ["caregiverMood", "confidence", "participation", "barriers"]) {
     if (Object.prototype.hasOwnProperty.call(body, field)) {
@@ -1575,8 +1579,15 @@ function siblingIdsForImportedRecord(record, recordsByZohoId, allRecords = []) {
   return [...new Set([...directSiblingIds, ...reciprocalSiblingIds])];
 }
 
-function todayDateString() {
-  return new Date().toISOString().slice(0, 10);
+function todayDateString(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: publicBookingTimeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 function parseDateOnly(value) {
@@ -1627,10 +1638,65 @@ function isPublicBookableDate(dateString, settings = defaultSchedulingSettingsNo
   return new Set(settings.weekdays).has(date.getUTCDay());
 }
 
-function isPublicBookingDateInRange(dateString) {
-  const today = todayDateString();
+function isPublicBookingDateInRange(dateString, now = new Date()) {
+  const today = todayDateString(now);
   const daysAhead = daysBetweenDateStrings(today, dateString);
   return daysAhead !== null && daysAhead >= 0 && daysAhead <= publicBookingMaxAdvanceDays;
+}
+
+function timeZoneOffsetMilliseconds(date, timeZone) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const localTimeAsUtc = Date.UTC(
+    Number(values.year),
+    Number(values.month) - 1,
+    Number(values.day),
+    Number(values.hour),
+    Number(values.minute),
+    Number(values.second)
+  );
+
+  return localTimeAsUtc - date.getTime();
+}
+
+function publicAppointmentDateTime(dateString, appointmentTime) {
+  const date = parseDateOnly(dateString);
+  const normalizedTime = normalizeAppointmentTimeValue(appointmentTime);
+
+  if (!date || !normalizedTime) {
+    return null;
+  }
+
+  const [hours, minutes] = normalizedTime.split(":").map(Number);
+  const localTimeAsUtc = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), hours, minutes);
+  let appointment = new Date(localTimeAsUtc);
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const offset = timeZoneOffsetMilliseconds(appointment, publicBookingTimeZone);
+    appointment = new Date(localTimeAsUtc - offset);
+  }
+
+  return appointment;
+}
+
+function isPublicAppointmentAtLeastHoursAhead(
+  dateString,
+  appointmentTime,
+  now = new Date(),
+  minimumHours = publicBookingMinimumNoticeHours
+) {
+  const appointment = publicAppointmentDateTime(dateString, appointmentTime);
+
+  return Boolean(appointment) && appointment.getTime() - now.getTime() >= minimumHours * 60 * 60 * 1000;
 }
 
 function publicBookingServiceFromId(serviceId) {
@@ -1824,8 +1890,14 @@ function publicAppointmentDraft({ service, appointmentDate, appointmentTime, cli
   };
 }
 
-function publicSlotValuesForDate(dateString, service, existingAppointments = [], settings = defaultSchedulingSettingsNormalized) {
-  if (!isPublicBookableDate(dateString, settings) || !isPublicBookingDateInRange(dateString)) {
+function publicSlotValuesForDate(
+  dateString,
+  service,
+  existingAppointments = [],
+  settings = defaultSchedulingSettingsNormalized,
+  now = new Date()
+) {
+  if (!isPublicBookableDate(dateString, settings) || !isPublicBookingDateInRange(dateString, now)) {
     return [];
   }
 
@@ -1839,7 +1911,7 @@ function publicSlotValuesForDate(dateString, service, existingAppointments = [],
       (appointment) => appointmentBlocksSchedule(appointment) && appointmentRangesOverlap(candidate, appointment)
     );
 
-    if (!conflict) {
+    if (!conflict && isPublicAppointmentAtLeastHoursAhead(dateString, appointmentTime, now)) {
       slots.push({
         value: appointmentTime,
         label: formatAppointmentTimeValue(appointmentTime)
@@ -1899,7 +1971,7 @@ function cleanPublicBookingPayload(body) {
   };
 }
 
-function publicBookingValidationError(payload, settings = defaultSchedulingSettingsNormalized) {
+function publicBookingValidationError(payload, settings = defaultSchedulingSettingsNormalized, now = new Date()) {
   if (payload.spamTrap || payload.website || payload.company || payload.url || payload.contactMe) {
     return "Could not submit this booking request. Please call or text (971) 202-0232.";
   }
@@ -1934,8 +2006,12 @@ function publicBookingValidationError(payload, settings = defaultSchedulingSetti
     return "Choose an appointment date and time.";
   }
 
-  if (!isPublicBookableDate(payload.appointmentDate, settings) || !isPublicBookingDateInRange(payload.appointmentDate)) {
+  if (!isPublicBookableDate(payload.appointmentDate, settings) || !isPublicBookingDateInRange(payload.appointmentDate, now)) {
     return "Choose an available appointment date.";
+  }
+
+  if (!isPublicAppointmentAtLeastHoursAhead(payload.appointmentDate, payload.appointmentTime, now)) {
+    return "Appointments must be booked at least 24 hours in advance.";
   }
 
   return "";
@@ -2036,6 +2112,7 @@ export {
   isGeneratedTaskSource,
   isPublicBookableDate,
   isPublicBookingDateInRange,
+  isPublicAppointmentAtLeastHoursAhead,
   legacyStatusMap,
   legacyTaskTypeMap,
   loadPublicManagedAppointment,
@@ -2065,6 +2142,7 @@ export {
   publicAvailabilityMaxDays,
   publicBookingAttempts,
   publicBookingMaxAdvanceDays,
+  publicBookingMinimumNoticeHours,
   publicBookingMaxLengths,
   publicBookingRateLimit,
   publicBookingServiceById,

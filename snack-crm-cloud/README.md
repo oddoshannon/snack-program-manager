@@ -75,7 +75,7 @@ The older `app.js` and `styles.css` files remain temporarily as functionality an
 
 ### Public booking
 
-`booking.html` and `booking.js` provide public appointment selection, multi-child booking, and booking management. Public actions do not require staff sign-in, but they are rate-limited and cancel/reschedule actions require a secure management token.
+`booking.html` and `booking.js` provide the public landing page and appointment-type selection. `book.html` and `book.js` provide scheduling, multi-child booking, confirmation, and private booking management. Public actions do not require staff sign-in, but they are rate-limited and cancel/reschedule actions require a secure management token.
 
 ## Database collections
 
