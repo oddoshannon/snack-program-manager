@@ -453,13 +453,21 @@ test("grant question and organization info payloads preserve reusable grant cont
 test("cleanOutreachEventPayload defaults type and integer counts", () => {
   const payload = cleanOutreachEventPayload({
     name: " Cooking Class ",
-    interactionsCount: "2.2"
+    interactionsCount: "2.2",
+    deadline: " 2026-08-01 ",
+    registration: " Vendor portal ",
+    mainActivity: " Prize wheel ",
+    costAmount: "45.50"
   });
 
   assert.equal(payload.type, "Outreach Event");
   assert.equal(payload.status, "Scheduled");
   assert.equal(payload.name, "Cooking Class");
   assert.equal(payload.interactionsCount, 2);
+  assert.equal(payload.deadline, "2026-08-01");
+  assert.equal(payload.registration, "Vendor portal");
+  assert.equal(payload.mainActivity, "Prize wheel");
+  assert.equal(payload.costAmount, 45.5);
 
   const contactPayload = cleanOutreachContactPayload({
     contactName: " Caregiver ",
@@ -654,6 +662,16 @@ test("cleanTaskPayload normalizes task defaults", () => {
   assert.equal(payload.status, "Open");
   assert.equal(payload.priority, "Normal");
   assert.equal(payload.source, "Manual");
+
+  const outreachTask = cleanTaskPayload({
+    title: " Confirm booth supplies ",
+    source: "Outreach",
+    outreachEventId: " event-1 ",
+    outreachEventName: " County Fair "
+  });
+  assert.equal(outreachTask.outreachEventId, "event-1");
+  assert.equal(outreachTask.outreachEventName, "County Fair");
+  assert.equal(outreachTask.source, "Outreach");
 });
 
 test("task helper functions classify generated active tasks", () => {
@@ -762,6 +780,8 @@ test("public slots respect service duration and appointment conflicts", () => {
 test("public slots follow configurable appointment days and hours", () => {
   const date = nextUtcWeekday(3);
   const service = publicBookingServiceFromId("enrollment");
+  const historicalNow = new Date(`${date}T00:00:00Z`);
+  historicalNow.setUTCDate(historicalNow.getUTCDate() - 1);
   const customSettings = {
     weekdays: [3],
     bookableStartTime: "14:00",
@@ -771,12 +791,12 @@ test("public slots follow configurable appointment days and hours", () => {
     slotIntervalMinutes: 15
   };
 
-  assert.deepEqual(publicSlotValuesForDate(date, service, [], customSettings).map((slot) => slot.value), [
+  assert.deepEqual(publicSlotValuesForDate(date, service, [], customSettings, historicalNow).map((slot) => slot.value), [
     "14:00",
     "14:15",
     "14:30"
   ]);
-  assert.deepEqual(publicSlotValuesForDate(nextUtcWeekday(4), service, [], customSettings), []);
+  assert.deepEqual(publicSlotValuesForDate(nextUtcWeekday(4), service, [], customSettings, historicalNow), []);
 });
 
 test("public booking requires at least 24 hours notice in Pacific time", () => {
@@ -1047,9 +1067,21 @@ test("public and protected API routes are registered with expected middleware", 
   assert.ok(routes.includes("/api/grant-organization-info"));
   assert.ok(routes.includes("/api/admin/scheduling-settings"));
   assert.ok(routes.includes("/api/appointments/:appointmentId/prep"));
+  assert.ok(routes.includes("/api/outreach-events"));
+  assert.ok(routes.includes("/api/outreach-events/:eventId"));
+  assert.ok(routes.includes("/api/outreach-contacts"));
+  assert.ok(routes.includes("/api/outreach-contacts/:contactId"));
+  assert.ok(routes.includes("/api/outreach-contacts/:contactId/link-referral"));
   const healthRoute = registeredRoutes.find((route) => route.path === "/health");
   const bookingOptionsRoute = registeredRoutes.find((route) => route.path === "/api/public/booking-options");
   const prepRoute = registeredRoutes.find((route) => route.path === "/api/appointments/:appointmentId/prep");
+  const outreachEventsRoute = registeredRoutes.find((route) => route.path === "/api/outreach-events");
+  const outreachDeleteRoute = registeredRoutes.find((route) => (
+    route.path === "/api/outreach-events/:eventId" && route.methods.delete
+  ));
+  const outreachReferralLinkRoute = registeredRoutes.find((route) => (
+    route.path === "/api/outreach-contacts/:contactId/link-referral"
+  ));
   const messageRoute = registeredRoutes.find((route) => route.path === "/api/message");
 
   assert.equal(healthRoute.stack.length, 1);
@@ -1057,6 +1089,11 @@ test("public and protected API routes are registered with expected middleware", 
   assert.equal(bookingOptionsRoute.methods.get, true);
   assert.equal(prepRoute.methods.patch, true);
   assert.equal(prepRoute.stack.length, 2);
+  assert.equal(outreachEventsRoute.methods.get, true);
+  assert.equal(outreachEventsRoute.stack.length, 2);
+  assert.equal(outreachDeleteRoute.stack.length, 2);
+  assert.equal(outreachReferralLinkRoute.methods.patch, true);
+  assert.equal(outreachReferralLinkRoute.stack.length, 2);
   assert.equal(messageRoute.methods.get, true);
   assert.equal(messageRoute.stack.length, 2);
 });

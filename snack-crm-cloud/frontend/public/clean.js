@@ -75,6 +75,26 @@ import {
   referralNetworkTypeOptions,
   referralStatusOptions
 } from "./modules/referrals.js?v=20260718-crm-links1";
+import {
+  formatOutreachMoney,
+  mapOutreachContacts,
+  mapOutreachEvents,
+  mapOutreachTasks,
+  outreachContactMatches,
+  outreachContactPayload,
+  outreachContactStatusOptions,
+  outreachEventMatches,
+  outreachEventPayload,
+  outreachEventStatusOptions,
+  outreachEventTypeOptions,
+  outreachInterestTypeOptions,
+  outreachReport,
+  outreachSummary,
+  outreachTaskMatches,
+  outreachTaskPayload,
+  outreachTaskPriorityOptions,
+  outreachTaskStatusOptions
+} from "./modules/outreach.js?v=20260721-outreach1";
 
 const icons = {
   schedule: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4M16 2v4M4 9h16M6 4h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>`,
@@ -218,84 +238,24 @@ const modules = {
     icon: "outreach",
     tone: "yellow",
     theme: ["var(--yellow)", "var(--yellow-soft)", "#ead18a"],
-    subpages: ["Events", "Contacts", "Tasks", "Reports"],
-    views: ["Events", "Contacts", "Reports"],
+    subpages: ["Events", "Contacts"],
+    views: ["Events", "Contacts"],
     primaryAction: "New Event",
     quickActions: ["New Event", "Log Outcome", "Add Contact"],
-    summary: [["12", "Annual events"], ["418", "Families reached"], ["96", "New contacts"], ["$1.8k", "Event costs"]],
+    summary: [["0", "Annual events"], ["0", "Families reached"], ["0", "New contacts"], ["$0", "Event costs"]],
     listTitle: "Events",
     footerActions: ["Log Outcome", "Add Contact", "Create Task"],
     detailTabs: ["Logistics", "Outcomes", "Contacts"],
+    detailTabIcons: ["calendar", "check", "crm"],
     sideTitle: "Event Lead",
     sideLink: "Open Event Plan",
     sideFields: [["Date", "date"], ["Location", "place"], ["Cost", "cost"], ["Contact", "contact"], ["Deadline", "deadline"]],
     cards: [
       { title: "Logistics", fields: [["Registration", "registration"], ["Setup", "setup"], ["Contact", "contact"], ["Deadline", "deadline"]] },
       { title: "Event Outcomes", fields: [["Main activity", "activity"], ["Giveaways", "giveaways"], ["Families interacted with", "families"], ["Leads and signups", "leads"]] },
-      { title: "Contacts Generated", fields: [["Maria Lopez", "contact1"], ["Jordan Kim", "contact2"], ["Ana Rivera", "contact3"]] }
+      { title: "Contacts Generated", fields: [] }
     ],
-    items: [
-      {
-        id: "fair",
-        title: "Yamhill County Fair",
-        subtitle: "August 1-3, 2026 | Vendor portal and booth supplies",
-        status: "Planning",
-        date: "August 1-3, 2026",
-        place: "Yamhill County Fairgrounds",
-        cost: "$250 booth fee + prize supplies",
-        contact: "Fair office",
-        deadline: "Confirm by July 15",
-        registration: "Vendor portal; insurance certificate required",
-        setup: "10x10 booth, tablecloth, prize wheel, newsletter QR code",
-        activity: "Prize wheel",
-        giveaways: "SNACK stickers, pencils, recipe cards",
-        families: "Goal: 180 families",
-        leads: "Newsletter signups and appointment interest",
-        contact1: "Newsletter signup | prefers text",
-        contact2: "Family nutrition appointment interest",
-        contact3: "School resource table partner"
-      },
-      {
-        id: "resource-night",
-        title: "Family Resource Night",
-        subtitle: "May 20, 2026 | Prize wheel and bilingual interest forms",
-        status: "Ready",
-        date: "May 20, 2026",
-        place: "Newberg Family Resource Center",
-        cost: "$45 printing and prizes",
-        contact: "Resource center coordinator",
-        deadline: "Register by May 12",
-        registration: "Email coordinator by May 12",
-        setup: "Prize wheel, sticker basket, bilingual interest forms",
-        activity: "Prize wheel",
-        giveaways: "SNACK stickers, pencils, recipe cards",
-        families: "Goal: 75 families",
-        leads: "Family appointment interest list",
-        contact1: "Spanish appointment interest",
-        contact2: "Newsletter signup",
-        contact3: "School partner follow-up"
-      },
-      {
-        id: "back-school",
-        title: "Back to School Bash",
-        subtitle: "August 28, 2026 | Lead capture and giveaway checklist",
-        status: "Tasks",
-        date: "August 28, 2026",
-        place: "McMinnville Community Center",
-        cost: "$120 giveaway supplies",
-        contact: "School outreach lead",
-        deadline: "Confirm table by August 10",
-        registration: "School partner form pending",
-        setup: "Bingo cards, newsletter QR, flyer packets",
-        activity: "Bingo card",
-        giveaways: "Pencils, stickers, workbook preview",
-        families: "Goal: 110 families",
-        leads: "Newsletter signups and partner referrals",
-        contact1: "Interested in cooking class",
-        contact2: "Wants program flyer by text",
-        contact3: "Business sponsor lead"
-      }
-    ]
+    items: []
   },
   fundraising: {
     label: "Fundraising",
@@ -479,7 +439,7 @@ const modules = {
     icon: "operations",
     tone: "navy",
     theme: ["var(--navy)", "var(--navy-soft)", "#cfd5df"],
-    subpages: ["Dashboard", "KPI", "Connectors", "Data Quality", "Tasks"],
+    subpages: ["Dashboard", "KPI", "Connectors", "Data Quality", "Tasks", "Reports"],
     views: ["Overview", "Tasks", "Reports"],
     primaryAction: "New Task",
     quickActions: ["New Task", "Run Check", "Add KPI"],
@@ -691,13 +651,41 @@ let crmDeletePendingId = "";
 let crmConvertPendingId = "";
 let crmActionBusy = false;
 let crmOpenSignIn = null;
+let crmOutreachHandoffHandled = false;
+let crmOutreachContactId = "";
 let crmSubpage = ["Clients", "Referrals", "Referral Network"].includes(new URLSearchParams(window.location.search).get("section"))
   ? new URLSearchParams(window.location.search).get("section")
   : "Clients";
+let outreachCurrentUser = null;
+let outreachDataMessage = "Loading outreach events...";
+let outreachRawEvents = [];
+let outreachRawContacts = [];
+let outreachRawTasks = [];
+let outreachEventItems = [];
+let outreachContactItems = [];
+let outreachTaskItems = [];
+let outreachAllItems = [];
+let outreachDetailTab = "logistics";
+let outreachPanelMode = "detail";
+let outreachEditorKind = "";
+let outreachEditingEventId = "";
+let outreachEditingContactId = "";
+let outreachEditingTaskId = "";
+let outreachSearchQuery = "";
+let outreachDeletePendingId = "";
+let outreachActionBusy = false;
+let outreachOpenSignIn = null;
+let outreachSubpage = ["Events", "Contacts", "Tasks", "Reports"].includes(new URLSearchParams(window.location.search).get("section"))
+  ? new URLSearchParams(window.location.search).get("section")
+  : "Events";
 let scheduleHandoffHandled = false;
 const newAppointmentClientIds = new Set();
 
 function currentModuleId() {
+  if (isOperationsOutreachReport()) {
+    return "outreach";
+  }
+
   const explicit = window.SNACK_MODULE_ID || document.body.dataset.module;
   if (explicit && modules[explicit]) {
     return explicit;
@@ -705,6 +693,11 @@ function currentModuleId() {
 
   const page = location.pathname.split("/").pop().replace(".html", "");
   return modules[page] ? page : "outreach";
+}
+
+function isOperationsOutreachReport() {
+  const page = location.pathname.split("/").pop();
+  return page === "operations.html" && new URLSearchParams(location.search).get("section") === "Reports";
 }
 
 function icon(name) {
@@ -810,6 +803,136 @@ function crmEmptyMessage() {
   return "No clients found.";
 }
 
+function outreachReportItem() {
+  const report = outreachReport(outreachRawEvents, outreachRawContacts, outreachRawTasks);
+  return {
+    id: `report-${report.year}`,
+    kind: "report",
+    title: `${report.year} Outreach Report`,
+    subtitle: `${report.events} events | ${report.interactions} families reached`,
+    status: "Current",
+    year: String(report.year),
+    events: String(report.events),
+    completedEvents: String(report.completedEvents),
+    interactions: String(report.interactions),
+    participants: String(report.participants),
+    referrals: String(report.referrals),
+    interestList: String(report.interestList),
+    contacts: String(report.contacts),
+    openTasks: String(report.openTasks),
+    cost: formatOutreachMoney(report.cost),
+    source: report
+  };
+}
+
+function outreachSubpageDefinition(label = outreachSubpage) {
+  if (label === "Contacts") {
+    return {
+      title: "Outreach",
+      views: ["Events", "Contacts"],
+      primaryAction: "Add Contact",
+      quickActions: ["Add Contact", "New Event"],
+      summary: outreachSummary(outreachRawEvents, outreachRawContacts),
+      listTitle: "Contacts",
+      searchLabel: "Search outreach contacts",
+      footerActions: ["Edit", "New Referral", "Delete"],
+      detailTabs: ["Overview", "Notes"],
+      detailTabIcons: ["crm", "note"],
+      sideTitle: "Contact",
+      sideIcon: "crm",
+      sideLink: "",
+      sideFields: [["Event", "event"], ["Interest", "interestType"], ["Status", "status"], ["Phone", "phone"], ["Email", "email"]],
+      cards: [{ title: "Contact Details", fields: [] }],
+      items: outreachContactItems
+    };
+  }
+
+  if (label === "Tasks") {
+    return {
+      title: "Outreach",
+      views: ["Events", "Contacts"],
+      primaryAction: "New Task",
+      quickActions: ["New Task", "New Event", "Add Contact"],
+      summary: outreachSummary(outreachRawEvents, outreachRawContacts),
+      listTitle: "Tasks",
+      searchLabel: "Search outreach tasks",
+      footerActions: ["Edit", "Mark Done", "Delete"],
+      detailTabs: ["Overview", "Notes"],
+      detailTabIcons: ["check", "note"],
+      sideTitle: "Task",
+      sideIcon: "check",
+      sideLink: "",
+      sideFields: [["Due Date", "dueDate"], ["Priority", "priority"], ["Assigned To", "assignedTo"], ["Event", "event"], ["Status", "status"]],
+      cards: [{ title: "Task Details", fields: [] }],
+      items: outreachTaskItems
+    };
+  }
+
+  if (label === "Reports") {
+    return {
+      title: "Outreach Reports",
+      views: [],
+      primaryAction: "",
+      quickActions: [],
+      summary: outreachSummary(outreachRawEvents, outreachRawContacts),
+      listTitle: "Annual Reports",
+      searchLabel: "Search outreach reports",
+      footerActions: [],
+      detailTabs: ["Annual Report"],
+      detailTabIcons: ["file"],
+      sideTitle: "Report",
+      sideIcon: "file",
+      sideLink: "",
+      sideFields: [["Year", "year"], ["Events", "events"], ["Contacts", "contacts"], ["Event Costs", "cost"], ["Open Tasks", "openTasks"]],
+      cards: [{ title: "Annual Report", fields: [] }],
+      items: [outreachReportItem()]
+    };
+  }
+
+  return {
+    title: "Outreach",
+    views: ["Events", "Contacts"],
+    primaryAction: "New Event",
+    quickActions: ["New Event", "Log Outcome", "Add Contact"],
+    summary: outreachSummary(outreachRawEvents, outreachRawContacts),
+    listTitle: "Events",
+    searchLabel: "Search outreach events",
+    footerActions: ["Log Outcome", "Add Contact", "Create Task"],
+    detailTabs: ["Logistics", "Outcomes", "Contacts"],
+    detailTabIcons: ["calendar", "check", "crm"],
+    sideTitle: "Event Lead",
+    sideIcon: "outreach",
+    sideLink: "",
+    sideFields: [["Date", "date"], ["Location", "place"], ["Cost", "cost"], ["Contact", "contact"], ["Deadline", "deadline"]],
+    cards: [
+      { title: "Logistics", fields: [] },
+      { title: "Event Outcomes", fields: [] },
+      { title: "Contacts Generated", fields: [] }
+    ],
+    items: outreachEventItems
+  };
+}
+
+function configureOutreachModule(label = outreachSubpage) {
+  const definition = outreachSubpageDefinition(label);
+  Object.assign(modules.outreach, definition);
+  outreachSubpage = label;
+  outreachAllItems = [...definition.items];
+}
+
+function outreachCurrentMatcher(item, query) {
+  if (outreachSubpage === "Contacts") return outreachContactMatches(item, query);
+  if (outreachSubpage === "Tasks") return outreachTaskMatches(item, query);
+  return outreachEventMatches(item, query);
+}
+
+function outreachEmptyMessage() {
+  if (outreachSubpage === "Contacts") return "No outreach contacts found.";
+  if (outreachSubpage === "Tasks") return "No outreach tasks found.";
+  if (outreachSubpage === "Reports") return "No outreach report is available.";
+  return "No outreach events found.";
+}
+
 function renderNav(activeId) {
   return moduleOrder.map((id) => {
     const module = modules[id];
@@ -825,9 +948,11 @@ function renderNav(activeId) {
           <div class="subnav">
             ${module.subpages.map((label, index) => `
               <button
-                class="${activeId === "schedule" ? (label === scheduleSubpage ? "is-current" : "") : activeId === "crm" ? (label === crmSubpage ? "is-current" : "") : (index === 0 ? "is-current" : "")}"
+                class="${activeId === "schedule" ? (label === scheduleSubpage ? "is-current" : "") : activeId === "crm" ? (label === crmSubpage ? "is-current" : "") : activeId === "outreach" ? (label === outreachSubpage ? "is-current" : "") : activeId === "operations" ? (label === (isOperationsOutreachReport() ? "Reports" : "Dashboard") ? "is-current" : "") : (index === 0 ? "is-current" : "")}"
                 ${activeId === "schedule" && ["Clinic", "Print Forms"].includes(label) ? `data-schedule-subpage="${escapeHtml(label)}"` : ""}
                 ${activeId === "crm" ? `data-crm-subpage="${escapeHtml(label)}"` : ""}
+                ${activeId === "outreach" ? `data-outreach-subpage="${escapeHtml(label)}"` : ""}
+                ${activeId === "operations" ? `data-operations-subpage="${escapeHtml(label)}"` : ""}
                 type="button"
               >${label}</button>
             `).join("")}
@@ -840,7 +965,12 @@ function renderNav(activeId) {
 
 function renderListRows(module) {
   if (!module.items.length) {
-    return `<p class="list-empty" role="status">${escapeHtml(module === modules.crm ? crmDataMessage : "No records to show.")}</p>`;
+    const message = module === modules.crm
+      ? crmDataMessage
+      : module === modules.outreach
+        ? outreachDataMessage
+        : "No records to show.";
+    return `<p class="list-empty" role="status">${escapeHtml(message)}</p>`;
   }
 
   return module.items.map((item) => `
@@ -876,6 +1006,29 @@ function refreshStandardModuleData(module) {
     : "";
   selectedItemId = crmPreferredItemId(module.items, selectedItemId, requestedClientId);
   updateDetail(module, selectedItemId);
+}
+
+function refreshOutreachData(module, preferredItemId = selectedItemId) {
+  module.summary = outreachSummary(outreachRawEvents, outreachRawContacts);
+  module.items = outreachAllItems.filter((item) => outreachCurrentMatcher(item, outreachSearchQuery));
+  outreachDataMessage = module.items.length
+    ? ""
+    : outreachAllItems.length
+      ? `No ${outreachSubpage.toLowerCase()} match this search.`
+      : outreachEmptyMessage();
+
+  const nextItemId = module.items.some((item) => item.id === preferredItemId)
+    ? preferredItemId
+    : module.items[0]?.id || "";
+  selectedItemId = nextItemId;
+  refreshStandardModuleData(module);
+  if (nextItemId) updateDetail(module, nextItemId);
+  setOutreachDetailTab(outreachDetailTab);
+}
+
+function applyOutreachSearch(module, query = "") {
+  outreachSearchQuery = query.trim();
+  refreshOutreachData(module, selectedItemId);
 }
 
 function renderScheduleTimeline(module, dateKey) {
@@ -1654,8 +1807,8 @@ function renderCrmClientEditorMain(item = null) {
   `;
 }
 
-function renderCrmReferralEditorSide(item = null) {
-  const source = item?.source || {};
+function renderCrmReferralEditorSide(item = null, sourceOverride = null) {
+  const source = sourceOverride || item?.source || {};
   const formAttribute = crmEditorFormAttribute(crmReferralEditorFormId);
 
   return `
@@ -1733,8 +1886,8 @@ function renderCrmReferralEditorSide(item = null) {
   `;
 }
 
-function renderCrmReferralEditorMain(item = null) {
-  const source = item?.source || {};
+function renderCrmReferralEditorMain(item = null, sourceOverride = null) {
+  const source = sourceOverride || item?.source || {};
 
   return `
     <form class="crm-profile-editor-main" id="${crmReferralEditorFormId}" data-crm-referral-form>
@@ -2134,7 +2287,7 @@ function openCrmClientEditor(item = null, options = {}) {
   (sideEditor?.querySelector("input, textarea, select") || editor.querySelector("input, textarea, select"))?.focus();
 }
 
-function openCrmReferralEditor(item = null) {
+function openCrmReferralEditor(item = null, options = {}) {
   if (crmActionBusy) return;
   const editor = document.querySelector("[data-crm-editor]");
   const sideEditor = document.querySelector("[data-crm-side-editor]");
@@ -2145,8 +2298,8 @@ function openCrmReferralEditor(item = null) {
   crmConvertPendingId = "";
   crmEditorKind = "referral";
   editor.classList.add("is-profile-editor");
-  editor.innerHTML = renderCrmReferralEditorMain(item);
-  sideEditor.innerHTML = renderCrmReferralEditorSide(item);
+  editor.innerHTML = renderCrmReferralEditorMain(item, options.source || null);
+  sideEditor.innerHTML = renderCrmReferralEditorSide(item, options.source || null);
   setCrmDetailTab("overview");
   setCrmActionStatus("");
   setCrmPanelMode("editor");
@@ -2304,6 +2457,7 @@ async function saveCrmReferral(form) {
   setCrmActionBusy(true);
   setCrmActionStatus("");
   try {
+    let outreachLinkWarning = "";
     const result = await crmAuthedFetch(item ? `/api/referrals/${encodeURIComponent(item.id)}` : "/api/referrals", {
       method: item ? "PATCH" : "POST",
       body: JSON.stringify(payload)
@@ -2312,11 +2466,24 @@ async function saveCrmReferral(form) {
     if (savedId) {
       await syncCrmReferralSiblings(savedId, previousSiblingIds, selectedSiblingIds);
     }
+    if (savedId && crmOutreachContactId) {
+      try {
+        await crmAuthedFetch(`/api/outreach-contacts/${encodeURIComponent(crmOutreachContactId)}/link-referral`, {
+          method: "PATCH",
+          body: JSON.stringify({ referralId: savedId })
+        });
+      } catch (error) {
+        console.error(error);
+        outreachLinkWarning = "Referral saved, but its Outreach contact link could not be updated. Do not create the referral again.";
+      }
+      crmOutreachContactId = "";
+    }
     selectedItemId = savedId || selectedItemId;
     crmEditingReferralId = "";
     crmEditorKind = "";
     await loadCrmData(crmCurrentUser, selectedItemId);
     setCrmPanelMode("detail");
+    if (outreachLinkWarning) setCrmActionStatus(outreachLinkWarning, "error");
   } catch (error) {
     console.error(error);
     setCrmActionStatus(error.message || "Could not save the referral.", "error");
@@ -3926,6 +4093,881 @@ function setScheduleSubpage(module, label) {
   if (isPrintForms) updateSchedulePrintCenter(module);
 }
 
+function outreachCreateActionAttribute(action) {
+  if (action === "New Event") return "data-outreach-new-event";
+  if (action === "Add Contact") return "data-outreach-new-contact";
+  if (action === "New Task") return "data-outreach-new-task";
+  if (action === "Log Outcome") return "data-outreach-log-outcome";
+  return "";
+}
+
+function outreachDetailTabKey(tab = "") {
+  return tab.toLowerCase().replaceAll(" ", "-");
+}
+
+function outreachSelectedItem() {
+  return modules.outreach.items.find((item) => item.id === selectedItemId) || null;
+}
+
+function renderOutreachStatusControl() {
+  const item = outreachSelectedItem();
+  if (outreachSubpage === "Reports") {
+    return `
+      <div class="status-line is-module-status">
+        <span class="status-dot"></span>
+        <span>Current</span>
+      </div>
+    `;
+  }
+
+  const options = outreachSubpage === "Contacts"
+    ? outreachContactStatusOptions
+    : outreachSubpage === "Tasks"
+      ? outreachTaskStatusOptions
+      : outreachEventStatusOptions;
+  return `
+    <label class="status-line is-module-status crm-status-control outreach-status-control">
+      <span class="status-dot"></span>
+      <select data-outreach-status-select aria-label="${escapeHtml(outreachSubpage.slice(0, -1) || "Outreach")} status">
+        ${crmSelectOptions(options, item?.status || options[0])}
+      </select>
+    </label>
+  `;
+}
+
+function renderOutreachValueFields(fields = []) {
+  return `
+    <div class="field-grid outreach-field-grid">
+      ${fields.map(([label, value]) => `
+        <div class="field">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value || "-")}</strong>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderOutreachLinkedContacts(item) {
+  const contacts = (item?.contacts || [])
+    .map((contact) => outreachContactItems.find((candidate) => candidate.id === contact.id))
+    .filter(Boolean);
+
+  if (!contacts.length) {
+    return `<p class="crm-empty-copy">No contacts are linked to this event.</p>`;
+  }
+
+  return `
+    <div class="crm-appointment-list">
+      ${contacts.map((contact) => `
+        <button class="crm-appointment-row" data-outreach-contact-id="${escapeHtml(contact.id)}" type="button">
+          <span>
+            <strong>${escapeHtml(contact.title)}</strong>
+            <small>${escapeHtml([contact.interestType, contact.phone].filter((value) => value && value !== "-").join(" | ") || "Contact")}</small>
+          </span>
+          <span class="status-pill">${escapeHtml(contact.status)}</span>
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderOutreachEventPanels(item) {
+  return {
+    logistics: `
+      <section class="detail-card">
+        <div class="card-heading">
+          <h3>Logistics</h3>
+          <button class="edit-button" data-outreach-edit-event type="button">Edit</button>
+        </div>
+        ${renderOutreachValueFields([
+          ["Registration", item.registration],
+          ["Setup", item.setup],
+          ["Location", item.place],
+          ["Deadline", item.deadline],
+          ["Repeats", item.repeatPattern],
+          ["Event Cost", item.cost]
+        ])}
+      </section>
+      <section class="detail-card">
+        <div class="card-heading"><h3>Event Contact</h3></div>
+        ${renderOutreachValueFields([
+          ["Contact", item.contactName],
+          ["Role", item.contactRole],
+          ["Phone", item.phone],
+          ["Email", item.email]
+        ])}
+      </section>
+      <section class="detail-card">
+        <div class="card-heading"><h3>Notes</h3></div>
+        <p class="crm-note-copy">${escapeHtml(item.notes)}</p>
+      </section>
+    `,
+    outcomes: `
+      <section class="detail-card">
+        <div class="card-heading">
+          <h3>Event Outcomes</h3>
+          <button class="edit-button" data-outreach-log-outcome type="button">Edit</button>
+        </div>
+        ${renderOutreachValueFields([
+          ["Main Activity", item.activity],
+          ["Giveaways", item.giveaways],
+          ["Families Interacted With", item.families],
+          ["Participants", item.participants],
+          ["Interest List", item.interestList],
+          ["Referrals", item.referrals]
+        ])}
+      </section>
+    `,
+    contacts: `
+      <section class="detail-card">
+        <div class="card-heading">
+          <h3>Contacts Generated</h3>
+          <button class="edit-button" data-outreach-new-contact type="button">Add Contact</button>
+        </div>
+        ${renderOutreachLinkedContacts(item)}
+      </section>
+    `
+  };
+}
+
+function renderOutreachContactPanels(item) {
+  return {
+    overview: `
+      <section class="detail-card">
+        <div class="card-heading">
+          <h3>Contact Details</h3>
+          <button class="edit-button" data-outreach-edit-contact type="button">Edit</button>
+        </div>
+        ${renderOutreachValueFields([
+          ["Event", item.event],
+          ["Caregiver or Contact", item.contactName],
+          ["Child", item.childName],
+          ["Phone", item.phone],
+          ["Email", item.email],
+          ["Preferred Language", item.language],
+          ["Interest", item.interestType],
+          ["Created", item.createdDate]
+        ])}
+      </section>
+    `,
+    notes: `
+      <section class="detail-card">
+        <div class="card-heading">
+          <h3>Notes</h3>
+          <button class="edit-button" data-outreach-edit-contact type="button">Edit</button>
+        </div>
+        <p class="crm-note-copy">${escapeHtml(item.notes)}</p>
+      </section>
+    `
+  };
+}
+
+function renderOutreachTaskPanels(item) {
+  return {
+    overview: `
+      <section class="detail-card">
+        <div class="card-heading">
+          <h3>Task Details</h3>
+          <button class="edit-button" data-outreach-edit-task type="button">Edit</button>
+        </div>
+        ${renderOutreachValueFields([
+          ["Event", item.event],
+          ["Due Date", item.dueDate],
+          ["Due Time", item.dueTime],
+          ["Priority", item.priority],
+          ["Assigned To", item.assignedTo],
+          ["Status", item.status]
+        ])}
+      </section>
+    `,
+    notes: `
+      <section class="detail-card">
+        <div class="card-heading">
+          <h3>Notes</h3>
+          <button class="edit-button" data-outreach-edit-task type="button">Edit</button>
+        </div>
+        <p class="crm-note-copy">${escapeHtml(item.notes)}</p>
+      </section>
+    `
+  };
+}
+
+function renderOutreachReportPanels(item) {
+  return {
+    "annual-report": `
+      <section class="detail-card">
+        <div class="card-heading"><h3>${escapeHtml(item.title)}</h3></div>
+        ${renderOutreachValueFields([
+          ["Events", item.events],
+          ["Completed Events", item.completedEvents],
+          ["Families Reached", item.interactions],
+          ["Participants", item.participants],
+          ["New Contacts", item.contacts],
+          ["Interest List", item.interestList],
+          ["Referrals", item.referrals],
+          ["Open Tasks", item.openTasks],
+          ["Event Costs", item.cost]
+        ])}
+      </section>
+    `
+  };
+}
+
+function renderOutreachDetailPanels(module) {
+  return module.detailTabs.map((tab, index) => `
+    <div class="crm-detail-panel" data-outreach-detail-panel="${outreachDetailTabKey(tab)}" ${index === 0 ? "" : "hidden"}></div>
+  `).join("");
+}
+
+function renderOutreachDetailContent(item) {
+  const panels = !item
+    ? Object.fromEntries(modules.outreach.detailTabs.map((tab) => [outreachDetailTabKey(tab), `
+        <section class="detail-card"><p class="crm-empty-copy">Select an outreach record to review its details.</p></section>
+      `]))
+    : outreachSubpage === "Contacts"
+      ? renderOutreachContactPanels(item)
+      : outreachSubpage === "Tasks"
+        ? renderOutreachTaskPanels(item)
+        : outreachSubpage === "Reports"
+          ? renderOutreachReportPanels(item)
+          : renderOutreachEventPanels(item);
+
+  Object.entries(panels).forEach(([key, html]) => {
+    const panel = document.querySelector(`[data-outreach-detail-panel="${key}"]`);
+    if (panel) panel.innerHTML = html;
+  });
+}
+
+function setOutreachDetailTab(tab = "") {
+  const validTabs = new Set(modules.outreach.detailTabs.map(outreachDetailTabKey));
+  const fallback = outreachDetailTabKey(modules.outreach.detailTabs[0] || "Overview");
+  outreachDetailTab = validTabs.has(tab) ? tab : fallback;
+
+  document.querySelectorAll("[data-outreach-detail-tab]").forEach((button) => {
+    const active = button.dataset.outreachDetailTab === outreachDetailTab;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  document.querySelectorAll("[data-outreach-detail-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.outreachDetailPanel !== outreachDetailTab;
+  });
+}
+
+function renderOutreachEventOptions(selectedId = "", includeEmpty = true) {
+  return `${includeEmpty ? '<option value="">Not linked</option>' : ""}${outreachRawEvents.map((event) => `
+    <option value="${escapeHtml(event.id)}" ${event.id === selectedId ? "selected" : ""}>${escapeHtml(event.name || "Unnamed event")}</option>
+  `).join("")}`;
+}
+
+function renderOutreachEventEditorSide(item = null) {
+  const source = item?.source || {};
+  return `
+    <div class="crm-profile-editor-side">
+      <label class="status-line is-module-status crm-status-control crm-editor-status-control">
+        <span class="status-dot"></span>
+        <select name="status" form="outreach-event-editor-form" aria-label="Event status">
+          ${crmSelectOptions(outreachEventStatusOptions, source.status || "Scheduled")}
+        </select>
+      </label>
+      <div class="crm-editor-name-fields">
+        <label><span>Event Name</span><input name="name" form="outreach-event-editor-form" value="${escapeHtml(source.name || "")}" required></label>
+      </div>
+      <div class="meta-list appointment-meta crm-editor-side-meta">
+        <label class="appointment-meta-row">
+          <span class="appointment-meta-icon">${icons.calendar}</span>
+          <span class="crm-meta-copy"><em>Date</em><input name="eventDate" form="outreach-event-editor-form" type="date" value="${escapeHtml(source.eventDate || "")}"></span>
+        </label>
+        <label class="appointment-meta-row">
+          <span class="appointment-meta-icon">${icons.outreach}</span>
+          <span class="crm-meta-copy"><em>Event Type</em><select name="type" form="outreach-event-editor-form">${crmSelectOptions(outreachEventTypeOptions, source.type || "Outreach Event")}</select></span>
+        </label>
+      </div>
+      <section class="side-section crm-editor-family-section">
+        <h3><span class="section-icon">${icons.crm}</span>Event Lead</h3>
+        <label class="crm-side-field"><span>Contact</span><input name="contactName" form="outreach-event-editor-form" value="${escapeHtml(source.contactName || "")}"></label>
+        <label class="crm-side-field"><span>Role</span><input name="contactRole" form="outreach-event-editor-form" value="${escapeHtml(source.contactRole || "")}"></label>
+        <label class="crm-side-field"><span>Phone</span><input name="phone" form="outreach-event-editor-form" type="tel" value="${escapeHtml(source.phone || "")}"></label>
+        <label class="crm-side-field"><span>Email</span><input name="email" form="outreach-event-editor-form" type="email" value="${escapeHtml(source.email || "")}"></label>
+      </section>
+    </div>
+  `;
+}
+
+function renderOutreachEventEditorMain(item = null) {
+  const source = item?.source || {};
+  return `
+    <form class="crm-profile-editor-main" id="outreach-event-editor-form" data-outreach-event-form>
+      <section class="detail-card">
+        <div class="card-heading"><h3>Logistics</h3><button class="edit-button" data-close-outreach-editor type="button">Cancel</button></div>
+        <div class="schedule-inline-fields crm-profile-editor-fields">
+          <label><span>Location</span><input name="location" value="${escapeHtml(source.location || "")}"></label>
+          <label><span>Repeat Pattern</span><input name="repeatPattern" value="${escapeHtml(source.repeatPattern || "")}" placeholder="One-time or annual"></label>
+          <label><span>Deadline</span><input name="deadline" type="date" value="${escapeHtml(source.deadline || "")}"></label>
+          <label><span>Event Cost</span><input name="costAmount" type="number" min="0" step="0.01" value="${escapeHtml(source.costAmount ?? "")}"></label>
+          <label class="is-full-width"><span>Cost Notes</span><input name="costNotes" value="${escapeHtml(source.costNotes || "")}" placeholder="Booth fee, printing, or supplies"></label>
+          <label class="is-full-width"><span>Registration</span><textarea name="registration" rows="3">${escapeHtml(source.registration || "")}</textarea></label>
+          <label class="is-full-width"><span>Setup</span><textarea name="setup" rows="3">${escapeHtml(source.setup || "")}</textarea></label>
+          <label class="is-full-width"><span>Notes</span><textarea name="notes" rows="4">${escapeHtml(source.notes || "")}</textarea></label>
+        </div>
+      </section>
+      <section class="detail-card">
+        <div class="card-heading"><h3>Planned Outcomes</h3></div>
+        <div class="schedule-inline-fields crm-profile-editor-fields">
+          <label><span>Main Activity</span><input name="mainActivity" value="${escapeHtml(source.mainActivity || "")}"></label>
+          <label><span>Giveaways</span><input name="giveaways" value="${escapeHtml(source.giveaways || "")}"></label>
+          <label><span>Families Interacted With</span><input name="interactionsCount" type="number" min="0" value="${escapeHtml(source.interactionsCount ?? "")}"></label>
+          <label><span>Participants</span><input name="participantListCount" type="number" min="0" value="${escapeHtml(source.participantListCount ?? "")}"></label>
+          <label><span>Interest List</span><input name="interestListCount" type="number" min="0" value="${escapeHtml(source.interestListCount ?? "")}"></label>
+          <label><span>Referrals</span><input name="referralsCount" type="number" min="0" value="${escapeHtml(source.referralsCount ?? "")}"></label>
+        </div>
+      </section>
+      <p class="schedule-dialog-status" data-outreach-editor-status role="status" aria-live="polite"></p>
+      <div class="footer-actions outreach-editor-footer-actions" style="--outreach-editor-action-count: ${item ? 3 : 2};">
+        <button data-close-outreach-editor type="button">Cancel</button>
+        ${item ? '<button data-outreach-delete-editor type="button">Delete Event</button>' : ""}
+        <button class="is-primary" type="submit">${item ? "Save Changes" : "Save Event"}</button>
+      </div>
+    </form>
+  `;
+}
+
+function renderOutreachContactEditorSide(item = null, eventId = "") {
+  const source = item?.source || {};
+  const selectedEventId = source.eventId || eventId;
+  return `
+    <div class="crm-profile-editor-side">
+      <label class="status-line is-module-status crm-status-control crm-editor-status-control">
+        <span class="status-dot"></span>
+        <select name="status" form="outreach-contact-editor-form" aria-label="Contact status">
+          ${crmSelectOptions(outreachContactStatusOptions, source.status || "New")}
+        </select>
+      </label>
+      <div class="crm-editor-name-fields">
+        <label><span>Caregiver or Contact</span><input name="contactName" form="outreach-contact-editor-form" value="${escapeHtml(source.contactName || "")}"></label>
+        <label><span>Child</span><input name="childName" form="outreach-contact-editor-form" value="${escapeHtml(source.childName || "")}"></label>
+      </div>
+      <div class="meta-list appointment-meta crm-editor-side-meta">
+        <label class="appointment-meta-row">
+          <span class="appointment-meta-icon">${icons.outreach}</span>
+          <span class="crm-meta-copy"><em>Event</em><select name="eventId" form="outreach-contact-editor-form">${renderOutreachEventOptions(selectedEventId)}</select></span>
+        </label>
+      </div>
+    </div>
+  `;
+}
+
+function renderOutreachContactEditorMain(item = null) {
+  const source = item?.source || {};
+  return `
+    <form class="crm-profile-editor-main" id="outreach-contact-editor-form" data-outreach-contact-form>
+      <section class="detail-card">
+        <div class="card-heading"><h3>Contact Details</h3><button class="edit-button" data-close-outreach-editor type="button">Cancel</button></div>
+        <div class="schedule-inline-fields crm-profile-editor-fields">
+          <label><span>Phone</span><input name="phone" type="tel" value="${escapeHtml(source.phone || "")}"></label>
+          <label><span>Email</span><input name="email" type="email" value="${escapeHtml(source.email || "")}"></label>
+          <label><span>Preferred Language</span><select name="preferredLanguage">${crmSelectOptions(languageOptions, source.preferredLanguage || "English")}</select></label>
+          <label><span>Interest</span><select name="interestType">${crmSelectOptions(outreachInterestTypeOptions, source.interestType, "Choose")}</select></label>
+          <label class="is-full-width"><span>Notes</span><textarea name="notes" rows="8">${escapeHtml(source.notes || "")}</textarea></label>
+        </div>
+      </section>
+      <p class="schedule-dialog-status" data-outreach-editor-status role="status" aria-live="polite"></p>
+      <div class="footer-actions outreach-editor-footer-actions" style="--outreach-editor-action-count: 2;">
+        <button data-close-outreach-editor type="button">Cancel</button>
+        <button class="is-primary" type="submit">${item ? "Save Changes" : "Save Contact"}</button>
+      </div>
+    </form>
+  `;
+}
+
+function renderOutreachTaskEditorSide(item = null, eventId = "") {
+  const source = item?.source || {};
+  const selectedEventId = source.outreachEventId || eventId;
+  return `
+    <div class="crm-profile-editor-side">
+      <label class="status-line is-module-status crm-status-control crm-editor-status-control">
+        <span class="status-dot"></span>
+        <select name="status" form="outreach-task-editor-form" aria-label="Task status">
+          ${crmSelectOptions(outreachTaskStatusOptions, source.status || "Open")}
+        </select>
+      </label>
+      <div class="crm-editor-name-fields">
+        <label><span>Task</span><input name="title" form="outreach-task-editor-form" value="${escapeHtml(source.title || "")}" required></label>
+      </div>
+      <div class="meta-list appointment-meta crm-editor-side-meta">
+        <label class="appointment-meta-row">
+          <span class="appointment-meta-icon">${icons.outreach}</span>
+          <span class="crm-meta-copy"><em>Event</em><select name="outreachEventId" form="outreach-task-editor-form">${renderOutreachEventOptions(selectedEventId)}</select></span>
+        </label>
+      </div>
+    </div>
+  `;
+}
+
+function renderOutreachTaskEditorMain(item = null) {
+  const source = item?.source || {};
+  return `
+    <form class="crm-profile-editor-main" id="outreach-task-editor-form" data-outreach-task-form>
+      <section class="detail-card">
+        <div class="card-heading"><h3>Task Details</h3><button class="edit-button" data-close-outreach-editor type="button">Cancel</button></div>
+        <div class="schedule-inline-fields crm-profile-editor-fields">
+          <label><span>Priority</span><select name="priority">${crmSelectOptions(outreachTaskPriorityOptions, source.priority || "Normal")}</select></label>
+          <label><span>Assigned To</span><input name="assignedTo" value="${escapeHtml(source.assignedTo || "")}"></label>
+          <label><span>Due Date</span><input name="dueDate" type="date" value="${escapeHtml(source.dueDate || "")}"></label>
+          <label><span>Due Time</span><input name="dueTime" type="time" value="${escapeHtml(source.dueTime || "")}"></label>
+          <label class="is-full-width"><span>Notes</span><textarea name="notes" rows="8">${escapeHtml(source.notes || "")}</textarea></label>
+        </div>
+      </section>
+      <p class="schedule-dialog-status" data-outreach-editor-status role="status" aria-live="polite"></p>
+      <div class="footer-actions outreach-editor-footer-actions" style="--outreach-editor-action-count: 2;">
+        <button data-close-outreach-editor type="button">Cancel</button>
+        <button class="is-primary" type="submit">${item ? "Save Changes" : "Save Task"}</button>
+      </div>
+    </form>
+  `;
+}
+
+function renderOutreachOutcomeForm(item) {
+  const source = item?.source || {};
+  return `
+    <form class="schedule-inline-form crm-inline-form" data-outreach-outcome-form>
+      <div class="schedule-inline-form-header"><h3>Log Event Outcome</h3><button data-close-outreach-editor type="button">Cancel</button></div>
+      <div class="schedule-inline-fields crm-inline-fields">
+        <label><span>Main Activity</span><input name="mainActivity" value="${escapeHtml(source.mainActivity || "")}"></label>
+        <label><span>Giveaways</span><input name="giveaways" value="${escapeHtml(source.giveaways || "")}"></label>
+        <label><span>Families Interacted With</span><input name="interactionsCount" type="number" min="0" value="${escapeHtml(source.interactionsCount ?? "")}"></label>
+        <label><span>Participants</span><input name="participantListCount" type="number" min="0" value="${escapeHtml(source.participantListCount ?? "")}"></label>
+        <label><span>Interest List</span><input name="interestListCount" type="number" min="0" value="${escapeHtml(source.interestListCount ?? "")}"></label>
+        <label><span>Referrals</span><input name="referralsCount" type="number" min="0" value="${escapeHtml(source.referralsCount ?? "")}"></label>
+        <label class="is-full-width"><span>Outcome Notes</span><textarea name="notes" rows="6">${escapeHtml(source.notes || "")}</textarea></label>
+      </div>
+      <p class="schedule-dialog-status" data-outreach-editor-status role="status" aria-live="polite"></p>
+      <div class="schedule-inline-actions"><button type="submit">Save Outcome</button></div>
+    </form>
+  `;
+}
+
+function setOutreachPanelMode(mode = "detail") {
+  outreachPanelMode = mode === "editor" ? "editor" : "detail";
+  const editing = outreachPanelMode === "editor";
+  const profileEditor = editing && ["event", "contact", "task"].includes(outreachEditorKind);
+  const tabs = document.querySelector("[data-outreach-tabs]");
+  const content = document.querySelector("[data-outreach-detail-content]");
+  const editor = document.querySelector("[data-outreach-editor]");
+  const sideDetail = document.querySelector("[data-outreach-side-detail]");
+  const sideEditor = document.querySelector("[data-outreach-side-editor]");
+
+  if (tabs) {
+    tabs.hidden = editing && !profileEditor;
+    tabs.querySelectorAll("button").forEach((button) => { button.disabled = editing; });
+  }
+  if (content) content.hidden = editing;
+  if (editor) editor.hidden = !editing;
+  if (sideDetail) sideDetail.hidden = profileEditor;
+  if (sideEditor) sideEditor.hidden = !profileEditor;
+}
+
+function setOutreachActionStatus(message = "", state = "") {
+  document.querySelectorAll("[data-outreach-action-status], [data-outreach-editor-status]").forEach((status) => {
+    status.textContent = message;
+    status.dataset.state = state;
+  });
+}
+
+function openOutreachEditor(kind, item = null, options = {}) {
+  if (outreachActionBusy) return;
+  const editor = document.querySelector("[data-outreach-editor]");
+  const sideEditor = document.querySelector("[data-outreach-side-editor]");
+  if (!editor || !sideEditor) return;
+
+  outreachEditorKind = kind;
+  outreachDeletePendingId = "";
+  editor.classList.toggle("is-profile-editor", kind !== "outcome");
+  if (kind === "event") {
+    outreachEditingEventId = item?.id || "";
+    editor.innerHTML = renderOutreachEventEditorMain(item);
+    sideEditor.innerHTML = renderOutreachEventEditorSide(item);
+  } else if (kind === "contact") {
+    outreachEditingContactId = item?.id || "";
+    editor.innerHTML = renderOutreachContactEditorMain(item);
+    sideEditor.innerHTML = renderOutreachContactEditorSide(item, options.eventId || "");
+  } else if (kind === "task") {
+    outreachEditingTaskId = item?.id || "";
+    editor.innerHTML = renderOutreachTaskEditorMain(item);
+    sideEditor.innerHTML = renderOutreachTaskEditorSide(item, options.eventId || "");
+  } else if (kind === "outcome" && item) {
+    outreachEditingEventId = item.id;
+    editor.innerHTML = renderOutreachOutcomeForm(item);
+    sideEditor.replaceChildren();
+  }
+  setOutreachActionStatus("");
+  setOutreachPanelMode("editor");
+  (sideEditor.querySelector("input, select, textarea") || editor.querySelector("input, select, textarea"))?.focus();
+}
+
+function closeOutreachEditor() {
+  if (outreachActionBusy) return;
+  const editor = document.querySelector("[data-outreach-editor]");
+  const sideEditor = document.querySelector("[data-outreach-side-editor]");
+  if (editor) {
+    editor.replaceChildren();
+    editor.classList.remove("is-profile-editor");
+  }
+  sideEditor?.replaceChildren();
+  outreachEditorKind = "";
+  outreachEditingEventId = "";
+  outreachEditingContactId = "";
+  outreachEditingTaskId = "";
+  setOutreachPanelMode("detail");
+  updateDetail(modules.outreach, selectedItemId);
+}
+
+function refreshOutreachAccountControl() {
+  if (currentModuleId() !== "outreach") return;
+  const account = document.querySelector(".account");
+  const accountName = document.querySelector("[data-account-name]");
+  if (!account || !accountName) return;
+
+  account.setAttribute("role", "button");
+  account.setAttribute("tabindex", "0");
+  accountName.textContent = outreachCurrentUser ? "Shannon Oddo" : "Sign in";
+  if (outreachCurrentUser) {
+    account.removeAttribute("title");
+  } else {
+    account.setAttribute("title", `Sign in to load outreach ${outreachSubpage.toLowerCase()}`);
+  }
+}
+
+function updateOutreachActionAvailability(item = outreachSelectedItem()) {
+  document.querySelectorAll("[data-outreach-action], [data-outreach-edit-event], [data-outreach-edit-contact], [data-outreach-edit-task], [data-outreach-log-outcome], [data-outreach-status-select], [data-outreach-contact-id], [data-outreach-delete-editor]").forEach((control) => {
+    control.disabled = outreachActionBusy || !item;
+  });
+  document.querySelectorAll("[data-outreach-new-event], [data-outreach-new-contact], [data-outreach-new-task], [data-outreach-search-toggle], [data-outreach-search-input]").forEach((control) => {
+    control.disabled = outreachActionBusy;
+  });
+
+  const deleteButton = document.querySelector("[data-outreach-action='delete'], [data-outreach-delete-editor]");
+  if (deleteButton) {
+    const noun = outreachSubpage === "Events" ? "Event" : outreachSubpage === "Contacts" ? "Contact" : "Task";
+    deleteButton.textContent = outreachDeletePendingId === item?.id ? "Confirm Delete" : `Delete ${noun}`;
+  }
+  const doneButton = document.querySelector("[data-outreach-action='mark-done']");
+  if (doneButton) {
+    const done = item?.status === "Done";
+    doneButton.disabled = outreachActionBusy || !item || done;
+    doneButton.textContent = done ? "Task Done" : "Mark Done";
+  }
+}
+
+function setOutreachActionBusy(busy) {
+  outreachActionBusy = busy;
+  updateOutreachActionAvailability();
+  document.querySelectorAll("[data-outreach-editor], [data-outreach-side-editor]").forEach((editor) => {
+    editor.setAttribute("aria-busy", String(busy));
+    editor.querySelectorAll("button, input, select, textarea").forEach((control) => {
+      control.disabled = busy;
+    });
+  });
+}
+
+async function outreachAuthedFetch(path, options = {}) {
+  if (!outreachCurrentUser) {
+    throw new Error("Sign in before changing an outreach record.");
+  }
+
+  const token = await outreachCurrentUser.getIdToken();
+  const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL || "";
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {})
+    }
+  });
+
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(result.error || `The outreach service returned ${response.status}.`);
+  }
+
+  return response.json().catch(() => ({}));
+}
+
+function outreachTaskEvent(values = {}) {
+  return outreachRawEvents.find((event) => event.id === values.outreachEventId) || {};
+}
+
+async function saveOutreachEvent(form) {
+  if (outreachActionBusy) return;
+  const item = outreachEventItems.find((candidate) => candidate.id === outreachEditingEventId) || null;
+  const values = Object.fromEntries(new FormData(form).entries());
+  const payload = outreachEventPayload({ ...(item?.source || {}), ...values });
+
+  setOutreachActionBusy(true);
+  setOutreachActionStatus("");
+  try {
+    const result = await outreachAuthedFetch(item ? `/api/outreach-events/${encodeURIComponent(item.id)}` : "/api/outreach-events", {
+      method: item ? "PATCH" : "POST",
+      body: JSON.stringify(payload)
+    });
+    selectedItemId = result.event?.id || item?.id || selectedItemId;
+    outreachEditingEventId = "";
+    outreachEditorKind = "";
+    await loadOutreachData(outreachCurrentUser, selectedItemId);
+    setOutreachPanelMode("detail");
+  } catch (error) {
+    console.error(error);
+    setOutreachActionStatus(error.message || "Could not save the event.", "error");
+  } finally {
+    setOutreachActionBusy(false);
+  }
+}
+
+async function saveOutreachContact(form) {
+  if (outreachActionBusy) return;
+  const item = outreachContactItems.find((candidate) => candidate.id === outreachEditingContactId) || null;
+  const values = Object.fromEntries(new FormData(form).entries());
+  const payload = outreachContactPayload({ ...(item?.source || {}), ...values });
+  const returnEventId = !item && outreachSubpage === "Events" ? payload.eventId : "";
+
+  setOutreachActionBusy(true);
+  setOutreachActionStatus("");
+  try {
+    const result = await outreachAuthedFetch(item ? `/api/outreach-contacts/${encodeURIComponent(item.id)}` : "/api/outreach-contacts", {
+      method: item ? "PATCH" : "POST",
+      body: JSON.stringify(payload)
+    });
+    selectedItemId = returnEventId || result.contact?.id || item?.id || selectedItemId;
+    outreachEditingContactId = "";
+    outreachEditorKind = "";
+    if (returnEventId) {
+      outreachDetailTab = "contacts";
+    } else if (outreachSubpage !== "Contacts") {
+      outreachSubpage = "Contacts";
+      configureOutreachModule("Contacts");
+      renderModulePage("outreach");
+      refreshOutreachAccountControl();
+    }
+    await loadOutreachData(outreachCurrentUser, selectedItemId);
+    setOutreachPanelMode("detail");
+  } catch (error) {
+    console.error(error);
+    setOutreachActionStatus(error.message || "Could not save the contact.", "error");
+  } finally {
+    setOutreachActionBusy(false);
+  }
+}
+
+async function saveOutreachTask(form) {
+  if (outreachActionBusy) return;
+  const item = outreachTaskItems.find((candidate) => candidate.id === outreachEditingTaskId) || null;
+  const values = Object.fromEntries(new FormData(form).entries());
+  const event = outreachTaskEvent(values);
+  const payload = outreachTaskPayload({
+    ...(item?.source || {}),
+    ...values,
+    outreachEventName: event.name || ""
+  }, event);
+  const returnEventId = !item && outreachSubpage === "Events" ? payload.outreachEventId : "";
+
+  setOutreachActionBusy(true);
+  setOutreachActionStatus("");
+  try {
+    const result = await outreachAuthedFetch(item ? `/api/tasks/${encodeURIComponent(item.id)}` : "/api/tasks", {
+      method: item ? "PATCH" : "POST",
+      body: JSON.stringify(payload)
+    });
+    selectedItemId = returnEventId || result.task?.id || item?.id || selectedItemId;
+    outreachEditingTaskId = "";
+    outreachEditorKind = "";
+    if (!returnEventId && outreachSubpage !== "Tasks") {
+      outreachSubpage = "Tasks";
+      configureOutreachModule("Tasks");
+      renderModulePage("outreach");
+      refreshOutreachAccountControl();
+    }
+    await loadOutreachData(outreachCurrentUser, selectedItemId);
+    setOutreachPanelMode("detail");
+  } catch (error) {
+    console.error(error);
+    setOutreachActionStatus(error.message || "Could not save the task.", "error");
+  } finally {
+    setOutreachActionBusy(false);
+  }
+}
+
+async function saveOutreachOutcome(form) {
+  const item = outreachEventItems.find((candidate) => candidate.id === outreachEditingEventId) || null;
+  if (!item || outreachActionBusy) return;
+  const values = Object.fromEntries(new FormData(form).entries());
+  const payload = outreachEventPayload({ ...item.source, ...values });
+
+  setOutreachActionBusy(true);
+  setOutreachActionStatus("");
+  try {
+    await outreachAuthedFetch(`/api/outreach-events/${encodeURIComponent(item.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    });
+    selectedItemId = item.id;
+    outreachDetailTab = "outcomes";
+    outreachEditingEventId = "";
+    outreachEditorKind = "";
+    await loadOutreachData(outreachCurrentUser, item.id);
+    setOutreachPanelMode("detail");
+    setOutreachDetailTab("outcomes");
+  } catch (error) {
+    console.error(error);
+    setOutreachActionStatus(error.message || "Could not save the outcome.", "error");
+  } finally {
+    setOutreachActionBusy(false);
+  }
+}
+
+async function saveOutreachStatus(item, status, control) {
+  if (!item || outreachActionBusy || status === item.status || outreachSubpage === "Reports") return;
+  const previousStatus = item.status;
+  let path = "";
+  let payload = {};
+  if (outreachSubpage === "Events") {
+    path = `/api/outreach-events/${encodeURIComponent(item.id)}`;
+    payload = outreachEventPayload({ ...item.source, status });
+  } else if (outreachSubpage === "Contacts") {
+    path = `/api/outreach-contacts/${encodeURIComponent(item.id)}`;
+    payload = outreachContactPayload({ ...item.source, status });
+  } else {
+    path = `/api/tasks/${encodeURIComponent(item.id)}`;
+    const event = outreachTaskEvent({ outreachEventId: item.eventId });
+    payload = outreachTaskPayload({ ...item.source, status, outreachEventName: event.name || item.source?.outreachEventName || "" }, event);
+  }
+
+  setOutreachActionBusy(true);
+  setOutreachActionStatus("");
+  try {
+    await outreachAuthedFetch(path, { method: "PATCH", body: JSON.stringify(payload) });
+    selectedItemId = item.id;
+    await loadOutreachData(outreachCurrentUser, item.id);
+  } catch (error) {
+    console.error(error);
+    if (control) control.value = previousStatus;
+    setOutreachActionStatus(error.message || "Could not update the status.", "error");
+  } finally {
+    setOutreachActionBusy(false);
+  }
+}
+
+async function deleteOutreachRecord(item) {
+  if (!item || outreachActionBusy || outreachSubpage === "Reports") return;
+  const decision = crmConfirmDecision(outreachDeletePendingId, item.id);
+  outreachDeletePendingId = decision.pendingId;
+  if (!decision.confirmed) {
+    setOutreachActionStatus(`Click Confirm Delete to permanently remove this ${item.kind}.`);
+    updateOutreachActionAvailability(item);
+    return;
+  }
+
+  const path = item.kind === "event"
+    ? `/api/outreach-events/${encodeURIComponent(item.id)}`
+    : item.kind === "contact"
+      ? `/api/outreach-contacts/${encodeURIComponent(item.id)}`
+      : `/api/tasks/${encodeURIComponent(item.id)}`;
+  setOutreachActionBusy(true);
+  setOutreachActionStatus("");
+  try {
+    await outreachAuthedFetch(path, { method: "DELETE" });
+    selectedItemId = "";
+    outreachDeletePendingId = "";
+    outreachEditorKind = "";
+    await loadOutreachData(outreachCurrentUser);
+    setOutreachPanelMode("detail");
+  } catch (error) {
+    console.error(error);
+    outreachDeletePendingId = "";
+    setOutreachActionStatus(error.message || "Could not delete this outreach record.", "error");
+    updateOutreachActionAvailability(item);
+  } finally {
+    setOutreachActionBusy(false);
+  }
+}
+
+function openOutreachContactReferral(item) {
+  if (!item) return;
+  const query = new URLSearchParams({
+    section: "Referrals",
+    new: "outreach",
+    outreachContactId: item.id,
+    parentName: item.contactName === "-" ? "" : item.contactName,
+    firstName: item.childName === "-" ? "" : item.childName,
+    phone: item.phone === "-" ? "" : item.phone,
+    email: item.email === "-" ? "" : item.email,
+    preferredLanguage: item.language === "-" ? "English" : item.language,
+    referralType: "Outreach Event Interest",
+    referralSource: item.event === "Not linked" ? "Outreach" : item.event,
+    notes: item.notes === "-" ? "" : item.notes
+  });
+  location.href = `./crm.html?${query}`;
+}
+
+function openCrmOutreachReferralHandoff() {
+  if (crmOutreachHandoffHandled || currentModuleId() !== "crm" || crmSubpage !== "Referrals") return;
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("new") !== "outreach") return;
+
+  crmOutreachHandoffHandled = true;
+  crmOutreachContactId = params.get("outreachContactId") || "";
+  const childName = (params.get("firstName") || "").trim();
+  const childParts = childName.split(/\s+/).filter(Boolean);
+  const firstName = childParts.shift() || "";
+  const lastName = childParts.join(" ");
+  const today = scheduleDateKey(new Date());
+  const source = {
+    firstName,
+    lastName,
+    parentName: params.get("parentName") || "",
+    phone: params.get("phone") || "",
+    email: params.get("email") || "",
+    preferredLanguage: params.get("preferredLanguage") || "English",
+    preferredContactMethod: params.get("phone") ? "Phone Call" : params.get("email") ? "Email" : "",
+    referralType: params.get("referralType") || "Outreach Event Interest",
+    referralSource: params.get("referralSource") || "Outreach",
+    referralDate: today,
+    firstContactDate: today,
+    mostRecentContactDate: today,
+    status: "New",
+    notes: params.get("notes") || ""
+  };
+
+  const cleanUrl = new URL(window.location.href);
+  [...cleanUrl.searchParams.keys()].forEach((key) => {
+    if (key !== "section") cleanUrl.searchParams.delete(key);
+  });
+  history.replaceState({}, "", cleanUrl);
+  openCrmReferralEditor(null, { source });
+}
+
+function setOutreachSubpage(label) {
+  if (!modules.outreach.subpages.includes(label) || outreachActionBusy) return;
+  outreachSubpage = label;
+  outreachSearchQuery = "";
+  outreachDetailTab = outreachDetailTabKey(outreachSubpageDefinition(label).detailTabs[0]);
+  outreachPanelMode = "detail";
+  outreachEditorKind = "";
+  outreachEditingEventId = "";
+  outreachEditingContactId = "";
+  outreachEditingTaskId = "";
+  outreachDeletePendingId = "";
+  configureOutreachModule(label);
+
+  const url = new URL(window.location.href);
+  url.searchParams.set("section", label);
+  history.replaceState({}, "", url);
+
+  renderModulePage("outreach");
+  refreshOutreachAccountControl();
+  applyOutreachSearch(modules.outreach, "");
+}
+
 function crmCreateActionAttribute(action) {
   if (action === "New Client") return "data-crm-new-client";
   if (action === "New Referral") return "data-crm-new-referral";
@@ -4009,17 +5051,20 @@ function setCrmSubpage(label) {
 
 function renderModulePage(moduleId) {
   const module = modules[moduleId];
+  const navigationModuleId = isOperationsOutreachReport() ? "operations" : moduleId;
+  const navigationModule = modules[navigationModuleId];
   selectedItemId = module.items[0]?.id || "";
-  document.title = `SNACK Program Manager ${module.label}`;
+  document.title = `SNACK Program Manager ${isOperationsOutreachReport() ? "Operations Reports" : module.label}`;
 
   const app = document.querySelector("#app");
   app.innerHTML = `
     <div
       class="app-shell"
       data-shell
-      data-module-id="${moduleId}"
+      data-module-id="${navigationModuleId}"
       ${moduleId === "crm" ? `data-crm-section="${escapeHtml(crmSubpage)}"` : ""}
-      style="--module: ${module.theme[0]}; --module-soft: ${module.theme[1]}; --module-line: ${module.theme[2]};"
+      ${moduleId === "outreach" ? `data-outreach-section="${escapeHtml(outreachSubpage)}"` : ""}
+      style="--module: ${navigationModule.theme[0]}; --module-soft: ${navigationModule.theme[1]}; --module-line: ${navigationModule.theme[2]};"
     >
       <aside class="sidebar" aria-label="Main navigation">
         <div class="brand">
@@ -4033,17 +5078,17 @@ function renderModulePage(moduleId) {
         </div>
 
         <div class="sidebar-scroll">
-          <nav class="module-nav" aria-label="${module.label} navigation">
-            ${renderNav(moduleId)}
+          <nav class="module-nav" aria-label="${navigationModule.label} navigation">
+            ${renderNav(navigationModuleId)}
           </nav>
         </div>
 
-        <section class="quick-actions" aria-label="Quick actions">
+        ${module.quickActions.length ? `<section class="quick-actions" aria-label="Quick actions">
           <h2>Quick Actions</h2>
           ${module.quickActions.map((action) => `
-            <button class="quick-button" ${moduleId === "schedule" && action === "New Appointment" ? "data-open-new-appointment" : ""} ${moduleId === "schedule" && action === "Block Time" ? "data-open-block-time" : ""} ${moduleId === "schedule" && action === "Print Forms" ? "data-open-schedule-print-center" : ""} ${moduleId === "crm" ? crmCreateActionAttribute(action) : ""} type="button">${icon("plus")}${action}</button>
+            <button class="quick-button" ${moduleId === "schedule" && action === "New Appointment" ? "data-open-new-appointment" : ""} ${moduleId === "schedule" && action === "Block Time" ? "data-open-block-time" : ""} ${moduleId === "schedule" && action === "Print Forms" ? "data-open-schedule-print-center" : ""} ${moduleId === "crm" ? crmCreateActionAttribute(action) : ""} ${moduleId === "outreach" ? outreachCreateActionAttribute(action) : ""} type="button">${icon("plus")}${action}</button>
           `).join("")}
-        </section>
+        </section>` : ""}
 
         <div class="account">
           <span class="avatar">SO</span>
@@ -4061,13 +5106,14 @@ function renderModulePage(moduleId) {
             ${module.views.length ? `<div class="view-switch" role="group" aria-label="${module.label} views" style="grid-template-columns: repeat(${module.views.length}, minmax(86px, 1fr));">
               ${module.views.map((view, index) => `
                 <button
-                  class="${moduleId === "schedule" ? (view.toLowerCase() === scheduleViewMode ? "is-active" : "") : (index === 0 ? "is-active" : "")}"
+                  class="${moduleId === "schedule" ? (view.toLowerCase() === scheduleViewMode ? "is-active" : "") : moduleId === "outreach" ? (view === outreachSubpage ? "is-active" : "") : (index === 0 ? "is-active" : "")}"
                   ${moduleId === "schedule" ? `data-schedule-view="${view.toLowerCase()}"` : ""}
+                  ${moduleId === "outreach" ? `data-outreach-view="${escapeHtml(view)}"` : ""}
                   type="button"
                 >${view}</button>
               `).join("")}
             </div>` : ""}
-            <button class="primary-action" ${moduleId === "schedule" ? "data-open-new-appointment" : ""} ${moduleId === "crm" ? crmCreateActionAttribute(module.primaryAction) : ""} type="button">${icons.plus}${module.primaryAction}</button>
+            ${module.primaryAction ? `<button class="primary-action" ${moduleId === "schedule" ? "data-open-new-appointment" : ""} ${moduleId === "crm" ? crmCreateActionAttribute(module.primaryAction) : ""} ${moduleId === "outreach" ? outreachCreateActionAttribute(module.primaryAction) : ""} type="button">${icons.plus}${module.primaryAction}</button>` : ""}
           </div>
         </header>
 
@@ -4081,10 +5127,10 @@ function renderModulePage(moduleId) {
               <div>
                 <h2>${module.listTitle}</h2>
               </div>
-              ${moduleId === "crm" ? `
+              ${["crm", "outreach"].includes(moduleId) ? `
                 <div class="crm-list-search">
-                  <input data-crm-search-input type="search" placeholder="${escapeHtml(module.searchLabel)}" aria-label="${escapeHtml(module.searchLabel)}" hidden>
-                  <button class="list-search" data-crm-search-toggle type="button" aria-label="${escapeHtml(module.searchLabel)}">${icons.search}</button>
+                  <input ${moduleId === "crm" ? "data-crm-search-input" : "data-outreach-search-input"} type="search" placeholder="${escapeHtml(module.searchLabel)}" aria-label="${escapeHtml(module.searchLabel)}" hidden>
+                  <button class="list-search" ${moduleId === "crm" ? "data-crm-search-toggle" : "data-outreach-search-toggle"} type="button" aria-label="${escapeHtml(module.searchLabel)}">${icons.search}</button>
                 </div>
               ` : `<button class="list-search" type="button" aria-label="Search">${icons.search}</button>`}
             </div>
@@ -4095,15 +5141,15 @@ function renderModulePage(moduleId) {
 
           <article class="panel detail-panel">
             <aside class="detail-side" data-standard-detail-side>
-              ${moduleId === "crm" ? `<div data-crm-side-detail>` : ""}
-              ${moduleId === "crm" ? renderCrmStatusControl() : `
+              ${moduleId === "crm" ? `<div data-crm-side-detail>` : moduleId === "outreach" ? `<div data-outreach-side-detail>` : ""}
+              ${moduleId === "crm" ? renderCrmStatusControl() : moduleId === "outreach" ? renderOutreachStatusControl() : `
                 <div class="status-line is-module-status">
                   <span class="status-dot"></span>
                   <span data-detail-status></span>
                 </div>
               `}
               <h2 data-detail-title></h2>
-              <div class="meta-list ${["schedule", "crm"].includes(moduleId) ? "appointment-meta" : ""}">
+              <div class="meta-list ${["schedule", "crm", "outreach"].includes(moduleId) ? "appointment-meta" : ""}">
                 ${moduleId === "schedule" ? renderScheduleAppointmentMeta() : moduleId === "crm" ? renderCrmSideMeta() : renderMetaRows(module.sideFields)}
               </div>
               <section class="side-section" ${["schedule", "crm"].includes(moduleId) ? "data-standard-family" : ""}>
@@ -4111,13 +5157,14 @@ function renderModulePage(moduleId) {
                 ${["schedule", "crm"].includes(moduleId) ? renderScheduleFamilyRows(module) : renderSideRows(module)}
                 ${module.sideLink ? `<button class="text-link" ${moduleId === "schedule" ? "data-open-client-profile" : ""} type="button">${module.sideLink}</button>` : ""}
               </section>
-              ${moduleId === "crm" ? `</div><div class="crm-profile-editor-side-host" data-crm-side-editor hidden></div>` : ""}
+              ${moduleId === "crm" ? `</div><div class="crm-profile-editor-side-host" data-crm-side-editor hidden></div>` : moduleId === "outreach" ? `</div><div class="crm-profile-editor-side-host" data-outreach-side-editor hidden></div>` : ""}
             </aside>
 
             <div class="detail-main" data-standard-detail-main>
               <div
                 class="tabs ${module.detailTabIcons?.length ? "has-icons" : ""}"
                 ${moduleId === "crm" ? "data-crm-tabs" : ""}
+                ${moduleId === "outreach" ? "data-outreach-tabs" : ""}
                 ${module.detailTabIcons?.length ? `style="--detail-tab-count: ${module.detailTabs.length};"` : ""}
                 role="tablist"
                 aria-label="${module.label} detail tabs"
@@ -4125,7 +5172,7 @@ function renderModulePage(moduleId) {
                 ${module.detailTabs.map((tab, index) => `
                   <button
                     class="${index === 0 ? "is-active" : ""}"
-                    ${moduleId === "schedule" ? `data-schedule-detail-tab="${scheduleDetailTabKey(tab)}"` : moduleId === "crm" ? `data-crm-detail-tab="${crmDetailTabKey(tab)}"` : ""}
+                    ${moduleId === "schedule" ? `data-schedule-detail-tab="${scheduleDetailTabKey(tab)}"` : moduleId === "crm" ? `data-crm-detail-tab="${crmDetailTabKey(tab)}"` : moduleId === "outreach" ? `data-outreach-detail-tab="${outreachDetailTabKey(tab)}"` : ""}
                     ${moduleId === "crm" ? `data-compact-label="${escapeHtml(tab === "Appointments" ? "Appts" : tab)}"` : ""}
                     aria-label="${escapeHtml(tab)}"
                     type="button"
@@ -4157,6 +5204,17 @@ function renderModulePage(moduleId) {
                   </div>
                 </div>
                 <div class="crm-editor" data-crm-editor hidden></div>
+              ` : moduleId === "outreach" ? `
+                <div data-outreach-detail-content>
+                  ${renderOutreachDetailPanels(module)}
+                  <p class="schedule-action-status" data-outreach-action-status role="status" aria-live="polite"></p>
+                  ${module.footerActions.length ? `
+                    <div class="footer-actions" data-outreach-footer-actions style="--outreach-footer-action-count: ${module.footerActions.length};">
+                      ${module.footerActions.map((action) => `<button data-outreach-action="${action.toLowerCase().replaceAll(" ", "-")}" type="button">${action}</button>`).join("")}
+                    </div>
+                  ` : ""}
+                </div>
+                <div class="crm-editor" data-outreach-editor hidden></div>
               ` : `
                 ${renderCards(module)}
                 <div class="footer-actions">
@@ -4178,6 +5236,9 @@ function renderModulePage(moduleId) {
   if (moduleId === "schedule") {
     setSchedulePanelMode("detail");
     setScheduleSubpage(module, scheduleSubpage);
+  }
+  if (moduleId === "outreach") {
+    setOutreachPanelMode("detail");
   }
   updateDetail(module, selectedItemId);
 }
@@ -4212,6 +5273,14 @@ function updateDetail(module, itemId) {
       setCrmDetailTab(crmDetailTab);
       updateCrmActionAvailability(null);
     }
+    if (module === modules.outreach) {
+      renderOutreachDetailContent(null);
+      outreachDeletePendingId = "";
+      setOutreachActionStatus("");
+      setOutreachPanelMode("detail");
+      setOutreachDetailTab(outreachDetailTab);
+      updateOutreachActionAvailability(null);
+    }
     return;
   }
 
@@ -4234,6 +5303,13 @@ function updateDetail(module, itemId) {
       crmStatusSelect.add(new Option(item.status, item.status));
     }
     crmStatusSelect.value = item.status;
+  }
+  const outreachStatusSelect = document.querySelector("[data-outreach-status-select]");
+  if (outreachStatusSelect) {
+    if (![...outreachStatusSelect.options].some((option) => option.value === item.status)) {
+      outreachStatusSelect.add(new Option(item.status, item.status));
+    }
+    outreachStatusSelect.value = item.status;
   }
   document.querySelector(".status-line")?.removeAttribute("hidden");
 
@@ -4357,6 +5433,14 @@ function updateDetail(module, itemId) {
     setCrmPanelMode(crmPanelMode);
     setCrmDetailTab(crmDetailTab);
     updateCrmActionAvailability(item);
+  }
+  if (module === modules.outreach) {
+    outreachDeletePendingId = "";
+    setOutreachActionStatus("");
+    renderOutreachDetailContent(item);
+    setOutreachPanelMode(outreachPanelMode);
+    setOutreachDetailTab(outreachDetailTab);
+    updateOutreachActionAvailability(item);
   }
 }
 
@@ -4981,6 +6065,7 @@ async function loadCrmData(user, requestedItemId = selectedItemId) {
     selectedItemId = preferredItemId;
     refreshStandardModuleData(module);
     setCrmDetailTab(crmDetailTab);
+    openCrmOutreachReferralHandoff();
   } catch (error) {
     console.error(error);
     crmRawClients = [];
@@ -4996,6 +6081,104 @@ async function loadCrmData(user, requestedItemId = selectedItemId) {
     module.summary = crmCurrentSummary([]);
     crmDataMessage = "CRM records could not be loaded. Check the local data service and try again.";
     refreshStandardModuleData(module);
+  }
+}
+
+async function loadOutreachData(user, preferredItemId = selectedItemId) {
+  const module = modules.outreach;
+  outreachDataMessage = `Loading outreach ${outreachSubpage.toLowerCase()}...`;
+
+  try {
+    const token = await user.getIdToken();
+    const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL || "";
+    const headers = { Authorization: `Bearer ${token}` };
+    const [eventsResponse, contactsResponse, tasksResponse] = await Promise.all([
+      fetch(`${apiBaseUrl}/api/outreach-events`, { headers }),
+      fetch(`${apiBaseUrl}/api/outreach-contacts`, { headers }),
+      fetch(`${apiBaseUrl}/api/tasks`, { headers })
+    ]);
+
+    if (!eventsResponse.ok || !contactsResponse.ok || !tasksResponse.ok) {
+      throw new Error(`Outreach services returned ${eventsResponse.status}/${contactsResponse.status}/${tasksResponse.status}`);
+    }
+
+    const [{ events = [] }, { contacts = [] }, { tasks = [] }] = await Promise.all([
+      eventsResponse.json(),
+      contactsResponse.json(),
+      tasksResponse.json()
+    ]);
+    outreachRawEvents = events;
+    outreachRawContacts = contacts;
+    outreachRawTasks = tasks;
+    outreachContactItems = mapOutreachContacts(outreachRawContacts, outreachRawEvents);
+    outreachTaskItems = mapOutreachTasks(outreachRawTasks, outreachRawEvents);
+    outreachEventItems = mapOutreachEvents(outreachRawEvents, {
+      contacts: outreachRawContacts,
+      tasks: outreachRawTasks
+    });
+    configureOutreachModule(outreachSubpage);
+    outreachDataMessage = "";
+    refreshOutreachData(module, preferredItemId);
+    setOutreachDetailTab(outreachDetailTab);
+  } catch (error) {
+    console.error(error);
+    outreachRawEvents = [];
+    outreachRawContacts = [];
+    outreachRawTasks = [];
+    outreachEventItems = [];
+    outreachContactItems = [];
+    outreachTaskItems = [];
+    outreachAllItems = [];
+    module.items = [];
+    module.summary = outreachSummary([], []);
+    outreachDataMessage = "Outreach records could not be loaded. Check the local data service and try again.";
+    refreshStandardModuleData(module);
+  }
+}
+
+async function initializeOutreachData() {
+  if (currentModuleId() !== "outreach") {
+    return;
+  }
+
+  try {
+    const [{ initializeApp }, { GoogleAuthProvider, getAuth, onAuthStateChanged, signInWithPopup }] = await Promise.all([
+      import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js")
+    ]);
+    const auth = getAuth(initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG));
+    const provider = new GoogleAuthProvider();
+    outreachOpenSignIn = () => {
+      if (!outreachCurrentUser) {
+        signInWithPopup(auth, provider).catch((error) => console.error(error));
+      }
+    };
+    refreshOutreachAccountControl();
+
+    onAuthStateChanged(auth, (user) => {
+      outreachCurrentUser = user;
+      refreshOutreachAccountControl();
+      if (user) {
+        loadOutreachData(user);
+        return;
+      }
+
+      outreachRawEvents = [];
+      outreachRawContacts = [];
+      outreachRawTasks = [];
+      outreachEventItems = [];
+      outreachContactItems = [];
+      outreachTaskItems = [];
+      configureOutreachModule(outreachSubpage);
+      modules.outreach.items = [];
+      modules.outreach.summary = outreachSummary([], []);
+      outreachDataMessage = `Sign in with your SNACK Google account to load outreach ${outreachSubpage.toLowerCase()}.`;
+      refreshStandardModuleData(modules.outreach);
+    });
+  } catch (error) {
+    console.error(error);
+    outreachDataMessage = "The secure sign-in connection could not be started.";
+    refreshStandardModuleData(modules.outreach);
   }
 }
 
@@ -5112,9 +6295,18 @@ function bindModulePage(moduleId) {
     const moduleLink = event.target.closest("[data-module-link]");
     if (moduleLink) {
       const nextId = moduleLink.dataset.moduleLink;
-      if (nextId !== moduleId) {
+      const activeNavigationId = isOperationsOutreachReport() ? "operations" : moduleId;
+      if (nextId !== activeNavigationId) {
         location.href = pageUrl(nextId);
       }
+      return;
+    }
+
+    const operationsSubpageButton = event.target.closest("[data-operations-subpage]");
+    if (operationsSubpageButton) {
+      location.href = operationsSubpageButton.dataset.operationsSubpage === "Reports"
+        ? "./operations.html?section=Reports"
+        : "./operations.html";
       return;
     }
 
@@ -5130,8 +6322,69 @@ function bindModulePage(moduleId) {
       return;
     }
 
+    const outreachSubpageButton = event.target.closest("[data-outreach-subpage]");
+    if (moduleId === "outreach" && outreachSubpageButton) {
+      setOutreachSubpage(outreachSubpageButton.dataset.outreachSubpage);
+      return;
+    }
+
+    const outreachViewButton = event.target.closest("[data-outreach-view]");
+    if (moduleId === "outreach" && outreachViewButton) {
+      setOutreachSubpage(outreachViewButton.dataset.outreachView);
+      return;
+    }
+
     if (moduleId === "crm" && event.target.closest(".account")) {
       crmOpenSignIn?.();
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.closest(".account")) {
+      outreachOpenSignIn?.();
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.closest("[data-outreach-new-event]")) {
+      if (outreachSubpage !== "Events") setOutreachSubpage("Events");
+      openOutreachEditor("event");
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.closest("[data-outreach-new-contact]")) {
+      const eventItem = outreachSubpage === "Events" ? outreachSelectedItem() : null;
+      openOutreachEditor("contact", null, { eventId: eventItem?.id || "" });
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.closest("[data-outreach-new-task]")) {
+      const eventItem = outreachSubpage === "Events" ? outreachSelectedItem() : null;
+      openOutreachEditor("task", null, { eventId: eventItem?.id || "" });
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.closest("[data-outreach-log-outcome]")) {
+      const eventItem = outreachSubpage === "Events" ? outreachSelectedItem() : null;
+      if (eventItem) openOutreachEditor("outcome", eventItem);
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.closest("[data-close-outreach-editor]")) {
+      closeOutreachEditor();
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.closest("[data-outreach-search-toggle]")) {
+      const input = document.querySelector("[data-outreach-search-input]");
+      if (!input) return;
+      if (input.hidden) {
+        input.hidden = false;
+        input.focus();
+      } else if (!input.value) {
+        input.hidden = true;
+      } else {
+        input.focus();
+        input.select();
+      }
       return;
     }
 
@@ -5190,6 +6443,68 @@ function bindModulePage(moduleId) {
           select.click();
         }
       }
+      return;
+    }
+
+    const outreachStatusControl = event.target.closest(".outreach-status-control");
+    if (moduleId === "outreach" && outreachStatusControl && !event.target.closest("select")) {
+      const select = outreachStatusControl.querySelector("select");
+      if (select && !select.disabled) {
+        event.preventDefault();
+        if (typeof select.showPicker === "function") {
+          try {
+            select.showPicker();
+          } catch {
+            select.focus();
+            select.click();
+          }
+        } else {
+          select.focus();
+          select.click();
+        }
+      }
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.closest("[data-outreach-edit-event]")) {
+      openOutreachEditor("event", outreachSelectedItem());
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.closest("[data-outreach-edit-contact]")) {
+      openOutreachEditor("contact", outreachSelectedItem());
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.closest("[data-outreach-edit-task]")) {
+      openOutreachEditor("task", outreachSelectedItem());
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.closest("[data-outreach-delete-editor]")) {
+      deleteOutreachRecord(outreachSelectedItem());
+      return;
+    }
+
+    const outreachContact = event.target.closest("[data-outreach-contact-id]");
+    if (moduleId === "outreach" && outreachContact) {
+      setOutreachSubpage("Contacts");
+      updateDetail(modules.outreach, outreachContact.dataset.outreachContactId);
+      return;
+    }
+
+    const outreachAction = event.target.closest("[data-outreach-action]");
+    if (moduleId === "outreach" && outreachAction) {
+      const item = outreachSelectedItem();
+      const action = outreachAction.dataset.outreachAction;
+      if (action === "log-outcome") openOutreachEditor("outcome", item);
+      if (action === "add-contact") openOutreachEditor("contact", null, { eventId: item?.id || "" });
+      if (action === "create-task") openOutreachEditor("task", null, { eventId: item?.id || "" });
+      if (action === "edit" && item?.kind === "contact") openOutreachEditor("contact", item);
+      if (action === "edit" && item?.kind === "task") openOutreachEditor("task", item);
+      if (action === "new-referral") openOutreachContactReferral(item);
+      if (action === "mark-done") saveOutreachStatus(item, "Done");
+      if (action === "delete") deleteOutreachRecord(item);
       return;
     }
 
@@ -5417,6 +6732,12 @@ function bindModulePage(moduleId) {
         crmPanelMode = "detail";
         resetCrmCloseAction();
       }
+      if (moduleId === "outreach") {
+        outreachDetailTab = outreachDetailTabKey(module.detailTabs[0]);
+        outreachPanelMode = "detail";
+        outreachDeletePendingId = "";
+        setOutreachActionStatus("");
+      }
       updateDetail(module, row.dataset.rowId);
       return;
     }
@@ -5476,6 +6797,10 @@ function bindModulePage(moduleId) {
         setCrmDetailTab(detailTab.dataset.crmDetailTab);
         return;
       }
+      if (moduleId === "outreach" && detailTab.dataset.outreachDetailTab) {
+        setOutreachDetailTab(detailTab.dataset.outreachDetailTab);
+        return;
+      }
       document.querySelectorAll(".tabs button").forEach((item) => item.classList.remove("is-active"));
       detailTab.classList.add("is-active");
     }
@@ -5484,6 +6809,11 @@ function bindModulePage(moduleId) {
   document.addEventListener("change", (event) => {
     if (moduleId === "crm" && event.target.matches("[data-crm-status-select]")) {
       saveCrmStatus(crmSelectedItem(), event.target.value, event.target);
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.matches("[data-outreach-status-select]")) {
+      saveOutreachStatus(outreachSelectedItem(), event.target.value, event.target);
       return;
     }
 
@@ -5559,6 +6889,11 @@ function bindModulePage(moduleId) {
       return;
     }
 
+    if (moduleId === "outreach" && event.target.matches("[data-outreach-search-input]")) {
+      applyOutreachSearch(module, event.target.value);
+      return;
+    }
+
     if (moduleId === "schedule" && event.target.matches("[data-new-appointment-client-search]")) {
       renderNewAppointmentClientOptions(event.target.value);
     }
@@ -5574,6 +6909,20 @@ function bindModulePage(moduleId) {
     if (moduleId === "crm" && event.target.closest(".account") && (event.key === "Enter" || event.key === " ")) {
       event.preventDefault();
       crmOpenSignIn?.();
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.closest(".account") && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      outreachOpenSignIn?.();
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.matches("[data-outreach-search-input]") && event.key === "Escape") {
+      event.target.value = "";
+      event.target.hidden = true;
+      applyOutreachSearch(module, "");
+      document.querySelector("[data-outreach-search-toggle]")?.focus();
       return;
     }
 
@@ -5595,6 +6944,30 @@ function bindModulePage(moduleId) {
   });
 
   document.addEventListener("submit", (event) => {
+    if (moduleId === "outreach" && event.target.matches("[data-outreach-event-form]")) {
+      event.preventDefault();
+      saveOutreachEvent(event.target);
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.matches("[data-outreach-contact-form]")) {
+      event.preventDefault();
+      saveOutreachContact(event.target);
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.matches("[data-outreach-task-form]")) {
+      event.preventDefault();
+      saveOutreachTask(event.target);
+      return;
+    }
+
+    if (moduleId === "outreach" && event.target.matches("[data-outreach-outcome-form]")) {
+      event.preventDefault();
+      saveOutreachOutcome(event.target);
+      return;
+    }
+
     if (moduleId === "crm" && event.target.matches("[data-crm-client-form]")) {
       event.preventDefault();
       saveCrmClient(event.target);
@@ -5665,7 +7038,9 @@ function bindModulePage(moduleId) {
 
 const moduleId = currentModuleId();
 if (moduleId === "crm") configureCrmModule(crmSubpage);
+if (moduleId === "outreach") configureOutreachModule(outreachSubpage);
 renderModulePage(moduleId);
 bindModulePage(moduleId);
 initializeScheduleData();
 initializeCrmData();
+initializeOutreachData();

@@ -7,6 +7,7 @@ import {
   outreachContacts,
   outreachEvents,
   requireAuth,
+  tasks,
   toOutreachContact,
   toOutreachEvent
 } from "../lib/core.js";
@@ -119,6 +120,18 @@ router.delete("/api/outreach-events/:eventId", requireAuth, async (request, resp
       return;
     }
 
+    const [linkedContacts, linkedTasks] = await Promise.all([
+      fetchAllDocuments(outreachContacts.where("eventId", "==", eventId)),
+      fetchAllDocuments(tasks.where("outreachEventId", "==", eventId))
+    ]);
+
+    if (linkedContacts.length || linkedTasks.length) {
+      response.status(409).json({
+        error: "Move or delete this event's linked contacts and tasks before deleting the event."
+      });
+      return;
+    }
+
     await docRef.delete();
 
     response.status(204).send();
@@ -206,6 +219,44 @@ router.patch("/api/outreach-contacts/:contactId", requireAuth, async (request, r
 
     await docRef.update({
       ...payload,
+      updatedAt: new Date().toISOString(),
+      updatedBy: request.user.email
+    });
+    const updated = await docRef.get();
+
+    response.json({
+      contact: toOutreachContact(updated)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/api/outreach-contacts/:contactId/link-referral", requireAuth, async (request, response, next) => {
+  try {
+    const contactId = cleanString(request.params.contactId);
+    const referralId = cleanString(request.body.referralId);
+
+    if (!contactId || !referralId) {
+      response.status(400).json({
+        error: "Outreach contact ID and referral ID are required."
+      });
+      return;
+    }
+
+    const docRef = outreachContacts.doc(contactId);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      response.status(404).json({
+        error: "Outreach contact was not found."
+      });
+      return;
+    }
+
+    await docRef.update({
+      referralId,
+      status: "Referral Created",
       updatedAt: new Date().toISOString(),
       updatedBy: request.user.email
     });

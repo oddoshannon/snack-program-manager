@@ -2710,6 +2710,31 @@ svg {
   gap: 12px;
 }
 
+[data-outreach-detail-content] {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.app-shell[data-module-id="outreach"] .footer-actions {
+  grid-template-columns: repeat(var(--outreach-footer-action-count, 3), minmax(0, 1fr));
+}
+
+.app-shell[data-module-id="outreach"] .footer-actions button {
+  min-width: 0;
+  padding-inline: 6px;
+  white-space: nowrap;
+}
+
+.outreach-field-grid .field strong,
+.app-shell[data-module-id="outreach"] .meta-row strong {
+  overflow-wrap: anywhere;
+}
+
+.crm-appointment-row .status-pill {
+  flex: 0 0 auto;
+}
+
 .app-shell[data-module-id="crm"] .footer-actions button:nth-child(1),
 .app-shell[data-module-id="crm"] .footer-actions button:nth-child(2) {
   border: 1px solid #a8d8b8;
@@ -3353,6 +3378,44 @@ svg {
 
 .app-shell[data-module-id="crm"] .crm-editor-footer-actions button:last-child:hover,
 .app-shell[data-module-id="crm"] .crm-editor-footer-actions button:last-child:focus-visible {
+  background: color-mix(in srgb, var(--module) 90%, #000000);
+}
+
+.app-shell[data-module-id="outreach"] .outreach-editor-footer-actions {
+  grid-template-columns: repeat(var(--outreach-editor-action-count, 2), minmax(0, 1fr));
+  margin-top: 0;
+}
+
+.app-shell[data-module-id="outreach"] .outreach-editor-footer-actions button:first-child {
+  border: 1px solid var(--module-line);
+  background: var(--surface);
+  color: var(--module);
+}
+
+.app-shell[data-module-id="outreach"] .outreach-editor-footer-actions button:first-child:hover,
+.app-shell[data-module-id="outreach"] .outreach-editor-footer-actions button:first-child:focus-visible {
+  background: var(--module-soft);
+}
+
+.app-shell[data-module-id="outreach"] .outreach-editor-footer-actions [data-outreach-delete-editor] {
+  border: 1px solid #f4b4b6;
+  background: var(--surface);
+  color: var(--red);
+}
+
+.app-shell[data-module-id="outreach"] .outreach-editor-footer-actions [data-outreach-delete-editor]:hover,
+.app-shell[data-module-id="outreach"] .outreach-editor-footer-actions [data-outreach-delete-editor]:focus-visible {
+  background: var(--red-soft);
+}
+
+.app-shell[data-module-id="outreach"] .outreach-editor-footer-actions button:last-child {
+  border: 1px solid var(--module);
+  background: var(--module);
+  color: var(--ink);
+}
+
+.app-shell[data-module-id="outreach"] .outreach-editor-footer-actions button:last-child:hover,
+.app-shell[data-module-id="outreach"] .outreach-editor-footer-actions button:last-child:focus-visible {
   background: color-mix(in srgb, var(--module) 90%, #000000);
 }
 
