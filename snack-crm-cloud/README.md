@@ -94,6 +94,26 @@ The backend runs at `http://127.0.0.1:8080` unless configured otherwise.
 
 Serve `snack-crm-cloud/frontend/public/` with a local static server. The clean Scheduling page is `schedule.html`, and the visual reference is `template.html`.
 
+### Local data safety
+
+The local Firestore emulator has a guarded backup, reset, and restore tool. It
+refuses the live `snack-crm` project and refuses any database host that is not
+`localhost` or `127.0.0.1`.
+
+```bash
+cd snack-crm-cloud/backend
+npm run local-data -- backup
+npm run local-data -- clear
+npm run local-data -- restore --file=/path/to/backup.json
+npm run local-data -- replace --file=/path/to/backup.json
+```
+
+`clear`, `restore`, and `replace` are previews by default. The tool prints the
+exact records involved and makes no changes unless the matching confirmation
+phrase is supplied. `replace` also creates an automatic local backup before it
+removes anything. Backup files default to the ignored `backend/.data/` folder
+so client data cannot be accidentally added to GitHub.
+
 ## Required checks
 
 Run the backend tests:

@@ -177,6 +177,7 @@ test("cleanPersonPayload normalizes profile data", () => {
     parentName: " Mellani ",
     phone: " 503 ",
     preferredLanguage: " English ",
+    graduationDate: " 2026-07-15 ",
     emailOptOut: "checked",
     textOptOut: "",
     ycco: "yes",
@@ -186,6 +187,7 @@ test("cleanPersonPayload normalizes profile data", () => {
   });
 
   assert.equal(payload.firstName, "Melody");
+  assert.equal(payload.graduationDate, "2026-07-15");
   assert.equal(payload.emailOptOut, true);
   assert.equal(payload.textOptOut, false);
   assert.equal(payload.ycco, true);
@@ -941,6 +943,7 @@ test("cleanPublicBookingPayload accepts child aliases and service language defau
 });
 
 test("public booking validation rejects spam traps and malformed public input", () => {
+  const validationNow = new Date("2026-07-15T20:15:00Z");
   const validPayload = cleanPublicBookingPayload({
     serviceId: "enrollment",
     children: [{
@@ -955,17 +958,17 @@ test("public booking validation rejects spam traps and malformed public input", 
     preferredLanguage: "English",
     preferredContactMethod: "Text",
     consentReminders: true,
-    appointmentDate: nextUtcWeekday(2),
+    appointmentDate: "2026-07-21",
     appointmentTime: "1 PM"
   });
 
-  assert.equal(publicBookingValidationError(validPayload), "");
-  assert.match(publicBookingValidationError({ ...validPayload, website: "bot.example" }), /Could not submit/);
-  assert.match(publicBookingValidationError({ ...validPayload, spamTrap: "bot.example" }), /Could not submit/);
-  assert.match(publicBookingValidationError({ ...validPayload, email: "not-an-email" }), /valid email/);
-  assert.match(publicBookingValidationError({ ...validPayload, email: "" }), /required/);
-  assert.match(publicBookingValidationError({ ...validPayload, consentReminders: false }), /required/);
-  assert.match(publicBookingValidationError({ ...validPayload, notes: "x".repeat(601) }), /shorten/);
+  assert.equal(publicBookingValidationError(validPayload, defaultSchedulingSettingsNormalized, validationNow), "");
+  assert.match(publicBookingValidationError({ ...validPayload, website: "bot.example" }, defaultSchedulingSettingsNormalized, validationNow), /Could not submit/);
+  assert.match(publicBookingValidationError({ ...validPayload, spamTrap: "bot.example" }, defaultSchedulingSettingsNormalized, validationNow), /Could not submit/);
+  assert.match(publicBookingValidationError({ ...validPayload, email: "not-an-email" }, defaultSchedulingSettingsNormalized, validationNow), /valid email/);
+  assert.match(publicBookingValidationError({ ...validPayload, email: "" }, defaultSchedulingSettingsNormalized, validationNow), /required/);
+  assert.match(publicBookingValidationError({ ...validPayload, consentReminders: false }, defaultSchedulingSettingsNormalized, validationNow), /required/);
+  assert.match(publicBookingValidationError({ ...validPayload, notes: "x".repeat(601) }, defaultSchedulingSettingsNormalized, validationNow), /shorten/);
 
   const tooSoonPayload = {
     ...validPayload,
@@ -973,7 +976,7 @@ test("public booking validation rejects spam traps and malformed public input", 
     appointmentTime: "13:00"
   };
   assert.match(
-    publicBookingValidationError(tooSoonPayload, defaultSchedulingSettingsNormalized, new Date("2026-07-15T20:15:00Z")),
+    publicBookingValidationError(tooSoonPayload, defaultSchedulingSettingsNormalized, validationNow),
     /at least 24 hours/
   );
 });

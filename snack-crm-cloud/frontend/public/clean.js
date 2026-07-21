@@ -38,6 +38,43 @@ import {
   printDocumentHtml,
   printableScheduleItems
 } from "./modules/schedule-print.js?v=20260715-print-workflow1";
+import {
+  clientLessonValue,
+  clientLessonIndex,
+  crmActivityPayload,
+  crmAppointmentDescription,
+  crmAppointmentUrl,
+  crmClientMatches,
+  crmClientPayload,
+  crmCloseDecision,
+  crmLessonIsCurrent,
+  crmNewAppointmentUrl,
+  crmPreferredItemId,
+  crmSiblingChanges,
+  crmStatusOptions,
+  crmSummary,
+  formatClientDate,
+  languageOptions,
+  lessonProgression,
+  mapCrmClients,
+  preferredContactOptions,
+  referralTypeOptions
+} from "./modules/crm.js?v=20260718-crm-links1";
+import {
+  crmConfirmDecision,
+  crmNetworkMatches,
+  crmNetworkPayload,
+  crmNetworkSummary,
+  crmReferralActivityPayload,
+  crmReferralMatches,
+  crmReferralPayload,
+  crmReferralProviderLinks,
+  crmReferralSummary,
+  mapCrmNetworkEntries,
+  mapCrmReferrals,
+  referralNetworkTypeOptions,
+  referralStatusOptions
+} from "./modules/referrals.js?v=20260718-crm-links1";
 
 const icons = {
   schedule: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4M16 2v4M4 9h16M6 4h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>`,
@@ -54,11 +91,72 @@ const icons = {
   check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>`,
   history: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>`,
   file: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l4 4v16H6zM14 2v5h5"/></svg>`,
+  note: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM8 8h8M8 12h8M8 16h5"/></svg>`,
   chevronLeft: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>`,
   chevronRight: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>`
 };
 
 const moduleOrder = ["schedule", "crm", "outreach", "fundraising", "marketing", "operations", "admin"];
+
+const crmFamilyFields = [
+  ["Caregiver", "caregiver"],
+  ["Siblings", "siblings"],
+  ["Phone", "phone"],
+  ["Email", "email"],
+  ["Address", "address"]
+];
+
+const crmClientDetailFields = [
+  ["Language", "language"],
+  ["Referral Date", "referralDate"],
+  ["Referral Type", "referralType"],
+  ["Birthdate", "dob"],
+  ["First Contact", "firstContact"],
+  ["Referring Provider", "providerProfiles"],
+  ["Gender", "gender"],
+  ["Converted Date", "convertedDate"],
+  ["Preferred Contact", "preferredContact"],
+  ["Insurance", "insurance"],
+  ["First Appointment", "firstAppt"],
+  ["Email Opt Out", "emailOptOut"],
+  ["HRSN", "hrsn"],
+  ["Graduation Date", "graduationDate"],
+  ["Text Opt Out", "textOptOut"]
+];
+
+const crmReferralDetailFields = [
+  ["Language", "language"],
+  ["Referral Date", "referralDate"],
+  ["Referral Type", "referralType"],
+  ["Birthdate", "dob"],
+  ["First Contact", "firstContact"],
+  ["Referral Source", "referralSource"],
+  ["Gender", "gender"],
+  ["Recent Contact", "recentContact"],
+  ["Referring Provider", "providerProfiles"],
+  ["Insurance", "insurance"],
+  ["First Appointment", "firstAppt"],
+  ["Email Opt Out", "emailOptOut"],
+  ["HRSN", "hrsn"],
+  ["Converted Date", "convertedDate"],
+  ["Text Opt Out", "textOptOut"]
+];
+
+const crmNetworkSideFields = [
+  ["Contact", "contactName"],
+  ["Phone", "phone"],
+  ["Email", "email"],
+  ["Website", "website"]
+];
+
+const crmNetworkDetailFields = [
+  ["Organization Type", "type"],
+  ["Primary Contact", "contactName"],
+  ["Phone", "phone"],
+  ["Email", "email"],
+  ["Website", "website"],
+  ["Providers", "providerCount"]
+];
 
 const modules = {
   schedule: {
@@ -67,10 +165,10 @@ const modules = {
     icon: "schedule",
     tone: "red",
     theme: ["var(--red)", "var(--red-soft)", "#f4b4b6"],
-    subpages: ["Clinic", "Public Booking", "Unscheduled", "Print Forms", "Settings"],
+    subpages: ["Clinic", "Public Booking"],
     views: ["Day", "Week"],
     primaryAction: "New Appointment",
-    quickActions: ["New Appointment", "Block Time", "Print Schedule"],
+    quickActions: ["New Appointment", "Block Time", "Print Forms"],
     summary: [["0", "Today"], ["0", "Completed"], ["0", "No Show"], ["0", "Reschedule"]],
     listTitle: "Clinic",
     footerActions: ["Mark Complete", "Reschedule", "No Show"],
@@ -78,7 +176,7 @@ const modules = {
     detailTabIcons: ["calendar", "check", "file", "history", "file"],
     sideTitle: "Family",
     sideIcon: "crm",
-    sideLink: "View Family Profile",
+    sideLink: "Open Client Profile",
     sideFields: [["Caregiver", "caregiver"], ["Siblings", "siblings"], ["Language", "language"], ["Phone", "phone"]],
     cards: [
       { title: "Details", fields: [["Lesson", "lesson"], ["Staff", "staff"], ["Goal", "goal"], ["Notes", "notes"]] },
@@ -92,77 +190,27 @@ const modules = {
     icon: "crm",
     tone: "orange",
     theme: ["var(--orange)", "var(--orange-soft)", "#f5bd8e"],
-    subpages: ["Clients", "Referrals", "Referral Network", "Tasks", "Forms"],
-    views: ["Clients", "Referrals", "Tasks"],
+    subpages: ["Clients", "Referrals", "Referral Network"],
+    views: [],
     primaryAction: "New Client",
-    quickActions: ["New Client", "New Referral", "New Task"],
-    summary: [["3", "Reschedule"], ["2", "Scheduled"], ["3", "Active"], ["2", "Watch List"]],
+    quickActions: ["New Client", "New Referral"],
+    summary: [["0", "Needs Reschedule"], ["0", "Scheduled"], ["0", "Active"], ["0", "Waiting on Family"]],
     listTitle: "Clients",
-    footerActions: ["Log Call", "New Appt", "Close Client"],
+    footerActions: ["Log Call", "Log Text", "New Appt", "Close Client"],
     detailTabs: ["Overview", "Notes", "Appointments", "Forms"],
+    detailTabIcons: ["crm", "note", "calendar", "file"],
     sideTitle: "Family",
-    sideLink: "View Family Profile",
-    sideFields: [["Caregiver", "caregiver"], ["Siblings", "siblings"], ["Language", "language"], ["Phone", "phone"]],
+    sideIcon: "crm",
+    sideLink: "",
+    sideFields: crmFamilyFields,
     cards: [
-      { title: "Snapshot", fields: [["Date of birth", "dob"], ["Insurance", "insurance"], ["First appointment", "firstAppt"], ["Most recent appointment", "recentAppt"]] },
-      { title: "Lesson Progression", fields: [["Current stage", "stage"], ["Next lesson", "nextLesson"], ["Provider profiles", "providerProfiles"], ["Referral source", "referralSource"]] }
+      {
+        title: "Client Details",
+        fields: crmClientDetailFields
+      },
+      { title: "Lesson Progression", fields: [] }
     ],
-    items: [
-      {
-        id: "kathan",
-        title: "Kathan Teeters",
-        subtitle: "Jennifer | 6/9/26",
-        status: "Reschedule",
-        caregiver: "Jennifer",
-        siblings: "None linked yet",
-        language: "English",
-        phone: "(971) 237-8215",
-        dob: "8/14/13",
-        insurance: "YCCO",
-        firstAppt: "12/3/25",
-        recentAppt: "-",
-        stage: "Enrollment complete",
-        nextLesson: "Nutrient Density",
-        providerProfiles: "None linked yet",
-        referralSource: "Internal clinic referral"
-      },
-      {
-        id: "rafael-janney-crm",
-        title: "Rafael & Janney",
-        subtitle: "Enrollment | 6/30/26",
-        status: "Scheduled",
-        caregiver: "Neiva",
-        siblings: "Rafael, Janney",
-        language: "Spanish",
-        phone: "(971) 447-2646",
-        dob: "Sibling profiles",
-        insurance: "YCCO",
-        firstAppt: "6/30/26",
-        recentAppt: "-",
-        stage: "Enrollment scheduled",
-        nextLesson: "Enrollment",
-        providerProfiles: "None linked yet",
-        referralSource: "Event contact"
-      },
-      {
-        id: "cali",
-        title: "Cali Flint",
-        subtitle: "Sugar | 6/23/26",
-        status: "Active",
-        caregiver: "Amanda",
-        siblings: "Mark",
-        language: "English",
-        phone: "(971) 555-0108",
-        dob: "5/3/14",
-        insurance: "YCCO",
-        firstAppt: "6/3/26",
-        recentAppt: "6/23/26",
-        stage: "Nutrition education",
-        nextLesson: "Food Groups",
-        providerProfiles: "Sibling profile linked",
-        referralSource: "Clinic partner"
-      }
-    ]
+    items: []
   },
   outreach: {
     label: "Outreach",
@@ -620,6 +668,33 @@ let scheduleSettings = {
   weekdays: [2, 3, 4],
   slotIntervalMinutes: 15
 };
+let crmCurrentUser = null;
+let crmDataMessage = "Loading clients...";
+let crmAllItems = [];
+let crmClientItems = [];
+let crmReferralItems = [];
+let crmNetworkItems = [];
+let crmRawClients = [];
+let crmRawReferrals = [];
+let crmRawNetworkEntries = [];
+let crmAppointments = [];
+let crmActivityLogs = [];
+let crmDetailTab = "overview";
+let crmPanelMode = "detail";
+let crmEditorKind = "";
+let crmEditingClientId = "";
+let crmEditingReferralId = "";
+let crmEditingNetworkId = "";
+let crmSearchQuery = "";
+let crmClosePendingId = "";
+let crmDeletePendingId = "";
+let crmConvertPendingId = "";
+let crmActionBusy = false;
+let crmOpenSignIn = null;
+let crmSubpage = ["Clients", "Referrals", "Referral Network"].includes(new URLSearchParams(window.location.search).get("section"))
+  ? new URLSearchParams(window.location.search).get("section")
+  : "Clients";
+let scheduleHandoffHandled = false;
 const newAppointmentClientIds = new Set();
 
 function currentModuleId() {
@@ -653,6 +728,88 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function crmSubpageDefinition(label = crmSubpage) {
+  if (label === "Referrals") {
+    return {
+      primaryAction: "New Referral",
+      quickActions: ["New Referral"],
+      summary: crmReferralSummary(crmReferralItems),
+      listTitle: "Referrals",
+      searchLabel: "Search referrals",
+      footerActions: ["Log Call", "Log Text", "Convert", "Delete"],
+      detailTabs: ["Overview", "Notes", "Activity", "Conversion"],
+      detailTabIcons: ["crm", "note", "history", "check"],
+      sideTitle: "Family",
+      sideIcon: "crm",
+      sideFields: crmFamilyFields,
+      cards: [{ title: "Referral Details", fields: crmReferralDetailFields }],
+      items: crmReferralItems
+    };
+  }
+
+  if (label === "Referral Network") {
+    return {
+      primaryAction: "New Organization",
+      quickActions: ["New Organization", "New Referral"],
+      summary: crmNetworkSummary(crmNetworkItems),
+      listTitle: "Referral Network",
+      searchLabel: "Search organizations",
+      footerActions: ["Edit", "New Referral", "Delete"],
+      detailTabs: ["Overview", "Providers", "Notes"],
+      detailTabIcons: ["file", "crm", "note"],
+      sideTitle: "Contact",
+      sideIcon: "crm",
+      sideFields: crmNetworkSideFields,
+      cards: [{ title: "Organization Details", fields: crmNetworkDetailFields }],
+      items: crmNetworkItems
+    };
+  }
+
+  return {
+    primaryAction: "New Client",
+    quickActions: ["New Client", "New Referral"],
+    summary: crmSummary(crmClientItems),
+    listTitle: "Clients",
+    searchLabel: "Search clients",
+    footerActions: ["Log Call", "Log Text", "New Appt", "Close Client"],
+    detailTabs: ["Overview", "Notes", "Appointments", "Forms"],
+    detailTabIcons: ["crm", "note", "calendar", "file"],
+    sideTitle: "Family",
+    sideIcon: "crm",
+    sideFields: crmFamilyFields,
+    cards: [
+      { title: "Client Details", fields: crmClientDetailFields },
+      { title: "Lesson Progression", fields: [] }
+    ],
+    items: crmClientItems
+  };
+}
+
+function configureCrmModule(label = crmSubpage) {
+  const definition = crmSubpageDefinition(label);
+  Object.assign(modules.crm, definition);
+  crmSubpage = label;
+  crmAllItems = [...definition.items];
+}
+
+function crmCurrentMatcher(item, query) {
+  if (crmSubpage === "Referrals") return crmReferralMatches(item, query);
+  if (crmSubpage === "Referral Network") return crmNetworkMatches(item, query);
+  return crmClientMatches(item, query);
+}
+
+function crmCurrentSummary(items) {
+  if (crmSubpage === "Referrals") return crmReferralSummary(items);
+  if (crmSubpage === "Referral Network") return crmNetworkSummary(items);
+  return crmSummary(items);
+}
+
+function crmEmptyMessage() {
+  if (crmSubpage === "Referrals") return "No referrals found.";
+  if (crmSubpage === "Referral Network") return "No referral organizations found.";
+  return "No clients found.";
+}
+
 function renderNav(activeId) {
   return moduleOrder.map((id) => {
     const module = modules[id];
@@ -668,8 +825,9 @@ function renderNav(activeId) {
           <div class="subnav">
             ${module.subpages.map((label, index) => `
               <button
-                class="${activeId === "schedule" ? (label === scheduleSubpage ? "is-current" : "") : (index === 0 ? "is-current" : "")}"
+                class="${activeId === "schedule" ? (label === scheduleSubpage ? "is-current" : "") : activeId === "crm" ? (label === crmSubpage ? "is-current" : "") : (index === 0 ? "is-current" : "")}"
                 ${activeId === "schedule" && ["Clinic", "Print Forms"].includes(label) ? `data-schedule-subpage="${escapeHtml(label)}"` : ""}
+                ${activeId === "crm" ? `data-crm-subpage="${escapeHtml(label)}"` : ""}
                 type="button"
               >${label}</button>
             `).join("")}
@@ -681,18 +839,43 @@ function renderNav(activeId) {
 }
 
 function renderListRows(module) {
+  if (!module.items.length) {
+    return `<p class="list-empty" role="status">${escapeHtml(module === modules.crm ? crmDataMessage : "No records to show.")}</p>`;
+  }
+
   return module.items.map((item) => `
     <button
       class="list-row ${item.id === selectedItemId ? "is-selected" : ""}"
-      data-row-id="${item.id}"
+      data-row-id="${escapeHtml(item.id)}"
       data-tone="module"
       type="button"
     >
-      <strong>${item.title}</strong>
-      <span class="status-pill">${item.status}</span>
-      <span>${item.subtitle}</span>
+      <strong>${escapeHtml(item.title)}</strong>
+      <span class="status-pill">${escapeHtml(item.status)}</span>
+      <span>${escapeHtml(item.subtitle)}</span>
     </button>
   `).join("");
+}
+
+function renderSummaryItems(module) {
+  return module.summary.map(([value, label]) => `
+    <div class="summary-item" data-summary-label="${escapeHtml(label)}">
+      <strong>${escapeHtml(value)}</strong>
+      <span>${escapeHtml(label)}</span>
+    </div>
+  `).join("");
+}
+
+function refreshStandardModuleData(module) {
+  const summary = document.querySelector(".summary-strip");
+  const list = document.querySelector(".list");
+  if (summary) summary.innerHTML = renderSummaryItems(module);
+  if (list) list.innerHTML = renderListRows(module);
+  const requestedClientId = module === modules.crm && crmSubpage === "Clients"
+    ? new URLSearchParams(window.location.search).get("client")
+    : "";
+  selectedItemId = crmPreferredItemId(module.items, selectedItemId, requestedClientId);
+  updateDetail(module, selectedItemId);
 }
 
 function renderScheduleTimeline(module, dateKey) {
@@ -865,6 +1048,14 @@ function renderFields(fields) {
   `).join("");
 }
 
+function renderCrmFields(fields) {
+  return Array.from({ length: 3 }, (_, columnIndex) => `
+    <div class="crm-detail-column">
+      ${renderFields(fields.filter((_, fieldIndex) => fieldIndex % 3 === columnIndex))}
+    </div>
+  `).join("");
+}
+
 function renderMetaRows(fields) {
   return fields.slice(0, 3).map(([label, key]) => `
     <div class="meta-row">
@@ -900,6 +1091,51 @@ function renderScheduleAppointmentMeta() {
   `;
 }
 
+function renderCrmClientMeta() {
+  return `
+    <div class="appointment-meta-row">
+      <span class="appointment-meta-icon">${icons.history}</span>
+      <span class="crm-meta-copy"><em>Recent Contact</em><strong data-field="recentContact"></strong></span>
+    </div>
+    <div class="appointment-meta-row">
+      <span class="appointment-meta-icon">${icons.clock}</span>
+      <span class="crm-meta-copy"><em>Recent Appt</em><strong data-field="recentAppt"></strong></span>
+    </div>
+  `;
+}
+
+function renderCrmReferralMeta() {
+  return `
+    <div class="appointment-meta-row">
+      <span class="appointment-meta-icon">${icons.calendar}</span>
+      <span class="crm-meta-copy"><em>Referral Date</em><strong data-field="referralDate"></strong></span>
+    </div>
+    <div class="appointment-meta-row">
+      <span class="appointment-meta-icon">${icons.history}</span>
+      <span class="crm-meta-copy"><em>Recent Contact</em><strong data-field="recentContact"></strong></span>
+    </div>
+  `;
+}
+
+function renderCrmNetworkMeta() {
+  return `
+    <div class="appointment-meta-row">
+      <span class="appointment-meta-icon">${icons.file}</span>
+      <span class="crm-meta-copy"><em>Organization Type</em><strong data-field="type"></strong></span>
+    </div>
+    <div class="appointment-meta-row">
+      <span class="appointment-meta-icon">${icons.crm}</span>
+      <span class="crm-meta-copy"><em>Providers</em><strong data-field="providerCount"></strong></span>
+    </div>
+  `;
+}
+
+function renderCrmSideMeta() {
+  if (crmSubpage === "Referrals") return renderCrmReferralMeta();
+  if (crmSubpage === "Referral Network") return renderCrmNetworkMeta();
+  return renderCrmClientMeta();
+}
+
 function renderScheduleFamilyRows(module) {
   return module.sideFields.map(([label, key]) => `
     <div class="meta-row">
@@ -907,6 +1143,1421 @@ function renderScheduleFamilyRows(module) {
       <strong class="${key === "siblings" ? "is-stacked-list" : ""}" data-field="${key}"></strong>
     </div>
   `).join("");
+}
+
+function renderCrmLessonProgression() {
+  return `
+    <section class="detail-card crm-lesson-card">
+      <div class="card-heading">
+        <h3>Lesson Progression</h3>
+        <button class="edit-button" data-crm-edit-client type="button">Edit</button>
+      </div>
+      <ol class="crm-lesson-steps" data-crm-lesson-steps></ol>
+    </section>
+  `;
+}
+
+function crmDetailTabKey(tab) {
+  return String(tab || "").toLowerCase().replaceAll(" ", "-");
+}
+
+function crmSelectedItem() {
+  return crmAllItems.find((item) => item.id === selectedItemId) || null;
+}
+
+function renderCrmActivityList(item) {
+  if (!item?.activityLogs?.length) {
+    return `<p class="crm-empty-copy">No calls or texts have been logged for this ${crmSubpage === "Referrals" ? "referral" : "client"}.</p>`;
+  }
+
+  return `
+    <ol class="schedule-activity-list crm-activity-list">
+      ${item.activityLogs.map((activity) => `
+        <li>
+          <time>${escapeHtml(formatClientDate(activity.activityDate))}${activity.activityTime ? `<br>${escapeHtml(formatScheduleTime(scheduleTimeMinutes(activity.activityTime)))}` : ""}</time>
+          <div>
+            <strong>${escapeHtml(activity.title || `${activity.direction || "Outbound"} ${activity.type || "Contact"}`)}</strong>
+            <span>${escapeHtml([activity.result, activity.description].filter(Boolean).join(" | ") || "-")}</span>
+          </div>
+        </li>
+      `).join("")}
+    </ol>
+  `;
+}
+
+function renderCrmNotesPanel(item) {
+  return `
+    <section class="detail-card">
+      <div class="card-heading">
+        <h3>Client Notes</h3>
+        <button class="edit-button" data-crm-edit-notes type="button">Edit</button>
+      </div>
+      <p class="crm-note-copy">${escapeHtml(item?.source?.notes || "No client notes yet.")}</p>
+    </section>
+    <section class="detail-card">
+      <div class="card-heading">
+        <h3>Contact History</h3>
+        <button class="edit-button" data-crm-log-contact="Call" type="button">Log Contact</button>
+      </div>
+      ${renderCrmActivityList(item)}
+    </section>
+  `;
+}
+
+function renderCrmAppointmentsPanel(item) {
+  if (!item?.appointments?.length) {
+    return `
+      <section class="detail-card">
+        <div class="card-heading">
+          <h3>Appointments</h3>
+          <button class="edit-button" data-crm-new-appointment type="button">New Appt</button>
+        </div>
+        <p class="crm-empty-copy">No appointments have been linked to this client.</p>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="detail-card">
+      <div class="card-heading">
+        <h3>Appointments</h3>
+        <button class="edit-button" data-crm-new-appointment type="button">New Appt</button>
+      </div>
+      <div class="crm-appointment-list">
+        ${item.appointments.map((appointment) => `
+          <button
+            class="crm-appointment-row"
+            data-crm-appointment-id="${escapeHtml(appointment.id)}"
+            data-crm-appointment-date="${escapeHtml(appointment.appointmentDate)}"
+            type="button"
+          >
+            <span>
+              <strong>${escapeHtml(formatClientDate(appointment.appointmentDate))}${appointment.appointmentTime ? ` at ${escapeHtml(formatScheduleTime(scheduleTimeMinutes(appointment.appointmentTime)))}` : ""}</strong>
+              <small>${escapeHtml(crmAppointmentDescription(appointment))}</small>
+            </span>
+            <span class="status-pill">${escapeHtml(appointment.status || "Scheduled")}</span>
+          </button>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
+const crmPrintFormPackets = {
+  enrollment: {
+    English: [
+      ["Program Enrollment", "1. Program Enrollment - Print.docx"],
+      ["Questionnaire", "2. Questionnaire - Print.xlsx"],
+      ["HRSN Screener", "3. HRSN Screener.docx"]
+    ],
+    Spanish: [
+      ["Program Enrollment", "1. SP Program Enrollment - Print.docx"],
+      ["Questionnaire", "2. SP Questionnaire - Print.xlsx"],
+      ["HRSN Screener", "3. HRSN Screener- Spanish.docx"]
+    ]
+  },
+  graduation: {
+    English: [
+      ["Questionnaire", "2. Questionnaire - Print.xlsx"],
+      ["Child Feedback", "4. Child Feedback Form - Print.docx"],
+      ["Parent Feedback", "5. Parent Feedback Form - Print.docx"]
+    ],
+    Spanish: [
+      ["Questionnaire", "2. SP Questionnaire - Print.xlsx"],
+      ["Child Feedback", "4. SP Child Feedback Form - Print.docx"],
+      ["Parent Feedback", "5. SP Parent Feedback Form - Print.docx"]
+    ]
+  }
+};
+
+function renderCrmFormLinks(files) {
+  return files.map(([label, fileName]) => `
+    <a class="crm-form-link" href="./print-forms/${encodeURIComponent(fileName)}" download="${escapeHtml(fileName)}">
+      ${icons.file}
+      <span>${escapeHtml(label)}</span>
+    </a>
+  `).join("");
+}
+
+function renderCrmFormsPanel(item) {
+  const language = String(item?.source?.preferredLanguage || "").toLowerCase().includes("spanish")
+    ? "Spanish"
+    : "English";
+
+  return `
+    <section class="detail-card">
+      <div class="card-heading">
+        <h3>Enrollment Packet</h3>
+      </div>
+      <p class="crm-form-description">${language} forms based on this client's preferred language.</p>
+      <div class="crm-form-links">${renderCrmFormLinks(crmPrintFormPackets.enrollment[language])}</div>
+    </section>
+    <section class="detail-card">
+      <div class="card-heading">
+        <h3>Graduation Packet</h3>
+      </div>
+      <p class="crm-form-description">${language} questionnaire and feedback forms.</p>
+      <div class="crm-form-links">${renderCrmFormLinks(crmPrintFormPackets.graduation[language])}</div>
+    </section>
+  `;
+}
+
+function renderCrmReferralNotesPanel(item) {
+  return `
+    <section class="detail-card">
+      <div class="card-heading">
+        <h3>Referral Notes</h3>
+        <button class="edit-button" data-crm-edit-referral type="button">Edit</button>
+      </div>
+      <p class="crm-note-copy">${escapeHtml(item?.source?.notes || "No referral notes yet.")}</p>
+    </section>
+  `;
+}
+
+function renderCrmReferralActivityPanel(item) {
+  return `
+    <section class="detail-card">
+      <div class="card-heading">
+        <h3>Contact History</h3>
+        <button class="edit-button" data-crm-log-contact="Call" type="button">Log Contact</button>
+      </div>
+      ${renderCrmActivityList(item)}
+    </section>
+  `;
+}
+
+function renderCrmReferralConversionPanel(item) {
+  const converted = Boolean(item?.convertedClientId);
+  return `
+    <section class="detail-card">
+      <div class="card-heading">
+        <h3>${converted ? "Client Profile Created" : "Convert to Client"}</h3>
+      </div>
+      <p class="crm-note-copy">${
+        converted
+          ? "This referral is connected to a CRM client profile."
+          : "Conversion creates a client profile from this referral and keeps the referral history connected."
+      }</p>
+      <div class="crm-panel-actions">
+        <button data-crm-referral-convert type="button">${converted ? "Open Client Profile" : "Convert to Client"}</button>
+      </div>
+    </section>
+  `;
+}
+
+function renderCrmNetworkProvidersPanel(item) {
+  const providers = item?.providers || [];
+  return `
+    <section class="detail-card">
+      <div class="card-heading">
+        <h3>Providers</h3>
+        <button class="edit-button" data-crm-edit-network type="button">Edit</button>
+      </div>
+      ${providers.length ? `
+        <div class="crm-provider-list">
+          ${providers.map((provider) => `
+            <article class="crm-provider-row">
+              <strong>${escapeHtml(provider.name)}</strong>
+              <span>${escapeHtml(provider.email || "No email listed")}</span>
+              ${provider.notes ? `<p>${escapeHtml(provider.notes)}</p>` : ""}
+            </article>
+          `).join("")}
+        </div>
+      ` : `<p class="crm-empty-copy">No providers are listed for this organization.</p>`}
+    </section>
+  `;
+}
+
+function renderCrmNetworkNotesPanel(item) {
+  return `
+    <section class="detail-card">
+      <div class="card-heading">
+        <h3>Organization Notes</h3>
+        <button class="edit-button" data-crm-edit-network type="button">Edit</button>
+      </div>
+      <p class="crm-note-copy">${escapeHtml(item?.source?.notes || "No organization notes yet.")}</p>
+    </section>
+  `;
+}
+
+function renderCrmEmptyDetailPanel(title, message) {
+  return `
+    <section class="detail-card crm-empty-detail-card">
+      <div class="card-heading">
+        <h3>${escapeHtml(title)}</h3>
+      </div>
+      <p class="crm-empty-copy">${escapeHtml(message)}</p>
+    </section>
+  `;
+}
+
+function crmSelectOptions(options, selectedValue, placeholder = "") {
+  return [
+    ...(placeholder ? [[placeholder, ""]] : []),
+    ...options.map((option) => Array.isArray(option) ? option : [option, option])
+  ].map(([label, value]) => `
+    <option value="${escapeHtml(value)}" ${String(selectedValue || "") === value ? "selected" : ""}>${escapeHtml(label)}</option>
+  `).join("");
+}
+
+const crmClientEditorFormId = "crm-client-editor-form";
+const crmReferralEditorFormId = "crm-referral-editor-form";
+const crmNetworkEditorFormId = "crm-network-editor-form";
+
+function crmEditorFormAttribute(formId = "") {
+  return formId ? ` form="${escapeHtml(formId)}"` : "";
+}
+
+function renderCrmSiblingChoices(item, formId = "") {
+  const selected = new Set(Array.isArray(item?.source?.siblingIds) ? item.source.siblingIds : []);
+  const choices = crmRawClients.filter((client) => client.id !== item?.id);
+  const formAttribute = crmEditorFormAttribute(formId);
+
+  if (!choices.length) {
+    return `<p class="crm-empty-copy">No other clients are available to link.</p>`;
+  }
+
+  return `
+    <div class="crm-sibling-choices">
+      ${choices.map((client) => {
+        const name = [client.firstName, client.lastName].filter(Boolean).join(" ") || "Unnamed client";
+        return `
+          <label>
+            <input type="checkbox" name="siblingIds" value="${escapeHtml(client.id)}"${formAttribute} ${selected.has(client.id) ? "checked" : ""}>
+            <span>${escapeHtml(name)}</span>
+          </label>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderCrmReferralSiblingChoices(item, formId = "") {
+  const selected = new Set(Array.isArray(item?.source?.siblingIds) ? item.source.siblingIds : []);
+  const choices = crmRawReferrals.filter((referral) =>
+    referral.id !== item?.id && !String(referral.convertedClientId || "").trim());
+  const formAttribute = crmEditorFormAttribute(formId);
+
+  if (!choices.length) {
+    return `<p class="crm-empty-copy">No other referrals are available to link.</p>`;
+  }
+
+  return `
+    <div class="crm-sibling-choices">
+      ${choices.map((referral) => `
+        <label>
+          <input type="checkbox" name="siblingIds" value="${escapeHtml(referral.id)}"${formAttribute} ${selected.has(referral.id) ? "checked" : ""}>
+          <span>${escapeHtml([referral.firstName, referral.lastName].filter(Boolean).join(" ") || "Unnamed referral")}</span>
+        </label>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderCrmProviderChoices(item, formId = "") {
+  const providerLinks = Array.isArray(item?.source?.providerLinks) ? item.source.providerLinks : [];
+  const selected = new Set(
+    providerLinks
+      .map((link) => link.providerId)
+      .filter(Boolean)
+  );
+  const formAttribute = crmEditorFormAttribute(formId);
+  const entries = crmRawNetworkEntries.filter((entry) => Array.isArray(entry.providers) && entry.providers.length);
+  const selectedOrganizationId = providerLinks.find((link) =>
+    entries.some((entry) => entry.id === link.networkId))?.networkId || "";
+
+  if (!entries.length) {
+    return `<p class="crm-empty-copy">No providers have been added to the Referral Network.</p>`;
+  }
+
+  return `
+    <div class="crm-provider-choices">
+      <label class="crm-provider-organization-field">
+        <span>Organization</span>
+        <select name="providerOrganizationId" data-crm-provider-organization${formAttribute}>
+          <option value="">Choose organization</option>
+          ${entries.map((entry) => `
+            <option value="${escapeHtml(entry.id)}" ${entry.id === selectedOrganizationId ? "selected" : ""}>${escapeHtml(entry.name)}</option>
+          `).join("")}
+        </select>
+      </label>
+      <div class="crm-provider-groups">
+        ${entries.map((entry) => {
+          const isSelectedOrganization = entry.id === selectedOrganizationId;
+          return `
+        <fieldset data-crm-provider-group="${escapeHtml(entry.id)}" ${isSelectedOrganization ? "" : "hidden"}>
+          <legend>Providers</legend>
+          ${(entry.providers || []).map((provider) => `
+            <label>
+              <input type="checkbox" name="providerIds" value="${escapeHtml(provider.id)}"${formAttribute} ${selected.has(provider.id) ? "checked" : ""} ${isSelectedOrganization ? "" : "disabled"}>
+              <span>${escapeHtml(provider.name)}</span>
+            </label>
+          `).join("")}
+        </fieldset>
+          `;
+        }).join("")}
+        <p class="crm-empty-copy" data-crm-provider-prompt ${selectedOrganizationId ? "hidden" : ""}>Choose an organization to see its providers.</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderCrmClientEditorSide(item = null) {
+  const source = item?.source || {};
+  const formAttribute = crmEditorFormAttribute(crmClientEditorFormId);
+
+  return `
+    <div class="crm-profile-editor-side">
+      <label class="status-line is-module-status crm-status-control crm-editor-status-control">
+        <span class="status-dot"></span>
+        <select name="status"${formAttribute} aria-label="Client status">
+          ${crmSelectOptions(crmStatusOptions(source.status), source.status || "Scheduled")}
+        </select>
+      </label>
+      <div class="crm-editor-name-fields">
+        <label>
+          <span>First Name</span>
+          <input name="firstName"${formAttribute} value="${escapeHtml(source.firstName || "")}" placeholder="First name" required>
+        </label>
+        <label>
+          <span>Last Name</span>
+          <input name="lastName"${formAttribute} value="${escapeHtml(source.lastName || "")}" placeholder="Last name" required>
+        </label>
+      </div>
+      <div class="meta-list appointment-meta crm-editor-side-meta">
+        <label class="appointment-meta-row">
+          <span class="appointment-meta-icon">${icons.history}</span>
+          <span class="crm-meta-copy">
+            <em>Recent Contact</em>
+            <input name="mostRecentContactDate"${formAttribute} type="date" value="${escapeHtml(source.mostRecentContactDate || source.firstContactDate || source.referralDate || "")}">
+          </span>
+        </label>
+        <label class="appointment-meta-row">
+          <span class="appointment-meta-icon">${icons.clock}</span>
+          <span class="crm-meta-copy">
+            <em>Recent Appt</em>
+            <input name="mostRecentAppointmentDate"${formAttribute} type="date" value="${escapeHtml(source.mostRecentAppointmentDate || source.lastAppointmentDate || source.firstAppointmentDate || "")}">
+          </span>
+        </label>
+      </div>
+      <section class="side-section crm-editor-family-section">
+        <h3><span class="section-icon">${icons.crm}</span>Family</h3>
+        <label class="crm-side-field">
+          <span>Caregiver</span>
+          <input name="parentName"${formAttribute} value="${escapeHtml(source.parentName || "")}" required>
+        </label>
+        <div class="crm-side-field">
+          <span>Siblings</span>
+          ${renderCrmSiblingChoices(item, crmClientEditorFormId)}
+        </div>
+        <label class="crm-side-field">
+          <span>Phone</span>
+          <input name="phone"${formAttribute} type="tel" value="${escapeHtml(source.phone || "")}" required>
+        </label>
+        <label class="crm-side-field">
+          <span>Email</span>
+          <input name="email"${formAttribute} type="email" value="${escapeHtml(source.email || "")}">
+        </label>
+        <label class="crm-side-field">
+          <span>Street</span>
+          <input name="addressStreet"${formAttribute} value="${escapeHtml(source.addressStreet || "")}">
+        </label>
+        <label class="crm-side-field">
+          <span>City</span>
+          <input name="addressCity"${formAttribute} value="${escapeHtml(source.addressCity || "")}">
+        </label>
+        <div class="crm-side-address-row">
+          <label class="crm-side-field">
+            <span>State</span>
+            <input name="addressState"${formAttribute} value="${escapeHtml(source.addressState || "")}">
+          </label>
+          <label class="crm-side-field">
+            <span>ZIP</span>
+            <input name="addressZip"${formAttribute} value="${escapeHtml(source.addressZip || "")}">
+          </label>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function renderCrmClientEditorMain(item = null) {
+  const source = item?.source || {};
+  const lessonValue = clientLessonValue(clientLessonIndex(source.currentLesson));
+  const convertedDate = formatClientDate(source.convertedAt);
+
+  return `
+    <form class="crm-profile-editor-main" id="${crmClientEditorFormId}" data-crm-client-form>
+      <section class="detail-card">
+        <div class="card-heading">
+          <h3>Client Details</h3>
+          <button class="edit-button" data-close-crm-editor type="button">Cancel</button>
+        </div>
+        <div class="schedule-inline-fields crm-profile-editor-fields">
+          <label><span>Language</span><select name="preferredLanguage">${crmSelectOptions(languageOptions, source.preferredLanguage || "English")}</select></label>
+          <label><span>Referral Date</span><input name="referralDate" type="date" value="${escapeHtml(source.referralDate || "")}"></label>
+          <label><span>Referral Type</span><select name="referralType">${crmSelectOptions(referralTypeOptions, source.referralType, "Choose")}</select></label>
+          <label><span>Birthdate</span><input name="dateOfBirth" type="date" value="${escapeHtml(source.dateOfBirth || "")}"></label>
+          <label><span>First Contact</span><input name="firstContactDate" type="date" value="${escapeHtml(source.firstContactDate || "")}"></label>
+          <label><span>Referring Provider</span><input value="${escapeHtml(item?.providerProfiles || "-")}" readonly></label>
+          <label><span>Gender</span><select name="gender">${crmSelectOptions(["Female", "Male", "Nonbinary", "Unspecified"], source.gender || "Unspecified")}</select></label>
+          <label><span>Converted Date</span><input value="${escapeHtml(convertedDate)}" readonly></label>
+          <label><span>Preferred Contact</span><select name="preferredContactMethod">${crmSelectOptions(preferredContactOptions, source.preferredContactMethod, "Choose")}</select></label>
+          <label class="crm-profile-boolean-field">
+            <span>Insurance</span>
+            <span class="crm-profile-boolean-control">
+              <input name="ycco" type="checkbox" ${source.ycco === true ? "checked" : ""}>
+              <strong>YCCO</strong>
+            </span>
+          </label>
+          <label><span>First Appointment</span><input name="firstAppointmentDate" type="date" value="${escapeHtml(source.firstAppointmentDate || "")}"></label>
+          <label class="crm-profile-boolean-field">
+            <span>Email Opt Out</span>
+            <span class="crm-profile-boolean-control">
+              <input name="emailOptOut" type="checkbox" ${source.emailOptOut ? "checked" : ""}>
+              <strong>Opt Out</strong>
+            </span>
+          </label>
+          <label class="crm-profile-boolean-field">
+            <span>HRSN</span>
+            <span class="crm-profile-boolean-control">
+              <input name="hrsn" type="checkbox" ${source.hrsn === true ? "checked" : ""}>
+              <strong>Eligible</strong>
+            </span>
+          </label>
+          <label><span>Graduation Date</span><input name="graduationDate" type="date" value="${escapeHtml(source.graduationDate || "")}"></label>
+          <label class="crm-profile-boolean-field">
+            <span>Text Opt Out</span>
+            <span class="crm-profile-boolean-control">
+              <input name="textOptOut" type="checkbox" ${source.textOptOut ? "checked" : ""}>
+              <strong>Opt Out</strong>
+            </span>
+          </label>
+          <label class="is-full-width"><span>Notes</span><textarea name="notes" rows="5">${escapeHtml(source.notes || "")}</textarea></label>
+        </div>
+      </section>
+      <section class="detail-card crm-lesson-card">
+        <div class="card-heading">
+          <h3>Lesson Progression</h3>
+        </div>
+        <label class="crm-lesson-editor-field">
+          <span>Completed Through</span>
+          <select name="currentLesson">${crmSelectOptions(lessonProgression.map(([label], index) => [label, clientLessonValue(index)]), lessonValue, "Not assigned")}</select>
+        </label>
+      </section>
+      <p class="schedule-dialog-status" data-crm-editor-status role="status" aria-live="polite"></p>
+      <div class="footer-actions crm-editor-footer-actions">
+        <button data-close-crm-editor type="button">Cancel</button>
+        <button class="is-primary" type="submit">${item ? "Save Changes" : "Save Client"}</button>
+      </div>
+    </form>
+  `;
+}
+
+function renderCrmReferralEditorSide(item = null) {
+  const source = item?.source || {};
+  const formAttribute = crmEditorFormAttribute(crmReferralEditorFormId);
+
+  return `
+    <div class="crm-profile-editor-side">
+      <label class="status-line is-module-status crm-status-control crm-editor-status-control">
+        <span class="status-dot"></span>
+        <select name="status"${formAttribute} aria-label="Referral status">
+          ${crmSelectOptions(referralStatusOptions, source.status || "New")}
+        </select>
+      </label>
+      <div class="crm-editor-name-fields">
+        <label>
+          <span>First Name</span>
+          <input name="firstName"${formAttribute} value="${escapeHtml(source.firstName || "")}" required>
+        </label>
+        <label>
+          <span>Last Name</span>
+          <input name="lastName"${formAttribute} value="${escapeHtml(source.lastName || "")}" required>
+        </label>
+      </div>
+      <div class="meta-list appointment-meta crm-editor-side-meta">
+        <label class="appointment-meta-row">
+          <span class="appointment-meta-icon">${icons.calendar}</span>
+          <span class="crm-meta-copy">
+            <em>Referral Date</em>
+            <input name="referralDate"${formAttribute} type="date" value="${escapeHtml(source.referralDate || "")}">
+          </span>
+        </label>
+        <label class="appointment-meta-row">
+          <span class="appointment-meta-icon">${icons.history}</span>
+          <span class="crm-meta-copy">
+            <em>Recent Contact</em>
+            <input name="mostRecentContactDate"${formAttribute} type="date" value="${escapeHtml(source.mostRecentContactDate || source.firstContactDate || "")}">
+          </span>
+        </label>
+      </div>
+      <section class="side-section crm-editor-family-section">
+        <h3><span class="section-icon">${icons.crm}</span>Family</h3>
+        <label class="crm-side-field">
+          <span>Caregiver</span>
+          <input name="parentName"${formAttribute} value="${escapeHtml(source.parentName || "")}" required>
+        </label>
+        <div class="crm-side-field">
+          <span>Siblings</span>
+          ${renderCrmReferralSiblingChoices(item, crmReferralEditorFormId)}
+        </div>
+        <label class="crm-side-field">
+          <span>Phone</span>
+          <input name="phone"${formAttribute} type="tel" value="${escapeHtml(source.phone || "")}" required>
+        </label>
+        <label class="crm-side-field">
+          <span>Email</span>
+          <input name="email"${formAttribute} type="email" value="${escapeHtml(source.email || "")}">
+        </label>
+        <label class="crm-side-field">
+          <span>Street</span>
+          <input name="addressStreet"${formAttribute} value="${escapeHtml(source.addressStreet || "")}">
+        </label>
+        <label class="crm-side-field">
+          <span>City</span>
+          <input name="addressCity"${formAttribute} value="${escapeHtml(source.addressCity || "")}">
+        </label>
+        <div class="crm-side-address-row">
+          <label class="crm-side-field">
+            <span>State</span>
+            <input name="addressState"${formAttribute} value="${escapeHtml(source.addressState || "")}">
+          </label>
+          <label class="crm-side-field">
+            <span>ZIP</span>
+            <input name="addressZip"${formAttribute} value="${escapeHtml(source.addressZip || "")}">
+          </label>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function renderCrmReferralEditorMain(item = null) {
+  const source = item?.source || {};
+
+  return `
+    <form class="crm-profile-editor-main" id="${crmReferralEditorFormId}" data-crm-referral-form>
+      <section class="detail-card">
+        <div class="card-heading">
+          <h3>Referral Details</h3>
+          <button class="edit-button" data-close-crm-editor type="button">Cancel</button>
+        </div>
+        <div class="schedule-inline-fields crm-profile-editor-fields">
+          <label><span>Language</span><select name="preferredLanguage">${crmSelectOptions(languageOptions, source.preferredLanguage || "English")}</select></label>
+          <label><span>Referral Type</span><select name="referralType" required>${crmSelectOptions(referralTypeOptions, source.referralType, "Choose")}</select></label>
+          <label><span>Referral Source</span><input name="referralSource" value="${escapeHtml(source.referralSource || "")}"></label>
+          <label><span>Birthdate</span><input name="dateOfBirth" type="date" value="${escapeHtml(source.dateOfBirth || "")}"></label>
+          <label><span>First Contact</span><input name="firstContactDate" type="date" value="${escapeHtml(source.firstContactDate || "")}"></label>
+          <label><span>First Appointment</span><input name="firstAppointmentDate" type="date" value="${escapeHtml(source.firstAppointmentDate || "")}"></label>
+          <label><span>Gender</span><select name="gender">${crmSelectOptions(["Female", "Male", "Nonbinary", "Unspecified"], source.gender || "Unspecified")}</select></label>
+          <label><span>Preferred Contact</span><select name="preferredContactMethod">${crmSelectOptions(preferredContactOptions, source.preferredContactMethod, "Choose")}</select></label>
+          <label class="crm-profile-boolean-field">
+            <span>Insurance</span>
+            <span class="crm-profile-boolean-control">
+              <input name="ycco" type="checkbox" ${source.ycco === true ? "checked" : ""}>
+              <strong>YCCO</strong>
+            </span>
+          </label>
+          <label class="crm-profile-boolean-field">
+            <span>HRSN</span>
+            <span class="crm-profile-boolean-control">
+              <input name="hrsn" type="checkbox" ${source.hrsn === true ? "checked" : ""}>
+              <strong>Eligible</strong>
+            </span>
+          </label>
+          <label class="crm-profile-boolean-field">
+            <span>Email Opt Out</span>
+            <span class="crm-profile-boolean-control">
+              <input name="emailOptOut" type="checkbox" ${source.emailOptOut ? "checked" : ""}>
+              <strong>Opt Out</strong>
+            </span>
+          </label>
+          <label class="crm-profile-boolean-field">
+            <span>Text Opt Out</span>
+            <span class="crm-profile-boolean-control">
+              <input name="textOptOut" type="checkbox" ${source.textOptOut ? "checked" : ""}>
+              <strong>Opt Out</strong>
+            </span>
+          </label>
+          <label class="is-full-width"><span>Notes</span><textarea name="notes" rows="4">${escapeHtml(source.notes || "")}</textarea></label>
+        </div>
+      </section>
+      <section class="detail-card">
+        <div class="card-heading">
+          <h3>Referring Providers</h3>
+        </div>
+        ${renderCrmProviderChoices(item, crmReferralEditorFormId)}
+      </section>
+      <p class="schedule-dialog-status" data-crm-editor-status role="status" aria-live="polite"></p>
+      <div class="footer-actions crm-editor-footer-actions">
+        <button data-close-crm-editor type="button">Cancel</button>
+        <button class="is-primary" type="submit">${item ? "Save Changes" : "Save Referral"}</button>
+      </div>
+    </form>
+  `;
+}
+
+function renderCrmNetworkEditorSide(item = null) {
+  const source = item?.source || {};
+  const formAttribute = crmEditorFormAttribute(crmNetworkEditorFormId);
+  return `
+    <div class="crm-profile-editor-side">
+      <div class="status-line is-module-status">
+        <span class="status-dot"></span>
+        <span>${item ? "Referral Partner" : "New Partner"}</span>
+      </div>
+      <div class="crm-editor-name-fields">
+        <label>
+          <span>Organization Name</span>
+          <input name="name"${formAttribute} value="${escapeHtml(source.name || "")}" required>
+        </label>
+      </div>
+      <div class="meta-list appointment-meta crm-editor-side-meta">
+        <label class="appointment-meta-row">
+          <span class="appointment-meta-icon">${icons.file}</span>
+          <span class="crm-meta-copy">
+            <em>Organization Type</em>
+            <select name="type"${formAttribute}>${crmSelectOptions(referralNetworkTypeOptions, source.type, "Choose")}</select>
+          </span>
+        </label>
+      </div>
+      <section class="side-section crm-editor-family-section">
+        <h3><span class="section-icon">${icons.crm}</span>Contact</h3>
+        <label class="crm-side-field">
+          <span>Contact Name</span>
+          <input name="contactName"${formAttribute} value="${escapeHtml(source.contactName || "")}">
+        </label>
+        <label class="crm-side-field">
+          <span>Phone</span>
+          <input name="phone"${formAttribute} type="tel" value="${escapeHtml(source.phone || "")}">
+        </label>
+        <label class="crm-side-field">
+          <span>Email</span>
+          <input name="email"${formAttribute} type="email" value="${escapeHtml(source.email || "")}">
+        </label>
+        <label class="crm-side-field">
+          <span>Website</span>
+          <input name="website"${formAttribute} type="url" value="${escapeHtml(source.website || "")}">
+        </label>
+      </section>
+    </div>
+  `;
+}
+
+function renderCrmProviderEditorRows(providers = []) {
+  const rows = providers.length ? providers : [{ id: "", name: "", email: "", notes: "" }];
+  return rows.map((provider) => `
+    <div class="crm-provider-editor-row" data-crm-provider-row>
+      <input name="providerId" type="hidden" value="${escapeHtml(provider.id || "")}">
+      <label><span>Provider Name</span><input name="providerName" value="${escapeHtml(provider.name || "")}"></label>
+      <label><span>Email</span><input name="providerEmail" type="email" value="${escapeHtml(provider.email || "")}"></label>
+      <label class="is-wide"><span>Notes</span><input name="providerNotes" value="${escapeHtml(provider.notes || "")}"></label>
+      <button data-remove-crm-provider type="button" aria-label="Remove provider">&times;</button>
+    </div>
+  `).join("");
+}
+
+function renderCrmNetworkEditorMain(item = null) {
+  const source = item?.source || {};
+  return `
+    <form class="crm-profile-editor-main" id="${crmNetworkEditorFormId}" data-crm-network-form>
+      <section class="detail-card">
+        <div class="card-heading">
+          <h3>Organization Details</h3>
+          <button class="edit-button" data-close-crm-editor type="button">Cancel</button>
+        </div>
+        <label class="crm-lesson-editor-field">
+          <span>Notes</span>
+          <textarea name="notes" rows="5">${escapeHtml(source.notes || "")}</textarea>
+        </label>
+      </section>
+      <section class="detail-card">
+        <div class="card-heading">
+          <h3>Providers</h3>
+          <button class="edit-button" data-add-crm-provider type="button">Add Provider</button>
+        </div>
+        <div class="crm-provider-editor-list" data-crm-provider-editor-list>
+          ${renderCrmProviderEditorRows(Array.isArray(source.providers) ? source.providers : [])}
+        </div>
+      </section>
+      <p class="schedule-dialog-status" data-crm-editor-status role="status" aria-live="polite"></p>
+      <div class="footer-actions crm-editor-footer-actions">
+        <button data-close-crm-editor type="button">Cancel</button>
+        <button class="is-primary" type="submit">${item ? "Save Changes" : "Save Organization"}</button>
+      </div>
+    </form>
+  `;
+}
+
+function renderCrmClientForm(item = null, options = {}) {
+  const source = item?.source || {};
+  const title = options.notesOnly ? "Edit Client Notes" : item ? `Edit ${item.title}` : "New Client";
+
+  if (options.notesOnly) {
+    return `
+      <form class="schedule-inline-form crm-inline-form" data-crm-client-form data-crm-notes-only="true">
+        <div class="schedule-inline-form-header">
+          <h3>${title}</h3>
+          <button data-close-crm-editor type="button">Cancel</button>
+        </div>
+        <div class="schedule-inline-fields crm-inline-fields">
+          <label class="is-full-width">
+            <span>Notes</span>
+            <textarea name="notes" rows="10">${escapeHtml(source.notes || "")}</textarea>
+          </label>
+        </div>
+        <p class="schedule-dialog-status" data-crm-editor-status role="status" aria-live="polite"></p>
+        <div class="schedule-inline-actions">
+          <button type="submit">Save Notes</button>
+        </div>
+      </form>
+    `;
+  }
+
+  return renderCrmClientEditorMain(item);
+}
+
+function activityResultOptions(type) {
+  return type === "Text"
+    ? ["Sent", "Reply received", "Scheduled", "Requested call back", "No response", "Not interested"]
+    : ["Scheduled", "Left voicemail", "No voicemail, call back", "Not interested, do not call back", "Requested call back", "Invalid number"];
+}
+
+function localDateParts() {
+  const date = new Date();
+  const offset = date.getTimezoneOffset() * 60_000;
+  return {
+    date: new Date(date.getTime() - offset).toISOString().slice(0, 10),
+    time: new Date(date.getTime() - offset).toISOString().slice(11, 16)
+  };
+}
+
+function renderCrmActivityForm(item, type = "Call") {
+  const now = localDateParts();
+
+  return `
+    <form class="schedule-inline-form crm-inline-form" data-crm-activity-form data-activity-type="${escapeHtml(type)}">
+      <div class="schedule-inline-form-header">
+        <h3>Log ${escapeHtml(type)}</h3>
+        <button data-close-crm-editor type="button">Cancel</button>
+      </div>
+      <div class="schedule-inline-fields crm-inline-fields">
+        <label><span>Direction</span><select name="direction">${crmSelectOptions(["Outbound", "Inbound"], "Outbound")}</select></label>
+        <label><span>Result</span><select name="result">${crmSelectOptions(activityResultOptions(type), activityResultOptions(type)[0])}</select></label>
+        <label><span>Date</span><input name="activityDate" type="date" value="${now.date}" required></label>
+        <label><span>Time</span><input name="activityTime" type="time" value="${now.time}" required></label>
+        <label class="is-full-width"><span>Notes</span><textarea name="description" rows="6"></textarea></label>
+      </div>
+      <p class="schedule-dialog-status" data-crm-editor-status role="status" aria-live="polite"></p>
+      <div class="schedule-inline-actions">
+        <button type="submit">Save ${escapeHtml(type)}</button>
+      </div>
+    </form>
+  `;
+}
+
+function setCrmActionStatus(message = "", state = "") {
+  const actionStatus = document.querySelector("[data-crm-action-status]");
+  const editorStatus = document.querySelector("[data-crm-editor-status]");
+  [actionStatus, editorStatus].filter(Boolean).forEach((status) => {
+    status.textContent = message;
+    status.dataset.state = state;
+  });
+}
+
+function updateCrmActionAvailability(item = crmSelectedItem()) {
+  document.querySelectorAll("[data-crm-action], [data-crm-edit-client], [data-crm-edit-referral], [data-crm-edit-network], [data-crm-edit-notes], [data-crm-log-contact], [data-crm-new-appointment], [data-crm-lesson-value], [data-crm-status-select], [data-crm-referral-convert]").forEach((control) => {
+    control.disabled = crmActionBusy || !item;
+  });
+  document.querySelectorAll("[data-crm-new-client], [data-crm-new-referral], [data-crm-new-network], [data-crm-search-toggle], [data-crm-search-input]").forEach((control) => {
+    control.disabled = crmActionBusy;
+  });
+  const closeButton = document.querySelector("[data-crm-action='close-client']");
+  if (closeButton) {
+    const closed = item?.status === "Closed";
+    closeButton.disabled = crmActionBusy || !item || closed;
+    closeButton.textContent = closed ? "Client Closed" : crmClosePendingId === item?.id ? "Confirm Close" : "Close Client";
+  }
+  const deleteButton = document.querySelector("[data-crm-action='delete']");
+  if (deleteButton) {
+    deleteButton.textContent = crmDeletePendingId === item?.id ? "Confirm" : "Delete";
+  }
+  const convertButton = document.querySelector("[data-crm-action='convert']");
+  if (convertButton) {
+    convertButton.textContent = item?.convertedClientId
+      ? "Open Client"
+      : crmConvertPendingId === item?.id
+        ? "Confirm"
+        : "Convert";
+  }
+  const conversionPanelButton = document.querySelector("[data-crm-referral-convert]");
+  if (conversionPanelButton) {
+    conversionPanelButton.textContent = item?.convertedClientId
+      ? "Open Client Profile"
+      : crmConvertPendingId === item?.id
+        ? "Confirm Conversion"
+        : "Convert to Client";
+  }
+}
+
+function setCrmActionBusy(busy) {
+  crmActionBusy = busy;
+  updateCrmActionAvailability();
+  document.querySelectorAll("[data-crm-editor], [data-crm-side-editor]").forEach((editor) => {
+    editor.setAttribute("aria-busy", String(busy));
+    editor.querySelectorAll("button, input, select, textarea").forEach((control) => {
+      control.disabled = busy;
+    });
+  });
+}
+
+async function crmAuthedFetch(path, options = {}) {
+  if (!crmCurrentUser) {
+    throw new Error("Sign in before changing a client profile.");
+  }
+
+  const token = await crmCurrentUser.getIdToken();
+  const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL || "";
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {})
+    }
+  });
+
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(result.error || `The client service returned ${response.status}.`);
+  }
+
+  return response.json().catch(() => ({}));
+}
+
+function renderCrmDetailContent(item) {
+  const panels = crmSubpage === "Referrals"
+    ? {
+        notes: item
+          ? renderCrmReferralNotesPanel(item)
+          : renderCrmEmptyDetailPanel("Referral Notes", "Select a referral to review or edit its notes."),
+        activity: item
+          ? renderCrmReferralActivityPanel(item)
+          : renderCrmEmptyDetailPanel("Contact History", "Select a referral to review or log contact activity."),
+        conversion: item
+          ? renderCrmReferralConversionPanel(item)
+          : renderCrmEmptyDetailPanel("Convert to Client", "Select a referral before creating a client profile.")
+      }
+    : crmSubpage === "Referral Network"
+      ? {
+          providers: item
+            ? renderCrmNetworkProvidersPanel(item)
+            : renderCrmEmptyDetailPanel("Providers", "Select an organization to review or edit its providers."),
+          notes: item
+            ? renderCrmNetworkNotesPanel(item)
+            : renderCrmEmptyDetailPanel("Organization Notes", "Select an organization to review or edit its notes.")
+        }
+      : {
+          notes: item
+            ? renderCrmNotesPanel(item)
+            : renderCrmEmptyDetailPanel("Notes", "Select a client to review or log contact history."),
+          appointments: item
+            ? renderCrmAppointmentsPanel(item)
+            : renderCrmEmptyDetailPanel("Appointments", "Select a client to review appointment history."),
+          forms: item
+            ? renderCrmFormsPanel(item)
+            : renderCrmEmptyDetailPanel("Forms", "Select a client to open the correct program forms.")
+        };
+
+  Object.entries(panels).forEach(([key, html]) => {
+    const panel = document.querySelector(`[data-crm-detail-panel="${key}"]`);
+    if (panel) panel.innerHTML = html;
+  });
+}
+
+function setCrmDetailTab(tab = "overview") {
+  const validTabs = new Set(modules.crm.detailTabs.map(crmDetailTabKey));
+  if (crmClosePendingId) resetCrmCloseAction();
+  if (crmDeletePendingId || crmConvertPendingId) resetCrmProtectedActions();
+  crmDetailTab = validTabs.has(tab) ? tab : "overview";
+
+  document.querySelectorAll("[data-crm-detail-tab]").forEach((button) => {
+    const active = button.dataset.crmDetailTab === crmDetailTab;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  document.querySelectorAll("[data-crm-detail-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.crmDetailPanel !== crmDetailTab;
+  });
+}
+
+function setCrmPanelMode(mode = "detail") {
+  crmPanelMode = mode === "editor" ? "editor" : "detail";
+  const tabs = document.querySelector("[data-crm-tabs]");
+  const content = document.querySelector("[data-crm-detail-content]");
+  const editor = document.querySelector("[data-crm-editor]");
+  const sideDetail = document.querySelector("[data-crm-side-detail]");
+  const sideEditor = document.querySelector("[data-crm-side-editor]");
+  const editing = crmPanelMode === "editor";
+  const editingProfile = editing && ["client", "referral", "network"].includes(crmEditorKind);
+
+  if (tabs) {
+    tabs.hidden = editing && !editingProfile;
+    tabs.querySelectorAll("button").forEach((button) => {
+      button.disabled = editing;
+    });
+  }
+  if (content) content.hidden = editing;
+  if (editor) editor.hidden = !editing;
+  if (sideDetail) sideDetail.hidden = editingProfile;
+  if (sideEditor) sideEditor.hidden = !editingProfile;
+}
+
+function openCrmClientEditor(item = null, options = {}) {
+  if (crmActionBusy) return;
+  const editor = document.querySelector("[data-crm-editor]");
+  const sideEditor = document.querySelector("[data-crm-side-editor]");
+  if (!editor) return;
+
+  crmEditingClientId = item?.id || "";
+  crmClosePendingId = "";
+  crmEditorKind = options.notesOnly ? "inline" : "client";
+  editor.classList.toggle("is-profile-editor", !options.notesOnly);
+  editor.innerHTML = renderCrmClientForm(item, options);
+  if (sideEditor) {
+    sideEditor.innerHTML = options.notesOnly ? "" : renderCrmClientEditorSide(item);
+  }
+  if (!options.notesOnly) setCrmDetailTab("overview");
+  setCrmActionStatus("");
+  setCrmPanelMode("editor");
+  (sideEditor?.querySelector("input, textarea, select") || editor.querySelector("input, textarea, select"))?.focus();
+}
+
+function openCrmReferralEditor(item = null) {
+  if (crmActionBusy) return;
+  const editor = document.querySelector("[data-crm-editor]");
+  const sideEditor = document.querySelector("[data-crm-side-editor]");
+  if (!editor || !sideEditor) return;
+
+  crmEditingReferralId = item?.id || "";
+  crmDeletePendingId = "";
+  crmConvertPendingId = "";
+  crmEditorKind = "referral";
+  editor.classList.add("is-profile-editor");
+  editor.innerHTML = renderCrmReferralEditorMain(item);
+  sideEditor.innerHTML = renderCrmReferralEditorSide(item);
+  setCrmDetailTab("overview");
+  setCrmActionStatus("");
+  setCrmPanelMode("editor");
+  sideEditor.querySelector("input, textarea, select")?.focus();
+}
+
+function openCrmNetworkEditor(item = null) {
+  if (crmActionBusy) return;
+  const editor = document.querySelector("[data-crm-editor]");
+  const sideEditor = document.querySelector("[data-crm-side-editor]");
+  if (!editor || !sideEditor) return;
+
+  crmEditingNetworkId = item?.id || "";
+  crmDeletePendingId = "";
+  crmEditorKind = "network";
+  editor.classList.add("is-profile-editor");
+  editor.innerHTML = renderCrmNetworkEditorMain(item);
+  sideEditor.innerHTML = renderCrmNetworkEditorSide(item);
+  setCrmDetailTab("overview");
+  setCrmActionStatus("");
+  setCrmPanelMode("editor");
+  sideEditor.querySelector("input, textarea, select")?.focus();
+}
+
+function openCrmActivityEditor(item, type) {
+  if (!item || crmActionBusy) return;
+  const editor = document.querySelector("[data-crm-editor]");
+  if (!editor) return;
+
+  if (crmSubpage === "Referrals") {
+    crmEditingReferralId = item.id;
+  } else {
+    crmEditingClientId = item.id;
+  }
+  crmClosePendingId = "";
+  crmEditorKind = "inline";
+  editor.classList.remove("is-profile-editor");
+  editor.innerHTML = renderCrmActivityForm(item, type);
+  setCrmActionStatus("");
+  setCrmPanelMode("editor");
+  editor.querySelector("select, input, textarea")?.focus();
+}
+
+function closeCrmEditor() {
+  if (crmActionBusy) return;
+  const editor = document.querySelector("[data-crm-editor]");
+  const sideEditor = document.querySelector("[data-crm-side-editor]");
+  if (editor) {
+    editor.replaceChildren();
+    editor.classList.remove("is-profile-editor");
+  }
+  if (sideEditor) sideEditor.replaceChildren();
+  crmEditingClientId = "";
+  crmEditingReferralId = "";
+  crmEditingNetworkId = "";
+  crmEditorKind = "";
+  setCrmPanelMode("detail");
+  updateDetail(modules.crm, selectedItemId);
+}
+
+async function syncCrmSiblings(clientId, previousIds, selectedIds) {
+  const { additions, removals } = crmSiblingChanges(previousIds, selectedIds);
+
+  for (const siblingId of additions) {
+    await crmAuthedFetch(`/api/clients/${encodeURIComponent(clientId)}/siblings`, {
+      method: "POST",
+      body: JSON.stringify({ siblingId })
+    });
+  }
+  for (const siblingId of removals) {
+    await crmAuthedFetch(`/api/clients/${encodeURIComponent(clientId)}/siblings/${encodeURIComponent(siblingId)}`, {
+      method: "DELETE"
+    });
+  }
+}
+
+async function syncCrmReferralSiblings(referralId, previousIds, selectedIds) {
+  const { additions, removals } = crmSiblingChanges(previousIds, selectedIds);
+
+  for (const siblingId of additions) {
+    await crmAuthedFetch(`/api/referrals/${encodeURIComponent(referralId)}/siblings`, {
+      method: "POST",
+      body: JSON.stringify({ siblingId })
+    });
+  }
+  for (const siblingId of removals) {
+    await crmAuthedFetch(`/api/referrals/${encodeURIComponent(referralId)}/siblings/${encodeURIComponent(siblingId)}`, {
+      method: "DELETE"
+    });
+  }
+}
+
+async function saveCrmClient(form) {
+  if (crmActionBusy) return;
+  const item = crmAllItems.find((candidate) => candidate.id === crmEditingClientId) || null;
+  const notesOnly = form.dataset.crmNotesOnly === "true";
+  const values = Object.fromEntries(new FormData(form).entries());
+  const selectedSiblingIds = new FormData(form).getAll("siblingIds");
+  const previousSiblingIds = Array.isArray(item?.source?.siblingIds) ? item.source.siblingIds : [];
+  const payload = notesOnly
+    ? { notes: values.notes || "" }
+    : crmClientPayload({
+        ...values,
+        ycco: form.elements.ycco?.checked ?? false,
+        hrsn: form.elements.hrsn?.checked ?? false,
+        emailOptOut: form.elements.emailOptOut?.checked ?? false,
+        textOptOut: form.elements.textOptOut?.checked ?? false
+      });
+
+  setCrmActionBusy(true);
+  setCrmActionStatus("");
+  try {
+    const result = await crmAuthedFetch(item ? `/api/clients/${encodeURIComponent(item.id)}` : "/api/clients", {
+      method: item ? "PATCH" : "POST",
+      body: JSON.stringify(payload)
+    });
+    const savedId = result.client?.id || item?.id;
+    if (!notesOnly && savedId) {
+      await syncCrmSiblings(savedId, previousSiblingIds, selectedSiblingIds);
+    }
+    selectedItemId = savedId || selectedItemId;
+    crmEditingClientId = "";
+    crmEditorKind = "";
+    await loadCrmData(crmCurrentUser, selectedItemId);
+    setCrmPanelMode("detail");
+  } catch (error) {
+    console.error(error);
+    setCrmActionStatus(error.message || "Could not save the client.", "error");
+  } finally {
+    setCrmActionBusy(false);
+  }
+}
+
+async function saveCrmReferral(form) {
+  if (crmActionBusy) return;
+  const item = crmReferralItems.find((candidate) => candidate.id === crmEditingReferralId) || null;
+  const formData = new FormData(form);
+  const values = Object.fromEntries(formData.entries());
+  const selectedSiblingIds = formData.getAll("siblingIds");
+  const previousSiblingIds = Array.isArray(item?.source?.siblingIds) ? item.source.siblingIds : [];
+  const providerLinks = crmReferralProviderLinks(
+    formData.getAll("providerIds"),
+    crmRawNetworkEntries,
+    formData.get("providerOrganizationId")
+  );
+  const payload = crmReferralPayload({
+    ...values,
+    ycco: form.elements.ycco?.checked ?? false,
+    hrsn: form.elements.hrsn?.checked ?? false,
+    emailOptOut: form.elements.emailOptOut?.checked ?? false,
+    textOptOut: form.elements.textOptOut?.checked ?? false,
+    providerLinks
+  });
+
+  setCrmActionBusy(true);
+  setCrmActionStatus("");
+  try {
+    const result = await crmAuthedFetch(item ? `/api/referrals/${encodeURIComponent(item.id)}` : "/api/referrals", {
+      method: item ? "PATCH" : "POST",
+      body: JSON.stringify(payload)
+    });
+    const savedId = result.referral?.id || item?.id;
+    if (savedId) {
+      await syncCrmReferralSiblings(savedId, previousSiblingIds, selectedSiblingIds);
+    }
+    selectedItemId = savedId || selectedItemId;
+    crmEditingReferralId = "";
+    crmEditorKind = "";
+    await loadCrmData(crmCurrentUser, selectedItemId);
+    setCrmPanelMode("detail");
+  } catch (error) {
+    console.error(error);
+    setCrmActionStatus(error.message || "Could not save the referral.", "error");
+  } finally {
+    setCrmActionBusy(false);
+  }
+}
+
+async function saveCrmNetwork(form) {
+  if (crmActionBusy) return;
+  const item = crmNetworkItems.find((candidate) => candidate.id === crmEditingNetworkId) || null;
+  const formData = new FormData(form);
+  const values = Object.fromEntries(formData.entries());
+  const providers = [...form.querySelectorAll("[data-crm-provider-row]")].map((row) => ({
+    id: row.querySelector("[name='providerId']")?.value || "",
+    name: row.querySelector("[name='providerName']")?.value || "",
+    email: row.querySelector("[name='providerEmail']")?.value || "",
+    notes: row.querySelector("[name='providerNotes']")?.value || ""
+  }));
+  const payload = crmNetworkPayload({ ...values, providers });
+
+  setCrmActionBusy(true);
+  setCrmActionStatus("");
+  try {
+    const result = await crmAuthedFetch(item ? `/api/referral-network/${encodeURIComponent(item.id)}` : "/api/referral-network", {
+      method: item ? "PATCH" : "POST",
+      body: JSON.stringify(payload)
+    });
+    selectedItemId = result.entry?.id || item?.id || selectedItemId;
+    crmEditingNetworkId = "";
+    crmEditorKind = "";
+    await loadCrmData(crmCurrentUser, selectedItemId);
+    setCrmPanelMode("detail");
+  } catch (error) {
+    console.error(error);
+    setCrmActionStatus(error.message || "Could not save the organization.", "error");
+  } finally {
+    setCrmActionBusy(false);
+  }
+}
+
+async function saveCrmActivity(form) {
+  const editingId = crmSubpage === "Referrals" ? crmEditingReferralId : crmEditingClientId;
+  const item = crmAllItems.find((candidate) => candidate.id === editingId);
+  if (!item || crmActionBusy) return;
+  const values = Object.fromEntries(new FormData(form).entries());
+  const type = form.dataset.activityType || "Call";
+  const payload = crmSubpage === "Referrals"
+    ? crmReferralActivityPayload(values, item, type)
+    : crmActivityPayload(values, item, type);
+
+  setCrmActionBusy(true);
+  setCrmActionStatus("");
+  try {
+    await crmAuthedFetch("/api/activity-logs", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    selectedItemId = item.id;
+    crmDetailTab = crmSubpage === "Referrals" ? "activity" : "notes";
+    crmEditingClientId = "";
+    crmEditingReferralId = "";
+    crmEditorKind = "";
+    await loadCrmData(crmCurrentUser);
+    setCrmPanelMode("detail");
+    setCrmDetailTab(crmDetailTab);
+  } catch (error) {
+    console.error(error);
+    setCrmActionStatus(error.message || `Could not save the ${type.toLowerCase()}.`, "error");
+  } finally {
+    setCrmActionBusy(false);
+  }
+}
+
+async function saveCrmStatus(item, status, control) {
+  if (!item || crmActionBusy || status === item.status) return;
+  const previousStatus = item.status;
+  setCrmActionBusy(true);
+  setCrmActionStatus("");
+
+  try {
+    const path = crmSubpage === "Referrals"
+      ? `/api/referrals/${encodeURIComponent(item.id)}`
+      : `/api/clients/${encodeURIComponent(item.id)}`;
+    await crmAuthedFetch(path, {
+      method: "PATCH",
+      body: JSON.stringify({ status })
+    });
+    selectedItemId = item.id;
+    await loadCrmData(crmCurrentUser);
+  } catch (error) {
+    console.error(error);
+    if (control) control.value = previousStatus;
+    setCrmActionStatus(error.message || "Could not update the client status.", "error");
+  } finally {
+    setCrmActionBusy(false);
+  }
+}
+
+async function saveCrmLesson(item, lessonValue) {
+  if (!item || crmActionBusy || !lessonValue || crmLessonIsCurrent(item.source?.currentLesson, lessonValue)) return;
+  setCrmActionBusy(true);
+  setCrmActionStatus("");
+
+  try {
+    await crmAuthedFetch(`/api/clients/${encodeURIComponent(item.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ currentLesson: lessonValue })
+    });
+    selectedItemId = item.id;
+    await loadCrmData(crmCurrentUser);
+  } catch (error) {
+    console.error(error);
+    setCrmActionStatus(error.message || "Could not update lesson progression.", "error");
+  } finally {
+    setCrmActionBusy(false);
+  }
+}
+
+function resetCrmCloseAction() {
+  crmClosePendingId = "";
+  const button = document.querySelector("[data-crm-action='close-client']");
+  if (button) {
+    button.textContent = "Close Client";
+  }
+  setCrmActionStatus("");
+}
+
+async function closeCrmClient(item) {
+  if (!item || crmActionBusy) return;
+  const button = document.querySelector("[data-crm-action='close-client']");
+  const decision = crmCloseDecision(crmClosePendingId, item.id);
+  crmClosePendingId = decision.pendingId;
+  if (!decision.shouldClose) {
+    if (button) button.textContent = "Confirm Close";
+    setCrmActionStatus("Click Confirm Close to mark this client closed.");
+    return;
+  }
+
+  resetCrmCloseAction();
+  await saveCrmStatus(item, "Closed");
+}
+
+function resetCrmProtectedActions() {
+  crmDeletePendingId = "";
+  crmConvertPendingId = "";
+  setCrmActionStatus("");
+  updateCrmActionAvailability();
+}
+
+async function deleteCrmEntity(item) {
+  if (!item || crmActionBusy || crmSubpage === "Clients") return;
+  const decision = crmConfirmDecision(crmDeletePendingId, item.id);
+  crmDeletePendingId = decision.pendingId;
+  if (!decision.confirmed) {
+    setCrmActionStatus(`Click Confirm Delete to permanently remove this ${crmSubpage === "Referrals" ? "referral" : "organization"}.`);
+    updateCrmActionAvailability(item);
+    return;
+  }
+
+  setCrmActionBusy(true);
+  setCrmActionStatus("");
+  try {
+    const path = crmSubpage === "Referrals"
+      ? `/api/referrals/${encodeURIComponent(item.id)}`
+      : `/api/referral-network/${encodeURIComponent(item.id)}`;
+    await crmAuthedFetch(path, { method: "DELETE" });
+    selectedItemId = "";
+    crmDeletePendingId = "";
+    await loadCrmData(crmCurrentUser);
+  } catch (error) {
+    console.error(error);
+    setCrmActionStatus(error.message || "Could not delete this record.", "error");
+  } finally {
+    setCrmActionBusy(false);
+  }
+}
+
+function openCrmClientProfile(clientId) {
+  if (!clientId) return;
+  const query = new URLSearchParams({ client: clientId, section: "Clients" });
+  location.href = `./crm.html?${query}`;
+}
+
+async function convertCrmReferral(item) {
+  if (!item || crmActionBusy || crmSubpage !== "Referrals") return;
+  if (item.convertedClientId) {
+    openCrmClientProfile(item.convertedClientId);
+    return;
+  }
+
+  const decision = crmConfirmDecision(crmConvertPendingId, item.id);
+  crmConvertPendingId = decision.pendingId;
+  if (!decision.confirmed) {
+    setCrmActionStatus("Click Confirm Conversion to create a client profile from this referral.");
+    updateCrmActionAvailability(item);
+    return;
+  }
+
+  setCrmActionBusy(true);
+  setCrmActionStatus("");
+  try {
+    const result = await crmAuthedFetch(`/api/referrals/${encodeURIComponent(item.id)}/convert`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    crmConvertPendingId = "";
+    if (result.client?.id) {
+      openCrmClientProfile(result.client.id);
+      return;
+    }
+    await loadCrmData(crmCurrentUser);
+  } catch (error) {
+    console.error(error);
+    setCrmActionStatus(error.message || "Could not convert this referral.", "error");
+  } finally {
+    setCrmActionBusy(false);
+  }
+}
+
+function applyCrmSearch(module, query = crmSearchQuery) {
+  crmSearchQuery = query;
+  module.items = crmAllItems.filter((item) => crmCurrentMatcher(item, crmSearchQuery));
+  module.summary = crmCurrentSummary(crmAllItems);
+  crmDataMessage = module.items.length
+    ? ""
+    : crmAllItems.length
+      ? `No ${crmSubpage.toLowerCase()} match this search.`
+      : crmEmptyMessage();
+  refreshStandardModuleData(module);
+  setCrmDetailTab(crmDetailTab);
+}
+
+function openCrmAppointment(item) {
+  if (!item) return;
+  location.href = crmAppointmentUrl(item);
+}
+
+function openCrmNewAppointment(item) {
+  if (!item) return;
+  location.href = crmNewAppointmentUrl(item);
 }
 
 function renderRescheduleDialog() {
@@ -1367,7 +3018,7 @@ function renderNewAppointmentTimeOptions(selectedTime = "") {
   syncNewAppointmentSummary();
 }
 
-function openNewAppointmentPanel() {
+function openNewAppointmentPanel(preselectedClientIds = []) {
   const form = document.querySelector("[data-new-appointment-form]");
   if (!form || scheduleActionBusy) {
     return;
@@ -1380,6 +3031,9 @@ function openNewAppointmentPanel() {
 
   form.reset();
   newAppointmentClientIds.clear();
+  preselectedClientIds
+    .filter((clientId) => scheduleClientsById.has(clientId))
+    .forEach((clientId) => newAppointmentClientIds.add(clientId));
   form.querySelector("[data-new-appointment-date]").value = scheduleVisibleDate;
   form.querySelector("[data-new-appointment-service]").value = "enrollment";
   form.querySelector("[data-new-appointment-status-select]").value = "Scheduled";
@@ -1880,16 +3534,76 @@ function renderAppointmentDetailsCard(card) {
 
 function renderCards(module) {
   return module.cards.map((card) => `
-    ${module.label === "Schedule" && card.title === "Prep" ? renderPrepCard(card) : module.label === "Schedule" && card.title === "Details" ? renderAppointmentDetailsCard(card) : `<section class="detail-card">
+    ${module.label === "Schedule" && card.title === "Prep" ? renderPrepCard(card) : module.label === "Schedule" && card.title === "Details" ? renderAppointmentDetailsCard(card) : module.label === "CRM" && card.title === "Lesson Progression" ? renderCrmLessonProgression() : `<section class="detail-card">
       <div class="card-heading">
         <h3>${card.title}</h3>
-        <button class="edit-button" type="button">Edit</button>
+        <button
+          class="edit-button"
+          ${module.label === "CRM" && card.title === "Client Details" ? "data-crm-edit-client" : ""}
+          ${module.label === "CRM" && card.title === "Referral Details" ? "data-crm-edit-referral" : ""}
+          ${module.label === "CRM" && card.title === "Organization Details" ? "data-crm-edit-network" : ""}
+          type="button"
+        >Edit</button>
       </div>
-      <div class="field-grid">
-        ${renderFields(card.fields)}
+      <div class="field-grid${module.label === "CRM" ? " crm-client-detail-grid" : ""}">
+        ${module.label === "CRM" ? renderCrmFields(card.fields) : renderFields(card.fields)}
       </div>
     </section>`}
   `).join("");
+}
+
+function renderCrmRelationshipField(field, item) {
+  const key = field.dataset.field;
+  const profiles = key === "siblings"
+    ? item.siblingProfiles
+    : key === "providerProfiles"
+      ? item.providerProfileLinks
+      : null;
+
+  if (!profiles) {
+    field.classList.remove("crm-profile-link-list");
+    return false;
+  }
+
+  field.classList.add("crm-profile-link-list");
+  field.replaceChildren();
+
+  if (!profiles.length) {
+    field.textContent = "-";
+    return true;
+  }
+
+  profiles.forEach((profile) => {
+    const label = profile.name || profile.label;
+    if (!label) return;
+
+    if (key === "siblings" && profile.id) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "crm-profile-link";
+      button.dataset.crmRelatedId = profile.id;
+      button.dataset.crmRelatedSection = profile.section || "Clients";
+      button.textContent = label;
+      field.append(button);
+      return;
+    }
+
+    if (key === "providerProfiles" && profile.networkId) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "crm-profile-link";
+      button.dataset.crmProviderNetworkId = profile.networkId;
+      button.textContent = label;
+      field.append(button);
+      return;
+    }
+
+    const line = document.createElement("span");
+    line.textContent = label;
+    field.append(line);
+  });
+
+  return true;
 }
 
 function scheduleDetailTabKey(tab) {
@@ -2190,7 +3904,8 @@ function updateSchedulePrintCenter(module) {
 }
 
 function setScheduleSubpage(module, label) {
-  if (!module.subpages.includes(label)) return;
+  const isHiddenPrintCenter = module === modules.schedule && label === "Print Forms";
+  if (!module.subpages.includes(label) && !isHiddenPrintCenter) return;
   scheduleSubpage = label;
   document.querySelectorAll("[data-schedule-subpage]").forEach((button) => {
     button.classList.toggle("is-current", button.dataset.scheduleSubpage === scheduleSubpage);
@@ -2211,6 +3926,87 @@ function setScheduleSubpage(module, label) {
   if (isPrintForms) updateSchedulePrintCenter(module);
 }
 
+function crmCreateActionAttribute(action) {
+  if (action === "New Client") return "data-crm-new-client";
+  if (action === "New Referral") return "data-crm-new-referral";
+  if (action === "New Organization") return "data-crm-new-network";
+  return "";
+}
+
+function renderCrmStatusControl() {
+  if (crmSubpage === "Referral Network") {
+    return `
+      <div class="status-line is-module-status">
+        <span class="status-dot"></span>
+        <span>Referral Partner</span>
+      </div>
+    `;
+  }
+
+  const label = crmSubpage === "Referrals" ? "Referral status" : "Client status";
+  const options = crmSubpage === "Referrals" ? referralStatusOptions : crmStatusOptions();
+  return `
+    <label class="status-line is-module-status crm-status-control">
+      <span class="status-dot"></span>
+      <select data-crm-status-select aria-label="${label}">
+        ${crmSelectOptions(options, "")}
+      </select>
+    </label>
+  `;
+}
+
+function renderCrmDetailPanels(module) {
+  return module.detailTabs.map((tab, index) => {
+    const key = crmDetailTabKey(tab);
+    return `
+      <div class="crm-detail-panel" data-crm-detail-panel="${key}" ${index === 0 ? "" : "hidden"}>
+        ${index === 0 ? renderCards(module) : ""}
+      </div>
+    `;
+  }).join("");
+}
+
+function refreshCrmAccountControl() {
+  if (currentModuleId() !== "crm") return;
+  const account = document.querySelector(".account");
+  const accountName = document.querySelector("[data-account-name]");
+  if (!account || !accountName) return;
+
+  account.setAttribute("role", "button");
+  account.setAttribute("tabindex", "0");
+  accountName.textContent = crmCurrentUser ? "Shannon Oddo" : "Sign in";
+  if (crmCurrentUser) {
+    account.removeAttribute("title");
+  } else {
+    account.setAttribute("title", `Sign in to load ${crmSubpage.toLowerCase()}`);
+  }
+}
+
+function setCrmSubpage(label) {
+  if (!modules.crm.subpages.includes(label) || crmActionBusy) return;
+  crmSubpage = label;
+  crmSearchQuery = "";
+  crmDetailTab = "overview";
+  crmPanelMode = "detail";
+  crmEditorKind = "";
+  crmEditingClientId = "";
+  crmEditingReferralId = "";
+  crmEditingNetworkId = "";
+  crmClosePendingId = "";
+  crmDeletePendingId = "";
+  crmConvertPendingId = "";
+  configureCrmModule(label);
+
+  const url = new URL(window.location.href);
+  url.searchParams.set("section", label);
+  if (label !== "Clients") url.searchParams.delete("client");
+  history.replaceState({}, "", url);
+
+  renderModulePage("crm");
+  refreshCrmAccountControl();
+  applyCrmSearch(modules.crm, "");
+}
+
 function renderModulePage(moduleId) {
   const module = modules[moduleId];
   selectedItemId = module.items[0]?.id || "";
@@ -2222,6 +4018,7 @@ function renderModulePage(moduleId) {
       class="app-shell"
       data-shell
       data-module-id="${moduleId}"
+      ${moduleId === "crm" ? `data-crm-section="${escapeHtml(crmSubpage)}"` : ""}
       style="--module: ${module.theme[0]}; --module-soft: ${module.theme[1]}; --module-line: ${module.theme[2]};"
     >
       <aside class="sidebar" aria-label="Main navigation">
@@ -2244,7 +4041,7 @@ function renderModulePage(moduleId) {
         <section class="quick-actions" aria-label="Quick actions">
           <h2>Quick Actions</h2>
           ${module.quickActions.map((action) => `
-            <button class="quick-button" ${moduleId === "schedule" && action === "New Appointment" ? "data-open-new-appointment" : ""} ${moduleId === "schedule" && action === "Block Time" ? "data-open-block-time" : ""} ${moduleId === "schedule" && action === "Print Schedule" ? "data-schedule-print-action=\"schedule\"" : ""} type="button">${icon("plus")}${action}</button>
+            <button class="quick-button" ${moduleId === "schedule" && action === "New Appointment" ? "data-open-new-appointment" : ""} ${moduleId === "schedule" && action === "Block Time" ? "data-open-block-time" : ""} ${moduleId === "schedule" && action === "Print Forms" ? "data-open-schedule-print-center" : ""} ${moduleId === "crm" ? crmCreateActionAttribute(action) : ""} type="button">${icon("plus")}${action}</button>
           `).join("")}
         </section>
 
@@ -2261,7 +4058,7 @@ function renderModulePage(moduleId) {
           </div>
 
           <div class="header-actions" ${moduleId === "schedule" ? "data-schedule-header-actions" : ""}>
-            <div class="view-switch" role="group" aria-label="${module.label} views" style="grid-template-columns: repeat(${module.views.length}, minmax(86px, 1fr));">
+            ${module.views.length ? `<div class="view-switch" role="group" aria-label="${module.label} views" style="grid-template-columns: repeat(${module.views.length}, minmax(86px, 1fr));">
               ${module.views.map((view, index) => `
                 <button
                   class="${moduleId === "schedule" ? (view.toLowerCase() === scheduleViewMode ? "is-active" : "") : (index === 0 ? "is-active" : "")}"
@@ -2269,18 +4066,13 @@ function renderModulePage(moduleId) {
                   type="button"
                 >${view}</button>
               `).join("")}
-            </div>
-            <button class="primary-action" ${moduleId === "schedule" ? "data-open-new-appointment" : ""} type="button">${icons.plus}${module.primaryAction}</button>
+            </div>` : ""}
+            <button class="primary-action" ${moduleId === "schedule" ? "data-open-new-appointment" : ""} ${moduleId === "crm" ? crmCreateActionAttribute(module.primaryAction) : ""} type="button">${icons.plus}${module.primaryAction}</button>
           </div>
         </header>
 
         <section class="summary-strip" ${moduleId === "schedule" ? "data-schedule-summary" : ""} aria-label="${module.label} summary">
-          ${module.summary.map(([value, label]) => `
-            <div class="summary-item" data-summary-label="${escapeHtml(label)}">
-              <strong>${escapeHtml(value)}</strong>
-              <span>${label}</span>
-            </div>
-          `).join("")}
+          ${renderSummaryItems(module)}
         </section>
 
         <section class="workspace" ${moduleId === "schedule" ? "data-schedule-clinic-workspace" : ""}>
@@ -2289,7 +4081,12 @@ function renderModulePage(moduleId) {
               <div>
                 <h2>${module.listTitle}</h2>
               </div>
-              <button class="list-search" type="button" aria-label="Search">${icons.search}</button>
+              ${moduleId === "crm" ? `
+                <div class="crm-list-search">
+                  <input data-crm-search-input type="search" placeholder="${escapeHtml(module.searchLabel)}" aria-label="${escapeHtml(module.searchLabel)}" hidden>
+                  <button class="list-search" data-crm-search-toggle type="button" aria-label="${escapeHtml(module.searchLabel)}">${icons.search}</button>
+                </div>
+              ` : `<button class="list-search" type="button" aria-label="Search">${icons.search}</button>`}
             </div>
             <div class="list">
               ${renderListRows(module)}
@@ -2298,27 +4095,39 @@ function renderModulePage(moduleId) {
 
           <article class="panel detail-panel">
             <aside class="detail-side" data-standard-detail-side>
-              <div class="status-line is-module-status">
-                <span class="status-dot"></span>
-                <span data-detail-status></span>
-              </div>
+              ${moduleId === "crm" ? `<div data-crm-side-detail>` : ""}
+              ${moduleId === "crm" ? renderCrmStatusControl() : `
+                <div class="status-line is-module-status">
+                  <span class="status-dot"></span>
+                  <span data-detail-status></span>
+                </div>
+              `}
               <h2 data-detail-title></h2>
-              <div class="meta-list ${moduleId === "schedule" ? "appointment-meta" : ""}">
-                ${moduleId === "schedule" ? renderScheduleAppointmentMeta() : renderMetaRows(module.sideFields)}
+              <div class="meta-list ${["schedule", "crm"].includes(moduleId) ? "appointment-meta" : ""}">
+                ${moduleId === "schedule" ? renderScheduleAppointmentMeta() : moduleId === "crm" ? renderCrmSideMeta() : renderMetaRows(module.sideFields)}
               </div>
-              <section class="side-section" ${moduleId === "schedule" ? "data-standard-family" : ""}>
+              <section class="side-section" ${["schedule", "crm"].includes(moduleId) ? "data-standard-family" : ""}>
                 <h3>${module.sideIcon ? `<span class="section-icon">${icons[module.sideIcon]}</span>` : ""}${module.sideTitle}</h3>
-                ${moduleId === "schedule" ? renderScheduleFamilyRows(module) : renderSideRows(module)}
-                <button class="text-link" type="button">${module.sideLink}</button>
+                ${["schedule", "crm"].includes(moduleId) ? renderScheduleFamilyRows(module) : renderSideRows(module)}
+                ${module.sideLink ? `<button class="text-link" ${moduleId === "schedule" ? "data-open-client-profile" : ""} type="button">${module.sideLink}</button>` : ""}
               </section>
+              ${moduleId === "crm" ? `</div><div class="crm-profile-editor-side-host" data-crm-side-editor hidden></div>` : ""}
             </aside>
 
             <div class="detail-main" data-standard-detail-main>
-              <div class="tabs" role="tablist" aria-label="${module.label} detail tabs">
+              <div
+                class="tabs ${module.detailTabIcons?.length ? "has-icons" : ""}"
+                ${moduleId === "crm" ? "data-crm-tabs" : ""}
+                ${module.detailTabIcons?.length ? `style="--detail-tab-count: ${module.detailTabs.length};"` : ""}
+                role="tablist"
+                aria-label="${module.label} detail tabs"
+              >
                 ${module.detailTabs.map((tab, index) => `
                   <button
                     class="${index === 0 ? "is-active" : ""}"
-                    ${moduleId === "schedule" ? `data-schedule-detail-tab="${scheduleDetailTabKey(tab)}"` : ""}
+                    ${moduleId === "schedule" ? `data-schedule-detail-tab="${scheduleDetailTabKey(tab)}"` : moduleId === "crm" ? `data-crm-detail-tab="${crmDetailTabKey(tab)}"` : ""}
+                    ${moduleId === "crm" ? `data-compact-label="${escapeHtml(tab === "Appointments" ? "Appts" : tab)}"` : ""}
+                    aria-label="${escapeHtml(tab)}"
                     type="button"
                   >
                     ${module.detailTabIcons?.[index] ? `<span class="detail-tab-icon">${icons[module.detailTabIcons[index]]}</span>` : ""}
@@ -2339,6 +4148,15 @@ function renderModulePage(moduleId) {
                 <div class="schedule-detail-panel" data-schedule-detail-panel="appt-note" hidden></div>
                 <div class="schedule-detail-panel" data-schedule-detail-panel="activity" hidden></div>
                 <div class="schedule-detail-panel" data-schedule-detail-panel="forms" hidden></div>
+              ` : moduleId === "crm" ? `
+                <div data-crm-detail-content>
+                  ${renderCrmDetailPanels(module)}
+                  <p class="schedule-action-status" data-crm-action-status role="status" aria-live="polite"></p>
+                  <div class="footer-actions" data-crm-footer-actions style="--crm-footer-action-count: ${module.footerActions.length};">
+                    ${module.footerActions.map((action) => `<button data-crm-action="${action.toLowerCase().replaceAll(" ", "-")}" type="button">${action}</button>`).join("")}
+                  </div>
+                </div>
+                <div class="crm-editor" data-crm-editor hidden></div>
               ` : `
                 ${renderCards(module)}
                 <div class="footer-actions">
@@ -2370,8 +4188,9 @@ function updateDetail(module, itemId) {
 
   if (!item) {
     document.querySelectorAll(".list-row, .schedule-appointment, .schedule-week-appointment").forEach((row) => row.classList.remove("is-selected"));
-    document.querySelector("[data-detail-title]").textContent = "No appointment selected";
-    document.querySelector("[data-detail-status]").textContent = "";
+    document.querySelector("[data-detail-title]").textContent = module === modules.schedule ? "No appointment selected" : "No record selected";
+    const detailStatus = document.querySelector("[data-detail-status]");
+    if (detailStatus) detailStatus.textContent = "";
     document.querySelector(".status-line")?.setAttribute("hidden", "");
     document.querySelectorAll("[data-appointment-date], [data-appointment-time], [data-field]").forEach((field) => {
       field.textContent = "-";
@@ -2383,6 +4202,15 @@ function updateDetail(module, itemId) {
       setAppointmentEditOpen(false);
       setSchedulePanelMode("detail");
       setScheduleDetailTab(module, "details");
+    }
+    if (module === modules.crm) {
+      renderCrmDetailContent(null);
+      crmClosePendingId = "";
+      crmDeletePendingId = "";
+      crmConvertPendingId = "";
+      setCrmPanelMode("detail");
+      setCrmDetailTab(crmDetailTab);
+      updateCrmActionAvailability(null);
     }
     return;
   }
@@ -2398,7 +4226,15 @@ function updateDetail(module, itemId) {
   });
 
   document.querySelector("[data-detail-title]").textContent = item.title;
-  document.querySelector("[data-detail-status]").textContent = item.status;
+  const detailStatus = document.querySelector("[data-detail-status]");
+  if (detailStatus) detailStatus.textContent = item.status;
+  const crmStatusSelect = document.querySelector("[data-crm-status-select]");
+  if (crmStatusSelect) {
+    if (![...crmStatusSelect.options].some((option) => option.value === item.status)) {
+      crmStatusSelect.add(new Option(item.status, item.status));
+    }
+    crmStatusSelect.value = item.status;
+  }
   document.querySelector(".status-line")?.removeAttribute("hidden");
 
   const appointmentDate = document.querySelector("[data-appointment-date]");
@@ -2415,6 +4251,9 @@ function updateDetail(module, itemId) {
 
   document.querySelectorAll("[data-field]").forEach((field) => {
     const value = fieldValue(item, field.dataset.field);
+    if (module === modules.crm && renderCrmRelationshipField(field, item)) {
+      return;
+    }
     if (field.classList.contains("is-stacked-list")) {
       const names = value.split(",").map((name) => name.trim()).filter(Boolean);
       field.replaceChildren(...names.map((name) => {
@@ -2426,6 +4265,39 @@ function updateDetail(module, itemId) {
     }
     field.textContent = value;
   });
+
+  const lessonSteps = document.querySelector("[data-crm-lesson-steps]");
+  if (lessonSteps) {
+    lessonSteps.replaceChildren(...(item.lessonSteps || []).map((step, index) => {
+      const row = document.createElement("li");
+      row.className = step.state === "Done"
+        ? "is-done"
+        : step.state === "Next"
+          ? "is-next"
+          : "";
+      row.style.setProperty("--lesson-color", step.color);
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "crm-lesson-button";
+      button.dataset.crmLessonValue = step.value;
+      button.setAttribute("aria-label", `Set lesson progression to ${step.label}`);
+
+      const marker = document.createElement("span");
+      marker.className = "crm-lesson-marker";
+      marker.textContent = String(index + 1);
+
+      const copy = document.createElement("span");
+      const label = document.createElement("strong");
+      const state = document.createElement("em");
+      label.textContent = step.label;
+      state.textContent = step.state;
+      copy.append(label, state);
+      button.append(marker, copy);
+      row.append(button);
+      return row;
+    }));
+  }
 
   const thirdIcon = document.querySelector("[data-appointment-third-icon]");
   const thirdValue = document.querySelector("[data-appointment-third-value]");
@@ -2475,6 +4347,16 @@ function updateDetail(module, itemId) {
   if (module === modules.schedule) {
     setSchedulePanelMode(schedulePanelMode);
     setScheduleDetailTab(module, scheduleDetailTab);
+  }
+  if (module === modules.crm) {
+    crmClosePendingId = "";
+    crmDeletePendingId = "";
+    crmConvertPendingId = "";
+    setCrmActionStatus("");
+    renderCrmDetailContent(item);
+    setCrmPanelMode(crmPanelMode);
+    setCrmDetailTab(crmDetailTab);
+    updateCrmActionAvailability(item);
   }
 }
 
@@ -3014,6 +4896,24 @@ async function loadScheduleData(user) {
 
     scheduleDataState = "ready";
     scheduleDataMessage = "";
+    if (!scheduleHandoffHandled) {
+      const query = new URLSearchParams(window.location.search);
+      const requestedAppointmentId = query.get("appointment");
+      const requestedClientId = query.get("client");
+      const requestedAppointment = module.items.find((item) => item.id === requestedAppointmentId);
+      if (requestedAppointment) {
+        scheduleVisibleDate = requestedAppointment.date;
+        selectedItemId = requestedAppointment.id;
+      } else if (query.get("date") && /^\d{4}-\d{2}-\d{2}$/.test(query.get("date"))) {
+        scheduleVisibleDate = query.get("date");
+      }
+      scheduleHandoffHandled = Boolean(requestedAppointmentId || requestedClientId || query.get("new"));
+      updateScheduleDate(module, scheduleVisibleDate);
+      if (query.get("new") === "1" && requestedClientId) {
+        openNewAppointmentPanel([requestedClientId]);
+      }
+      return;
+    }
     updateScheduleDate(module, scheduleVisibleDate);
   } catch (error) {
     console.error(error);
@@ -3024,6 +4924,121 @@ async function loadScheduleData(user) {
     scheduleActivityLogs = [];
     module.items = [];
     updateScheduleDate(module, scheduleVisibleDate);
+  }
+}
+
+async function loadCrmData(user, requestedItemId = selectedItemId) {
+  const module = modules.crm;
+  const preferredItemId = requestedItemId;
+  crmDataMessage = `Loading ${crmSubpage.toLowerCase()}...`;
+  refreshStandardModuleData(module);
+  selectedItemId = preferredItemId;
+
+  try {
+    const token = await user.getIdToken();
+    const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL || "";
+    const headers = { Authorization: `Bearer ${token}` };
+    const [clientsResponse, referralsResponse, networkResponse, appointmentsResult, activityLogsResult] = await Promise.all([
+      fetch(`${apiBaseUrl}/api/clients`, { headers }),
+      fetch(`${apiBaseUrl}/api/referrals`, { headers }),
+      fetch(`${apiBaseUrl}/api/referral-network`, { headers }),
+      fetch(`${apiBaseUrl}/api/appointments`, { headers })
+        .then(async (response) => response.ok ? response.json() : { appointments: [] })
+        .catch(() => ({ appointments: [] })),
+      fetch(`${apiBaseUrl}/api/activity-logs`, { headers })
+        .then(async (response) => response.ok ? response.json() : { activityLogs: [] })
+        .catch(() => ({ activityLogs: [] }))
+    ]);
+
+    if (!clientsResponse.ok || !referralsResponse.ok || !networkResponse.ok) {
+      throw new Error(`CRM services returned ${clientsResponse.status}/${referralsResponse.status}/${networkResponse.status}`);
+    }
+
+    const [{ clients = [] }, { referrals = [] }, { entries = [] }] = await Promise.all([
+      clientsResponse.json(),
+      referralsResponse.json(),
+      networkResponse.json()
+    ]);
+    crmRawClients = clients;
+    crmRawReferrals = referrals;
+    crmRawNetworkEntries = entries;
+    crmAppointments = appointmentsResult.appointments || [];
+    crmActivityLogs = activityLogsResult.activityLogs || [];
+    crmClientItems = mapCrmClients(crmRawClients, {
+      appointments: crmAppointments,
+      activityLogs: crmActivityLogs
+    });
+    crmReferralItems = mapCrmReferrals(crmRawReferrals, { activityLogs: crmActivityLogs });
+    crmNetworkItems = mapCrmNetworkEntries(crmRawNetworkEntries);
+    configureCrmModule(crmSubpage);
+    module.items = crmAllItems.filter((item) => crmCurrentMatcher(item, crmSearchQuery));
+    module.summary = crmCurrentSummary(crmAllItems);
+    crmDataMessage = module.items.length
+      ? ""
+      : crmAllItems.length
+        ? `No ${crmSubpage.toLowerCase()} match this search.`
+        : crmEmptyMessage();
+    selectedItemId = preferredItemId;
+    refreshStandardModuleData(module);
+    setCrmDetailTab(crmDetailTab);
+  } catch (error) {
+    console.error(error);
+    crmRawClients = [];
+    crmRawReferrals = [];
+    crmRawNetworkEntries = [];
+    crmAppointments = [];
+    crmActivityLogs = [];
+    crmClientItems = [];
+    crmReferralItems = [];
+    crmNetworkItems = [];
+    crmAllItems = [];
+    module.items = [];
+    module.summary = crmCurrentSummary([]);
+    crmDataMessage = "CRM records could not be loaded. Check the local data service and try again.";
+    refreshStandardModuleData(module);
+  }
+}
+
+async function initializeCrmData() {
+  if (currentModuleId() !== "crm") {
+    return;
+  }
+
+  try {
+    const [{ initializeApp }, { GoogleAuthProvider, getAuth, onAuthStateChanged, signInWithPopup }] = await Promise.all([
+      import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js")
+    ]);
+    const auth = getAuth(initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG));
+    const provider = new GoogleAuthProvider();
+    const openSignIn = () => {
+      if (!crmCurrentUser) {
+        signInWithPopup(auth, provider).catch((error) => console.error(error));
+      }
+    };
+    crmOpenSignIn = openSignIn;
+    refreshCrmAccountControl();
+
+    onAuthStateChanged(auth, (user) => {
+      crmCurrentUser = user;
+      refreshCrmAccountControl();
+      if (user) {
+        loadCrmData(user);
+        return;
+      }
+
+      crmClientItems = [];
+      crmReferralItems = [];
+      crmNetworkItems = [];
+      modules.crm.items = [];
+      modules.crm.summary = crmCurrentSummary([]);
+      crmDataMessage = `Sign in with your SNACK Google account to load ${crmSubpage.toLowerCase()}.`;
+      refreshStandardModuleData(modules.crm);
+    });
+  } catch (error) {
+    console.error(error);
+    crmDataMessage = "The secure sign-in connection could not be started.";
+    refreshStandardModuleData(modules.crm);
   }
 }
 
@@ -3106,6 +5121,180 @@ function bindModulePage(moduleId) {
     const scheduleSubpageButton = event.target.closest("[data-schedule-subpage]");
     if (moduleId === "schedule" && scheduleSubpageButton) {
       setScheduleSubpage(module, scheduleSubpageButton.dataset.scheduleSubpage);
+      return;
+    }
+
+    const crmSubpageButton = event.target.closest("[data-crm-subpage]");
+    if (moduleId === "crm" && crmSubpageButton) {
+      setCrmSubpage(crmSubpageButton.dataset.crmSubpage);
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.closest(".account")) {
+      crmOpenSignIn?.();
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.closest("[data-crm-new-client]")) {
+      if (crmSubpage !== "Clients") setCrmSubpage("Clients");
+      openCrmClientEditor();
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.closest("[data-crm-new-referral]")) {
+      if (crmSubpage !== "Referrals") setCrmSubpage("Referrals");
+      openCrmReferralEditor();
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.closest("[data-crm-new-network]")) {
+      if (crmSubpage !== "Referral Network") setCrmSubpage("Referral Network");
+      openCrmNetworkEditor();
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.closest("[data-close-crm-editor]")) {
+      closeCrmEditor();
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.closest("[data-crm-search-toggle]")) {
+      const input = document.querySelector("[data-crm-search-input]");
+      if (!input) return;
+      if (input.hidden) {
+        input.hidden = false;
+        input.focus();
+      } else if (!input.value) {
+        input.hidden = true;
+      } else {
+        input.focus();
+        input.select();
+      }
+      return;
+    }
+
+    const crmStatusControl = event.target.closest(".crm-status-control");
+    if (moduleId === "crm" && crmStatusControl && !event.target.closest("select")) {
+      const select = crmStatusControl.querySelector("select");
+      if (select && !select.disabled) {
+        event.preventDefault();
+        if (typeof select.showPicker === "function") {
+          try {
+            select.showPicker();
+          } catch {
+            select.focus();
+            select.click();
+          }
+        } else {
+          select.focus();
+          select.click();
+        }
+      }
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.closest("[data-crm-edit-client]")) {
+      openCrmClientEditor(crmSelectedItem());
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.closest("[data-crm-edit-referral]")) {
+      openCrmReferralEditor(crmSelectedItem());
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.closest("[data-crm-edit-network]")) {
+      openCrmNetworkEditor(crmSelectedItem());
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.closest("[data-crm-edit-notes]")) {
+      openCrmClientEditor(crmSelectedItem(), { notesOnly: true });
+      return;
+    }
+
+    const crmLogContact = event.target.closest("[data-crm-log-contact]");
+    if (moduleId === "crm" && crmLogContact) {
+      openCrmActivityEditor(crmSelectedItem(), crmLogContact.dataset.crmLogContact || "Call");
+      return;
+    }
+
+    const crmAppointment = event.target.closest("[data-crm-appointment-id]");
+    if (moduleId === "crm" && crmAppointment) {
+      const appointment = crmSelectedItem()?.appointments?.find((item) => item.id === crmAppointment.dataset.crmAppointmentId);
+      openCrmAppointment(appointment);
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.closest("[data-crm-new-appointment]")) {
+      openCrmNewAppointment(crmSelectedItem());
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.closest("[data-crm-referral-convert]")) {
+      convertCrmReferral(crmSelectedItem());
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.closest("[data-add-crm-provider]")) {
+      const list = document.querySelector("[data-crm-provider-editor-list]");
+      if (list) list.insertAdjacentHTML("beforeend", renderCrmProviderEditorRows([{ id: "", name: "", email: "", notes: "" }]));
+      return;
+    }
+
+    const removeProvider = event.target.closest("[data-remove-crm-provider]");
+    if (moduleId === "crm" && removeProvider) {
+      const row = removeProvider.closest("[data-crm-provider-row]");
+      const list = row?.parentElement;
+      row?.remove();
+      if (list && !list.querySelector("[data-crm-provider-row]")) {
+        list.insertAdjacentHTML("beforeend", renderCrmProviderEditorRows([{ id: "", name: "", email: "", notes: "" }]));
+      }
+      return;
+    }
+
+    const crmLesson = event.target.closest("[data-crm-lesson-value]");
+    if (moduleId === "crm" && crmLesson) {
+      saveCrmLesson(crmSelectedItem(), crmLesson.dataset.crmLessonValue);
+      return;
+    }
+
+    const relatedProfile = event.target.closest("[data-crm-related-id]");
+    if (moduleId === "crm" && relatedProfile) {
+      const section = relatedProfile.dataset.crmRelatedSection || "Clients";
+      setCrmSubpage(section);
+      updateDetail(modules.crm, relatedProfile.dataset.crmRelatedId);
+      return;
+    }
+
+    const providerProfile = event.target.closest("[data-crm-provider-network-id]");
+    if (moduleId === "crm" && providerProfile) {
+      setCrmSubpage("Referral Network");
+      updateDetail(modules.crm, providerProfile.dataset.crmProviderNetworkId);
+      setCrmDetailTab("providers");
+      return;
+    }
+
+    const crmAction = event.target.closest("[data-crm-action]");
+    if (moduleId === "crm" && crmAction) {
+      const item = crmSelectedItem();
+      const action = crmAction.dataset.crmAction;
+      if (action === "log-call") openCrmActivityEditor(item, "Call");
+      if (action === "log-text") openCrmActivityEditor(item, "Text");
+      if (action === "new-appt") openCrmNewAppointment(item);
+      if (action === "close-client") closeCrmClient(item);
+      if (action === "convert") convertCrmReferral(item);
+      if (action === "delete") deleteCrmEntity(item);
+      if (action === "edit") openCrmNetworkEditor(item);
+      if (action === "new-referral") {
+        setCrmSubpage("Referrals");
+        openCrmReferralEditor();
+      }
+      return;
+    }
+
+    if (moduleId === "schedule" && event.target.closest("[data-open-schedule-print-center]")) {
+      setScheduleSubpage(module, "Print Forms");
       return;
     }
 
@@ -3223,6 +5412,11 @@ function bindModulePage(moduleId) {
       if (moduleId === "schedule") {
         scheduleDetailTab = "details";
       }
+      if (moduleId === "crm") {
+        crmDetailTab = "overview";
+        crmPanelMode = "detail";
+        resetCrmCloseAction();
+      }
       updateDetail(module, row.dataset.rowId);
       return;
     }
@@ -3251,6 +5445,15 @@ function bindModulePage(moduleId) {
       return;
     }
 
+    if (moduleId === "schedule" && event.target.closest("[data-open-client-profile]")) {
+      const item = module.items.find((candidate) => candidate.id === selectedItemId);
+      const clientId = item?.clientIds?.[0];
+      if (clientId) {
+        location.href = `./crm.html?client=${encodeURIComponent(clientId)}`;
+      }
+      return;
+    }
+
     if (moduleId === "schedule" && event.target.closest("[data-close-reschedule]")) {
       closeRescheduleDialog();
       return;
@@ -3269,12 +5472,35 @@ function bindModulePage(moduleId) {
         setScheduleDetailTab(module, detailTab.dataset.scheduleDetailTab);
         return;
       }
+      if (moduleId === "crm" && detailTab.dataset.crmDetailTab) {
+        setCrmDetailTab(detailTab.dataset.crmDetailTab);
+        return;
+      }
       document.querySelectorAll(".tabs button").forEach((item) => item.classList.remove("is-active"));
       detailTab.classList.add("is-active");
     }
   });
 
   document.addEventListener("change", (event) => {
+    if (moduleId === "crm" && event.target.matches("[data-crm-status-select]")) {
+      saveCrmStatus(crmSelectedItem(), event.target.value, event.target);
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.matches("[data-crm-provider-organization]")) {
+      const selectedOrganizationId = event.target.value;
+      document.querySelectorAll("[data-crm-provider-group]").forEach((group) => {
+        const isSelected = group.dataset.crmProviderGroup === selectedOrganizationId;
+        group.hidden = !isSelected;
+        group.querySelectorAll('input[name="providerIds"]').forEach((checkbox) => {
+          checkbox.disabled = !isSelected;
+        });
+      });
+      const prompt = document.querySelector("[data-crm-provider-prompt]");
+      if (prompt) prompt.hidden = Boolean(selectedOrganizationId);
+      return;
+    }
+
     if (moduleId === "schedule" && event.target.matches("[data-print-center-date]")) {
       updateScheduleDate(module, event.target.value);
       return;
@@ -3328,6 +5554,11 @@ function bindModulePage(moduleId) {
   });
 
   document.addEventListener("input", (event) => {
+    if (moduleId === "crm" && event.target.matches("[data-crm-search-input]")) {
+      applyCrmSearch(module, event.target.value);
+      return;
+    }
+
     if (moduleId === "schedule" && event.target.matches("[data-new-appointment-client-search]")) {
       renderNewAppointmentClientOptions(event.target.value);
     }
@@ -3340,6 +5571,20 @@ function bindModulePage(moduleId) {
   });
 
   document.addEventListener("keydown", (event) => {
+    if (moduleId === "crm" && event.target.closest(".account") && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      crmOpenSignIn?.();
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.matches("[data-crm-search-input]") && event.key === "Escape") {
+      event.target.value = "";
+      event.target.hidden = true;
+      applyCrmSearch(module, "");
+      document.querySelector("[data-crm-search-toggle]")?.focus();
+      return;
+    }
+
     if (moduleId === "schedule" && event.target.matches("[data-new-appointment-client-search]") && event.key === "Enter") {
       const firstOption = document.querySelector("[data-new-appointment-client-option]");
       if (firstOption) {
@@ -3350,6 +5595,30 @@ function bindModulePage(moduleId) {
   });
 
   document.addEventListener("submit", (event) => {
+    if (moduleId === "crm" && event.target.matches("[data-crm-client-form]")) {
+      event.preventDefault();
+      saveCrmClient(event.target);
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.matches("[data-crm-referral-form]")) {
+      event.preventDefault();
+      saveCrmReferral(event.target);
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.matches("[data-crm-network-form]")) {
+      event.preventDefault();
+      saveCrmNetwork(event.target);
+      return;
+    }
+
+    if (moduleId === "crm" && event.target.matches("[data-crm-activity-form]")) {
+      event.preventDefault();
+      saveCrmActivity(event.target);
+      return;
+    }
+
     if (moduleId === "schedule" && event.target.matches("[data-new-appointment-form]")) {
       event.preventDefault();
       saveNewAppointment(module, event.target);
@@ -3395,6 +5664,8 @@ function bindModulePage(moduleId) {
 }
 
 const moduleId = currentModuleId();
+if (moduleId === "crm") configureCrmModule(crmSubpage);
 renderModulePage(moduleId);
 bindModulePage(moduleId);
 initializeScheduleData();
+initializeCrmData();

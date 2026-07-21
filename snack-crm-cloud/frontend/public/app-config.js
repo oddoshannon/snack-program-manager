@@ -1,3 +1,9 @@
+if (window.location.hostname === "127.0.0.1") {
+  const localUrl = new URL(window.location.href);
+  localUrl.hostname = "localhost";
+  window.location.replace(localUrl.toString());
+}
+
 window.SNACK_CONFIG = {
   API_BASE_URL: ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname)
     ? "http://localhost:8080"

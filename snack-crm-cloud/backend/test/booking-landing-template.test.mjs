@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 const publicDir = new URL("../../frontend/public/", import.meta.url);
 const readPublicFile = (name) => readFile(new URL(name, publicDir), "utf8");
+
+function localReferences(source) {
+  return Array.from(source.matchAll(/(?:href|src)="(\.\/[^"#]+)"/g), (match) => match[1])
+    .map((reference) => reference.slice(2).split(/[?#]/)[0])
+    .filter(Boolean);
+}
 
 test("public booking landing template contains the approved program profile", async () => {
   const html = await readPublicFile("booking-landing-template.html");
@@ -102,4 +108,44 @@ test("approved public booking pages are connected at their real launch URLs", as
   assert.match(schedulerScript, /\/cancel/);
   assert.match(schedulerScript, /\/reschedule/);
   assert.doesNotMatch(schedulerHtml, /booking-(?:landing-)?template/);
+});
+
+test("approved public booking pages have complete local links, images, and dialog labels", async () => {
+  const landingHtml = await readPublicFile("booking.html");
+  const schedulerHtml = await readPublicFile("book.html");
+
+  for (const reference of new Set([...localReferences(landingHtml), ...localReferences(schedulerHtml)])) {
+    await access(new URL(reference, publicDir));
+  }
+
+  for (const html of [landingHtml, schedulerHtml]) {
+    const images = Array.from(html.matchAll(/<img\b[^>]*>/g), (match) => match[0]);
+    assert.ok(images.length > 0);
+    images.forEach((image) => assert.match(image, /\balt="[^"]*"/));
+  }
+
+  assert.match(landingHtml, /lang="es"/);
+  assert.match(landingHtml, /La confirmación de su cita incluye un enlace privado/);
+  assert.match(landingHtml, /<dialog[^>]+aria-labelledby="shannon-bio-title"/);
+  assert.match(landingHtml, /<dialog[^>]+aria-labelledby="cynthia-bio-title"/);
+  assert.match(schedulerHtml, /aria-live="polite"/);
+  assert.match(schedulerHtml, /aria-label="Choose a date"/);
+  assert.match(schedulerHtml, /aria-label="Choose an appointment time"/);
+});
+
+test("Spanish appointment choices carry Spanish preference into the scheduler", async () => {
+  const landingHtml = await readPublicFile("booking.html");
+  const schedulerScript = await readPublicFile("book.js");
+
+  assert.match(landingHtml, /service=spanish-enrollment/);
+  assert.match(landingHtml, /service=spanish-nutrition-education/);
+  assert.match(schedulerScript, /preferredLanguageSelect\.value = activeService\.defaultLanguage/);
+});
+
+test("production booking verification is read-only", async () => {
+  const script = await readFile(new URL("./qa-production-readonly.mjs", import.meta.url), "utf8");
+
+  assert.match(script, /method: "GET"/);
+  assert.doesNotMatch(script, /method: "(?:POST|PUT|PATCH|DELETE)"/);
+  assert.doesNotMatch(script, /\/api\/public\/bookings(?:["`/])/);
 });

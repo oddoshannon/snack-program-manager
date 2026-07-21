@@ -5,7 +5,11 @@ const icons = {
   search: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>`,
   chevronLeft: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>`,
   chevronRight: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>`,
-  check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m20 6-11 11-5-5"/></svg>`
+  check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m20 6-11 11-5-5"/></svg>`,
+  crm: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-4 2.5-6 6-6s6 2 6 6M14 15c3.5 0 6 1.8 6 5"/></svg>`,
+  note: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM8 8h8M8 12h8M8 16h5"/></svg>`,
+  calendar: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4M16 2v4M4 9h16M6 4h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>`,
+  file: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l4 4v16H6zM14 2v5h5"/></svg>`
 };
 
 const rows = [
@@ -193,11 +197,11 @@ function renderTemplate() {
             </aside>
 
             <div class="detail-main">
-              <div class="tabs" role="tablist" aria-label="Template detail tabs">
-                <button class="is-active" type="button">Detail Tab</button>
-                <button type="button">Detail Tab</button>
-                <button type="button">Detail Tab</button>
-                <button type="button">Detail Tab</button>
+              <div class="tabs has-icons" style="--detail-tab-count: 4;" role="tablist" aria-label="Template detail tabs">
+                <button class="is-active" type="button"><span class="detail-tab-icon">${icons.crm}</span><span>Detail Tab</span></button>
+                <button type="button"><span class="detail-tab-icon">${icons.note}</span><span>Detail Tab</span></button>
+                <button type="button"><span class="detail-tab-icon">${icons.calendar}</span><span>Detail Tab</span></button>
+                <button type="button"><span class="detail-tab-icon">${icons.file}</span><span>Detail Tab</span></button>
               </div>
 
               <section class="detail-card">

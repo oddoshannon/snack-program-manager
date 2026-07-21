@@ -39,6 +39,16 @@
   box-sizing: border-box;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 [hidden] {
   display: none !important;
 }
@@ -698,6 +708,15 @@ svg {
   gap: 10px;
 }
 
+.list-empty {
+  margin: 0;
+  padding: 24px 12px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
 .list-row {
   --row-color: var(--module);
   width: 100%;
@@ -1199,6 +1218,58 @@ svg {
   line-height: 1.35;
 }
 
+.crm-meta-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.crm-meta-copy em {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.crm-status-control {
+  position: relative;
+  width: fit-content;
+  gap: 5px;
+  padding-right: 0;
+  cursor: pointer;
+}
+
+.crm-status-control::after {
+  position: absolute;
+  right: 1px;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  content: "";
+  transform: translateY(-2px) rotate(45deg);
+  pointer-events: none;
+}
+
+.crm-status-control select {
+  width: auto;
+  max-width: 170px;
+  min-height: 24px;
+  border: 0;
+  padding: 0 13px 0 0;
+  field-sizing: content;
+  appearance: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.crm-status-control select:focus-visible {
+  outline: 2px solid var(--module-line);
+  outline-offset: 3px;
+}
+
 .meta-row {
   display: grid;
   gap: 3px;
@@ -1271,7 +1342,114 @@ svg {
   outline: none;
 }
 
+.crm-lesson-card {
+  gap: 16px;
+}
+
+.crm-lesson-steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(50px, auto));
+  grid-auto-flow: column;
+  gap: 0 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crm-lesson-steps li {
+  position: relative;
+  min-height: 50px;
+  border-bottom: 1px solid var(--line);
+}
+
+.crm-lesson-button {
+  width: calc(100% + 16px);
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-left: -8px;
+  border: 0;
+  border-radius: var(--radius);
+  padding: 0 12px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.crm-lesson-button:hover,
+.crm-lesson-button:focus-visible {
+  background: color-mix(in srgb, var(--lesson-color) 7%, #ffffff);
+  outline: none;
+}
+
+.crm-lesson-steps li:nth-child(4),
+.crm-lesson-steps li:nth-child(8) {
+  border-bottom: 0;
+}
+
+.crm-lesson-marker {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--lesson-color);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--lesson-color);
+  font-size: 11.5px;
+  font-weight: 600;
+  place-items: center;
+}
+
+.crm-lesson-button > span:last-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.crm-lesson-steps strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.crm-lesson-steps em {
+  min-height: 14px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.crm-lesson-steps .is-done .crm-lesson-marker {
+  border-color: var(--lesson-color);
+  background: color-mix(in srgb, var(--lesson-color) 10%, #ffffff);
+  color: var(--lesson-color);
+}
+
+.crm-lesson-steps .is-next {
+  margin-right: -12px;
+  margin-left: -12px;
+  padding-right: 12px;
+  padding-left: 12px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--lesson-color) 9%, #ffffff);
+}
+
+.crm-lesson-steps .is-next .crm-lesson-marker {
+  border-color: var(--lesson-color);
+  color: var(--lesson-color);
+}
+
+.crm-lesson-steps .is-next strong,
+.crm-lesson-steps .is-next em {
+  color: var(--lesson-color);
+}
+
 .detail-main {
+  container-type: inline-size;
   display: grid;
   align-content: start;
   gap: 12px;
@@ -1651,6 +1829,49 @@ svg {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 15px 28px;
+}
+
+.crm-client-detail-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 14px;
+}
+
+.crm-detail-column {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 15px;
+}
+
+.crm-detail-column .field strong {
+  overflow-wrap: anywhere;
+}
+
+.crm-profile-link-list {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+}
+
+.crm-profile-link {
+  appearance: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  color: #175cd3;
+  font: inherit;
+  line-height: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.crm-profile-link:hover,
+.crm-profile-link:focus-visible {
+  color: #124ba8;
+  text-decoration: underline;
+  outline: none;
 }
 
 .field {
@@ -2424,13 +2645,13 @@ svg {
 
 }
 
-.app-shell[data-module-id="schedule"] .tabs {
+.tabs.has-icons {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--detail-tab-count), minmax(0, 1fr));
   gap: 0;
 }
 
-.app-shell[data-module-id="schedule"] .tabs button {
+.tabs.has-icons button {
   min-width: 0;
   gap: 5px;
   padding-right: 4px;
@@ -2439,15 +2660,749 @@ svg {
   white-space: nowrap;
 }
 
-.app-shell[data-module-id="schedule"] .detail-tab-icon {
+.tabs.has-icons .detail-tab-icon {
   flex-basis: 16px;
   width: 16px;
   height: 16px;
 }
 
-.app-shell[data-module-id="schedule"] .detail-tab-icon svg {
+.tabs.has-icons .detail-tab-icon svg {
   width: 16px;
   height: 16px;
+}
+
+@container (max-width: 380px) {
+  .app-shell[data-module-id="crm"] .tabs.has-icons {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+  }
+
+  .app-shell[data-module-id="crm"] .tabs.has-icons button {
+    flex: 0 0 auto;
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .app-shell[data-module-id="crm"] .tabs.has-icons button[data-compact-label] > span:last-child {
+    display: none;
+  }
+
+  .app-shell[data-module-id="crm"] .tabs.has-icons button[data-compact-label]::after {
+    content: attr(data-compact-label);
+  }
+}
+
+.app-shell[data-module-id="crm"] .footer-actions {
+  grid-template-columns: repeat(var(--crm-footer-action-count, 4), minmax(0, 1fr));
+  padding: 14px;
+}
+
+.app-shell[data-module-id="crm"] .footer-actions button {
+  min-width: 0;
+  padding-inline: 6px;
+  white-space: nowrap;
+}
+
+[data-crm-detail-content] {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.app-shell[data-module-id="crm"] .footer-actions button:nth-child(1),
+.app-shell[data-module-id="crm"] .footer-actions button:nth-child(2) {
+  border: 1px solid #a8d8b8;
+  color: var(--success);
+}
+
+.app-shell[data-module-id="crm"] .footer-actions button:nth-child(1):hover,
+.app-shell[data-module-id="crm"] .footer-actions button:nth-child(1):focus-visible,
+.app-shell[data-module-id="crm"] .footer-actions button:nth-child(2):hover,
+.app-shell[data-module-id="crm"] .footer-actions button:nth-child(2):focus-visible {
+  background: var(--success-soft);
+}
+
+.app-shell[data-module-id="crm"] .footer-actions button:nth-child(3) {
+  border: 1px solid #aecbfa;
+  color: #175cd3;
+}
+
+.app-shell[data-module-id="crm"] .footer-actions button:nth-child(3):hover,
+.app-shell[data-module-id="crm"] .footer-actions button:nth-child(3):focus-visible {
+  background: var(--blue-soft);
+}
+
+.app-shell[data-module-id="crm"] .footer-actions button:nth-child(4) {
+  border: 1px solid #f4b4b6;
+  color: var(--red);
+}
+
+.app-shell[data-module-id="crm"] .footer-actions button:nth-child(4):hover,
+.app-shell[data-module-id="crm"] .footer-actions button:nth-child(4):focus-visible {
+  background: var(--red-soft);
+}
+
+.app-shell[data-module-id="crm"] [data-crm-action="new-referral"] {
+  border-color: #aecbfa;
+  color: #175cd3;
+}
+
+.app-shell[data-module-id="crm"] [data-crm-action="new-referral"]:hover,
+.app-shell[data-module-id="crm"] [data-crm-action="new-referral"]:focus-visible {
+  background: var(--blue-soft);
+}
+
+.app-shell[data-module-id="crm"] [data-crm-action="delete"] {
+  border-color: #f4b4b6;
+  color: var(--red);
+}
+
+.app-shell[data-module-id="crm"] [data-crm-action="delete"]:hover,
+.app-shell[data-module-id="crm"] [data-crm-action="delete"]:focus-visible {
+  background: var(--red-soft);
+}
+
+.app-shell[data-module-id="crm"][data-crm-section="Referral Network"] .footer-actions [data-crm-action="edit"] {
+  border-color: #a8d8b8;
+  color: var(--success);
+}
+
+.app-shell[data-module-id="crm"][data-crm-section="Referral Network"] .footer-actions [data-crm-action="edit"]:hover,
+.app-shell[data-module-id="crm"][data-crm-section="Referral Network"] .footer-actions [data-crm-action="edit"]:focus-visible {
+  background: var(--success-soft);
+}
+
+.app-shell[data-module-id="crm"][data-crm-section="Referral Network"] .footer-actions [data-crm-action="new-referral"] {
+  border-color: #aecbfa;
+  color: #175cd3;
+}
+
+.app-shell[data-module-id="crm"][data-crm-section="Referral Network"] .footer-actions [data-crm-action="new-referral"]:hover,
+.app-shell[data-module-id="crm"][data-crm-section="Referral Network"] .footer-actions [data-crm-action="new-referral"]:focus-visible {
+  background: var(--blue-soft);
+}
+
+.app-shell[data-module-id="crm"][data-crm-section="Referral Network"] .footer-actions [data-crm-action="delete"] {
+  border-color: #f4b4b6;
+  color: var(--red);
+}
+
+.app-shell[data-module-id="crm"][data-crm-section="Referral Network"] .footer-actions [data-crm-action="delete"]:hover,
+.app-shell[data-module-id="crm"][data-crm-section="Referral Network"] .footer-actions [data-crm-action="delete"]:focus-visible {
+  background: var(--red-soft);
+}
+
+.crm-list-search {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  min-width: 0;
+}
+
+.crm-list-search input {
+  width: min(154px, 100%);
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.crm-list-search input:focus {
+  border-color: var(--module);
+  box-shadow: 0 0 0 3px var(--module-soft);
+  outline: none;
+}
+
+.crm-detail-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.crm-detail-panel[hidden],
+.detail-main > [hidden] {
+  display: none;
+}
+
+.crm-note-copy,
+.crm-empty-copy,
+.crm-form-description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.crm-appointment-list,
+.crm-form-links {
+  display: grid;
+  gap: 8px;
+}
+
+.crm-appointment-row,
+.crm-form-link {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  text-decoration: none;
+}
+
+.crm-appointment-row:hover,
+.crm-appointment-row:focus-visible,
+.crm-form-link:hover,
+.crm-form-link:focus-visible {
+  border-color: var(--module-line);
+  background: var(--module-soft);
+  outline: none;
+}
+
+.crm-appointment-row > span:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.crm-appointment-row strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.crm-appointment-row small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-form-link {
+  justify-content: flex-start;
+  color: #175cd3;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.crm-form-link svg {
+  width: 17px;
+  height: 17px;
+}
+
+.crm-panel-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.crm-panel-actions button {
+  min-height: 36px;
+  border: 1px solid var(--module-line);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  background: var(--surface);
+  color: var(--module);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.crm-panel-actions button:hover,
+.crm-panel-actions button:focus-visible {
+  background: var(--module-soft);
+  outline: none;
+}
+
+.crm-provider-list {
+  display: grid;
+  gap: 0;
+}
+
+.crm-provider-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+  gap: 3px 14px;
+  border-bottom: 1px solid var(--line);
+  padding: 9px 0;
+}
+
+.crm-provider-row:last-child {
+  border-bottom: 0;
+}
+
+.crm-provider-row strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.crm-provider-row span,
+.crm-provider-row p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.crm-provider-row p {
+  grid-column: 1 / -1;
+}
+
+.crm-editor {
+  min-width: 0;
+  max-height: calc(100dvh - 260px);
+  overflow-y: auto;
+  margin: -18px -20px 0;
+}
+
+.crm-editor.is-profile-editor {
+  max-height: none;
+  overflow: visible;
+  margin: 0;
+}
+
+.crm-profile-editor-side-host {
+  min-width: 0;
+}
+
+.crm-profile-editor-side,
+.crm-profile-editor-main {
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+}
+
+.crm-profile-editor-side input,
+.crm-profile-editor-side select,
+.crm-profile-editor-main input,
+.crm-profile-editor-main select,
+.crm-profile-editor-main textarea {
+  font-family: inherit;
+}
+
+.crm-editor-name-fields,
+.crm-side-field {
+  display: grid;
+  gap: 4px;
+}
+
+.crm-editor-name-fields {
+  margin-bottom: 2px;
+}
+
+.crm-editor-name-fields label,
+.crm-side-field,
+.crm-side-address-row label {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+
+.crm-editor-name-fields input,
+.crm-editor-side-meta input,
+.crm-editor-side-meta select,
+.crm-side-field input,
+.crm-side-field select,
+.crm-side-address-row input {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 7px 9px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 400;
+  outline: none;
+}
+
+.crm-editor-name-fields input {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.crm-editor-side-meta input {
+  min-height: 32px;
+  padding: 5px 7px;
+}
+
+.crm-editor-side-meta select {
+  min-height: 32px;
+  padding: 5px 26px 5px 7px;
+}
+
+.crm-profile-editor-side input:focus,
+.crm-profile-editor-side select:focus,
+.crm-profile-editor-main input:focus,
+.crm-profile-editor-main select:focus,
+.crm-profile-editor-main textarea:focus {
+  border-color: var(--module);
+  box-shadow: 0 0 0 3px var(--module-soft);
+}
+
+.crm-editor-status-control {
+  width: fit-content;
+  margin-bottom: 0;
+}
+
+.crm-editor-family-section {
+  gap: 8px;
+}
+
+.crm-editor-family-section .crm-sibling-choices {
+  max-height: 132px;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.crm-editor-family-section .crm-sibling-choices label {
+  font-size: 11.5px;
+}
+
+.crm-side-address-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.crm-side-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+
+.crm-side-toggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--module);
+}
+
+.crm-profile-editor-main {
+  gap: 9px;
+}
+
+.crm-profile-editor-fields {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px 8px;
+  padding: 8px 0 0;
+}
+
+.crm-profile-editor-fields > label {
+  gap: 4px;
+  min-width: 0;
+}
+
+.crm-profile-editor-fields input,
+.crm-profile-editor-fields select {
+  min-width: 0;
+  padding-right: 8px;
+  padding-left: 8px;
+}
+
+.crm-profile-editor-fields select {
+  padding-right: 26px;
+  background-position: right 8px center;
+}
+
+.crm-profile-editor-fields input[readonly] {
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+
+.schedule-inline-fields .crm-profile-boolean-control {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background: var(--surface);
+}
+
+.schedule-inline-fields .crm-profile-boolean-control input {
+  width: 15px;
+  height: 15px;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+  accent-color: var(--module);
+}
+
+.crm-profile-boolean-control strong {
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 400;
+}
+
+.crm-lesson-editor-field {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.crm-lesson-editor-field select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 9px 42px 9px 12px;
+  appearance: none;
+  background-color: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23344054' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 16px;
+  color: var(--ink);
+  font-size: 13.5px;
+}
+
+.crm-lesson-editor-field textarea {
+  width: 100%;
+  min-height: 88px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  outline: none;
+}
+
+.crm-provider-choices {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 12px 18px;
+}
+
+.crm-provider-organization-field {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.crm-provider-organization-field > span,
+.crm-provider-choices fieldset {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.crm-provider-organization-field select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 34px 8px 10px;
+  background-color: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  outline: none;
+}
+
+.crm-provider-organization-field select:focus-visible {
+  border-color: var(--module);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module) 15%, transparent);
+}
+
+.crm-provider-groups {
+  min-width: 0;
+}
+
+.crm-provider-choices fieldset {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.crm-provider-choices legend {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.crm-provider-choices label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.crm-provider-choices input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--module);
+}
+
+.crm-provider-editor-list {
+  display: grid;
+  gap: 9px;
+}
+
+.crm-provider-editor-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.2fr) 30px;
+  align-items: end;
+  gap: 8px;
+}
+
+.crm-provider-editor-row label {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+
+.crm-provider-editor-row input {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 7px 9px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12.5px;
+  outline: none;
+}
+
+.crm-provider-editor-row input:focus {
+  border-color: var(--module);
+  box-shadow: 0 0 0 3px var(--module-soft);
+}
+
+.crm-provider-editor-row button {
+  width: 30px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.crm-provider-editor-row button:hover,
+.crm-provider-editor-row button:focus-visible {
+  border-color: var(--module-line);
+  background: var(--module-soft);
+  color: var(--module);
+  outline: none;
+}
+
+.app-shell[data-module-id="crm"] .crm-editor-footer-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0;
+}
+
+.app-shell[data-module-id="crm"] .crm-editor-footer-actions button:first-child {
+  border: 1px solid var(--module-line);
+  background: var(--surface);
+  color: var(--module);
+}
+
+.app-shell[data-module-id="crm"] .crm-editor-footer-actions button:first-child:hover,
+.app-shell[data-module-id="crm"] .crm-editor-footer-actions button:first-child:focus-visible {
+  background: var(--module-soft);
+}
+
+.app-shell[data-module-id="crm"] .crm-editor-footer-actions button:last-child {
+  border: 1px solid var(--module);
+  background: var(--module);
+  color: #ffffff;
+}
+
+.app-shell[data-module-id="crm"] .crm-editor-footer-actions button:last-child:hover,
+.app-shell[data-module-id="crm"] .crm-editor-footer-actions button:last-child:focus-visible {
+  background: color-mix(in srgb, var(--module) 90%, #000000);
+}
+
+.crm-form-section {
+  display: grid;
+  gap: 2px;
+  border-bottom: 1px solid var(--line);
+  padding: 2px 0;
+}
+
+.crm-form-section h4 {
+  margin: 14px 20px 0;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.crm-sibling-choices,
+.crm-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  padding: 14px 20px 18px;
+}
+
+.crm-sibling-choices label,
+.crm-checkbox-grid label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.crm-sibling-choices input,
+.crm-checkbox-grid input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--module);
+}
+
+.app-shell[data-module-id="crm"] .schedule-inline-actions button:hover,
+.app-shell[data-module-id="crm"] .schedule-inline-actions button:focus-visible {
+  background: color-mix(in srgb, var(--module) 90%, #000000);
+}
+
+.app-shell[data-module-id="crm"] [data-crm-action-status][data-state="error"] {
+  color: var(--red);
 }
 
 @media (max-width: 760px) {
@@ -2518,6 +3473,16 @@ svg {
   .appointment-edit-actions,
   .schedule-week-grid {
     grid-template-columns: 1fr;
+  }
+
+  .crm-lesson-steps {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-auto-flow: row;
+  }
+
+  .crm-lesson-steps li:nth-child(4) {
+    border-bottom: 1px solid var(--line);
   }
 
   .appointment-edit-fields .is-full-width {

@@ -113,6 +113,19 @@ test("new appointment times follow the adjustable scheduling settings", () => {
   assert.equal(times.length, 17);
 });
 
+test("the print center stays accessible without returning it to schedule navigation", () => {
+  const cleanSource = readFileSync(
+    new URL("../../frontend/public/clean.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(cleanSource, /subpages: \["Clinic", "Public Booking"\]/);
+  assert.match(cleanSource, /quickActions: \["New Appointment", "Block Time", "Print Forms"\]/);
+  assert.match(cleanSource, /data-open-schedule-print-center/);
+  assert.match(cleanSource, /setScheduleSubpage\(module, "Print Forms"\)/);
+  assert.match(cleanSource, /Daily Print Packet/);
+});
+
 test("blocked time uses the selected date, time, and staff without a client", () => {
   assert.deepEqual(blockTimePayload({
     appointmentDate: "2026-07-22",

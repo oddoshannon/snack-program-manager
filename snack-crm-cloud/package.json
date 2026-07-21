@@ -7,7 +7,8 @@
   "scripts": {
     "lint": "eslint backend frontend/public",
     "format": "prettier --write \"backend/**/*.{js,mjs}\" \"frontend/public/**/*.{js,css,html}\"",
-    "format:check": "prettier --check \"backend/**/*.{js,mjs}\" \"frontend/public/**/*.{js,css,html}\""
+    "format:check": "prettier --check \"backend/**/*.{js,mjs}\" \"frontend/public/**/*.{js,css,html}\"",
+    "qa:production:readonly": "node backend/test/qa-production-readonly.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

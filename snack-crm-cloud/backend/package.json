@@ -7,6 +7,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --env-file=.env --watch server.js",
+    "refresh:local-data": "node --env-file=.env scripts/refresh-local-data.mjs",
+    "seed:local-crm": "node --env-file=.env scripts/seed-local-crm.mjs",
+    "local-data": "node --env-file=.env scripts/manage-local-data.mjs",
     "test": "node --test test/*.test.mjs",
     "qa:public-booking-api": "node test/qa-public-booking-api.mjs"
   },

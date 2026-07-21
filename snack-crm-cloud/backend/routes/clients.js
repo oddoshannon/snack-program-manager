@@ -229,6 +229,7 @@ router.patch("/api/clients/:clientId", requireAuth, async (request, response, ne
       "firstAppointmentDate",
       "mostRecentAppointmentDate",
       "lastAppointmentDate",
+      "graduationDate",
       "currentLesson",
       "addressStreet",
       "addressCity",

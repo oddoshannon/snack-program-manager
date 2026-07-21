@@ -1,6 +1,6 @@
 # SNACK CRM Cloud Deployment Notes
 
-This document explains the tiny cloud foundation that is currently deployed.
+This document explains the current cloud app, release checks, and rollback steps.
 
 ## Live URLs
 
@@ -31,9 +31,7 @@ The app has four pieces:
 
 4. **Firestore**
    - Stores app data.
-   - Current test collection: `messages`
-   - Current test document: `messages/hello`
-   - First CRM collection: `referrals`
+   - Stores clients, referrals, appointments, tasks, program records, and settings.
 
 ## Request Flow
 
@@ -124,6 +122,23 @@ cd "/Users/shannonoddo/Desktop/CRM App/snack-crm-cloud"
 firebase deploy --only hosting --project snack-crm
 ```
 
+## Before Every Release
+
+Run the full automated checks:
+
+```bash
+cd "/Users/shannonoddo/Desktop/CRM App/snack-crm-cloud/backend"
+npm test
+
+cd "/Users/shannonoddo/Desktop/CRM App/snack-crm-cloud"
+npm run lint
+```
+
+Before deploying, record the current Firebase Hosting release and Cloud Run revision so there is an exact version to return to if needed.
+
+- Firebase Console: **Hosting > Release history**
+- Google Cloud Console: **Cloud Run > snack-crm-api > Revisions**
+
 ## Verify Production
 
 Open:
@@ -134,9 +149,19 @@ https://snack-crm.web.app
 
 Expected result:
 
-1. Page says `SNACK CRM`.
-2. User can sign in with a `snackprogram.org` Google account.
-3. Page displays `Hello from the SNACK CRM database.`
+1. The staff sign-in page loads.
+2. A `snackprogram.org` Google account can open the clean staff interface.
+3. `https://snack-crm.web.app/booking.html` opens the public program and booking page.
+4. Selecting an appointment type opens the public scheduler.
+
+Run the automated read-only production check:
+
+```bash
+cd "/Users/shannonoddo/Desktop/CRM App/snack-crm-cloud"
+npm run qa:production:readonly
+```
+
+This command uses only `GET` requests. It verifies the health route, public booking pages and assets, booking settings, availability, and anonymous staff-data protection. It does not create, edit, cancel, or reschedule any appointment.
 
 Check the public health route:
 
@@ -144,10 +169,10 @@ Check the public health route:
 curl https://snack-crm.web.app/health
 ```
 
-Check that the API blocks anonymous requests:
+Check that the API blocks anonymous staff-data requests:
 
 ```bash
-curl https://snack-crm.web.app/api/message
+curl https://snack-crm.web.app/api/clients
 ```
 
 Expected result:
@@ -156,39 +181,30 @@ Expected result:
 {"error":"Sign in is required."}
 ```
 
+## Roll Back a Release
+
+If the website layout or browser behavior is broken but the API is healthy:
+
+1. Open **Firebase Console > Hosting > Release history**.
+2. Find the release that was live immediately before the failed release.
+3. Choose **Roll back** for that release.
+4. Run `npm run qa:production:readonly` again.
+
+If the API is broken:
+
+1. Open **Google Cloud Console > Cloud Run > snack-crm-api > Revisions**.
+2. Select **Manage traffic**.
+3. Send 100% of traffic to the revision recorded before the release.
+4. Confirm `https://snack-crm.web.app/health` returns `{"ok":true,"service":"snack-crm-api"}`.
+5. Run `npm run qa:production:readonly` again.
+
+If both are broken, roll back the Cloud Run revision first, then the Firebase Hosting release. A rollback changes the running version only; it does not delete Firestore records.
+
 ## Security Notes
 
-- Do not put real client data into this app until role-based access and data rules are designed.
 - The backend currently allows any verified `@snackprogram.org` Google account.
 - A future version should add roles such as `admin`, `staff`, or `viewer`.
 - The Cloud Run Invoker IAM check is disabled so Firebase Hosting can forward browser requests to Cloud Run. The app-level Firebase token check is what protects the API.
 - Admin bulk delete is disabled by default with `ALLOW_ADMIN_BULK_DELETE=false`; leave it off for production.
 
-## First Real Feature
-
-The first protected CRM feature is:
-
-```text
-referrals
-```
-
-Reason: referrals are likely the first intake point before clients, appointments, tasks, or reports.
-
-Current fields:
-
-```text
-referrals/{referralId}
-  firstName
-  lastName
-  phone
-  email
-  referralSource
-  status
-  notes
-  createdAt
-  updatedAt
-  createdBy
-  updatedBy
-```
-
-The current app can create referrals, list and filter the 25 most recent referrals, view status counts, see created dates, edit referral details, update referral status, and delete test referrals. Keep this small until roles and stricter deletion rules are designed.
+Public booking cancel and reschedule actions are protected by private management tokens. Public routes remain rate-limited. Confirmation delivery remains disabled until a provider is selected and tested.
