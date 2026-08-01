@@ -13,9 +13,15 @@ this file.
 - Cloud Run service account:
   `1013266498299-compute@developer.gserviceaccount.com`
 - Production service: `snack-crm-api`, region `us-central1`
-- Live configuration: calendar ID present; `GOOGLE_CALENDAR_ENABLED=false`
+- Last confirmed revision: `snack-crm-api-00058-j8n`, serving 100% of traffic
+- Last confirmed configuration: approved Calendar ID present;
+  `GOOGLE_CALENDAR_ENABLED=false`
 - Current status: configured but lifecycle test pending
 - No event was created during the interrupted August 1 test.
+
+The archived task verified those live details immediately before handoff and made
+no later deployment. Run a fresh read-only check immediately before the lifecycle
+test; do not reconfigure anything unless that check finds a mismatch.
 
 Next action: run Admin > Integrations > Google Calendar lifecycle test using the
 deployed service identity. Confirm access, created, updated, removed, and no
@@ -35,6 +41,10 @@ export with a guarded preview, mapping, import, and reconciliation.
 
 Source folder: `Quickbooks Reports/`
 
+The August 1 handoff audit confirmed that all six named workbook files are
+present. It intentionally did not open or analyze them; report headers, periods,
+basis, classes, and accounts still require the preview-only review.
+
 Available files:
 
 - `Western Oregon Center for Pediatric Thereapeutic L_Statement of Financial Position.xlsx`
@@ -45,8 +55,10 @@ Available files:
 - `Western Oregon Center for Pediatric Thereapeutic L_Statement of Activity by Month.xlsx`
 
 WOCPLC is SNACK's legal name; the QuickBooks entity name is therefore expected.
-The General Ledger is cash-basis and includes transactions through July 31,
-2026. Verify every report header and reporting basis before mapping.
+The General Ledger is confirmed cash-basis with a January-December 2026 report
+header and transactions through July 31, 2026. It has one worksheet, used range
+`A1:J458`, 413 transaction rows, and no class/location column. The preview should
+still reconcile those facts before mapping and must not invent a class mapping.
 
 Unavailable:
 
@@ -92,4 +104,3 @@ participant are app calculations, but they require reliable balances,
 transactions, program costs, and participant denominators.
 
 Restricted/unrestricted funds and shared overhead are deferred.
-

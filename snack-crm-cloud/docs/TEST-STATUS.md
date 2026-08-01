@@ -22,6 +22,9 @@ Last updated: August 1, 2026
   and native form mode without current console errors or page-level overflow.
 - Historical form preview read 18 sources and 1,068 rows without imports.
 - Production root and shared navigation were corrected so `/` opens Home.
+- The archived task confirmed revision `snack-crm-api-00058-j8n` was serving 100%
+  of traffic with the approved Calendar ID and automatic sync disabled
+  immediately before handoff; no later deployment occurred in that task.
 
 Detailed evidence:
 
@@ -33,9 +36,19 @@ Detailed evidence:
 
 - Live Google Calendar create-update-delete lifecycle test.
 - Controlled appointment create-reschedule-status-cancel Calendar test.
+- Admin Data Center collection coverage fix and behavior test. The current
+  registry omits `outreachEvents`, `outreachContacts`, `grantQuestions`,
+  `staffUsers`, `adminSettings`, and `messages` from the claimed complete backup.
+  Eligible Outreach/grant-question QA records in omitted collections are
+  unreachable to current Admin cleanup. The test must also prove that protected
+  staff accounts and essential configuration can never enter ordinary cleanup.
+- Refresh `docs/FULL-SYSTEM-TEST-GUIDE.md` to test the implemented retrospective
+  Knowledge Assessment 2026.2 and Questionnaire 2026.1 scoring rules.
 - Real Admin, Staff, and Intern account access test.
 - Full guided system test in `docs/FULL-SYSTEM-TEST-GUIDE.md`.
 - Final production public booking create, reschedule, and cancel pass.
+- Real Firebase Storage grant-document upload check after selecting the release
+  candidate.
 - Remaining English form and public referral review.
 - QuickBooks import preview and reconciliation.
 - Historical-form match review, duplicate review, and later guarded import.
@@ -53,6 +66,8 @@ Detailed evidence:
   the system test, but their current versions are acceptable for testing.
 - The original Codex task caused severe memory pressure during Chrome automation.
   Use shorter tasks and avoid a long browser-control session on this Mac.
+- The 268-test and lint result above is the last recorded focused-risk run, not
+  a new run performed during the read-only handoff audit.
 
 ## Safe Test Data
 
@@ -65,4 +80,3 @@ npm run seed:local-system
 
 Use the controlled counting test only with its exact confirmation phrases in
 `docs/CONTROLLED-COUNTING-REVENUE-QA.md`. Never point either tool at production.
-

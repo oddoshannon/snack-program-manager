@@ -43,6 +43,11 @@ Access, Forms, and Data. Admin has no Quick Actions panel.
   would remove the last owner.
 - `consultant@snackprogram.org` may have temporary Admin access only while the
   system contains sample data.
+- Ordinary production cleanup never removes protected staff accounts,
+  `adminSettings`, or other essential production configuration. Local
+  staff/configuration fixtures remain local-reset-only. Any exceptional removal
+  requires a separate explicit manual procedure, and the protected director
+  account must never be eligible.
 
 ## Counting Rules
 
@@ -76,12 +81,19 @@ Access, Forms, and Data. Admin has no Quick Actions panel.
   conventions are understood.
 - QuickBooks monthly report imports are preferred unless API access is later
   approved. Do not require the treasurer to approve an API for launch.
+- The confirmed General Ledger is cash-basis, covers January-December 2026 in
+  its header, contains transactions through July 31, 2026, uses one worksheet
+  with range `A1:J458` and 413 transaction rows, and has no class/location
+  column. Do not invent a class mapping from that report.
 
 ## Clinic Evaluation And Forms
 
 - Every active survey item must map to a logic-model outcome and a KPI.
 - Knowledge Assessment 2026.2 is a retrospective Graduation form: each child
   answers Before SNACK and Now for all 34 approved Yes/No statements.
+- The Knowledge Assessment is child-focused. A child may answer directly or a
+  caregiver may answer about the child's knowledge; the current workflow does
+  not collect or exclude by a separate respondent type.
 - Knowledge statements cover all approved learning objectives; do not shorten
   only for brevity.
 - The assessment is self-reported knowledge, not an objective quiz. Accessibility
@@ -91,6 +103,9 @@ Access, Forms, and Data. Admin has no Quick Actions panel.
   teal, blue, and purple. There is no pink lesson.
 - Remove the hyphen from `nutrient dense` everywhere in client-facing wording.
 - Each lesson contributes equally to the overall knowledge score.
+- Calculate each child's Before SNACK and Now scores by averaging the seven
+  lesson percentages, then average each completed child's percentage-point
+  change for the program KPI. Keep lesson- and item-level results visible.
 - Report absolute score movement carefully; final public wording for a 57.1
   point change can be workshopped later.
 - Questionnaire 2026.1 is used at Enrollment and Graduation.
@@ -102,6 +117,9 @@ Access, Forms, and Data. Admin has no Quick Actions panel.
   do not receive extra weight.
 - Guideline-aligned food behavior requires all four approved food domains.
 - Broader Behavior Change requires at least five of seven behavior domains.
+- Pair Enrollment and Graduation Questionnaire responses from the same version
+  whenever possible. If versions differ, flag the result and calculate only
+  unchanged items until a formal cross-version rule is approved.
 - Use 2020 Dietary Guidelines as the curriculum foundation.
 - Use AHA/AAP support for the universal under-25-grams-per-day added-sugar limit
   because the program avoids calorie counting.
@@ -127,6 +145,9 @@ Access, Forms, and Data. Admin has no Quick Actions panel.
   editing.
 - Preserve every historical response under its original instrument version and
   scoring rules.
+- Historical imports are duplicate-checked and preserve source metadata. Exact
+  and strong person matches still require the specified review; anonymous
+  responses remain aggregate-only and are never guessed onto a client profile.
 - Program Enrollment may update linked client data, including YCCO number.
 - Leave HRSN Screener wording unchanged; prefill name, date, birthdate, and YCCO
   number when available.
@@ -169,4 +190,3 @@ Access, Forms, and Data. Admin has no Quick Actions panel.
 - MailerLite syncing must honor consent source/date and opt-outs. Sending remains
   disabled until Marketing workflows pass testing.
 - English messages and forms are locked before Spanish versions.
-

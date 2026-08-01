@@ -9,15 +9,29 @@ Last updated: August 1, 2026
 2. Inspect the available QuickBooks reports and create a no-write import preview.
    Do not invent Budget vs. Actual or aging values because those reports do not
    exist or contain no data.
-3. Review Program Enrollment, Child Feedback, Caregiver Feedback, and public
+3. Fix and verify Admin Data Center coverage. Its registry currently omits
+   `outreachEvents`, `outreachContacts`, `grantQuestions`, `staffUsers`,
+   `adminSettings`, and `messages` from the claimed complete backup. Define the
+   intended cleanup scope explicitly: eligible Outreach and grant-question QA
+   records are currently unreachable, while seeded staff/configuration records
+   use protected document IDs and must stay under the local reset workflow or a
+   separate explicit manual procedure. Never make the protected director account
+   or essential production configuration eligible. Add a behavior test that
+   prevents the lists from drifting again. No cleanup or import may proceed until
+   this repair passes.
+4. Update `docs/FULL-SYSTEM-TEST-GUIDE.md` before using it. It still describes
+   Knowledge Assessment 2026.1 as active and behavior scoring as excluded;
+   current implementation uses retrospective Knowledge Assessment 2026.2 and
+   the approved Questionnaire 2026.1 scoring rules.
+5. Review Program Enrollment, Child Feedback, Caregiver Feedback, and public
    referral wording and visual treatment.
-4. Confirm YCCO number is editable on the client profile and prefills linked
+6. Confirm YCCO number is editable on the client profile and prefills linked
    HRSN Billing and the HRSN Screener.
-5. Confirm packet buttons assemble the active forms after the remaining form
+7. Confirm packet buttons assemble the active forms after the remaining form
    review is complete.
-6. Revisit only the minimum custom-reporting needs required for the test. Do not
+8. Revisit only the minimum custom-reporting needs required for the test. Do not
    build a general report builder without a concrete use case.
-7. Restart local services and seed the repeatable fake system dataset.
+9. Restart local services and seed the repeatable fake system dataset.
 
 ## Full-System Test
 
@@ -40,16 +54,23 @@ Use `docs/FULL-SYSTEM-TEST-GUIDE.md`. At minimum test:
   and iPad.
 - Public booking create, reschedule, and cancel immediately before Setmore
   cutover.
+- Data Center backup and sample-cleanup coverage across every application and
+  full-system fixture collection.
+- One real Firebase Storage grant-document upload after the release candidate is
+  selected; existing links and automated rules do not replace this check.
 
 ## After Test Findings Are Fixed
 
-1. Download a complete production JSON backup.
-2. Remove only records with all required QA-fixture safety markers.
-3. Preview every real client, referral, provider, contact, appointment, and form
-   import before writing.
-4. Review strong historical-form matches and possible duplicates manually.
-5. Keep anonymous forms aggregate-only and never guess a profile link.
-6. Deploy the tested build and repeat critical checks against production.
+1. Preview every available real client, referral, provider, contact, appointment,
+   and form source without writing. Resolve mappings, unsupported rows, strong
+   historical matches, and possible duplicates before scheduling cutover.
+2. Deploy the tested build and repeat critical checks against production.
+3. Download and open a verified complete production JSON backup.
+4. Remove only records with all required QA-fixture safety markers.
+5. Re-run each import preview against the current destination, then import in
+   controlled source order. Import real CRM profiles before attaching reviewed
+   historical forms.
+6. Keep anonymous forms aggregate-only and never guess a profile link.
 7. Pilot one Clinic day while Zoho and Setmore remain available as fallback
    references.
 
@@ -78,6 +99,7 @@ Use `docs/FULL-SYSTEM-TEST-GUIDE.md`. At minimum test:
 - Final review of the remaining English forms and public referral wording.
 - Real Staff and Intern test accounts for access testing.
 - Approval of any QuickBooks import mapping after the preview is shown.
+- Participation in the real grant-document upload check if Codex cannot safely
+  use an existing short signed-in session.
 - A MailerLite token only through a secure hidden-input flow, never in chat.
 - Final Setmore cutover date after production booking tests pass.
-

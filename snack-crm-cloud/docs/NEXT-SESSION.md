@@ -29,6 +29,12 @@ Resume the Google Calendar connection safely:
 Do not repeat Calendar sharing or Cloud Run configuration unless verification
 shows it is missing. No temporary event was created in the interrupted task.
 
+Archived-task confirmation: revision `snack-crm-api-00058-j8n` deployed
+successfully, served 100% of traffic, carried the approved Calendar ID, and had
+`GOOGLE_CALENDAR_ENABLED=false` immediately before handoff. No later deployment
+occurred in that task. Production `/` also opened Home as intended. These are the
+last confirmed production states; still begin with the fresh read-only check.
+
 Because browser automation caused severe memory pressure on this Mac, prefer a
 direct authenticated API test. If that is not reasonably available, ask Shannon
 to sign into Admin > Integrations and manually click Run Test while Codex limits
@@ -44,12 +50,54 @@ modify the originals.
 Important facts:
 
 - WOCPLC is SNACK's legal name.
+- The General Ledger is cash-basis, has a January-December 2026 report header,
+  contains transactions through July 31, 2026, uses one worksheet with range
+  `A1:J458` and 413 transaction rows, and has no class/location column.
 - Budget vs. Actual does not exist.
 - AR Aging Detail and AP Aging Detail contained no data.
 - Do not invent or estimate those unavailable values.
 
 Show Shannon the proposed monthly import mapping, exclusions, and reconciliation
 rules before changing the app or importing data.
+
+## Confirmed Follow-On Safety Fix
+
+Before the guided full-system test or any production cleanup, correct the Admin
+Data Center registry. The current "complete" backup omits `outreachEvents`,
+`outreachContacts`, `grantQuestions`, `staffUsers`, `adminSettings`, and
+`messages`. Current Admin cleanup also cannot reach eligible Outreach and
+grant-question fixtures in the omitted collections. Seeded staff/configuration
+records use protected document IDs and must remain under the local seed-reset
+workflow or a separate explicit manual procedure. Ordinary production cleanup
+must never remove protected staff accounts, the protected director account, or
+essential configuration. Add a behavior test comparing application, backup,
+cleanup, and fixture collection coverage. No cleanup or import may proceed until
+the repair passes.
+
+Also refresh `docs/FULL-SYSTEM-TEST-GUIDE.md`. Its Knowledge Assessment 2026.1
+and unscored-questionnaire expectations are superseded by the implemented
+retrospective Knowledge Assessment 2026.2 and Questionnaire 2026.1 rules.
+
+## Known Stale References
+
+- The root Launch Tracker and Production Readiness Checklist still say the
+  QuickBooks reports need to be supplied; the six files are already present.
+- The root Launch Tracker and Roadmap place the Calendar lifecycle later or call
+  for credential setup. The live configuration is already recorded; verify it,
+  then run the paused lifecycle first without repeating setup unless it is missing.
+- The Roadmap proposes a QuickBooks Budget vs. Actual import, but that report
+  does not exist.
+- The Roadmap still lists controlled counting and survey/KPI mapping as pending;
+  the focused-risk evidence and current implementation supersede those entries.
+- The questionnaire mapping draft and KPI decision guide contain superseded
+  prospective Knowledge Assessment status. Use `PRODUCT-DECISIONS.md` and the
+  current repository for the implemented rules.
+- The Calendar connection plan's broad reference to program-session sync is not
+  current launch scope. Only one-way Clinic appointment sync is implemented;
+  Kitchen and School Calendar sync remain future work.
+- README's shortened `evaluationInstruments`, `evaluationQuestions`, and
+  `evaluationResponses` collection names do not match the implemented
+  `performanceEvaluation*` collection names.
 
 ## Working Rules
 
@@ -80,4 +128,3 @@ Use the following prompt verbatim:
 > QuickBooks reports using the preview-only instructions in the handoff. Do not
 > reset the dirty worktree, do not touch retired root Apps Script files, and do
 > not import or deploy unverified data.
-
