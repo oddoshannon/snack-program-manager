@@ -13,22 +13,19 @@ this file.
 - Cloud Run service account:
   `1013266498299-compute@developer.gserviceaccount.com`
 - Production service: `snack-crm-api`, region `us-central1`
-- Last confirmed revision: `snack-crm-api-00058-j8n`, serving 100% of traffic
+- Last confirmed revision: `snack-crm-api-00060-kpj`, serving 100% of traffic
 - Last confirmed configuration: approved Calendar ID present;
   `GOOGLE_CALENDAR_ENABLED=false`
-- Current status: configured but lifecycle test pending
-- No event was created during the interrupted August 1 test.
+- Server permission: limited Calendar-information reading plus event changes;
+  full Calendar access is not requested
+- Calendar share: the service account can make changes and see event details
+- Current status: production lifecycle passed on August 1
 
-The archived task verified those live details immediately before handoff and made
-no later deployment. Run a fresh read-only check immediately before the lifecycle
-test; do not reconfigure anything unless that check finds a mismatch.
-
-Next action: run Admin > Integrations > Google Calendar lifecycle test using the
-deployed service identity. Confirm access, created, updated, removed, and no
-remaining QA event. Keep sync disabled afterward. Because Chrome automation
-contributed to a Mac crash, prefer Shannon manually clicking Run Test while the
-next Codex task observes the returned status or uses a direct authenticated API
-method.
+The lifecycle test confirmed access, created one QA event containing only test
+information, updated it, removed it, and left no QA event behind. Automatic appointment sync remained
+disabled. The next Calendar action is a controlled appointment create,
+reschedule, status, and cancel test. Do not enable automatic sync before that
+test passes. Continue to keep browser sessions short on this Mac.
 
 Setmore stays connected until the final controlled appointment and public
 booking tests pass. Once SNACK becomes the source of truth, disable new Setmore
@@ -79,7 +76,7 @@ approved budget source. Do not infer aging balances from an empty report.
   eligible.
 - Appointment-reminder consent remains separate from marketing consent.
 - API token has not been supplied to Codex.
-- Shannon should never paste the token into chat.
+- Never paste the token into chat.
 
 When the token is ready, use a secure hidden-input prompt and configure the
 server secret without exposing it in the browser or repository. Then implement

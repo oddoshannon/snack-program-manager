@@ -2,7 +2,7 @@
 
 Last updated: August 1, 2026
 
-These decisions are approved unless Shannon explicitly reopens them.
+These decisions are approved unless you explicitly reopen them.
 
 ## Product Structure
 

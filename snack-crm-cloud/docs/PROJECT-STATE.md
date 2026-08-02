@@ -18,31 +18,31 @@ This file is the durable starting point for future Codex tasks. Read it with
   feature modules under `frontend/public/modules/`.
 
 The production root now opens the compact Home dashboard. The logo returns to
-Home from each clean module. Production was deployed after the July 31 browser
-audit and the August 1 root-navigation correction. The archived task confirmed
-that production `/` opened Home before handoff, and no later deployment occurred
-in that task. Treat this as the last confirmed production navigation state.
+Home from each clean module. The archived task confirmed that production `/`
+opened Home before handoff. The August 1 Calendar repair published only the API,
+not the staff site, so this remains the last confirmed production navigation
+state.
 
 ## Current Stage
 
 The connected application is broadly test-ready, but it is not ready for real
 data cutover. The next gates are:
 
-1. Finish the paused live Google Calendar lifecycle test.
-2. Review the supplied QuickBooks reports and design a guarded monthly import.
-3. Correct and verify the Admin Data Center collection coverage described below.
-4. Refresh the guided test instructions that still describe the retired 2026.1
+1. Review the supplied QuickBooks reports and design a guarded monthly import.
+2. Correct and verify the Admin Data Center collection coverage described below.
+3. Refresh the guided test instructions that still describe the retired 2026.1
    prospective Knowledge Assessment and the earlier unscored questionnaire.
-5. Review the remaining English forms and public referral wording.
-6. Run the guided full-system test with sample data and real access accounts.
-7. Fix test findings, preview real-data imports, deploy the verified release,
+4. Review the remaining English forms and public referral wording.
+5. Run the guided full-system test with sample data and real access accounts.
+6. Fix test findings, preview real-data imports, deploy the verified release,
    back up production, remove only marked QA fixtures, and re-preview each import
    against the cutover destination before writing anything.
 
-Calendar first, QuickBooks preview second, and Data Center repair third is the
-approved immediate order. The first two are read-only except for the Calendar
-test's temporary private-safe event. No production cleanup or real-data import
-may begin until the Data Center repair passes its tests.
+The Calendar lifecycle test is complete. QuickBooks preview is now first and the
+Data Center repair is second. QuickBooks review remains no-write. No production
+cleanup or real-data import may begin until the Data Center repair passes its
+tests. A controlled appointment Calendar test is still required before automatic
+sync can be enabled.
 
 The questionnaire and knowledge assessment are "done enough" for the system
 test. Further wording or print refinements should be recorded as test findings
@@ -55,18 +55,15 @@ instead of delaying the test.
   `c_dce512191e2885e00d1d69a36f42333524f01cf84cf4b71ab289bbeae74eff96@group.calendar.google.com`
 - Cloud Run service account:
   `1013266498299-compute@developer.gserviceaccount.com`
-- Cloud Run revision `snack-crm-api-00058-j8n` deployed successfully and was
-  serving 100% of traffic immediately before handoff.
-- `GOOGLE_CALENDAR_ID` matched the approved `Clinic Appts` calendar immediately
-  before handoff.
-- `GOOGLE_CALENDAR_ENABLED=false` immediately before handoff; automatic
-  appointment sync is paused.
-- No later deployment occurred in the archived task. Run a fresh read-only
-  configuration check before the lifecycle test.
-- The service account has been shared on the calendar and Google Workspace
-  external sharing was adjusted by Shannon.
-- The protected lifecycle test has not run successfully against production.
-- No temporary calendar event was created during the interrupted test.
+- Cloud Run revision `snack-crm-api-00060-kpj` is serving 100% of traffic.
+- `GOOGLE_CALENDAR_ID` matches the approved `Clinic Appts` calendar.
+- `GOOGLE_CALENDAR_ENABLED=false`; automatic appointment sync is paused.
+- The server asks Google for limited permission to read Calendar information and
+  change events. It does not ask for full Calendar access.
+- The service account's existing calendar share was corrected from view-only to
+  `Make changes and see all event details`.
+- The August 1 production lifecycle test passed access, create, update, delete,
+  and cleanup. Its one temporary QA event was removed.
 - Do not enable automatic sync until create, update, and delete all pass and a
   controlled sample appointment passes create, reschedule, status, and cancel.
 

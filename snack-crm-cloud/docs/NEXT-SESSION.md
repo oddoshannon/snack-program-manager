@@ -17,32 +17,6 @@ load every historical document or every screenshot into one context.
 
 ## First Work Item
 
-Resume the Google Calendar connection safely:
-
-1. Verify the live `snack-crm-api` service still has the approved Calendar ID
-   and `GOOGLE_CALENDAR_ENABLED=false`.
-2. Run the protected `Clinic Appts` create-update-delete lifecycle test.
-3. Confirm the response reports access, created, updated, and removed.
-4. Confirm no QA event remains.
-5. Keep automatic sync disabled and report the result.
-
-Do not repeat Calendar sharing or Cloud Run configuration unless verification
-shows it is missing. No temporary event was created in the interrupted task.
-
-Archived-task confirmation: revision `snack-crm-api-00058-j8n` deployed
-successfully, served 100% of traffic, carried the approved Calendar ID, and had
-`GOOGLE_CALENDAR_ENABLED=false` immediately before handoff. No later deployment
-occurred in that task. Production `/` also opened Home as intended. These are the
-last confirmed production states; still begin with the fresh read-only check.
-
-Because browser automation caused severe memory pressure on this Mac, prefer a
-direct authenticated API test. If that is not reasonably available, ask Shannon
-to sign into Admin > Integrations and manually click Run Test while Codex limits
-itself to interpreting the result. Do not launch a long Chrome automation
-session.
-
-## Second Work Item
-
 Inspect the six available QuickBooks workbooks under `Quickbooks Reports/` and
 produce a preview-only mapping proposal. Use the spreadsheet skill and do not
 modify the originals.
@@ -57,8 +31,14 @@ Important facts:
 - AR Aging Detail and AP Aging Detail contained no data.
 - Do not invent or estimate those unavailable values.
 
-Show Shannon the proposed monthly import mapping, exclusions, and reconciliation
-rules before changing the app or importing data.
+Present the proposed monthly import mapping, exclusions, and reconciliation
+rules for your approval before changing the app or importing data.
+
+Calendar handoff: revision `snack-crm-api-00060-kpj` serves 100% of traffic with
+the approved Calendar ID and `GOOGLE_CALENDAR_ENABLED=false`. The production
+lifecycle test passed access, create, update, delete, and cleanup. The temporary
+QA event was removed. A controlled appointment test is still required before
+automatic sync can be enabled.
 
 ## Confirmed Follow-On Safety Fix
 
@@ -83,8 +63,10 @@ retrospective Knowledge Assessment 2026.2 and Questionnaire 2026.1 rules.
 - The root Launch Tracker and Production Readiness Checklist still say the
   QuickBooks reports need to be supplied; the six files are already present.
 - The root Launch Tracker and Roadmap place the Calendar lifecycle later or call
-  for credential setup. The live configuration is already recorded; verify it,
-  then run the paused lifecycle first without repeating setup unless it is missing.
+  for credential setup. The handoff now records the successful production
+  lifecycle test. Do not repeat setup or that test unless a later check finds a
+  problem. The controlled appointment test is still required before enabling
+  automatic sync.
 - The Roadmap proposes a QuickBooks Budget vs. Actual import, but that report
   does not exist.
 - The Roadmap still lists controlled counting and survey/KPI mapping as pending;
@@ -101,14 +83,21 @@ retrospective Knowledge Assessment 2026.2 and Questionnaire 2026.1 rules.
 
 ## Working Rules
 
+- Speak to the user as `you`, not by name. Use very plain English and avoid
+  jargon. If a technical term is necessary, explain it immediately.
+- Prefer one large, safe pass of related work over many small approval stops.
+  Afterward, separate what Codex can continue independently from what truly
+  needs the user's decision or participation.
+- End every user-facing update with bold `Next step` and `Input needed from you`
+  lines so they are easy to find.
 - Never reset or clean the dirty worktree.
 - Work only in `snack-crm-cloud/`; root Apps Script files are retired.
 - Preserve the clean visual rulebook.
 - Record every newly approved durable decision in these handoff documents.
 - Keep tasks focused and compact.
 - Run tests and lint after code changes.
-- Do not deploy unless the current change has been verified and Shannon has
-  asked for or approved the deployment stage.
+- Do not deploy unless the current change has been verified and you have asked
+  for or approved the deployment stage.
 
 ## Prompt For The New Task
 
@@ -121,10 +110,8 @@ Use the following prompt verbatim:
 > `docs/REMAINING-WORK.md`, `docs/TEST-STATUS.md`,
 > `docs/INTEGRATIONS.md`, and `docs/NEXT-SESSION.md`. Treat those files as the
 > source of truth and do not reconstruct decisions from the retired task. Begin
-> with the first work item in `docs/NEXT-SESSION.md`: finish the paused live
-> Google Calendar lifecycle test while automatic sync remains disabled. Avoid a
-> long Chrome automation session because it previously caused severe memory
-> pressure on this Mac. After reporting the Calendar result, inspect the
-> QuickBooks reports using the preview-only instructions in the handoff. Do not
-> reset the dirty worktree, do not touch retired root Apps Script files, and do
-> not import or deploy unverified data.
+> with the first work item in `docs/NEXT-SESSION.md`: inspect the six available
+> QuickBooks reports and produce the preview-only mapping and reconciliation
+> proposal. Then repair and test the Admin Data Center collection coverage before
+> any cleanup or import. Do not reset the dirty worktree, do not touch retired
+> root Apps Script files, and do not import or deploy unverified data.

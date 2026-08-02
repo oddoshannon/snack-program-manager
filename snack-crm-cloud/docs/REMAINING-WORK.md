@@ -4,12 +4,10 @@ Last updated: August 1, 2026
 
 ## Immediate: Before Full-System Testing
 
-1. Complete the live `Clinic Appts` lifecycle test while automatic sync remains
-   disabled. Confirm access, create, update, delete, and cleanup.
-2. Inspect the available QuickBooks reports and create a no-write import preview.
+1. Inspect the available QuickBooks reports and create a no-write import preview.
    Do not invent Budget vs. Actual or aging values because those reports do not
    exist or contain no data.
-3. Fix and verify Admin Data Center coverage. Its registry currently omits
+2. Fix and verify Admin Data Center coverage. Its registry currently omits
    `outreachEvents`, `outreachContacts`, `grantQuestions`, `staffUsers`,
    `adminSettings`, and `messages` from the claimed complete backup. Define the
    intended cleanup scope explicitly: eligible Outreach and grant-question QA
@@ -19,19 +17,19 @@ Last updated: August 1, 2026
    or essential production configuration eligible. Add a behavior test that
    prevents the lists from drifting again. No cleanup or import may proceed until
    this repair passes.
-4. Update `docs/FULL-SYSTEM-TEST-GUIDE.md` before using it. It still describes
+3. Update `docs/FULL-SYSTEM-TEST-GUIDE.md` before using it. It still describes
    Knowledge Assessment 2026.1 as active and behavior scoring as excluded;
    current implementation uses retrospective Knowledge Assessment 2026.2 and
    the approved Questionnaire 2026.1 scoring rules.
-5. Review Program Enrollment, Child Feedback, Caregiver Feedback, and public
+4. Review Program Enrollment, Child Feedback, Caregiver Feedback, and public
    referral wording and visual treatment.
-6. Confirm YCCO number is editable on the client profile and prefills linked
+5. Confirm YCCO number is editable on the client profile and prefills linked
    HRSN Billing and the HRSN Screener.
-7. Confirm packet buttons assemble the active forms after the remaining form
+6. Confirm packet buttons assemble the active forms after the remaining form
    review is complete.
-8. Revisit only the minimum custom-reporting needs required for the test. Do not
+7. Revisit only the minimum custom-reporting needs required for the test. Do not
    build a general report builder without a concrete use case.
-9. Restart local services and seed the repeatable fake system dataset.
+8. Restart local services and seed the repeatable fake system dataset.
 
 ## Full-System Test
 
@@ -94,7 +92,7 @@ Use `docs/FULL-SYSTEM-TEST-GUIDE.md`. At minimum test:
 - Kitchen and School Calendar synchronization.
 - Formal graduation/prize checklist and inactive-client follow-up sequence.
 
-## Input Still Needed From Shannon
+## Input Still Needed From You
 
 - Final review of the remaining English forms and public referral wording.
 - Real Staff and Intern test accounts for access testing.

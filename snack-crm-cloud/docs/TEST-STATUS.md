@@ -4,10 +4,10 @@ Last updated: August 1, 2026
 
 ## Passed
 
-- All 268 backend tests passed in the August 1 focused-risk run.
+- All 269 backend tests passed after the August 1 Calendar permission repair.
 - Lint completed with 0 errors.
 - The same 64 pre-existing unused-code warnings remain in retired or partially
-  retired files; the focused-risk pass introduced no new warning.
+  retired files; the Calendar repair introduced no new warning.
 - Controlled local fixture verified 35 Operations totals and 5 Financial
   Activity totals.
 - Controlled totals included 22 Total Children Served, 25 Program Engagements,
@@ -22,9 +22,12 @@ Last updated: August 1, 2026
   and native form mode without current console errors or page-level overflow.
 - Historical form preview read 18 sources and 1,068 rows without imports.
 - Production root and shared navigation were corrected so `/` opens Home.
-- The archived task confirmed revision `snack-crm-api-00058-j8n` was serving 100%
-  of traffic with the approved Calendar ID and automatic sync disabled
-  immediately before handoff; no later deployment occurred in that task.
+- Revision `snack-crm-api-00060-kpj` is serving 100% of traffic with the approved
+  Calendar ID and automatic sync disabled.
+- The production Calendar lifecycle test passed access, create, update, delete,
+  and cleanup. The temporary QA event was removed and everyday appointment sync
+  remained paused.
+- The post-deployment read-only production checks passed.
 
 Detailed evidence:
 
@@ -34,7 +37,6 @@ Detailed evidence:
 
 ## Pending
 
-- Live Google Calendar create-update-delete lifecycle test.
 - Controlled appointment create-reschedule-status-cancel Calendar test.
 - Admin Data Center collection coverage fix and behavior test. The current
   registry omits `outreachEvents`, `outreachContacts`, `grantQuestions`,
@@ -66,8 +68,8 @@ Detailed evidence:
   the system test, but their current versions are acceptable for testing.
 - The original Codex task caused severe memory pressure during Chrome automation.
   Use shorter tasks and avoid a long browser-control session on this Mac.
-- The 268-test and lint result above is the last recorded focused-risk run, not
-  a new run performed during the read-only handoff audit.
+- The 269-test and lint result above is the current run after the live Calendar
+  repair.
 
 ## Safe Test Data
 
