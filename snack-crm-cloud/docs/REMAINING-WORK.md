@@ -4,10 +4,7 @@ Last updated: August 1, 2026
 
 ## Immediate: Before Full-System Testing
 
-1. Inspect the available QuickBooks reports and create a no-write import preview.
-   Do not invent Budget vs. Actual or aging values because those reports do not
-   exist or contain no data.
-2. Fix and verify Admin Data Center coverage. Its registry currently omits
+1. Fix and verify Admin Data Center coverage. Its registry currently omits
    `outreachEvents`, `outreachContacts`, `grantQuestions`, `staffUsers`,
    `adminSettings`, and `messages` from the claimed complete backup. Define the
    intended cleanup scope explicitly: eligible Outreach and grant-question QA
@@ -17,6 +14,9 @@ Last updated: August 1, 2026
    or essential production configuration eligible. Add a behavior test that
    prevents the lists from drifting again. No cleanup or import may proceed until
    this repair passes.
+2. Obtain approval for the QuickBooks proposal in
+   `docs/QUICKBOOKS-PREVIEW-2026-08-01.md`. Do not build an importer before the
+   Data Center repair passes. Do not invent Budget vs. Actual or aging values.
 3. Update `docs/FULL-SYSTEM-TEST-GUIDE.md` before using it. It still describes
    Knowledge Assessment 2026.1 as active and behavior scoring as excluded;
    current implementation uses retrospective Knowledge Assessment 2026.2 and
@@ -43,7 +43,7 @@ Use `docs/FULL-SYSTEM-TEST-GUIDE.md`. At minimum test:
 - Referral conversion, CRM profile actions, activity logs, task completion and
   restoration, and Outreach lead conversions.
 - Financial Activity, Grants, Giving, HRSN bulk approval, revenue totals, and
-  the QuickBooks import preview.
+  any later approved QuickBooks import preview.
 - Marketing contact assembly, tags, groups, consent, and opt-out behavior with
   sending still disabled.
 - Operations calculations, targets, form scores, missing-response rules, and
@@ -96,7 +96,8 @@ Use `docs/FULL-SYSTEM-TEST-GUIDE.md`. At minimum test:
 
 - Final review of the remaining English forms and public referral wording.
 - Real Staff and Intern test accounts for access testing.
-- Approval of any QuickBooks import mapping after the preview is shown.
+- Approval of the proposed monthly QuickBooks actual-spending design, Wages and
+  Taxes budget categories, class handling, and viewer access.
 - Participation in the real grant-document upload check if Codex cannot safely
   use an existing short signed-in session.
 - A MailerLite token only through a secure hidden-input flow, never in chat.

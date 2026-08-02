@@ -17,22 +17,14 @@ load every historical document or every screenshot into one context.
 
 ## First Work Item
 
-Inspect the six available QuickBooks workbooks under `Quickbooks Reports/` and
-produce a preview-only mapping proposal. Use the spreadsheet skill and do not
-modify the originals.
+Repair and test the Admin Data Center collection coverage. The exact scope and
+safety rules are below. Do not clean production or import data while doing this
+work.
 
-Important facts:
-
-- WOCPLC is SNACK's legal name.
-- The General Ledger is cash-basis, has a January-December 2026 report header,
-  contains transactions through July 31, 2026, uses one worksheet with range
-  `A1:J458` and 413 transaction rows, and has no class/location column.
-- Budget vs. Actual does not exist.
-- AR Aging Detail and AP Aging Detail contained no data.
-- Do not invent or estimate those unavailable values.
-
-Present the proposed monthly import mapping, exclusions, and reconciliation
-rules for your approval before changing the app or importing data.
+The QuickBooks no-write review is complete. Its source findings, exclusions,
+checks, and proposed monthly actual-spending design are in
+`docs/QUICKBOOKS-PREVIEW-2026-08-01.md`. No data was imported. Approval is still
+needed before building that importer.
 
 Calendar handoff: revision `snack-crm-api-00060-kpj` serves 100% of traffic with
 the approved Calendar ID and `GOOGLE_CALENDAR_ENABLED=false`. The production
@@ -40,7 +32,7 @@ lifecycle test passed access, create, update, delete, and cleanup. The temporary
 QA event was removed. A controlled appointment test is still required before
 automatic sync can be enabled.
 
-## Confirmed Follow-On Safety Fix
+## Confirmed Immediate Safety Fix
 
 Before the guided full-system test or any production cleanup, correct the Admin
 Data Center registry. The current "complete" backup omits `outreachEvents`,
@@ -110,8 +102,9 @@ Use the following prompt verbatim:
 > `docs/REMAINING-WORK.md`, `docs/TEST-STATUS.md`,
 > `docs/INTEGRATIONS.md`, and `docs/NEXT-SESSION.md`. Treat those files as the
 > source of truth and do not reconstruct decisions from the retired task. Begin
-> with the first work item in `docs/NEXT-SESSION.md`: inspect the six available
-> QuickBooks reports and produce the preview-only mapping and reconciliation
-> proposal. Then repair and test the Admin Data Center collection coverage before
-> any cleanup or import. Do not reset the dirty worktree, do not touch retired
-> root Apps Script files, and do not import or deploy unverified data.
+> with the first work item in `docs/NEXT-SESSION.md`: repair and test the Admin
+> Data Center collection coverage before any cleanup, importer work, or data
+> import. The completed QuickBooks proposal is in
+> `docs/QUICKBOOKS-PREVIEW-2026-08-01.md` and still needs the user's mapping and
+> access approval. Do not reset the dirty worktree, do not touch retired root
+> Apps Script files, and do not import or deploy unverified data.

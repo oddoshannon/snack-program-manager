@@ -28,8 +28,9 @@ state.
 The connected application is broadly test-ready, but it is not ready for real
 data cutover. The next gates are:
 
-1. Review the supplied QuickBooks reports and design a guarded monthly import.
-2. Correct and verify the Admin Data Center collection coverage described below.
+1. Correct and verify the Admin Data Center collection coverage described below.
+2. Obtain approval for the completed QuickBooks mapping proposal before building
+   an importer.
 3. Refresh the guided test instructions that still describe the retired 2026.1
    prospective Knowledge Assessment and the earlier unscored questionnaire.
 4. Review the remaining English forms and public referral wording.
@@ -38,11 +39,11 @@ data cutover. The next gates are:
    back up production, remove only marked QA fixtures, and re-preview each import
    against the cutover destination before writing anything.
 
-The Calendar lifecycle test is complete. QuickBooks preview is now first and the
-Data Center repair is second. QuickBooks review remains no-write. No production
-cleanup or real-data import may begin until the Data Center repair passes its
-tests. A controlled appointment Calendar test is still required before automatic
-sync can be enabled.
+The Calendar lifecycle test and QuickBooks no-write preview are complete. The
+Data Center repair is now first. No production cleanup, importer work, or
+real-data import may begin until that repair passes its tests. A controlled
+appointment Calendar test is still required before automatic sync can be
+enabled.
 
 The questionnaire and knowledge assessment are "done enough" for the system
 test. Further wording or print refinements should be recorded as test findings
@@ -102,6 +103,25 @@ Known unavailable reports:
 
 Do not invent budget values or aging balances. Build the import preview around
 the reports that actually exist and label unavailable calculations clearly.
+
+The August 1 no-write review is recorded in
+`docs/QUICKBOOKS-PREVIEW-2026-08-01.md`. It confirmed:
+
+- No 2026 income through July 31.
+- 66 eligible payroll expense rows totaling $56,123.92: $50,984.62 in Wages and
+  $5,139.30 in Taxes.
+- 347 other General Ledger rows that must be excluded from spending to prevent
+  double counting or misclassification.
+- Matching $56,123.92 totals in the General Ledger, monthly report, and class
+  report; matching $110,499.59 ending cash in two reports; and balanced
+  $111,780.87 assets and liabilities plus equity.
+- About 90% of expense has no class, and the General Ledger has no class field,
+  so no program allocation can be inferred.
+
+The recommended design stores monthly totals by expense account, not detailed
+employee payroll rows. QuickBooks spending must remain separate from Financial
+Activity, which is the revenue ledger. The mapping and viewer access still need
+approval before importer work begins.
 
 ## Data And Migration State
 

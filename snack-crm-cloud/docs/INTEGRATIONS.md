@@ -38,9 +38,9 @@ export with a guarded preview, mapping, import, and reconciliation.
 
 Source folder: `Quickbooks Reports/`
 
-The August 1 handoff audit confirmed that all six named workbook files are
-present. It intentionally did not open or analyze them; report headers, periods,
-basis, classes, and accounts still require the preview-only review.
+The August 1 no-write review opened and checked all six workbooks without
+changing the originals. Full results and the proposed mapping are in
+`docs/QUICKBOOKS-PREVIEW-2026-08-01.md`.
 
 Available files:
 
@@ -52,10 +52,13 @@ Available files:
 - `Western Oregon Center for Pediatric Thereapeutic L_Statement of Activity by Month.xlsx`
 
 WOCPLC is SNACK's legal name; the QuickBooks entity name is therefore expected.
-The General Ledger is confirmed cash-basis with a January-December 2026 report
+The General Ledger is cash-basis with a January-December 2026 report
 header and transactions through July 31, 2026. It has one worksheet, used range
-`A1:J458`, 413 transaction rows, and no class/location column. The preview should
-still reconcile those facts before mapping and must not invent a class mapping.
+`A1:J458`, 413 transaction rows, and no class/location column. The preview found
+66 eligible Wages and Taxes rows totaling $56,123.92 and 347 balancing-account
+rows that must not be imported as spending. The $56,123.92 total matches both
+the monthly and class reports. About 90% of spending has no class, so the app
+must not invent a program mapping.
 
 Unavailable:
 
@@ -63,10 +66,13 @@ Unavailable:
 - Accounts Receivable Aging Detail was empty.
 - Accounts Payable Aging Detail was empty.
 
-The first import pass must be preview-only. It should identify report period,
-basis, account/class names, duplicate risks, unsupported rows, and proposed
-Budget/Financial Activity mappings. Do not calculate budget variance without an
-approved budget source. Do not infer aging balances from an empty report.
+The recommended future design stores monthly totals by expense account and uses
+the detailed General Ledger only to check the totals. It must not store or show
+employee-level payroll details without a separate privacy and access decision.
+QuickBooks expenses must not be placed in Financial Activity because that area
+is the revenue ledger. Mapping approval and the Data Center repair are required
+before importer work. Do not calculate budget variance without an approved
+budget source. Do not infer aging balances from an empty report.
 
 ## MailerLite
 

@@ -28,6 +28,10 @@ Last updated: August 1, 2026
   and cleanup. The temporary QA event was removed and everyday appointment sync
   remained paused.
 - The post-deployment read-only production checks passed.
+- The six QuickBooks workbooks passed a no-write structural and visual review.
+  The eligible General Ledger expense rows, monthly totals, and class totals all
+  reconcile to $56,123.92. Ending cash and balance-sheet totals also reconcile.
+  See `docs/QUICKBOOKS-PREVIEW-2026-08-01.md`.
 
 Detailed evidence:
 
@@ -52,7 +56,8 @@ Detailed evidence:
 - Real Firebase Storage grant-document upload check after selecting the release
   candidate.
 - Remaining English form and public referral review.
-- QuickBooks import preview and reconciliation.
+- Approval and later testing of the proposed QuickBooks monthly actual-spending
+  import. No importer exists and no data was imported during the preview.
 - Historical-form match review, duplicate review, and later guarded import.
 - Real-data migration preview and production cutover.
 
