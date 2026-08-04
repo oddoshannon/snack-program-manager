@@ -1,35 +1,25 @@
 # Remaining Work
 
-Last updated: August 1, 2026
+Last updated: August 4, 2026
 
 ## Immediate: Before Full-System Testing
 
-1. Fix and verify Admin Data Center coverage. Its registry currently omits
-   `outreachEvents`, `outreachContacts`, `grantQuestions`, `staffUsers`,
-   `adminSettings`, and `messages` from the claimed complete backup. Define the
-   intended cleanup scope explicitly: eligible Outreach and grant-question QA
-   records are currently unreachable, while seeded staff/configuration records
-   use protected document IDs and must stay under the local reset workflow or a
-   separate explicit manual procedure. Never make the protected director account
-   or essential production configuration eligible. Add a behavior test that
-   prevents the lists from drifting again. No cleanup or import may proceed until
-   this repair passes.
-2. Obtain approval for the QuickBooks proposal in
-   `docs/QUICKBOOKS-PREVIEW-2026-08-01.md`. Do not build an importer before the
-   Data Center repair passes. Do not invent Budget vs. Actual or aging values.
-3. Update `docs/FULL-SYSTEM-TEST-GUIDE.md` before using it. It still describes
-   Knowledge Assessment 2026.1 as active and behavior scoring as excluded;
-   current implementation uses retrospective Knowledge Assessment 2026.2 and
-   the approved Questionnaire 2026.1 scoring rules.
-4. Review Program Enrollment, Child Feedback, Caregiver Feedback, and public
+1. Run `docs/FULL-SYSTEM-TEST-GUIDE.md` in short batches without rebuilding or
+   cleaning the current sample dataset. Keep all prepared sample records until
+   the test is complete and the user explicitly approves cleanup.
+2. Test real Staff and Intern sign-in and direct-page denial when those accounts
+   are available.
+3. Review Program Enrollment, Child Feedback, Caregiver Feedback, and public
    referral wording and visual treatment.
-5. Confirm YCCO number is editable on the client profile and prefills linked
+4. Confirm YCCO number is editable on the client profile and prefills linked
    HRSN Billing and the HRSN Screener.
-6. Confirm packet buttons assemble the active forms after the remaining form
+5. Confirm packet buttons assemble the active forms after the remaining form
    review is complete.
-7. Revisit only the minimum custom-reporting needs required for the test. Do not
+6. Revisit only the minimum custom-reporting needs required for the test. Do not
    build a general report builder without a concrete use case.
-8. Restart local services and seed the repeatable fake system dataset.
+7. Classify QuickBooks payroll using employee hours and rates, map all editable
+   expense accounts, and classify future nonpayroll expenses by program before
+   importer work.
 
 ## Full-System Test
 
@@ -96,8 +86,10 @@ Use `docs/FULL-SYSTEM-TEST-GUIDE.md`. At minimum test:
 
 - Final review of the remaining English forms and public referral wording.
 - Real Staff and Intern test accounts for access testing.
-- Approval of the proposed monthly QuickBooks actual-spending design, Wages and
-  Taxes budget categories, class handling, and viewer access.
+- Employee hours and hourly rates by program for the private payroll allocation
+  review. Codex can calculate the amounts and percentages.
+- Review of the editable QuickBooks expense-to-budget mapping and uncertain
+  nonpayroll program assignments.
 - Participation in the real grant-document upload check if Codex cannot safely
   use an existing short signed-in session.
 - A MailerLite token only through a secure hidden-input flow, never in chat.

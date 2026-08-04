@@ -1,6 +1,6 @@
 # Next Codex Session
 
-Last updated: August 1, 2026
+Last updated: August 4, 2026
 
 ## Required Reading Order
 
@@ -17,14 +17,17 @@ load every historical document or every screenshot into one context.
 
 ## First Work Item
 
-Repair and test the Admin Data Center collection coverage. The exact scope and
-safety rules are below. Do not clean production or import data while doing this
-work.
+Run the guided full-system test in short batches using the existing sample
+records. Do not rebuild, reset, or clean the sample set until the test is
+complete and the user explicitly approves cleanup. Avoid one long browser
+session because it previously caused severe memory pressure on this Mac.
 
 The QuickBooks no-write review is complete. Its source findings, exclusions,
 checks, and proposed monthly actual-spending design are in
-`docs/QUICKBOOKS-PREVIEW-2026-08-01.md`. No data was imported. Approval is still
-needed before building that importer.
+`docs/QUICKBOOKS-PREVIEW-2026-08-01.md`. No data was imported. The monthly
+summary design, editable categories, HRSN-to-Clinic mapping,
+Kids-CAN!-to-Kitchen mapping, payroll-assistance method, and Admin-only access
+are approved. Classification work remains before importer development.
 
 Calendar handoff: revision `snack-crm-api-00060-kpj` serves 100% of traffic with
 the approved Calendar ID and `GOOGLE_CALENDAR_ENABLED=false`. The production
@@ -32,23 +35,18 @@ lifecycle test passed access, create, update, delete, and cleanup. The temporary
 QA event was removed. A controlled appointment test is still required before
 automatic sync can be enabled.
 
-## Confirmed Immediate Safety Fix
+## Completed Local Safety Fix
 
-Before the guided full-system test or any production cleanup, correct the Admin
-Data Center registry. The current "complete" backup omits `outreachEvents`,
-`outreachContacts`, `grantQuestions`, `staffUsers`, `adminSettings`, and
-`messages`. Current Admin cleanup also cannot reach eligible Outreach and
-grant-question fixtures in the omitted collections. Seeded staff/configuration
-records use protected document IDs and must remain under the local seed-reset
-workflow or a separate explicit manual procedure. Ordinary production cleanup
-must never remove protected staff accounts, the protected director account, or
-essential configuration. Add a behavior test comparing application, backup,
-cleanup, and fixture collection coverage. No cleanup or import may proceed until
-the repair passes.
+The Data Center now includes all 28 application collections in backup. Eligible
+Outreach and grant-question fixtures are reachable, while staff accounts, Admin
+settings, and connection records are explicitly blocked from cleanup. The safe
+local list also includes both implemented evaluation collections. The behavior
+test compares application, backup, cleanup, local safety, and fixture lists.
 
-Also refresh `docs/FULL-SYSTEM-TEST-GUIDE.md`. Its Knowledge Assessment 2026.1
-and unscored-questionnaire expectations are superseded by the implemented
-retrospective Knowledge Assessment 2026.2 and Questionnaire 2026.1 rules.
+All 270 backend tests pass and lint has 0 errors with the same 64 older warnings.
+The full-system guide and future fake-data recipe now use retrospective
+Knowledge Assessment 2026.2. No cleanup was run, no sample data was deleted, and
+the repair has not been deployed.
 
 ## Known Stale References
 
@@ -69,9 +67,6 @@ retrospective Knowledge Assessment 2026.2 and Questionnaire 2026.1 rules.
 - The Calendar connection plan's broad reference to program-session sync is not
   current launch scope. Only one-way Clinic appointment sync is implemented;
   Kitchen and School Calendar sync remain future work.
-- README's shortened `evaluationInstruments`, `evaluationQuestions`, and
-  `evaluationResponses` collection names do not match the implemented
-  `performanceEvaluation*` collection names.
 
 ## Working Rules
 
@@ -102,9 +97,11 @@ Use the following prompt verbatim:
 > `docs/REMAINING-WORK.md`, `docs/TEST-STATUS.md`,
 > `docs/INTEGRATIONS.md`, and `docs/NEXT-SESSION.md`. Treat those files as the
 > source of truth and do not reconstruct decisions from the retired task. Begin
-> with the first work item in `docs/NEXT-SESSION.md`: repair and test the Admin
-> Data Center collection coverage before any cleanup, importer work, or data
-> import. The completed QuickBooks proposal is in
-> `docs/QUICKBOOKS-PREVIEW-2026-08-01.md` and still needs the user's mapping and
-> access approval. Do not reset the dirty worktree, do not touch retired root
-> Apps Script files, and do not import or deploy unverified data.
+> with the first work item in `docs/NEXT-SESSION.md`: run the guided full-system
+> test in short batches using the existing sample records. Do not rebuild,
+> reset, or clean the sample set until the test is complete and the user
+> explicitly approves cleanup. The Data Center repair and corrected test guide
+> pass locally but are not deployed. The approved QuickBooks proposal is in
+> `docs/QUICKBOOKS-PREVIEW-2026-08-01.md`; classification remains before importer
+> work. Do not reset the dirty worktree, do not touch retired root Apps Script
+> files, and do not import or deploy unverified data.

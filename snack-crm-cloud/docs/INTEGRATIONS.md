@@ -1,6 +1,6 @@
 # Integrations And External Data Sources
 
-Last updated: August 1, 2026
+Last updated: August 4, 2026
 
 Do not store tokens, passwords, client identifiers, or private financial data in
 this file.
@@ -66,12 +66,14 @@ Unavailable:
 - Accounts Receivable Aging Detail was empty.
 - Accounts Payable Aging Detail was empty.
 
-The recommended future design stores monthly totals by expense account and uses
-the detailed General Ledger only to check the totals. It must not store or show
-employee-level payroll details without a separate privacy and access decision.
+The approved future design stores monthly totals by editable expense account and
+SNACK program. The private Admin review can use detailed ledger rows to classify
+spending, but the ordinary app must not store or show employee-level payroll
+details. QuickBooks HRSN maps to Clinic and Kids CAN! maps to Kitchen. Employee
+hours and hourly rates can be used to calculate payroll splits; unresolved
+spending remains Unallocated instead of being forced into General Operations.
 QuickBooks expenses must not be placed in Financial Activity because that area
-is the revenue ledger. Mapping approval and the Data Center repair are required
-before importer work. Do not calculate budget variance without an approved
+is the revenue ledger. Do not calculate budget variance without an approved
 budget source. Do not infer aging balances from an empty report.
 
 ## MailerLite

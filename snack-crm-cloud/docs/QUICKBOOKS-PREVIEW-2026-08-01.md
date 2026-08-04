@@ -49,23 +49,89 @@ Monthly expense totals:
 
 Class totals are $5,394.18 for HRSN, $55.04 for Kids CAN!, and $50,674.70 for
 Not specified. About 90% of expense has no class, and the General Ledger cannot
-connect individual transactions to a class. The app must not guess a program.
+connect individual transactions to a class. The approved source-name mapping is
+HRSN to Clinic and Kids CAN! to Kitchen. Not specified requires a private manual
+review and must never be forced into General Operations.
+
+## QuickBooks Expense Accounts
+
+The Account List contains 38 editable expense or cost accounts. Only Wages and
+Taxes have activity in the supplied 2026 reports, but future imports must be
+able to map every applicable account rather than hardcode those two.
+
+Cost of goods sold accounts:
+
+- Cost of Goods Sold
+- Shipping
+
+Expense accounts:
+
+- Advertising/Promotional
+- Ask My Accountant
+- Bank Charges & Fees
+- Benefits
+- CAM
+- Conferences/Meeting
+- Contractors
+- Insurance
+- Interest Paid
+- Job Supplies
+- Legal & Professional Services
+- Meals & Entertainment
+- Member benefit
+- Office Supplies & Software
+- Other Business Expenses
+- Payroll Expense - Other
+- Payroll Expenses
+- Payroll Expenses:Taxes
+- Payroll Expenses:Wages
+- Payroll Expenses-Exec Director
+- Payroll Tax
+- Printing
+- Purchases
+- Recruiting
+- Reimbursable Expenses
+- Rent & Lease
+- Repairs & Maintenance
+- Supplies & Materials - misc programs
+- Supplies & Materials-cooking lessons
+- Taxes & Licenses
+- Travel
+- Unapplied Cash Bill Payment Expense
+- Uncategorized Expense
+- Utilities
+
+Other expense accounts:
+
+- Other Miscellaneous Expense
+- Reconciliation Discrepancies
+
+Parent accounts and their subaccounts must not both be counted. Uncategorized,
+unapplied, Ask My Accountant, and reconciliation-discrepancy entries must be
+held for review rather than automatically categorized.
 
 ## Recommended Monthly Import Design
 
-Use the Statement of Activity by Month as the source for actual spending. Save
-one total for each month and QuickBooks expense account. For this file, that
-would be 14 totals: Wages and Taxes for each month from January through July.
+Use the private General Ledger review to classify true expense rows, and use the
+Statement of Activity by Month to confirm the account totals. Save one total for
+each year, month, QuickBooks expense account, and SNACK program. Before program
+allocation, this file has 14 account totals: Wages and Taxes for each month from
+January through July.
 
-Use a unique combination of year, month, and QuickBooks account so that a later
-cumulative report updates the same monthly total instead of creating a second
-copy. Keep the account-to-budget-category mapping editable.
+Use a unique combination of year, month, QuickBooks account, and SNACK program
+so that a later cumulative report updates the same monthly total instead of
+creating a second copy. Keep every account-to-expense-category mapping editable.
 
-Use the detailed General Ledger only during the preview to prove that the
-monthly totals are supported. It contains employee-level payroll information
-and no dependable unique transaction number. Do not store those detailed rows
-or expose them in the ordinary staff interface unless a separate access and
-privacy decision is approved.
+Use the detailed General Ledger only in a private Admin classification review
+and to prove that monthly totals are supported. It contains employee-level
+payroll information and no dependable unique transaction number. Do not store
+those detailed rows or expose them in the ordinary staff interface.
+
+For payroll, the director can provide each employee's hours and hourly rate by
+program. The review will calculate wage amounts and percentages, then apply the
+approved wage split to related payroll taxes. Nonpayroll expenses will be
+assigned directly to a program or split across programs. Anything unresolved
+stays visibly Unallocated until reviewed.
 
 Keep QuickBooks spending separate from Financial Activity. Financial Activity
 is the app's revenue ledger, so placing expenses there would make revenue totals
@@ -93,10 +159,9 @@ Before any future write, the preview must show:
 8. Any repeated month/account combination or changed prior-month value.
 9. A final no-write confirmation before a separate import approval.
 
-Parent accounts and their subaccounts must not both be counted. Uncategorized,
-unapplied, and billable-expense income accounts should be held for review by
-default. Revenue mapping is deferred because these reports contain no 2026
-revenue transactions.
+Billable-expense income and other questionable income accounts should be held
+for review by default. Revenue mapping is deferred because these reports contain
+no 2026 revenue transactions.
 
 ## Values That Cannot Be Produced Yet
 
@@ -111,14 +176,23 @@ revenue transactions.
 - Direct program cost per participant: most expense has no class, and the
   General Ledger has no class or location field.
 
-## Approval Needed Before Building The Import
+## Approved Design And Remaining Setup
 
-1. Approve monthly account totals as the stored actual-spending records, with
-   employee-level General Ledger rows used only for a no-write check.
-2. Choose the editable SNACK budget categories for Wages and Taxes.
-3. Decide whether HRSN and Kids CAN! class totals should remain reference-only
-   or map to named SNACK programs. `Not specified` must remain unallocated.
-4. Decide who may view imported actual-spending totals.
+Approved August 4:
 
-The Admin Data Center coverage repair and its tests must pass before any
-QuickBooks importer is added or any production data is cleaned or imported.
+1. Store summarized monthly actual spending, not employee-level ledger rows.
+2. Keep the full QuickBooks expense-category mapping editable.
+3. Map QuickBooks HRSN to Clinic and Kids CAN! to Kitchen.
+4. Limit actual spending and classification information to Admin users.
+5. Use employee hours and hourly rates to help calculate payroll allocations.
+
+Remaining setup before building the importer:
+
+- Classify the current payroll rows by employee, month, and program.
+- Approve how payroll taxes and any shared employee time follow wage splits.
+- Map the 38 QuickBooks expense accounts to editable SNACK budget categories.
+- Classify future nonpayroll ledger expenses by program, leaving uncertain rows
+  Unallocated until reviewed.
+
+The Admin Data Center coverage repair passed locally on August 4. No QuickBooks
+importer has been added and no data has been imported.

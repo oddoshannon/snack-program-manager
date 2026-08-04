@@ -1,6 +1,6 @@
 # Locked Product Decisions
 
-Last updated: August 1, 2026
+Last updated: August 4, 2026
 
 These decisions are approved unless you explicitly reopen them.
 
@@ -85,6 +85,22 @@ Access, Forms, and Data. Admin has no Quick Actions panel.
   its header, contains transactions through July 31, 2026, uses one worksheet
   with range `A1:J458` and 413 transaction rows, and has no class/location
   column. Do not invent a class mapping from that report.
+- Store imported QuickBooks actual spending as monthly totals by expense
+  account and SNACK program. Do not place expenses in Financial Activity and do
+  not show employee-level payroll rows in the ordinary app.
+- QuickBooks expense-account mappings must be editable. Every true expense row
+  in a future ledger must receive an expense category and a program assignment
+  or remain visibly Unallocated for review. Never force unknown spending into
+  General Operations and never count cash, liability, or other balancing rows
+  as additional expense.
+- In QuickBooks source terminology, `HRSN` maps to the app's `Clinic` program and
+  `Kids CAN!` maps to the app's `Kitchen` program. The QuickBooks names remain
+  source labels only and are not the display names used by SNACK Program Manager.
+- Payroll classification may use employee hours and hourly rates supplied by
+  the director. The private review calculates each program's wage amount and
+  percentage; related payroll taxes can follow the approved wage allocation.
+- Imported QuickBooks actual spending, payroll allocation, and detailed
+  classification review are Admin-only.
 
 ## Clinic Evaluation And Forms
 

@@ -1,10 +1,10 @@
 # Test Status
 
-Last updated: August 1, 2026
+Last updated: August 4, 2026
 
 ## Passed
 
-- All 269 backend tests passed after the August 1 Calendar permission repair.
+- All 270 backend tests passed after the August 4 Data Center repair.
 - Lint completed with 0 errors.
 - The same 64 pre-existing unused-code warnings remain in retired or partially
   retired files; the Calendar repair introduced no new warning.
@@ -32,6 +32,12 @@ Last updated: August 1, 2026
   The eligible General Ledger expense rows, monthly totals, and class totals all
   reconcile to $56,123.92. Ending cash and balance-sheet totals also reconcile.
   See `docs/QUICKBOOKS-PREVIEW-2026-08-01.md`.
+- The Data Center coverage test proves that all 28 application collections are
+  backed up, all full-system fixture collections are known, eligible Outreach
+  and grant-question fixtures are reachable, and staff/configuration collections
+  cannot enter ordinary cleanup.
+- The full-system guide and future sample-data recipe now use retrospective
+  Knowledge Assessment 2026.2. No cleanup was run and no sample data was removed.
 
 Detailed evidence:
 
@@ -42,14 +48,8 @@ Detailed evidence:
 ## Pending
 
 - Controlled appointment create-reschedule-status-cancel Calendar test.
-- Admin Data Center collection coverage fix and behavior test. The current
-  registry omits `outreachEvents`, `outreachContacts`, `grantQuestions`,
-  `staffUsers`, `adminSettings`, and `messages` from the claimed complete backup.
-  Eligible Outreach/grant-question QA records in omitted collections are
-  unreachable to current Admin cleanup. The test must also prove that protected
-  staff accounts and essential configuration can never enter ordinary cleanup.
-- Refresh `docs/FULL-SYSTEM-TEST-GUIDE.md` to test the implemented retrospective
-  Knowledge Assessment 2026.2 and Questionnaire 2026.1 scoring rules.
+- Publish and verify the Data Center repair only after the release candidate is
+  approved. Production still serves the earlier version.
 - Real Admin, Staff, and Intern account access test.
 - Full guided system test in `docs/FULL-SYSTEM-TEST-GUIDE.md`.
 - Final production public booking create, reschedule, and cancel pass.
@@ -73,12 +73,15 @@ Detailed evidence:
   the system test, but their current versions are acceptable for testing.
 - The original Codex task caused severe memory pressure during Chrome automation.
   Use shorter tasks and avoid a long browser-control session on this Mac.
-- The 269-test and lint result above is the current run after the live Calendar
-  repair.
+- The 270-test and lint result above is the current local run after the Data
+  Center repair. The same 64 older warnings remain.
 
 ## Safe Test Data
 
-Run the local fake-system seed only against the loopback Firestore emulator:
+Do not run the local fake-system seed or sample cleanup during the current
+full-system test. Preserve the prepared sample data until the test is complete
+and the user explicitly approves cleanup. After that approval, the seed may run
+only against the loopback Firestore emulator:
 
 ```bash
 cd snack-crm-cloud/backend

@@ -1,6 +1,6 @@
 # SNACK Program Manager Project State
 
-Last updated: August 1, 2026
+Last updated: August 4, 2026
 
 This file is the durable starting point for future Codex tasks. Read it with
 `AGENTS.md`, `README.md`, and `docs/NEXT-SESSION.md` before changing the app.
@@ -28,22 +28,21 @@ state.
 The connected application is broadly test-ready, but it is not ready for real
 data cutover. The next gates are:
 
-1. Correct and verify the Admin Data Center collection coverage described below.
-2. Obtain approval for the completed QuickBooks mapping proposal before building
-   an importer.
-3. Refresh the guided test instructions that still describe the retired 2026.1
-   prospective Knowledge Assessment and the earlier unscored questionnaire.
-4. Review the remaining English forms and public referral wording.
-5. Run the guided full-system test with sample data and real access accounts.
-6. Fix test findings, preview real-data imports, deploy the verified release,
+1. Run the guided full-system test in short batches while preserving the current
+   sample records.
+2. Review the remaining English forms and public referral wording.
+3. Complete the private QuickBooks expense and program-classification work
+   before building an importer.
+4. Fix test findings, preview real-data imports, deploy the verified release,
    back up production, remove only marked QA fixtures, and re-preview each import
    against the cutover destination before writing anything.
 
-The Calendar lifecycle test and QuickBooks no-write preview are complete. The
-Data Center repair is now first. No production cleanup, importer work, or
-real-data import may begin until that repair passes its tests. A controlled
-appointment Calendar test is still required before automatic sync can be
-enabled.
+The Calendar lifecycle test, QuickBooks no-write preview, Data Center repair,
+and full-system guide correction are complete locally. The Data Center repair
+has not been published to production. Do not run sample cleanup during the
+full-system test, and do not import real data until the user explicitly says it
+is time. A controlled appointment Calendar test is still required before
+automatic sync can be enabled.
 
 The questionnaire and knowledge assessment are "done enough" for the system
 test. Further wording or print refinements should be recorded as test findings
@@ -118,10 +117,13 @@ The August 1 no-write review is recorded in
 - About 90% of expense has no class, and the General Ledger has no class field,
   so no program allocation can be inferred.
 
-The recommended design stores monthly totals by expense account, not detailed
-employee payroll rows. QuickBooks spending must remain separate from Financial
-Activity, which is the revenue ledger. The mapping and viewer access still need
-approval before importer work begins.
+The approved design stores monthly totals by expense account and SNACK program,
+not detailed employee payroll rows. QuickBooks spending remains separate from
+Financial Activity, which is the revenue ledger. HRSN maps to Clinic, Kids CAN!
+maps to Kitchen, all expense mappings stay editable, and QuickBooks actuals are
+Admin-only. A private classification review will calculate payroll program
+splits from employee hours and hourly rates supplied by the user. See the
+QuickBooks preview for all 38 source expense accounts.
 
 ## Data And Migration State
 
@@ -136,28 +138,25 @@ approval before importer work begins.
 - Real historical imports wait until sample data is cleared and the real CRM
   data is imported in one controlled cutover.
 
-### Confirmed Data Center coverage gap
+### Verified Data Center repair
 
-The August 1 handoff audit found that `backend/lib/core.js` registers 21
-collections in `adminDataCollections`, but the application also uses collections
-that are absent from that registry. The Download Complete Backup action therefore
-does not currently include `outreachEvents`, `outreachContacts`, `grantQuestions`,
-`staffUsers`, `adminSettings`, or `messages`.
+The August 4 local repair now includes all 28 application collections in the
+complete backup. The six formerly missing collections are `outreachEvents`,
+`outreachContacts`, `grantQuestions`, `staffUsers`, `adminSettings`, and
+`messages`.
 
-The full-system seed creates QA records in the first five of those omitted
-collections. The Outreach and grant-question fixture IDs satisfy the Admin
-cleanup ID rule but are unreachable because their collections are absent. The
-seeded staff and Admin-settings records use protected, non-QA-prefixed document
-IDs and are intentionally handled by the local seed reset rather than the Admin
-cleanup rule. Protected staff accounts and Admin/configuration fixture records
-must stay outside ordinary production bulk cleanup. They remain local-reset-only
-or require a separate explicit manual procedure. No cleanup path may remove the
-protected director account or essential production configuration.
+Eligible marked Outreach and grant-question sample records can now appear in
+ordinary sample cleanup. `staffUsers`, `adminSettings`, and `messages` are
+backup-only and are explicitly rejected by both cleanup paths. This prevents
+ordinary cleanup from removing the protected director account, staff access,
+essential configuration, or the connection-check record.
 
-Treat the Data Center's earlier "complete backup" status as false and its cleanup
-coverage as incomplete. Correct the backup registry, preserve the protected
-scope above, and add a behavior test comparing application, backup, cleanup, and
-fixture collection lists before any production cleanup or real-data cutover.
+The safe local backup/reset list also now includes
+`performanceEvaluationInstruments` and `performanceEvaluationResponses`. One
+behavior test compares the application, backup, local safety, cleanup, and
+full-system fixture lists so they cannot silently drift. All 270 backend tests
+pass; lint has 0 errors and the same 64 older warnings. No cleanup was run, no
+sample record was deleted, and the repair has not been deployed.
 
 ## Repository Safety
 
