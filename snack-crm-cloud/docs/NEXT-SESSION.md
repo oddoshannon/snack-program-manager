@@ -40,7 +40,7 @@ complete: Schedule has checkbox print selection with separate duplex-safe
 documents, the handwriting referral has three children across two pages, public
 booking says `Call Us`, new-grant tabs work before saving, and appointment notes
 record interpreter use. Stage 2 hosting is complete: Cloud Run revision
-`snack-crm-api-00099-xlj` serves the pages and protected API from
+`snack-crm-api-00100-lbb` serves the pages and protected API from
 `https://hub.snackprogram.org`, final Google Workspace sign-in and protected CRM
 access passed, and Firebase Hosting is disabled. Do not restore or deploy
 Firebase Hosting. Keep the current sample data until the user explicitly

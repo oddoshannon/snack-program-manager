@@ -10,7 +10,7 @@ Last updated: August 11, 2026
   sequential form-packet loading, and the aggregate-only weekly performance
   email preview. Lint has 0 errors and only 62 older warnings in retired
   `frontend/public/app.js`; changed files introduce no warning. Cloud Run
-  revision `snack-crm-api-00099-xlj` serves 100% of traffic, and the read-only
+  revision `snack-crm-api-00100-lbb` serves 100% of traffic, and the read-only
   production QA passed after deployment.
 - A real headless-browser check opened `/sandbox.html`, confirmed two fictional
   Schedule records, switched to CRM, created a third fictional CRM record, and

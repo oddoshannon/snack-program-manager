@@ -18,7 +18,7 @@ This file is the durable starting point for future Codex tasks. Read it with
   feature modules under `frontend/public/modules/`.
 
 The production root opens the combined Home dashboard, and the logo returns to
-Home from each clean module. Cloud Run revision `snack-crm-api-00099-xlj` serves
+Home from each clean module. Cloud Run revision `snack-crm-api-00100-lbb` serves
 the clean pages and protected API from `hub.snackprogram.org` with 100% of
 traffic. Google Workspace sign-in and protected CRM client access passed on the
 final address. Firebase Hosting is disabled and the former `web.app` address
@@ -99,7 +99,7 @@ grant-document upload/open check are complete. The Calendar lifecycle test,
 2026 and 2025 QuickBooks no-write reviews, Data
 Center repair, and full-system guide correction are complete. The Data Center
 repair remains included in production. Current revision
-`snack-crm-api-00099-xlj` serves 100% of traffic. The MailerLite secret is
+`snack-crm-api-00100-lbb` serves 100% of traffic. The MailerLite secret is
 attached and its signed-in read-only provider check passed. The former Twilio
 account is closed. No Azure Communication Services resource, credential,
 sender, calling action, texting action, or message-delivery route is connected
@@ -120,7 +120,7 @@ instead of delaying the test.
   `c_dce512191e2885e00d1d69a36f42333524f01cf84cf4b71ab289bbeae74eff96@group.calendar.google.com`
 - Cloud Run service account:
   `1013266498299-compute@developer.gserviceaccount.com`
-- Cloud Run revision `snack-crm-api-00099-xlj` is serving 100% of traffic.
+- Cloud Run revision `snack-crm-api-00100-lbb` is serving 100% of traffic.
 - `GOOGLE_CALENDAR_ID` matches the approved `Clinic Appts` calendar.
 - `GOOGLE_CALENDAR_ENABLED=false`; automatic appointment sync is paused.
 - The server asks Google for limited permission to read Calendar information and
