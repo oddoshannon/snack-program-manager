@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Book an Appointment | The SNACK Program</title>
     <link rel="icon" type="image/png" href="./favicon.png">
-    <link rel="stylesheet" href="./book.css?v=20260716-1">
+    <link rel="stylesheet" href="./book.css?v=20260721-location1">
   </head>
   <body>
     <main class="booking-preview" aria-labelledby="booking-step-title">
@@ -15,7 +15,7 @@
         </button>
         <div>
           <p class="booking-brand-name">The SNACK Program</p>
-          <h1 id="booking-step-title">Select a time</h1>
+          <h1 id="booking-step-title">Select a Time</h1>
         </div>
       </header>
 
@@ -46,8 +46,8 @@
                 <div id="calendar-days" class="calendar-grid calendar-days" aria-label="Choose a date"></div>
 
                 <label class="timezone-field">
-                  <span>Time zone</span>
-                  <select aria-label="Time zone">
+                  <span>Time Zone</span>
+                  <select aria-label="Time Zone">
                     <option>Pacific Time - Los Angeles</option>
                   </select>
                 </label>
@@ -56,8 +56,8 @@
               <section class="times-panel" aria-labelledby="times-title">
                 <div class="times-heading">
                   <div>
-                    <p class="step-label">Available times</p>
-                    <h3 id="times-title">Choose a date</h3>
+                    <p class="step-label">Available Times</p>
+                    <h3 id="times-title">Choose a Date</h3>
                   </div>
                   <p>Pacific Time</p>
                 </div>
@@ -73,23 +73,22 @@
           <div id="details-screen" class="booking-screen" hidden>
             <div class="workspace-heading details-heading">
               <div>
-                <p class="step-label">Family information</p>
-                <h2>Tell us who is coming</h2>
-                <p class="heading-copy">Add each child who will attend this appointment.</p>
+                <h2 id="family-information-title">Family Information</h2>
+                <p id="family-information-copy" class="heading-copy">Add each child who will attend this appointment.</p>
               </div>
             </div>
 
             <form id="public-booking-form" class="details-form">
               <div id="public-children" class="public-children"></div>
-              <button id="public-add-child" class="add-child-button" type="button"><span aria-hidden="true">+</span> Add another child</button>
+              <button id="public-add-child" class="add-child-button" type="button"><span aria-hidden="true">+</span> Add Another Child</button>
 
               <div class="caregiver-fields">
                 <label>
-                  <span>Caregiver name</span>
-                  <input name="caregiverName" type="text" autocomplete="name" placeholder="First and last name" required>
+                  <span>Caregiver Name</span>
+                  <input name="caregiverName" type="text" autocomplete="name" placeholder="First and Last Name" required>
                 </label>
                 <label>
-                  <span>Mobile phone</span>
+                  <span>Mobile Phone</span>
                   <input name="mobilePhone" type="tel" autocomplete="tel" placeholder="(503) 555-0123" required>
                 </label>
                 <label>
@@ -97,19 +96,19 @@
                   <input name="email" type="email" autocomplete="email" placeholder="name@example.com" required>
                 </label>
                 <label>
-                  <span>Preferred contact</span>
+                  <span>Preferred Contact</span>
                   <select name="preferredContactMethod">
-                    <option value="Phone Call">Phone call</option>
+                    <option value="Phone Call">Phone Call</option>
                     <option value="Text">Text</option>
                     <option value="Email">Email</option>
                   </select>
                 </label>
                 <label class="wide-field">
                   <span>Address</span>
-                  <input name="address" type="text" autocomplete="street-address" placeholder="Street, city, state, ZIP" required>
+                  <input name="address" type="text" autocomplete="street-address" placeholder="Street, City, State, ZIP" required>
                 </label>
                 <label>
-                  <span>Preferred language</span>
+                  <span>Preferred Language</span>
                   <select id="public-preferred-language" name="preferredLanguage" required>
                     <option value="English">English</option>
                     <option value="Spanish">Spanish</option>
@@ -124,16 +123,30 @@
                 </label>
                 <p class="insurance-note wide-field">SNACK nutrition education appointments are free, though we are able to receive insurance reimbursement for YCCO members. Sharing your child's ID number helps us keep our services free and accessible to the community.</p>
                 <label class="wide-field">
-                  <span>YCCO ID number <small>Optional</small></span>
+                  <span>YCCO ID Number <small>Optional</small></span>
                   <input id="public-ycco-id" name="yccoId" type="text" autocomplete="off">
+                </label>
+                <label id="food-restrictions-field" class="wide-field" hidden>
+                  <span>Food Restrictions <small>Optional</small></span>
+                  <textarea name="foodRestrictions" rows="3" placeholder="Allergies, Dietary Restrictions, or Other Food Needs"></textarea>
                 </label>
                 <label class="wide-field">
                   <span>Notes <small>Optional</small></span>
-                  <textarea name="notes" rows="3" placeholder="Anything you would like us to know before the appointment"></textarea>
+                  <textarea name="notes" rows="3" placeholder="Anything You Would Like Us to Know Before the Appointment"></textarea>
                 </label>
                 <label class="consent-field wide-field">
-                  <input name="consentReminders" type="checkbox" required>
-                  <span>I consent to email and text appointment reminders from The SNACK Program.</span>
+                  <input name="serviceEmailConsent" type="checkbox">
+                  <span>I consent to service emails about appointments, registrations, and schedule changes.</span>
+                </label>
+                <label class="consent-field wide-field">
+                  <input name="serviceTextConsent" type="checkbox">
+                  <span>I consent to service texts about appointments, registrations, and schedule changes.</span>
+                </label>
+                <p class="insurance-note wide-field">Choose email reminders, text reminders, or both. Marketing email is a separate choice.</p>
+                <input name="consentReminders" type="hidden" value="">
+                <label class="consent-field wide-field">
+                  <input name="marketingConsent" type="checkbox">
+                  <span>I would like occasional SNACK news and program announcements by email.</span>
                 </label>
                 <label class="public-honeypot" aria-hidden="true">
                   <span>Website</span>
@@ -143,7 +156,7 @@
 
               <div class="details-actions">
                 <button id="return-to-time" class="secondary-button" type="button">Back</button>
-                <button id="review-appointment" class="primary-button" type="submit">Review appointment</button>
+                <button id="review-appointment" class="primary-button" type="submit">Review Appointment</button>
               </div>
             </form>
           </div>
@@ -152,41 +165,41 @@
             <div class="workspace-heading details-heading">
               <div>
                 <p class="step-label">Review</p>
-                <h2>Confirm your appointment</h2>
-                <p class="heading-copy">Check the details below before booking.</p>
+                <h2 id="review-title">Confirm Your Appointment</h2>
+                <p id="review-copy" class="heading-copy">Check the details below before booking.</p>
               </div>
             </div>
             <div id="review-details" class="review-details"></div>
             <p id="booking-status" class="booking-status" aria-live="polite"></p>
             <div class="details-actions">
               <button id="return-to-details" class="secondary-button" type="button">Back</button>
-              <button id="public-booking-submit" class="primary-button" type="button">Book appointment</button>
+              <button id="public-booking-submit" class="primary-button" type="button">Book Appointment</button>
             </div>
           </div>
 
           <div id="confirmation-screen" class="booking-screen confirmation-screen" hidden aria-live="polite">
             <div class="confirmation-mark" aria-hidden="true">&#10003;</div>
             <p class="step-label">Confirmed</p>
-            <h2>Appointment booked</h2>
+            <h2 id="confirmation-title">Appointment Booked</h2>
             <p id="confirmation-details"></p>
-            <p>Save the private link below if you need to cancel or choose a new time.</p>
-            <a id="manage-appointment-link" class="primary-button link-button" href="#">Manage this appointment</a>
+            <p id="confirmation-help">Save the private link below if you need to cancel or choose a new time.</p>
+            <a id="manage-appointment-link" class="primary-button link-button" href="#">Manage This Appointment</a>
             <a class="confirmation-home-link" href="./booking.html">Return to The SNACK Program</a>
           </div>
 
           <div id="management-screen" class="booking-screen" hidden>
             <div class="workspace-heading details-heading">
               <div>
-                <p class="step-label">Your booking</p>
-                <h2>Manage your appointment</h2>
+                <p class="step-label">Your Booking</p>
+                <h2>Manage Your Appointment</h2>
                 <p id="management-summary" class="heading-copy">Loading appointment...</p>
               </div>
             </div>
             <div class="management-panel">
               <p id="management-status" class="booking-status" aria-live="polite"></p>
               <div class="management-actions">
-                <button id="start-reschedule" class="primary-button" type="button">Choose a new time</button>
-                <button id="cancel-appointment" class="danger-button" type="button">Cancel appointment</button>
+                <button id="start-reschedule" class="primary-button" type="button">Choose a New Time</button>
+                <button id="cancel-appointment" class="danger-button" type="button">Cancel Appointment</button>
               </div>
               <p class="management-help">For changes within 24 hours of the appointment, call or text <a href="tel:+19712020232">(971) 202-0232</a>.</p>
             </div>
@@ -205,7 +218,7 @@
             <h2>Summary</h2>
             <dl>
               <div>
-                <dt>Appointment</dt>
+                <dt id="summary-kind-label">Appointment</dt>
                 <dd id="summary-service">Loading...</dd>
               </div>
               <div>
@@ -220,15 +233,23 @@
                 <dt>Time</dt>
                 <dd id="summary-time"></dd>
               </div>
+              <div id="summary-location-row" hidden>
+                <dt>Location</dt>
+                <dd id="summary-location"></dd>
+              </div>
+              <div id="summary-availability-row" hidden>
+                <dt>Availability</dt>
+                <dd id="summary-availability"></dd>
+              </div>
             </dl>
           </section>
 
-          <p class="booking-help">Appointments are free and held at the SNACK Program office.</p>
+          <p id="booking-help" class="booking-help">Appointments are free and held at the SNACK Program office.</p>
         </aside>
       </div>
     </main>
 
     <script src="./app-config.js"></script>
-    <script type="module" src="./book.js?v=20260716-1"></script>
+    <script type="module" src="./book.js?v=20260721-location1"></script>
   </body>
 </html>

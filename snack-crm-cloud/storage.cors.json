@@ -1,0 +1,11 @@
+[
+  {
+    "origin": [
+      "https://hub.snackprogram.org"
+    ],
+    "method": [
+      "GET"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

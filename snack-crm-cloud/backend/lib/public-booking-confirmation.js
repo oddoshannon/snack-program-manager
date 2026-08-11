@@ -1,7 +1,11 @@
+import {
+  clinicAddress as snackAddress,
+  clinicArrivalInstructions,
+  snackPhone
+} from "./client-messages.js";
+
 const confirmationModes = new Set(["disabled", "preview"]);
-const defaultBookingPageUrl = "https://snack-crm.web.app/book.html";
-const snackPhone = "(971) 202-0232";
-const snackAddress = "2435 NE Cumulus Ave, Suite A, McMinnville, OR 97128";
+const defaultBookingPageUrl = "https://hub.snackprogram.org/book.html";
 
 function cleanConfirmationValue(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -25,7 +29,7 @@ function publicBookingManageUrl({
   url.search = "";
   url.hash = "";
   url.searchParams.set("appointmentId", appointmentId);
-  url.searchParams.set("token", manageToken);
+  url.hash = new URLSearchParams({ token: manageToken }).toString();
   return url.toString();
 }
 
@@ -110,6 +114,8 @@ function buildPublicBookingConfirmation({
         `Hora: ${appointmentTimeLabel}`,
         `Lugar: ${snackAddress}`,
         "",
+        "La oficina del Programa SNACK está dentro de Physicians' Medical Center (PMC). Al llegar, diríjase a la izquierda y regístrese en la Recepción A. Informe al personal que tiene una cita con SNACK, tome asiento en la sala de espera y el personal de SNACK le llamará para pasar a nuestra oficina.",
+        "",
         "Use este enlace privado para cancelar o elegir una nueva hora:",
         manageUrl,
         "",
@@ -124,6 +130,8 @@ function buildPublicBookingConfirmation({
         `Date: ${dateLabel}`,
         `Time: ${appointmentTimeLabel}`,
         `Location: ${snackAddress}`,
+        "",
+        clinicArrivalInstructions,
         "",
         "Use this private link to cancel or choose a new time:",
         manageUrl,

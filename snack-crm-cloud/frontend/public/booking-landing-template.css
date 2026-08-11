@@ -744,7 +744,7 @@ button:focus-visible {
   }
 
   .call-link::after {
-    content: "Call us";
+    content: "Call Us";
     font-size: 12px;
   }
 

@@ -34,6 +34,64 @@
   flex: 0 0 auto;
 }
 
+.daily-forms-toolbar-status {
+  margin-left: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.selected-print-host {
+  display: grid;
+  gap: 28px;
+  padding: 32px;
+}
+
+.selected-print-document {
+  display: grid;
+  gap: 28px;
+}
+
+.selected-print-document > .print-page,
+.selected-print-document > .client-form-paper,
+.print-duplex-spacer,
+.daily-forms-warning {
+  width: min(100%, 8.5in);
+  margin-inline: auto;
+}
+
+.print-duplex-spacer {
+  min-height: 10.1in;
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--line);
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.selected-print-frame-host {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.selected-print-frame-host iframe {
+  width: 1px;
+  height: 1px;
+  border: 0;
+}
+
+.daily-forms-warning {
+  border: 1px solid #f0b4ba;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #fff5f6;
+  color: #8f2430;
+}
+
 .enrollment-prompt-grid,
 .check-in-prompt-grid,
 .enrollment-next-grid {
@@ -84,5 +142,37 @@
   .print-packet > .print-page:last-child {
     break-after: auto;
     page-break-after: auto;
+  }
+
+  .selected-print-host {
+    display: block;
+    padding: 0;
+  }
+
+  .selected-print-document {
+    display: block;
+  }
+
+  .selected-print-document:not(:last-of-type),
+  .selected-print-document > .print-page + .print-page,
+  .selected-print-document > .client-form-paper + .client-form-paper,
+  .print-duplex-spacer {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .selected-print-document > .client-form-paper,
+  .selected-print-document > .print-page {
+    width: auto;
+  }
+
+  .print-duplex-spacer {
+    min-height: 10.1in;
+    border: 0;
+  }
+
+  .print-duplex-spacer span,
+  .daily-forms-warning {
+    display: none;
   }
 }

@@ -2,14 +2,35 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    function isSnackStaff() {
-      return request.auth != null
-        && request.auth.token.email is string
-        && request.auth.token.email.matches('.*@snackprogram\\.org$');
+    function staffRecord() {
+      return firestore.get(/databases/(default)/documents/staffUsers/$(request.auth.token.email));
     }
 
-    match /grant-documents/{allPaths=**} {
-      allow read, write: if isSnackStaff();
+    function canUseGrantDocuments() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && request.auth.token.email.matches('.*@snackprogram\\.org$')
+        && staffRecord().data.active == true
+        && staffRecord().data.grantDocumentAccess == true;
+    }
+
+    function allowedGrantDocumentUpload() {
+      return request.resource.size > 0
+        && request.resource.size <= 20 * 1024 * 1024
+        && request.resource.contentType.matches(
+          'application/pdf|application/vnd\\.openxmlformats-officedocument\\.wordprocessingml\\.document|application/vnd\\.openxmlformats-officedocument\\.spreadsheetml\\.sheet|text/csv|text/plain|image/jpeg|image/png|image/webp'
+        );
+    }
+
+    match /grant-documents/{ownerUid}/{allPaths=**} {
+      allow read: if canUseGrantDocuments();
+      allow create: if canUseGrantDocuments()
+        && request.auth.uid == ownerUid
+        && allowedGrantDocumentUpload();
+      allow update: if canUseGrantDocuments()
+        && request.auth.uid == ownerUid
+        && allowedGrantDocumentUpload();
+      allow delete: if canUseGrantDocuments();
     }
 
     match /{allPaths=**} {

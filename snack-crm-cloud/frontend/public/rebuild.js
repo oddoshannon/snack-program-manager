@@ -133,9 +133,9 @@ const state = {
 
 const appointments = [
   {
-    id: "appt-rafael",
-    clients: ["Rafael", "Janney"],
-    displayName: "Rafael & Janney",
+    id: "appt-milo",
+    clients: ["Milo", "Tessa"],
+    displayName: "Milo & Tessa",
     status: "Completed",
     date: "2026-07-07",
     time: "2:30 PM",
@@ -143,8 +143,8 @@ const appointments = [
     type: "Enrollment",
     lesson: "Enrollment",
     staff: "Cynthia Esparza",
-    caregiver: "Neiva",
-    siblings: ["Rafael", "Janney"],
+    caregiver: "Jordan",
+    siblings: ["Milo", "Tessa"],
     language: "Spanish",
     phone: "(971) 447-2646",
     address: "1031 SE Rummel St, McMinnville, OR 97128",
@@ -188,7 +188,7 @@ const appointments = [
   {
     id: "appt-mark",
     clients: ["Mark"],
-    displayName: "Mark Flint",
+    displayName: "Max Sample",
     status: "Scheduled",
     date: "2026-07-08",
     time: "1:30 PM",
@@ -209,7 +209,7 @@ const appointments = [
   {
     id: "appt-cali",
     clients: ["Cali"],
-    displayName: "Cali Flint",
+    displayName: "Cora Sample",
     status: "Scheduled",
     date: "2026-07-08",
     time: "2:00 PM",

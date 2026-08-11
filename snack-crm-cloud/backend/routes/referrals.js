@@ -13,15 +13,242 @@ import {
   fetchAllDocuments,
   firestore,
   hasRequiredPersonFields,
+  normalizeAddressState,
+  normalizedLookupKey,
   normalizeStatus,
+  referralNetwork,
   referrals,
   requireAuth,
+  publicSubmissionRateLimit,
   siblingIdsForImportedRecord,
+  tasks,
   toClient,
-  toReferral
+  toReferral,
+  toReferralNetworkEntry
 } from "../lib/core.js";
 
 const router = express.Router();
+const publicReferralAttempts = new Map();
+
+function limitedText(value, maxLength) {
+  return cleanString(value).slice(0, maxLength);
+}
+
+const publicReferralRateLimit = publicSubmissionRateLimit(
+  "referral",
+  8,
+  "Too many referral submissions. Please try again later or call us at (971) 202-0232."
+);
+
+function publicReferralPayload(body = {}, now = new Date().toISOString()) {
+  const referralType = limitedText(body.referralType, 80);
+  const rawChildren = Array.isArray(body.children) && body.children.length
+    ? body.children.slice(0, 8)
+    : [{ firstName: body.firstName, lastName: body.lastName, dateOfBirth: body.dateOfBirth }];
+  const children = rawChildren.map((child = {}) => ({
+    firstName: limitedText(child.firstName, 80),
+    lastName: limitedText(child.lastName, 100),
+    dateOfBirth: limitedText(child.dateOfBirth, 10)
+  }));
+  const parentName = limitedText(body.parentName, 160);
+  const phone = limitedText(body.phone, 40);
+  const email = limitedText(body.email, 180);
+  const preferredLanguage = limitedText(body.preferredLanguage, 40) || "English";
+  const preferredContactMethod = limitedText(body.preferredContactMethod, 40) || "Phone Call";
+  const referralOrganization = limitedText(body.referralOrganization, 180);
+  const referrerName = limitedText(body.referrerName, 160);
+  const referrerEmail = limitedText(body.referrerEmail, 180);
+  const referrerPhone = limitedText(body.referrerPhone, 40);
+  const reason = limitedText(body.reason, 2000);
+  const notes = limitedText(body.notes, 2000);
+  const permissionToContact = cleanBoolean(body.permissionToContact);
+  const spamTrap = limitedText(body.website, 200);
+
+  if (spamTrap) return { spam: true, error: "" };
+  if (!children.length || children.some((child) => !child.firstName || !child.lastName)
+    || !parentName || !phone || !referralType) {
+    return { error: "Each child's name, caregiver name, caregiver phone, and referral type are required." };
+  }
+  if (!allowedReferralTypes.has(referralType)) return { error: "Referral type is not valid." };
+  if (children.some((child) => child.dateOfBirth && !/^\d{4}-\d{2}-\d{2}$/.test(child.dateOfBirth))) {
+    return { error: "Date of birth is not valid." };
+  }
+  if (email && !/^\S+@\S+\.\S+$/.test(email)) return { error: "Caregiver email is not valid." };
+  if (referrerEmail && !/^\S+@\S+\.\S+$/.test(referrerEmail)) return { error: "Referrer email is not valid." };
+  if (!permissionToContact) return { error: "Permission to contact the caregiver is required." };
+  if (["External Clinic Referral", "Community Org Referral"].includes(referralType)
+    && (!referralOrganization || !referrerName)) {
+    return { error: "Referring organization and contact name are required for provider referrals." };
+  }
+
+  const referralDetails = [
+    referralOrganization ? `Referring organization: ${referralOrganization}` : "",
+    referrerName ? `Referrer: ${referrerName}` : "",
+    referrerEmail ? `Referrer email: ${referrerEmail}` : "",
+    referrerPhone ? `Referrer phone: ${referrerPhone}` : "",
+    reason ? `Reason for referral: ${reason}` : "",
+    notes ? `Additional information: ${notes}` : ""
+  ].filter(Boolean).join("\n");
+
+  const records = children.map((child) => ({
+      firstName: child.firstName,
+      lastName: child.lastName,
+      parentName,
+      dateOfBirth: child.dateOfBirth,
+      gender: "",
+      phone,
+      email,
+      preferredLanguage,
+      preferredContactMethod,
+      referralType,
+      referralSource: referralOrganization || referrerName || "Public referral form",
+      referralDate: now.slice(0, 10),
+      firstContactDate: "",
+      mostRecentContactDate: "",
+      firstAppointmentDate: "",
+      mostRecentAppointmentDate: "",
+      lastAppointmentDate: "",
+      addressStreet: "",
+      addressCity: "",
+      addressState: "",
+      addressZip: "",
+      emailOptOut: false,
+      textOptOut: false,
+      ycco: false,
+      yccoId: "",
+      hrsn: false,
+      assessmentScore: null,
+      willingnessScore: null,
+      status: "New",
+      notes: referralDetails,
+      permissionToContact: true,
+      permissionRecordedAt: now,
+      submissionSource: "Public referral form",
+      referralOrganization,
+      referrerName,
+      referrerEmail,
+      referrerPhone,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: "public-referral-form"
+    }));
+  return {
+    error: "",
+    spam: false,
+    matching: { referralOrganization, referrerName, referrerEmail },
+    record: records[0],
+    records
+  };
+}
+
+function publicReferralProviderLinks(networkEntries = [], matching = {}) {
+  const organizationKey = normalizedLookupKey(matching.referralOrganization);
+  const providerNameKey = normalizedLookupKey(matching.referrerName);
+  const providerEmailKey = normalizedLookupKey(matching.referrerEmail);
+  if (!organizationKey || (!providerNameKey && !providerEmailKey)) return [];
+  const organizations = networkEntries.filter((entry) => normalizedLookupKey(entry.name) === organizationKey);
+  if (organizations.length !== 1) return [];
+  const organization = organizations[0];
+  const providers = (organization.providers || []).filter((provider) => (
+    providerEmailKey
+      ? normalizedLookupKey(provider.email) === providerEmailKey
+      : normalizedLookupKey(provider.name) === providerNameKey
+  ));
+  if (providers.length !== 1) return [];
+  return [cleanProviderLink({
+    networkId: organization.id,
+    providerId: providers[0].id,
+    organizationName: organization.name,
+    providerName: providers[0].name
+  })];
+}
+
+function newReferralCallTask(record = {}, referralId = "", createdBy = "") {
+  const childName = `${record.firstName || ""} ${record.lastName || ""}`.trim() || "new referral";
+  return {
+    title: `Call new referral: ${childName}`,
+    type: "Call",
+    status: "Open",
+    priority: "High",
+    dueDate: record.referralDate || new Date().toISOString().slice(0, 10),
+    dueTime: "",
+    assignedTo: "",
+    clientId: "",
+    clientName: "",
+    appointmentId: "",
+    referralId,
+    source: "Workflow Automation",
+    notes: `Call ${record.parentName || "the caregiver"} about the new referral for ${childName}. Logging a call on the referral completes this task.`,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    createdBy
+  };
+}
+
+router.post("/api/public/referrals", publicReferralRateLimit, async (request, response, next) => {
+  try {
+    const payload = publicReferralPayload(request.body);
+    if (payload.spam) {
+      response.status(201).json({ submitted: true });
+      return;
+    }
+    if (payload.error) {
+      response.status(400).json({ error: payload.error });
+      return;
+    }
+    const networkDocuments = await fetchAllDocuments(referralNetwork);
+    const providerLinks = publicReferralProviderLinks(networkDocuments.map(toReferralNetworkEntry), payload.matching);
+    const providerReviewRequired = providerLinks.length === 0
+      && ["External Clinic Referral", "Community Org Referral"].includes(payload.records[0].referralType);
+    const docRefs = payload.records.map(() => referrals.doc());
+    const batch = firestore.batch();
+    payload.records.forEach((record, index) => {
+      batch.set(docRefs[index], {
+        ...record,
+        providerLinks,
+        providerReviewRequired: providerReviewRequired && index === 0,
+        providerReviewReason: providerReviewRequired && index === 0
+          ? "The submitted organization and contact did not match exactly one saved referral partner."
+          : "",
+        siblingIds: docRefs.map((ref) => ref.id).filter((id) => id !== docRefs[index].id)
+      });
+    });
+    batch.set(tasks.doc(), newReferralCallTask(payload.records[0], docRefs[0].id, "public-referral-form"));
+    if (providerReviewRequired) {
+      const taskRef = tasks.doc();
+      const firstRecord = payload.records[0];
+      batch.set(taskRef, {
+        title: `Review new referral partner: ${firstRecord.referralOrganization}`,
+        type: "Task",
+        status: "Open",
+        priority: "High",
+        dueDate: firstRecord.referralDate,
+        dueTime: "",
+        assignedTo: "",
+        clientId: "",
+        clientName: "",
+        appointmentId: "",
+        referralId: docRefs[0].id,
+        source: "Public Referral",
+        notes: `Review ${firstRecord.referrerName} at ${firstRecord.referralOrganization}. Open the referral and use Add to Referral Network after confirming the details.`,
+        createdAt: firstRecord.createdAt,
+        updatedAt: firstRecord.updatedAt,
+        createdBy: "public-referral-form"
+      });
+    }
+    await batch.commit();
+    const created = await Promise.all(docRefs.map((ref) => ref.get()));
+    response.status(201).json({
+      submitted: true,
+      referral: toReferral(created[0]),
+      referrals: created.map(toReferral),
+      providerMatched: providerLinks.length === 1,
+      providerReviewRequired
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.get("/api/referrals", requireAuth, async (_request, response, next) => {
   try {
@@ -56,11 +283,12 @@ router.post("/api/referrals", requireAuth, async (request, response, next) => {
     const lastAppointmentDate = cleanString(request.body.lastAppointmentDate);
     const addressStreet = cleanString(request.body.addressStreet);
     const addressCity = cleanString(request.body.addressCity);
-    const addressState = cleanString(request.body.addressState);
+    const addressState = normalizeAddressState(request.body.addressState);
     const addressZip = cleanString(request.body.addressZip);
     const emailOptOut = cleanBoolean(request.body.emailOptOut);
     const textOptOut = cleanBoolean(request.body.textOptOut);
     const ycco = cleanBoolean(request.body.ycco);
+    const yccoId = cleanString(request.body.yccoId);
     const hrsn = cleanBoolean(request.body.hrsn);
     const assessmentScore = cleanOptionalNumber(request.body.assessmentScore);
     const willingnessScore = cleanOptionalNumber(request.body.willingnessScore);
@@ -81,7 +309,7 @@ router.post("/api/referrals", requireAuth, async (request, response, next) => {
       return;
     }
 
-    const docRef = await referrals.add({
+    const record = {
       firstName,
       lastName,
       parentName,
@@ -106,6 +334,7 @@ router.post("/api/referrals", requireAuth, async (request, response, next) => {
       emailOptOut,
       textOptOut,
       ycco,
+      yccoId,
       hrsn,
       assessmentScore,
       willingnessScore,
@@ -114,7 +343,12 @@ router.post("/api/referrals", requireAuth, async (request, response, next) => {
       createdAt: now,
       updatedAt: now,
       createdBy: request.user.email
-    });
+    };
+    const docRef = referrals.doc();
+    const batch = firestore.batch();
+    batch.set(docRef, record);
+    batch.set(tasks.doc(), newReferralCallTask(record, docRef.id, request.user.email));
+    await batch.commit();
     const created = await docRef.get();
 
     response.status(201).json({
@@ -420,10 +654,13 @@ router.patch("/api/referrals/:referralId", requireAuth, async (request, response
       "addressCity",
       "addressState",
       "addressZip",
+      "yccoId",
       "notes"
     ]) {
       if (Object.hasOwn(request.body, field)) {
-        updates[field] = cleanString(request.body[field]);
+        updates[field] = field === "addressState"
+          ? normalizeAddressState(request.body[field])
+          : cleanString(request.body[field]);
       }
     }
 
@@ -455,6 +692,14 @@ router.patch("/api/referrals/:referralId", requireAuth, async (request, response
       updates.providerLinks = Array.isArray(request.body.providerLinks)
         ? request.body.providerLinks.map(cleanProviderLink).filter((link) => link.networkId && link.providerId)
         : [];
+    }
+
+    const completesProviderReview = Object.hasOwn(request.body, "providerLinks")
+      && updates.providerLinks.length > 0;
+    if (completesProviderReview) {
+      updates.providerReviewRequired = false;
+      updates.providerReviewedAt = updates.updatedAt;
+      updates.providerReviewedBy = request.user.email;
     }
 
     if (Object.hasOwn(updates, "firstName") && !updates.firstName) {
@@ -500,6 +745,38 @@ router.patch("/api/referrals/:referralId", requireAuth, async (request, response
     }
 
     await docRef.update(updates);
+    if (completesProviderReview) {
+      const taskDocuments = await fetchAllDocuments(tasks.where("referralId", "==", referralId));
+      const batch = firestore.batch();
+      let hasUpdates = false;
+      const siblingIds = Array.isArray(snapshot.data().siblingIds) ? snapshot.data().siblingIds : [];
+      siblingIds.forEach((siblingId) => {
+        batch.update(referrals.doc(siblingId), {
+          providerLinks: updates.providerLinks,
+          providerReviewRequired: false,
+          providerReviewedAt: updates.updatedAt,
+          providerReviewedBy: request.user.email,
+          updatedAt: updates.updatedAt,
+          updatedBy: request.user.email
+        });
+        hasUpdates = true;
+      });
+      taskDocuments.forEach((taskDocument) => {
+        const task = taskDocument.data();
+        if (task.source === "Public Referral"
+          && !["Done", "Canceled"].includes(cleanString(task.status))
+          && cleanString(task.title).startsWith("Review new referral partner:")) {
+          batch.update(taskDocument.ref, {
+            status: "Done",
+            completedAt: updates.updatedAt,
+            updatedAt: updates.updatedAt,
+            updatedBy: request.user.email
+          });
+          hasUpdates = true;
+        }
+      });
+      if (hasUpdates) await batch.commit();
+    }
     const updated = await docRef.get();
 
     response.json({
@@ -586,5 +863,13 @@ router.post("/api/referrals/:referralId/convert", requireAuth, async (request, r
     next(error);
   }
 });
+
+export {
+  newReferralCallTask,
+  publicReferralAttempts,
+  publicReferralPayload,
+  publicReferralProviderLinks,
+  publicReferralRateLimit
+};
 
 export default router;

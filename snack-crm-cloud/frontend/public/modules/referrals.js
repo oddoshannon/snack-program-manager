@@ -15,11 +15,36 @@ const referralStatusOptions = [
   "Left Voicemail",
   "Emailed",
   "Requested Call Back",
-  "Caregiver Will Call Back",
   "Scheduled",
+  "Caregiver Will Call Back",
   "Not Interested",
   "Closed / No Further Outreach"
 ];
+const referralStatusSortOrder = [
+  "New",
+  "Texted",
+  "Left Voicemail",
+  "Emailed",
+  "Requested Call Back",
+  "Scheduled",
+  "Caregiver Will Call Back",
+  "Not Interested",
+  "Closed / No Further Outreach"
+];
+
+function crmReferralStatusRank(value) {
+  const index = referralStatusSortOrder.indexOf(cleanText(value));
+  return index < 0 ? referralStatusSortOrder.length : index;
+}
+
+function crmReferralStatusTone(value) {
+  const status = cleanText(value);
+  if (status === "New") return "red";
+  if (["Texted", "Left Voicemail", "Emailed", "Requested Call Back"].includes(status)) return "green";
+  if (status === "Scheduled") return "blue";
+  if (status === "Caregiver Will Call Back") return "purple";
+  return "navy";
+}
 
 const referralNetworkTypeOptions = [
   "Clinic",
@@ -79,6 +104,10 @@ function providerSummary(providerLinks = []) {
   return profiles.length ? profiles.map((profile) => profile.label).join(", ") : "-";
 }
 
+function caregiverFirstName(value) {
+  return cleanText(value).split(/\s+/)[0] || "-";
+}
+
 function mapCrmReferral(referral, referralsById = new Map(), options = {}) {
   const activityLogs = referralActivity(referral, options.activityLogs);
   const recentContactDate = latestDate([
@@ -91,27 +120,33 @@ function mapCrmReferral(referral, referralsById = new Map(), options = {}) {
   const providerLinks = Array.isArray(referral?.providerLinks) ? referral.providerLinks : [];
   const siblingProfiles = linkedReferralSiblingProfiles(referral, referralsById);
   const referringProviderProfiles = referralProviderProfiles(providerLinks);
+  const recentContact = formatClientDate(recentContactDate);
+  const phone = cleanText(referral?.phone) || "-";
+  const caregiver = cleanText(referral?.parentName) || "-";
+  const language = cleanText(referral?.preferredLanguage) || "-";
 
   return {
     id: cleanText(referral?.id),
     title: clientName(referral),
-    subtitle: `${cleanText(referral?.referralType) || "Referral"} | ${formatClientDate(referral?.referralDate)}`,
+    subtitle: `${recentContact} | ${phone} | ${caregiverFirstName(caregiver)} | ${language}`,
     status: cleanText(referral?.status) || "New",
-    caregiver: cleanText(referral?.parentName) || "-",
+    statusTone: crmReferralStatusTone(referral?.status || "New"),
+    caregiver,
     siblings: linkedReferralSiblingNames(referral, referralsById),
     siblingProfiles,
-    language: cleanText(referral?.preferredLanguage) || "-",
-    phone: cleanText(referral?.phone) || "-",
+    language,
+    phone,
     email: cleanText(referral?.email) || "-",
     address: formatClientAddress(referral),
     preferredContact: cleanText(referral?.preferredContactMethod) || "-",
     gender: cleanText(referral?.gender) || "-",
     dob: formatClientDate(referral?.dateOfBirth),
     insurance: referral?.ycco === true ? "YCCO" : referral?.ycco === false ? "Not YCCO" : "Not listed",
+    yccoId: cleanText(referral?.yccoId) || "-",
     hrsn: referral?.hrsn === true ? "Eligible" : referral?.hrsn === false ? "Not Eligible" : "Not listed",
     referralDate: formatClientDate(referral?.referralDate),
     firstContact: formatClientDate(referral?.firstContactDate),
-    recentContact: formatClientDate(recentContactDate),
+    recentContact,
     firstAppt: formatClientDate(referral?.firstAppointmentDate),
     recentAppt: formatClientDate(referral?.mostRecentAppointmentDate || referral?.lastAppointmentDate),
     convertedDate: formatClientDate(convertedDate),
@@ -121,6 +156,11 @@ function mapCrmReferral(referral, referralsById = new Map(), options = {}) {
     providerProfileLinks: referringProviderProfiles,
     emailOptOut: referral?.emailOptOut === true ? "Yes" : "No",
     textOptOut: referral?.textOptOut === true ? "Yes" : "No",
+    serviceEmailConsent: referral?.serviceEmailConsent === true ? "Yes" : "No",
+    serviceTextConsent: referral?.serviceTextConsent === true ? "Yes" : "No",
+    marketingConsent: referral?.marketingConsent === true ? "Yes" : "No",
+    consentSource: cleanText(referral?.consentSource) || "-",
+    consentDate: formatClientDate(referral?.consentDate),
     notes: cleanText(referral?.notes) || "-",
     convertedClientId: cleanText(referral?.convertedClientId),
     activityLogs,
@@ -133,7 +173,8 @@ function mapCrmReferrals(referrals = [], options = {}) {
   const referralsById = new Map(activeReferrals.map((referral) => [referral.id, referral]));
   return activeReferrals
     .map((referral) => mapCrmReferral(referral, referralsById, options))
-    .sort((first, second) => first.title.localeCompare(second.title));
+    .sort((first, second) => crmReferralStatusRank(first.status) - crmReferralStatusRank(second.status)
+      || first.title.localeCompare(second.title));
 }
 
 function crmReferralMatches(item, query) {
@@ -197,6 +238,9 @@ function crmReferralPayload(values = {}) {
     "addressCity",
     "addressState",
     "addressZip",
+    "consentSource",
+    "consentDate",
+    "yccoId",
     "notes",
     "status"
   ];
@@ -206,7 +250,7 @@ function crmReferralPayload(values = {}) {
       .map((field) => [field, cleanText(values[field])])
   );
 
-  for (const field of ["ycco", "hrsn", "emailOptOut", "textOptOut"]) {
+  for (const field of ["ycco", "hrsn", "emailOptOut", "textOptOut", "serviceEmailConsent", "serviceTextConsent", "marketingConsent"]) {
     if (Object.hasOwn(values, field)) {
       payload[field] = values[field] === true || values[field] === "true" || values[field] === "on";
     }
@@ -340,6 +384,8 @@ export {
   crmNetworkPayload,
   crmNetworkSummary,
   crmReferralActivityPayload,
+  crmReferralStatusRank,
+  crmReferralStatusTone,
   crmReferralMatches,
   crmReferralPayload,
   crmReferralProviderLinks,

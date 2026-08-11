@@ -65,8 +65,8 @@ async function main() {
     const networkSchoolId = "qa-network-school";
     const providerClinicId = "qa-provider-riverbend";
     const providerSchoolId = "qa-provider-school";
-    const clientRafaelId = "qa-client-rafael";
-    const clientJanneyId = "qa-client-janney";
+    const clientMiloId = "qa-client-milo";
+    const clientTessaId = "qa-client-tessa";
     const referralLuciaId = "qa-referral-lucia";
     const referralMateoId = "qa-referral-mateo";
     const clinicProviderLink = {
@@ -123,14 +123,14 @@ async function main() {
         createdAt: now,
         updatedAt: now
       }],
-      ["clients", clientRafaelId, {
-        firstName: "Rafael",
-        lastName: "Hernandez Garcia",
-        parentName: "Neiva",
+      ["clients", clientMiloId, {
+        firstName: "Milo",
+        lastName: "Exampleton Garcia",
+        parentName: "Jordan",
         dateOfBirth: "2016-04-12",
         gender: "Male",
         phone: "971-555-0101",
-        email: "neiva@example.com",
+        email: "jordan@example.com",
         preferredLanguage: "Spanish",
         preferredContactMethod: "Text",
         referralType: "External Clinic Referral",
@@ -151,20 +151,20 @@ async function main() {
         currentLesson: "2",
         status: "Active",
         notes: "Caregiver prefers Spanish materials.",
-        siblingIds: [clientJanneyId],
+        siblingIds: [clientTessaId],
         providerLinks: [clinicProviderLink],
         qaFixture: true,
         createdAt: now,
         updatedAt: now
       }],
-      ["clients", clientJanneyId, {
-        firstName: "Janney",
-        lastName: "Hernandez Garcia",
-        parentName: "Neiva",
+      ["clients", clientTessaId, {
+        firstName: "Tessa",
+        lastName: "Exampleton Garcia",
+        parentName: "Jordan",
         dateOfBirth: "2018-09-03",
         gender: "Female",
         phone: "971-555-0101",
-        email: "neiva@example.com",
+        email: "jordan@example.com",
         preferredLanguage: "Spanish",
         preferredContactMethod: "Text",
         referralType: "External Clinic Referral",
@@ -185,7 +185,7 @@ async function main() {
         currentLesson: "2",
         status: "Scheduled",
         notes: "",
-        siblingIds: [clientRafaelId],
+        siblingIds: [clientMiloId],
         providerLinks: [clinicProviderLink],
         qaFixture: true,
         createdAt: now,
@@ -258,10 +258,10 @@ async function main() {
         updatedAt: now
       }],
       ["appointments", "qa-appointment-family", {
-        clientId: clientRafaelId,
-        clientIds: [clientRafaelId, clientJanneyId],
-        clientName: "Rafael Hernandez Garcia",
-        clientNames: ["Rafael Hernandez Garcia", "Janney Hernandez Garcia"],
+        clientId: clientMiloId,
+        clientIds: [clientMiloId, clientTessaId],
+        clientName: "Milo Exampleton Garcia",
+        clientNames: ["Milo Exampleton Garcia", "Tessa Exampleton Garcia"],
         appointmentDate: today,
         appointmentTime: "14:30",
         appointmentType: "Nutrition Education",
@@ -281,10 +281,10 @@ async function main() {
         updatedAt: now
       }],
       ["appointments", "qa-appointment-completed", {
-        clientId: clientRafaelId,
-        clientIds: [clientRafaelId],
-        clientName: "Rafael Hernandez Garcia",
-        clientNames: ["Rafael Hernandez Garcia"],
+        clientId: clientMiloId,
+        clientIds: [clientMiloId],
+        clientName: "Milo Exampleton Garcia",
+        clientNames: ["Milo Exampleton Garcia"],
         appointmentDate: "2026-06-23",
         appointmentTime: "14:00",
         appointmentType: "Enrollment",
@@ -310,8 +310,8 @@ async function main() {
         activityTime: "10:15",
         occurredAt: `${today}T10:15:00-07:00`,
         relatedType: "client",
-        relatedId: clientRafaelId,
-        relatedName: "Rafael Hernandez Garcia",
+        relatedId: clientMiloId,
+        relatedName: "Milo Exampleton Garcia",
         qaFixture: true,
         createdAt: now,
         updatedAt: now

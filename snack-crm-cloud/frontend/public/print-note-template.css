@@ -23,7 +23,7 @@
 
 .visit-details {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 11px 20px;
   margin: 0;
   padding: 12px 14px;
@@ -40,6 +40,14 @@
   grid-column: span 2;
 }
 
+.visit-details .interpreter-detail {
+  grid-column: span 2;
+}
+
+.visit-details .interval-detail {
+  grid-column: span 2;
+}
+
 .visit-details dt {
   color: var(--muted);
   font-size: 10pt;
@@ -52,6 +60,27 @@
   font-size: 10pt;
   font-weight: 500;
   line-height: 1.35;
+}
+
+.interpreter-detail dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+}
+
+.print-check-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.print-check-choice i {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  border: 1px solid var(--text);
+  border-radius: 2px;
+  background: #ffffff;
 }
 
 .birthdate-list {
@@ -117,6 +146,12 @@
   min-height: 88px;
 }
 
+.next-steps-writing-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 10px;
+}
+
 .next-appointment-row {
   display: flex;
   align-items: center;
@@ -137,7 +172,7 @@
 }
 
 .next-appointment-choice {
-  grid-template-columns: max-content 13px;
+  grid-template-columns: 13px max-content;
 }
 
 .next-appointment-date {
@@ -152,8 +187,10 @@
 .next-appointment-choice i {
   width: 13px;
   height: 13px;
+  flex: 0 0 13px;
   border: 1px solid var(--text);
   border-radius: 2px;
+  background: #ffffff;
 }
 
 .next-appointment-date em {
@@ -164,6 +201,48 @@
 .follow-up-box {
   min-height: 74px;
   margin-top: 8px;
+}
+
+.enrollment-note-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.enrollment-note-page .visit-summary {
+  margin-top: 13px;
+}
+
+.enrollment-note-page .enrollment-conversation {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.enrollment-prompt-grid {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(96px, 1fr));
+  gap: 10px;
+}
+
+.enrollment-prompt-box {
+  min-height: 96px;
+}
+
+.enrollment-prompt-box:first-child {
+  grid-column: span 2;
+}
+
+.enrollment-next-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 10px;
+}
+
+.enrollment-next-box {
+  min-height: 64px;
 }
 
 .healthy-habits-page .note-section {
@@ -248,10 +327,12 @@
 }
 
 .knowledge-choice i {
-  width: 12px;
-  height: 12px;
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
   border: 1px solid var(--text);
   border-radius: 2px;
+  background: #ffffff;
 }
 
 .healthy-lesson-box {
@@ -278,15 +359,15 @@
 
 .retention-goal-check-box,
 .retention-lesson-box {
-  min-height: 104px;
+  min-height: 126px;
 }
 
 .retention-goal-box {
-  min-height: 42px;
+  min-height: 70px;
 }
 
 .retention-follow-up-box {
-  min-height: 38px;
+  min-height: 60px;
   margin-top: 8px;
 }
 

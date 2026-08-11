@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Volunteer With SNACK | The SNACK Program</title>
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <link rel="stylesheet" href="./refer.css?v=20260810-volunteer2">
+  </head>
+  <body>
+    <header class="referral-header">
+      <a class="referral-brand" href="https://snackprogram.org" aria-label="The SNACK Program home">
+        <img src="./favicon.png" alt="">
+        <span><strong>The SNACK Program</strong></span>
+      </a>
+      <div class="referral-header-actions"><a href="tel:+19712020232">Call or Text (971) 202-0232</a></div>
+    </header>
+
+    <main class="referral-main">
+      <header class="referral-title">
+        <h1>Volunteer With the SNACK Program</h1>
+        <p>Tell us a little about yourself and how you would like to help children and families in Yamhill County.</p>
+      </header>
+
+      <form id="volunteer-application-form" class="referral-form volunteer-form">
+        <section aria-labelledby="volunteer-contact-title">
+          <div class="section-heading">
+            <span>1</span>
+            <div><h2 id="volunteer-contact-title">About You</h2><p>Share the best way for SNACK staff to reach you.</p></div>
+          </div>
+          <div class="field-grid">
+            <label><span>Full Name</span><input name="fullName" type="text" autocomplete="name" required></label>
+            <label><span>Email</span><input name="email" type="email" autocomplete="email" required></label>
+            <label><span>Phone <small>Optional</small></span><input name="phone" type="tel" autocomplete="tel"></label>
+            <label>
+              <span>Preferred Contact</span>
+              <select name="preferredContact">
+                <option value="Email">Email</option>
+                <option value="Phone Call">Phone Call</option>
+                <option value="Text">Text</option>
+              </select>
+            </label>
+            <label class="wide-field"><span>Languages You Speak <small>Optional; separate with commas</small></span><input name="languages" type="text" placeholder="English, Spanish"></label>
+          </div>
+        </section>
+
+        <section aria-labelledby="volunteer-interest-title">
+          <div class="section-heading">
+            <span>2</span>
+            <div><h2 id="volunteer-interest-title">How You Would Like to Help</h2><p>Select every area that interests you.</p></div>
+          </div>
+          <div class="volunteer-section-content">
+            <fieldset class="volunteer-choice-grid">
+              <legend class="screen-reader-only">Volunteer interests</legend>
+              <label><input name="interests" type="checkbox" value="Kids Cooking + Nutrition Classes"><span>Kids Cooking + Nutrition Classes</span></label>
+              <label><input name="interests" type="checkbox" value="Community Events"><span>Community Events</span></label>
+              <label><input name="interests" type="checkbox" value="Community Outreach"><span>Community Outreach</span></label>
+              <label><input name="interests" type="checkbox" value="Administrative Help"><span>Administrative Help</span></label>
+              <label><input name="interests" type="checkbox" value="Fundraising"><span>Fundraising</span></label>
+              <label><input name="interests" type="checkbox" value="Marketing"><span>Marketing</span></label>
+            </fieldset>
+            <p class="volunteer-help-copy">Volunteers may assist with classes and events under staff supervision. Volunteers do not provide family nutrition education.</p>
+          </div>
+        </section>
+
+        <section aria-labelledby="volunteer-details-title">
+          <div class="section-heading">
+            <span>3</span>
+            <div><h2 id="volunteer-details-title">Availability and Experience</h2><p>Help us match you with the right opportunities.</p></div>
+          </div>
+          <div class="volunteer-section-content">
+            <fieldset class="volunteer-radio-group">
+              <legend>How Often Would You Like to Volunteer?</legend>
+              <div class="volunteer-inline-options">
+                <label><input name="volunteerFrequency" type="radio" value="One time" required><span>One time</span></label>
+                <label><input name="volunteerFrequency" type="radio" value="Ongoing" required><span>Ongoing</span></label>
+                <label><input name="volunteerFrequency" type="radio" value="Other" required><span>Other</span></label>
+              </div>
+              <label class="volunteer-followup-field"><span>If Other, Please Describe <small>Optional</small></span><input name="volunteerFrequencyOther" type="text"></label>
+            </fieldset>
+
+            <fieldset class="volunteer-radio-group">
+              <legend>Are You Interested in Volunteering as Part of a Group?</legend>
+              <div class="volunteer-inline-options">
+                <label><input name="groupVolunteering" type="radio" value="Yes" required><span>Yes</span></label>
+                <label><input name="groupVolunteering" type="radio" value="No" required><span>No</span></label>
+                <label><input name="groupVolunteering" type="radio" value="Open to either" required><span>Open to either</span></label>
+              </div>
+              <label class="volunteer-followup-field"><span>Group Name or Approximate Size <small>Optional</small></span><input name="groupDetails" type="text"></label>
+            </fieldset>
+
+            <div class="field-grid volunteer-availability-grid">
+              <label class="wide-field"><span>Days You Are Generally Available</span><input name="availabilityDays" type="text" placeholder="Tuesday, Thursday, weekends" required></label>
+              <label class="wide-field"><span>Times and Approximate Hours per Week</span><input name="availabilityTimes" type="text" placeholder="Afternoons; about 3 hours per week" required></label>
+              <label class="wide-field"><span>Seasons or Months You Are Available</span><input name="availabilitySeasons" type="text" placeholder="Year-round, summer, or specific months" required></label>
+              <label class="wide-field"><span>Prior Skills or Experience <small>Optional</small></span><textarea name="experience" rows="4" placeholder="Cooking, event setup, working with children, bilingual communication, photography"></textarea></label>
+              <label class="wide-field"><span>Why Would You Like to Volunteer With SNACK?</span><textarea name="motivation" rows="5" required></textarea></label>
+              <label class="wide-field"><span>Questions for SNACK Staff <small>Optional</small></span><textarea name="questions" rows="4"></textarea></label>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="volunteer-permission-title">
+          <div class="section-heading">
+            <span>4</span>
+            <div><h2 id="volunteer-permission-title">Permission to Contact</h2><p>SNACK staff will review your application before discussing next steps.</p></div>
+          </div>
+          <div class="field-grid">
+            <label class="consent-field wide-field">
+              <input name="permissionToContact" type="checkbox" required>
+              <span>I agree that The SNACK Program may contact me about this volunteer application and volunteer opportunities.</span>
+            </label>
+            <label class="honeypot" aria-hidden="true"><span>Website</span><input name="website" type="text" tabindex="-1" autocomplete="off"></label>
+          </div>
+        </section>
+
+        <footer class="referral-actions">
+          <button id="submit-volunteer-application" type="submit">Submit Application</button>
+        </footer>
+        <p id="volunteer-application-status" class="referral-status" role="status" aria-live="polite"></p>
+      </form>
+
+      <section id="volunteer-application-confirmation" class="referral-confirmation" hidden>
+        <span aria-hidden="true">&#10003;</span>
+        <h2 tabindex="-1">Application received</h2>
+        <p>Thank you for your interest in volunteering with SNACK. A staff member will review your application and follow up with you.</p>
+      </section>
+    </main>
+
+    <script src="./app-config.js?v=20260716-localhost1"></script>
+    <script type="module" src="./volunteer.js?v=20260810-volunteer2"></script>
+  </body>
+</html>

@@ -11,56 +11,56 @@ const excludedPrintStatuses = new Set(["Canceled", "Rescheduled"]);
 export const lessonRetentionPrompts = Object.freeze({
   1: Object.freeze([]),
   2: Object.freeze([
-    "Nutrient dense / sometimes foods"
+    "Nutrient Dense / Sometimes Foods"
   ]),
   3: Object.freeze([
-    "Natural sugar & added sugar",
-    "Find added sugar on label & # grams",
-    "Nutrient dense / sometimes foods"
+    "Natural Sugar & Added Sugar",
+    "Find Added Sugar on Label & # Grams",
+    "Nutrient Dense / Sometimes Foods"
   ]),
   4: Object.freeze([
-    "5 food groups",
-    "Whole vs. white grains",
-    "# food groups each meal / day",
-    "Natural sugar & added sugar",
-    "Find added sugar on label & # grams",
-    "Nutrient dense / sometimes foods"
+    "5 Food Groups",
+    "Whole vs. White Grains",
+    "# Food Groups Each Meal / Day",
+    "Natural Sugar & Added Sugar",
+    "Find Added Sugar on Label & # Grams",
+    "Nutrient Dense / Sometimes Foods"
   ]),
   5: Object.freeze([
-    "3 macro (big) nutrients",
-    "Fiber, protein, fat foods",
-    "5 food groups",
-    "Whole vs. white grains",
-    "# food groups each meal / day",
-    "Natural sugar & added sugar",
-    "Find added sugar on label & # grams",
-    "Nutrient dense / sometimes foods"
+    "3 Macro (Big) Nutrients",
+    "Fiber, Protein, Fat Foods",
+    "5 Food Groups",
+    "Whole vs. White Grains",
+    "# Food Groups Each Meal / Day",
+    "Natural Sugar & Added Sugar",
+    "Find Added Sugar on Label & # Grams",
+    "Nutrient Dense / Sometimes Foods"
   ]),
   6: Object.freeze([
-    "2 micro (small) nutrients",
-    "Why eat the rainbow",
-    "3 macro (big) nutrients",
-    "Fiber, protein, fat foods",
-    "5 food groups",
-    "Whole vs. white grains",
-    "# food groups each meal / day",
-    "Natural sugar & added sugar",
-    "Find added sugar on label & # grams",
-    "Nutrient dense / sometimes foods"
+    "2 Micro (Small) Nutrients",
+    "Why Eat the Rainbow",
+    "3 Macro (Big) Nutrients",
+    "Fiber, Protein, Fat Foods",
+    "5 Food Groups",
+    "Whole vs. White Grains",
+    "# Food Groups Each Meal / Day",
+    "Natural Sugar & Added Sugar",
+    "Find Added Sugar on Label & # Grams",
+    "Nutrient Dense / Sometimes Foods"
   ]),
   7: Object.freeze([
-    "Mindful eating & how to do it",
-    "Hunger & fullness cues",
-    "2 micro (small) nutrients",
-    "Why eat the rainbow",
-    "3 macro (big) nutrients",
-    "Fiber, protein, fat foods",
-    "5 food groups",
-    "Whole vs. white grains",
-    "# food groups each meal / day",
-    "Natural sugar & added sugar",
-    "Find added sugar on label & # grams",
-    "Nutrient dense / sometimes foods"
+    "Mindful Eating & How to Do It",
+    "Hunger & Fullness Cues",
+    "2 Micro (Small) Nutrients",
+    "Why Eat the Rainbow",
+    "3 Macro (Big) Nutrients",
+    "Fiber, Protein, Fat Foods",
+    "5 Food Groups",
+    "Whole vs. White Grains",
+    "# Food Groups Each Meal / Day",
+    "Natural Sugar & Added Sugar",
+    "Find Added Sugar on Label & # Grams",
+    "Nutrient Dense / Sometimes Foods"
   ])
 });
 
@@ -324,13 +324,16 @@ function visitSummary(item, clientsById, allItems, { showGoal = true } = {}) {
     <section class="visit-summary" aria-label="Appointment details">
       <dl class="visit-details">
         <div class="client-detail"><dt>${names.length === 1 ? "Client" : "Clients"}</dt><dd>${escapeHtml(names.join(" & ") || "Client not listed")}</dd></div>
-        <div><dt>Caregiver</dt><dd>${escapeHtml(caregivers.join(" / ") || "Not listed")}</dd></div>
-        <div><dt>Language</dt><dd>${escapeHtml(languages.join(" / ") || "Not listed")}</dd></div>
-        <div><dt>${clients.length === 1 ? "Birthdate" : "Birthdates"}</dt><dd class="birthdate-list">${birthdates || "<span>Not listed</span>"}</dd></div>
-        <div><dt>Time</dt><dd>${escapeHtml(formatScheduleTime(scheduleTimeMinutes(appointmentTime(item))))}</dd></div>
-        <div><dt>Interval since last appointment</dt><dd>${escapeHtml(appointmentInterval(item, allItems))}</dd></div>
+        <div class="caregiver-detail"><dt>Caregiver</dt><dd>${escapeHtml(caregivers.join(" / ") || "Not listed")}</dd></div>
+        <div class="birthdate-detail"><dt>${clients.length === 1 ? "Birthdate" : "Birthdates"}</dt><dd class="birthdate-list">${birthdates || "<span>Not listed</span>"}</dd></div>
+        <div class="language-detail"><dt>Language</dt><dd>${escapeHtml(languages.join(" / ") || "Not listed")}</dd></div>
+        <div class="interpreter-detail"><dt>Interpreter Used</dt><dd>${item?.source?.interpreterUse
+          ? escapeHtml(item.source.interpreterUse)
+          : `<span class="print-check-choice"><i aria-hidden="true"></i>Yes</span><span class="print-check-choice"><i aria-hidden="true"></i>No</span><span class="print-check-choice"><i aria-hidden="true"></i>Not Needed</span>`}</dd></div>
+        <div class="time-detail"><dt>Time</dt><dd>${escapeHtml(formatScheduleTime(scheduleTimeMinutes(appointmentTime(item))))}</dd></div>
+        <div class="interval-detail"><dt>Interval Since Last Appointment</dt><dd>${escapeHtml(appointmentInterval(item, allItems))}</dd></div>
       </dl>
-      ${showGoal ? `<div class="current-goal"><strong>Previous Goal</strong><span>${escapeHtml(goal || "Not listed")}</span></div>` : ""}
+      ${showGoal ? `<div class="current-goal"><strong>Previous Goal:</strong><span>${escapeHtml(goal || "Not Listed")}</span></div>` : ""}
     </section>
   `;
 }
@@ -342,7 +345,7 @@ function writingBox(label, className = "") {
 function nextAppointmentRow() {
   return `
     <div class="next-appointment-row">
-      <div class="next-appointment-choice"><strong>Next appointment scheduled</strong><i aria-hidden="true"></i></div>
+      <div class="next-appointment-choice"><i aria-hidden="true"></i><strong>Next Appointment Scheduled</strong></div>
       <div class="next-appointment-date"><span>Date</span><em aria-hidden="true"></em></div>
     </div>
   `;
@@ -360,8 +363,8 @@ function knowledgeList(prompts) {
         ${prompts.map((prompt, index) => `
           <div class="knowledge-row ${index >= rows ? "is-column-start" : ""} ${index % rows ? "has-row-border" : ""}">
             <span>${escapeHtml(prompt)}</span>
-            <span class="knowledge-choice"><strong>Yes</strong><i></i></span>
-            <span class="knowledge-choice"><strong>No</strong><i></i></span>
+            <span class="knowledge-choice"><i></i><strong>Yes</strong></span>
+            <span class="knowledge-choice"><i></i><strong>No</strong></span>
           </div>
         `).join("")}
       </div>
@@ -392,9 +395,12 @@ function lessonNotePage(item, clientsById, allItems) {
       </section>
       <section class="note-section next-steps-section">
         <h2>Goal &amp; Next Steps</h2>
-        ${writingBox("Goal set today", retention.length ? "retention-goal-box" : "goal-box")}
+        <div class="next-steps-writing-grid">
+          ${writingBox("Goal", retention.length ? "retention-goal-box" : "goal-box")}
+          ${writingBox("Next Lesson", retention.length ? "retention-goal-box" : "goal-box")}
+        </div>
         ${nextAppointmentRow()}
-        ${writingBox("Follow-up needed?", retention.length ? "retention-follow-up-box" : "follow-up-box")}
+        ${writingBox("Follow-Up Needed?", retention.length ? "retention-follow-up-box" : "follow-up-box")}
       </section>
     </article>
   `;
@@ -441,7 +447,10 @@ function checkInNotePage(item, clientsById, allItems) {
       </section>
       <section class="note-section next-steps-section">
         <h2>Goal &amp; Next Steps</h2>
-        ${writingBox("New Goal", "check-in-new-goal-box")}
+        <div class="next-steps-writing-grid">
+          ${writingBox("Goal", "check-in-new-goal-box")}
+          ${writingBox("Next Lesson", "check-in-new-goal-box")}
+        </div>
         ${nextAppointmentRow()}
       </section>
     </article>
@@ -495,7 +504,7 @@ export function dailySchedulePages(items, dateKey, clientsById = new Map()) {
     <article class="print-page daily-schedule-page" aria-label="Daily clinic schedule">
       ${pageHeader(`SNACK Daily Schedule${index ? " (continued)" : ""}`, dateKey)}
       <section class="schedule-list" aria-label="Appointments">${chunk.map((item) => scheduleRow(item, clientsById)).join("")}</section>
-      <footer class="print-footer"><span>SNACK Program Manager</span><span>Daily clinic schedule</span></footer>
+      <footer class="print-footer"><span>SNACK Program Hub</span><span>Daily Clinic Schedule</span></footer>
     </article>
   `);
 }
@@ -531,7 +540,7 @@ export function appointmentPrepPage(item, clientsById = new Map()) {
     <article class="print-page daily-prep-page" aria-label="Appointment prep list">
       ${pageHeader("Appointment Prep List", appointmentDate(item))}
       <section class="prep-list" aria-label="Appointment preparation list">${prepCard(item, clientsById)}</section>
-      <footer class="print-footer"><span>SNACK Program Manager</span><span>Appointment prep list</span></footer>
+      <footer class="print-footer"><span>SNACK Program Hub</span><span>Appointment Prep List</span></footer>
     </article>
   `;
 }
@@ -565,7 +574,7 @@ export function dailyPrepPages(items, dateKey, clientsById = new Map()) {
     <article class="print-page daily-prep-page" aria-label="Daily appointment prep list">
       ${pageHeader(`Daily Prep List${index ? " (continued)" : ""}`, dateKey)}
       <section class="prep-list" aria-label="Appointment preparation lists">${chunk.map((item) => prepCard(item, clientsById)).join("")}</section>
-      <footer class="print-footer"><span>SNACK Program Manager</span><span>Daily appointment prep list</span></footer>
+      <footer class="print-footer"><span>SNACK Program Hub</span><span>Daily Appointment Prep List</span></footer>
     </article>
   `);
 }
@@ -574,6 +583,164 @@ export function dailyAppointmentNotePages(items, dateKey, clientsById = new Map(
   return printableScheduleItems(items, dateKey)
     .filter((item) => !isBlocked(item))
     .map((item) => appointmentNotePage(item, clientsById, items));
+}
+
+export function dailyFormPacketRequests(items, dateKey, clientsById = new Map()) {
+  return printableScheduleItems(items, dateKey)
+    .filter((item) => !isBlocked(item))
+    .flatMap((item) => {
+      const packet = appointmentType(item) === "Enrollment"
+        ? "enrollment"
+        : lessonNumber(item) === 7
+          ? "graduation"
+          : "";
+      if (!packet) return [];
+
+      return appointmentClientIds(item).map((clientId) => ({
+        appointmentId: String(item.id || item.source?.id || ""),
+        clientId,
+        clientName: clientFullName(clientsById.get(clientId)) || "Client",
+        packet
+      }));
+    });
+}
+
+export function selectedPrintDocumentHtml({ title, selections = [], baseHref }) {
+  const safeSelections = JSON.stringify(selections).replaceAll("<", "\\u003c");
+  return `<!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <base href="${escapeHtml(baseHref)}">
+        <title>${escapeHtml(title)}</title>
+        <link rel="icon" type="image/png" href="./favicon.png">
+        <link rel="stylesheet" href="./print-daily-template.css">
+        <link rel="stylesheet" href="./print-prep-template.css">
+        <link rel="stylesheet" href="./print-note-template.css?v=20260808-select1">
+        <link rel="stylesheet" href="./print-packet.css?v=20260808-duplex1">
+        <link rel="stylesheet" href="./client-form.css?v=20260808-duplex1">
+      </head>
+      <body>
+        <div class="print-toolbar">
+          <div><strong>${escapeHtml(title)}</strong><span class="daily-forms-toolbar-status" data-selected-print-status>Preparing selected forms...</span></div>
+          <button type="button" data-selected-print-button disabled>Print</button>
+        </div>
+        <main class="selected-print-host" data-selected-print-host></main>
+        <div class="selected-print-frame-host" data-selected-print-frames></div>
+        <script>
+          (() => {
+            const selections = ${safeSelections};
+            const host = document.querySelector("[data-selected-print-host]");
+            const frameHost = document.querySelector("[data-selected-print-frames]");
+            const status = document.querySelector("[data-selected-print-status]");
+            const printButton = document.querySelector("[data-selected-print-button]");
+            const delay = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+            const packetUrl = (request) => {
+              const search = new URLSearchParams({
+                client: request.clientId,
+                packet: request.packet,
+                mode: "print",
+                embed: "1"
+              });
+              if (request.appointmentId) search.set("appointment", request.appointmentId);
+              return "./client-form.html?" + search.toString();
+            };
+            const documentSection = (label, pages, pageCount = 1) => {
+              const section = document.createElement("section");
+              section.className = "selected-print-document";
+              section.setAttribute("aria-label", label || "Printable document");
+              section.dataset.printPageCount = String(Math.max(1, Number(pageCount) || 1));
+              section.innerHTML = pages.join("");
+              return section;
+            };
+            const loadPacket = async (selection, marker) => {
+              const request = selection.request;
+              const frame = document.createElement("iframe");
+              frame.title = request.clientName + " forms";
+              frame.src = packetUrl(request);
+              frameHost.append(frame);
+              const startedAt = Date.now();
+              while (Date.now() - startedAt < 60000) {
+                await delay(100);
+                try {
+                  const root = frame.contentDocument?.documentElement;
+                  if (root?.dataset.packetError) throw new Error(root.dataset.packetError);
+                  if (root?.dataset.packetReady === "true") {
+                    const packet = frame.contentDocument.querySelector(".client-form-paper-packet");
+                    if (!packet) throw new Error("The form packet did not finish loading.");
+                    [...packet.children].forEach((article) => {
+                      const pageCount = Number(article.dataset.printPageCount) || 1;
+                      marker.before(documentSection(article.querySelector("h1")?.textContent || selection.label, [article.outerHTML], pageCount));
+                    });
+                    frame.remove();
+                    marker.remove();
+                    return "";
+                  }
+                } catch (error) {
+                  frame.remove();
+                  marker.remove();
+                  return request.clientName + ": " + (error.message || "forms could not be loaded");
+                }
+              }
+              frame.remove();
+              marker.remove();
+              return request.clientName + ": forms took too long to load";
+            };
+            const addDuplexSpacing = () => {
+              const documents = [...host.querySelectorAll(":scope > .selected-print-document")];
+              documents.forEach((printDocument, index) => {
+                if (index === documents.length - 1) return;
+                const pageCount = Math.max(1, Number(printDocument.dataset.printPageCount) || 1);
+                if (pageCount % 2 === 0) return;
+                const spacer = document.createElement("article");
+                spacer.className = "print-duplex-spacer";
+                spacer.setAttribute("aria-label", "Blank page for double-sided printing");
+                spacer.innerHTML = "<span>Blank page for double-sided printing</span>";
+                printDocument.after(spacer);
+              });
+            };
+            const waitForImages = () => Promise.all([...document.images].map((image) => (
+              image.complete ? Promise.resolve() : new Promise((resolve) => {
+                image.addEventListener("load", resolve, { once: true });
+                image.addEventListener("error", resolve, { once: true });
+              })
+            )));
+            const prepare = async () => {
+              const failures = [];
+              const packetSelections = selections.filter((selection) => selection.kind === "packet");
+              let packetNumber = 0;
+              for (const selection of selections) {
+                status.textContent = "Preparing " + selection.label + "...";
+                if (selection.kind === "packet") {
+                  packetNumber += 1;
+                  status.textContent = "Preparing forms " + packetNumber + " of " + packetSelections.length + "...";
+                  const marker = document.createComment("packet-position");
+                  host.append(marker);
+                  const failure = await loadPacket(selection, marker);
+                  if (failure) failures.push(failure);
+                } else {
+                  host.append(documentSection(selection.label, selection.pages || [], selection.pageCount));
+                }
+              }
+              addDuplexSpacing();
+              if (failures.length) {
+                const warning = document.createElement("p");
+                warning.className = "daily-forms-warning";
+                warning.textContent = "Some forms could not be added: " + failures.join("; ");
+                host.prepend(warning);
+              }
+              status.textContent = failures.length ? "Ready with " + failures.length + " warning(s)" : "Ready to print";
+              printButton.disabled = false;
+              printButton.addEventListener("click", () => window.print());
+              await document.fonts.ready;
+              await waitForImages();
+            };
+            prepare();
+          })();
+        </script>
+      </body>
+    </html>`;
 }
 
 export function printDocumentHtml({ title, pages, baseHref, autoPrint = true }) {
@@ -587,7 +754,7 @@ export function printDocumentHtml({ title, pages, baseHref, autoPrint = true }) 
         <link rel="icon" type="image/png" href="./favicon.png">
         <link rel="stylesheet" href="./print-daily-template.css">
         <link rel="stylesheet" href="./print-prep-template.css">
-        <link rel="stylesheet" href="./print-note-template.css">
+        <link rel="stylesheet" href="./print-note-template.css?v=20260808-select1">
         <link rel="stylesheet" href="./print-packet.css">
       </head>
       <body>
@@ -596,6 +763,23 @@ export function printDocumentHtml({ title, pages, baseHref, autoPrint = true }) 
         ${autoPrint ? `<script>window.addEventListener("load", () => document.fonts.ready.then(() => window.setTimeout(() => window.print(), 250)));</script>` : ""}
       </body>
     </html>`;
+}
+
+export function dailyFormsPrintDocumentHtml({ title, packetRequests, notePages, baseHref }) {
+  const selections = [
+    ...packetRequests.map((request) => ({
+      kind: "packet",
+      label: `${request.packet === "enrollment" ? "Enrollment" : "Graduation"} Forms for ${request.clientName}`,
+      request
+    })),
+    ...notePages.map((page, index) => ({
+      kind: "static",
+      label: `Appointment Note ${index + 1}`,
+      pageCount: 1,
+      pages: [page]
+    }))
+  ];
+  return selectedPrintDocumentHtml({ title, selections, baseHref });
 }
 
 export function dailyPrintPacketPages(items, dateKey, clientsById = new Map()) {

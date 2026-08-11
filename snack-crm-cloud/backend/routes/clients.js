@@ -1,7 +1,6 @@
 import express from "express";
 import { FieldValue } from "@google-cloud/firestore";
 import {
-  allowedClientStatuses,
   allowedReferralTypes,
   cleanBoolean,
   cleanOptionalNumber,
@@ -12,8 +11,11 @@ import {
   fetchAllDocuments,
   firestore,
   hasRequiredPersonFields,
+  loadClientStatusDefinitions,
+  normalizeAddressState,
   requireAuth,
   siblingIdsForImportedRecord,
+  tasks,
   toClient,
   validateRequiredPersonFields
 } from "../lib/core.js";
@@ -32,10 +34,19 @@ router.get("/api/clients", requireAuth, async (_request, response, next) => {
   }
 });
 
+router.get("/api/clients/settings", requireAuth, async (_request, response, next) => {
+  try {
+    response.json({ clientStatuses: await loadClientStatusDefinitions() });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post("/api/clients", requireAuth, async (request, response, next) => {
   try {
     const payload = cleanPersonPayload(request.body);
     const status = cleanString(request.body.status) || "Scheduled";
+    const allowedClientStatuses = new Set((await loadClientStatusDefinitions()).map((item) => item.name));
     const now = new Date().toISOString();
 
     if (!validateRequiredPersonFields(payload, response)) {
@@ -95,6 +106,7 @@ router.post("/api/clients/import", requireAuth, async (request, response, next) 
     }
 
     const now = new Date().toISOString();
+    const allowedClientStatuses = new Set((await loadClientStatusDefinitions()).map((item) => item.name));
     const batch = firestore.batch();
     const skipped = [];
     const recordsToImport = [];
@@ -177,6 +189,7 @@ router.patch("/api/clients/:clientId", requireAuth, async (request, response, ne
     const clientId = cleanString(request.params.clientId);
     const hasStatusUpdate = Object.hasOwn(request.body, "status");
     const status = hasStatusUpdate ? cleanString(request.body.status) : "";
+    const allowedClientStatuses = new Set((await loadClientStatusDefinitions()).map((item) => item.name));
 
     if (!clientId) {
       response.status(400).json({
@@ -235,10 +248,13 @@ router.patch("/api/clients/:clientId", requireAuth, async (request, response, ne
       "addressCity",
       "addressState",
       "addressZip",
+      "yccoId",
       "notes"
     ]) {
       if (Object.hasOwn(request.body, field)) {
-        updates[field] = cleanString(request.body[field]);
+        updates[field] = field === "addressState"
+          ? normalizeAddressState(request.body[field])
+          : cleanString(request.body[field]);
       }
     }
 
@@ -270,6 +286,14 @@ router.patch("/api/clients/:clientId", requireAuth, async (request, response, ne
       updates.providerLinks = Array.isArray(request.body.providerLinks)
         ? request.body.providerLinks.map(cleanProviderLink).filter((link) => link.networkId && link.providerId)
         : [];
+    }
+
+    const completesPublicReview = Object.hasOwn(request.body, "publicReviewRequired")
+      && cleanBoolean(request.body.publicReviewRequired) === false;
+    if (completesPublicReview) {
+      updates.publicReviewRequired = false;
+      updates.publicReviewedAt = updates.updatedAt;
+      updates.publicReviewedBy = request.user.email;
     }
 
     if (Object.hasOwn(updates, "firstName") && !updates.firstName) {
@@ -315,6 +339,26 @@ router.patch("/api/clients/:clientId", requireAuth, async (request, response, ne
     }
 
     await docRef.update(updates);
+    if (completesPublicReview) {
+      const taskDocuments = await fetchAllDocuments(tasks.where("clientId", "==", clientId));
+      const batch = firestore.batch();
+      let hasUpdates = false;
+      taskDocuments.forEach((taskDocument) => {
+        const task = taskDocument.data();
+        if (task.source === "Public Booking"
+          && !["Done", "Canceled"].includes(cleanString(task.status))
+          && /^(Possible duplicate client|Review new public client record):/.test(cleanString(task.title))) {
+          batch.update(taskDocument.ref, {
+            status: "Done",
+            completedAt: updates.updatedAt,
+            updatedAt: updates.updatedAt,
+            updatedBy: request.user.email
+          });
+          hasUpdates = true;
+        }
+      });
+      if (hasUpdates) await batch.commit();
+    }
     const updated = await docRef.get();
 
     response.json({

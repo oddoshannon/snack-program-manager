@@ -238,10 +238,10 @@ async function runSmokeQa() {
       appointmentDate: availability.dates[0].date,
       appointmentTime: availability.dates[0].slots[0].value,
       children: [
-        { childName: "Rafael Hernandez" },
-        { childName: "Janney Hernandez" }
+        { childName: "Milo Exampleton" },
+        { childName: "Tessa Exampleton" }
       ],
-      caregiverName: "Neiva",
+      caregiverName: "Jordan",
       mobilePhone: "(971) 447-2646",
       email: "family@example.com",
       consentReminders: true
@@ -250,7 +250,7 @@ async function runSmokeQa() {
   assert.equal(bookingResponse.status, 201);
   const booking = await bookingResponse.json();
   assert.equal(booking.booking.serviceLabel, "Nutrition Education Appointment");
-  assert.deepEqual(booking.booking.clientNames, ["Rafael Hernandez", "Janney Hernandez"]);
+  assert.deepEqual(booking.booking.clientNames, ["Milo Exampleton", "Tessa Exampleton"]);
   assert.equal(booking.booking.durationMinutes, 30);
   assert.equal(booking.booking.appointmentId, "appt-public-1");
   assert.equal(booking.booking.manageToken, "mock-manage-token");

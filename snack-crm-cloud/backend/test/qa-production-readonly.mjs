@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-const frontendBaseUrl = String(process.env.SNACK_QA_BASE_URL || "https://snack-crm.web.app").replace(/\/$/, "");
+const frontendBaseUrl = String(process.env.SNACK_QA_BASE_URL || "https://hub.snackprogram.org").replace(/\/$/, "");
 const apiBaseUrl = String(process.env.SNACK_QA_API_BASE_URL || frontendBaseUrl).replace(/\/$/, "");
 const timeoutMs = Number(process.env.SNACK_QA_TIMEOUT_MS || 15000);
 
@@ -39,8 +39,8 @@ async function runReadOnlyQa() {
   await check("public booking scheduler", async () => {
     const { response, body } = await readResponse(frontendBaseUrl, "/book.html?service=enrollment");
     assert.equal(response.status, 200);
-    assert.match(body, /Select a time/);
-    assert.match(body, /Family information/);
+    assert.match(body, /Select a Time/);
+    assert.match(body, /Family Information/);
   });
 
   await check("public booking styles and script", async () => {

@@ -53,16 +53,50 @@ const lessonProgression = [
   ["Healthy Habits", "#7a33c2"]
 ];
 
-const clientStatusOptions = [
+let clientStatusDefinitions = [
+  { name: "Scheduled", color: "#078b4d" },
+  { name: "Active", color: "#004aad" },
+  { name: "Needs Reschedule", color: "#e23a4d" },
+  { name: "Needs Language Support", color: "#7a33c2" },
+  { name: "Waiting on Family", color: "#7a33c2" },
+  { name: "Age Limit", color: "#d27354" },
+  { name: "Graduated", color: "#f4c753" },
+  { name: "Inactive", color: "#475467" },
+  { name: "Closed", color: "#172033" }
+];
+let clientStatusOptions = clientStatusDefinitions.map((status) => status.name);
+const preferredClientStatusSortOrder = [
+  "Needs Reschedule",
   "Scheduled",
   "Active",
-  "Needs Reschedule",
   "Needs Language Support",
   "Waiting on Family",
+  "Age Limit",
   "Graduated",
   "Inactive",
   "Closed"
 ];
+
+function clientStatusOrderFor(definitions) {
+  const names = definitions.map((status) => status.name);
+  return [
+    ...preferredClientStatusSortOrder.filter((name) => names.includes(name)),
+    ...names.filter((name) => !preferredClientStatusSortOrder.includes(name))
+  ];
+}
+
+let clientStatusSortOrder = clientStatusOrderFor(clientStatusDefinitions);
+
+function setCrmClientStatusDefinitions(definitions = []) {
+  const next = Array.isArray(definitions)
+    ? definitions.map((item) => ({ name: cleanText(item?.name), color: cleanText(item?.color) }))
+      .filter((item) => item.name)
+    : [];
+  if (!next.length) return;
+  clientStatusDefinitions = next;
+  clientStatusOptions = next.map((status) => status.name);
+  clientStatusSortOrder = clientStatusOrderFor(next);
+}
 
 const referralTypeOptions = [
   "Internal Clinic Referral",
@@ -77,6 +111,30 @@ const referralTypeOptions = [
 
 const languageOptions = ["English", "Spanish", "Other"];
 const preferredContactOptions = ["Phone Call", "Text", "Email"];
+
+function crmStatusLabel(value) {
+  const status = cleanText(value);
+  return status === "Needs Reschedule" ? "Reschedule" : status;
+}
+
+function crmClientStatusRank(value) {
+  const index = clientStatusSortOrder.indexOf(cleanText(value));
+  return index < 0 ? clientStatusSortOrder.length : index;
+}
+
+function crmClientStatusTone(value) {
+  const status = cleanText(value);
+  if (status === "Needs Reschedule") return "red";
+  if (status === "Scheduled") return "green";
+  if (status === "Active") return "blue";
+  if (["Needs Language Support", "Waiting on Family"].includes(status)) return "purple";
+  if (status === "Graduated") return "yellow";
+  return "navy";
+}
+
+function crmClientStatusColor(value) {
+  return clientStatusDefinitions.find((status) => status.name === cleanText(value))?.color || "#475467";
+}
 
 function clientLessonIndex(value) {
   const lesson = cleanText(value).toLowerCase();
@@ -269,6 +327,10 @@ function providerProfileSummary(providerLinks = []) {
   return profiles.length ? profiles.map((profile) => profile.label).join(", ") : "-";
 }
 
+function caregiverFirstName(value) {
+  return cleanText(value).split(/\s+/)[0] || "-";
+}
+
 function mapCrmClient(client, clientsById = new Map(), options = {}) {
   const status = cleanText(client?.status) || "Active";
   const appointments = crmAppointmentsForClient(client, options.appointments);
@@ -293,24 +355,46 @@ function mapCrmClient(client, clientsById = new Map(), options = {}) {
   const providerLinks = Array.isArray(client?.providerLinks) ? client.providerLinks : [];
   const siblingProfiles = linkedSiblingProfiles(client, clientsById);
   const referringProviderProfiles = providerProfileLinks(providerLinks);
+  const possibleMatchProfiles = (Array.isArray(client?.publicPossibleMatchIds) ? client.publicPossibleMatchIds : [])
+    .map((id) => clientsById.get(id))
+    .filter(Boolean)
+    .map((candidate) => ({
+      id: cleanText(candidate.id),
+      name: clientName(candidate),
+      section: "Clients",
+      detail: [formatClientDate(candidate.dateOfBirth), cleanText(candidate.parentName), cleanText(candidate.phone)]
+        .filter((value) => value && value !== "-")
+        .join(" | ")
+    }));
+  const recentContact = formatClientDate(recentContactDate);
+  const phone = cleanText(client?.phone) || "-";
+  const caregiver = cleanText(client?.parentName) || "-";
+  const language = cleanText(client?.preferredLanguage) || "-";
 
   return {
     id: cleanText(client?.id),
     title: clientName(client),
-    subtitle: `${lesson} | ${formatClientDate(recentDate)}`,
+    subtitle: `${recentContact} | ${phone} | ${caregiverFirstName(caregiver)} | ${language}`,
     status,
-    caregiver: cleanText(client?.parentName) || "-",
+    statusTone: crmClientStatusTone(status),
+    statusColor: crmClientStatusColor(status),
+    caregiver,
     siblings: linkedSiblingNames(client, clientsById),
     siblingProfiles,
-    language: cleanText(client?.preferredLanguage) || "-",
-    phone: cleanText(client?.phone) || "-",
+    language,
+    phone,
     email: cleanText(client?.email) || "-",
     emailOptOut: client?.emailOptOut === true ? "Yes" : "No",
     textOptOut: client?.textOptOut === true ? "Yes" : "No",
+    serviceEmailConsent: client?.serviceEmailConsent === true ? "Yes" : "No",
+    serviceTextConsent: client?.serviceTextConsent === true ? "Yes" : "No",
+    marketingConsent: client?.marketingConsent === true ? "Yes" : "No",
+    consentSource: cleanText(client?.consentSource) || "-",
+    consentDate: formatClientDate(client?.consentDate),
     preferredContact: cleanText(client?.preferredContactMethod) || "-",
     address: formatClientAddress(client),
     gender: cleanText(client?.gender) || "-",
-    recentContact: formatClientDate(recentContactDate),
+    recentContact,
     firstContact: formatClientDate(client?.firstContactDate),
     referralDate: formatClientDate(client?.referralDate),
     convertedDate: formatClientDate(convertedDate),
@@ -320,6 +404,7 @@ function mapCrmClient(client, clientsById = new Map(), options = {}) {
       ? "Not graduated"
       : formatClientDate(client?.graduationDate),
     insurance: client?.ycco === true ? "YCCO" : client?.ycco === false ? "Not YCCO" : "Not listed",
+    yccoId: cleanText(client?.yccoId) || "-",
     hrsn: client?.hrsn === true ? "Eligible" : client?.hrsn === false ? "Not Eligible" : "Not listed",
     firstAppt: formatClientDate(firstAppointmentDate),
     recentAppt: formatClientDate(recentDate),
@@ -327,6 +412,7 @@ function mapCrmClient(client, clientsById = new Map(), options = {}) {
     nextLesson: lesson,
     providerProfiles: providerProfileSummary(providerLinks),
     providerProfileLinks: referringProviderProfiles,
+    possibleMatchProfiles,
     referralSource: cleanText(client?.referralSource || client?.referralType) || "-",
     notes: cleanText(client?.notes) || "-",
     lessonSteps: clientLessonSteps(client?.currentLesson),
@@ -341,7 +427,8 @@ function mapCrmClients(clients = [], options = {}) {
 
   return clients
     .map((client) => mapCrmClient(client, clientsById, options))
-    .sort((first, second) => first.title.localeCompare(second.title));
+    .sort((first, second) => crmClientStatusRank(first.status) - crmClientStatusRank(second.status)
+      || first.title.localeCompare(second.title));
 }
 
 function crmClientMatches(item, query) {
@@ -393,6 +480,9 @@ function crmClientPayload(values = {}) {
     "addressCity",
     "addressState",
     "addressZip",
+    "consentSource",
+    "consentDate",
+    "yccoId",
     "notes",
     "status"
   ];
@@ -402,7 +492,7 @@ function crmClientPayload(values = {}) {
       .map((field) => [field, cleanText(values[field])])
   );
 
-  for (const field of ["ycco", "hrsn", "emailOptOut", "textOptOut"]) {
+  for (const field of ["ycco", "hrsn", "emailOptOut", "textOptOut", "serviceEmailConsent", "serviceTextConsent", "marketingConsent"]) {
     if (Object.hasOwn(values, field)) {
       payload[field] = values[field] === true || values[field] === "true" || values[field] === "on";
     }
@@ -426,7 +516,7 @@ function crmSummary(items = []) {
   const count = (status) => items.filter((item) => item.status === status).length;
 
   return [
-    [String(count("Needs Reschedule")), "Needs Reschedule"],
+    [String(count("Needs Reschedule")), "Reschedule"],
     [String(count("Scheduled")), "Scheduled"],
     [String(count("Active")), "Active"],
     [String(count("Waiting on Family")), "Waiting on Family"]
@@ -447,12 +537,17 @@ export {
   crmAppointmentsForClient,
   crmClientMatches,
   crmClientPayload,
+  crmClientStatusRank,
+  crmClientStatusColor,
+  crmClientStatusTone,
   crmCloseDecision,
   crmLessonIsCurrent,
   crmNewAppointmentUrl,
   crmPreferredItemId,
   crmSiblingChanges,
+  crmStatusLabel,
   crmStatusOptions,
+  setCrmClientStatusDefinitions,
   crmSummary,
   formatClientAddress,
   formatClientDate,

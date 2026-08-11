@@ -2,14 +2,18 @@ import express from "express";
 import {
   cleanOutreachContactPayload,
   cleanOutreachEventPayload,
+  cleanReferralNetworkPayload,
   cleanString,
   fetchAllDocuments,
+  normalizedLookupKey,
   outreachContacts,
   outreachEvents,
+  referralNetwork,
   requireAuth,
   tasks,
   toOutreachContact,
-  toOutreachEvent
+  toOutreachEvent,
+  toReferralNetworkEntry
 } from "../lib/core.js";
 
 const router = express.Router();
@@ -159,14 +163,14 @@ router.post("/api/outreach-contacts", requireAuth, async (request, response, nex
 
     if (!payload.contactName && !payload.childName) {
       response.status(400).json({
-        error: "Contact name or child name is required."
+        error: "Lead name or child name is required."
       });
       return;
     }
 
     if (!payload.phone && !payload.email) {
       response.status(400).json({
-        error: "Phone or email is required."
+        error: "A phone number or email address is required for the lead."
       });
       return;
     }
@@ -180,6 +184,7 @@ router.post("/api/outreach-contacts", requireAuth, async (request, response, nex
     const created = await docRef.get();
 
     response.status(201).json({
+      lead: toOutreachContact(created),
       contact: toOutreachContact(created)
     });
   } catch (error) {
@@ -193,7 +198,7 @@ router.patch("/api/outreach-contacts/:contactId", requireAuth, async (request, r
 
     if (!contactId) {
       response.status(400).json({
-        error: "Outreach contact ID is required."
+        error: "Outreach lead ID is required."
       });
       return;
     }
@@ -203,7 +208,7 @@ router.patch("/api/outreach-contacts/:contactId", requireAuth, async (request, r
 
     if (!snapshot.exists) {
       response.status(404).json({
-        error: "Outreach contact was not found."
+        error: "Outreach lead was not found."
       });
       return;
     }
@@ -212,7 +217,7 @@ router.patch("/api/outreach-contacts/:contactId", requireAuth, async (request, r
 
     if (Object.hasOwn(request.body, "contactName") && !payload.contactName && !payload.childName) {
       response.status(400).json({
-        error: "Contact name or child name is required."
+        error: "Lead name or child name is required."
       });
       return;
     }
@@ -225,6 +230,7 @@ router.patch("/api/outreach-contacts/:contactId", requireAuth, async (request, r
     const updated = await docRef.get();
 
     response.json({
+      lead: toOutreachContact(updated),
       contact: toOutreachContact(updated)
     });
   } catch (error) {
@@ -239,7 +245,7 @@ router.patch("/api/outreach-contacts/:contactId/link-referral", requireAuth, asy
 
     if (!contactId || !referralId) {
       response.status(400).json({
-        error: "Outreach contact ID and referral ID are required."
+        error: "Outreach lead ID and referral ID are required."
       });
       return;
     }
@@ -249,7 +255,7 @@ router.patch("/api/outreach-contacts/:contactId/link-referral", requireAuth, asy
 
     if (!snapshot.exists) {
       response.status(404).json({
-        error: "Outreach contact was not found."
+        error: "Outreach lead was not found."
       });
       return;
     }
@@ -257,14 +263,108 @@ router.patch("/api/outreach-contacts/:contactId/link-referral", requireAuth, asy
     await docRef.update({
       referralId,
       status: "Referral Created",
+      conversionType: "Referral",
+      convertedAt: new Date().toISOString(),
+      convertedRecordId: referralId,
       updatedAt: new Date().toISOString(),
       updatedBy: request.user.email
     });
     const updated = await docRef.get();
 
     response.json({
+      lead: toOutreachContact(updated),
       contact: toOutreachContact(updated)
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/api/outreach-contacts/:contactId/convert", requireAuth, async (request, response, next) => {
+  try {
+    const contactId = cleanString(request.params.contactId);
+    const conversionType = cleanString(request.body.conversionType);
+    const allowedConversions = new Set(["Audience Only", "Community Partner", "Closed"]);
+
+    if (!contactId || !allowedConversions.has(conversionType)) {
+      response.status(400).json({
+        error: "Choose Audience Only, Community Partner, or Closed for this lead."
+      });
+      return;
+    }
+
+    const docRef = outreachContacts.doc(contactId);
+    const snapshot = await docRef.get();
+    if (!snapshot.exists) {
+      response.status(404).json({ error: "Outreach lead was not found." });
+      return;
+    }
+
+    const lead = toOutreachContact(snapshot);
+    const now = new Date().toISOString();
+    let convertedRecordId = "";
+    let networkEntry = null;
+
+    if (conversionType === "Community Partner") {
+      const organizationName = cleanString(request.body.organizationName || lead.organizationName || lead.contactName);
+      if (!organizationName) {
+        response.status(400).json({ error: "Enter an organization name before creating a Community Partner." });
+        return;
+      }
+
+      const networkDocuments = await fetchAllDocuments(referralNetwork);
+      const existing = networkDocuments.find((document) =>
+        normalizedLookupKey(document.data()?.name) === normalizedLookupKey(organizationName));
+      const networkPayload = cleanReferralNetworkPayload({
+        name: organizationName,
+        type: "Community Organization",
+        contactName: lead.contactName,
+        phone: lead.phone,
+        email: lead.email,
+        notes: [lead.notes, "Created from Outreach Leads."].map(cleanString).filter(Boolean).join("\n")
+      });
+
+      if (existing) {
+        convertedRecordId = existing.id;
+        const existingData = existing.data();
+        await existing.ref.update({
+          contactName: cleanString(existingData.contactName) || networkPayload.contactName,
+          phone: cleanString(existingData.phone) || networkPayload.phone,
+          email: cleanString(existingData.email) || networkPayload.email,
+          updatedAt: now,
+          updatedBy: request.user.email
+        });
+        networkEntry = toReferralNetworkEntry(await existing.ref.get());
+      } else {
+        const networkRef = await referralNetwork.add({
+          ...networkPayload,
+          createdAt: now,
+          updatedAt: now,
+          createdBy: request.user.email
+        });
+        convertedRecordId = networkRef.id;
+        networkEntry = toReferralNetworkEntry(await networkRef.get());
+      }
+    }
+
+    const conversionUpdate = {
+      status: conversionType,
+      conversionType,
+      convertedAt: now,
+      convertedRecordId,
+      updatedAt: now,
+      updatedBy: request.user.email
+    };
+    if (conversionType === "Community Partner") {
+      conversionUpdate.audienceGroups = [...new Set([
+        ...(Array.isArray(lead.audienceGroups) ? lead.audienceGroups : []),
+        "Community Partners"
+      ])];
+    }
+
+    await docRef.update(conversionUpdate);
+    const convertedLead = toOutreachContact(await docRef.get());
+    response.json({ lead: convertedLead, contact: convertedLead, networkEntry });
   } catch (error) {
     next(error);
   }
@@ -276,7 +376,7 @@ router.delete("/api/outreach-contacts/:contactId", requireAuth, async (request, 
 
     if (!contactId) {
       response.status(400).json({
-        error: "Outreach contact ID is required."
+        error: "Outreach lead ID is required."
       });
       return;
     }
@@ -286,7 +386,7 @@ router.delete("/api/outreach-contacts/:contactId", requireAuth, async (request, 
 
     if (!snapshot.exists) {
       response.status(404).json({
-        error: "Outreach contact was not found."
+        error: "Outreach lead was not found."
       });
       return;
     }

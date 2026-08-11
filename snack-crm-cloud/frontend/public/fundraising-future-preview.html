@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SNACK Program Hub Fundraising Preview</title>
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <link rel="stylesheet" href="./clean.css?v=20260721-fundraising-preview1">
+    <link rel="stylesheet" href="./fundraising-future-preview.css?v=20260721-fundraising-preview1">
+  </head>
+  <body>
+    <div class="app-shell fundraising-preview-shell" data-shell data-module-id="fundraising">
+      <aside class="sidebar" aria-label="Main navigation">
+        <div class="brand">
+          <button class="brand-mark" data-toggle-sidebar type="button" aria-label="Collapse navigation">
+            <img src="./favicon.png" alt="">
+          </button>
+          <div class="brand-copy">
+            <strong>SNACK</strong>
+            <span>Program Hub</span>
+          </div>
+        </div>
+
+        <div class="sidebar-scroll">
+          <nav class="module-nav" aria-label="Fundraising navigation">
+            <a class="preview-nav-button" data-tone="red" href="./schedule.html">
+              <span class="nav-icon" data-icon="schedule"></span><span>Schedule</span>
+            </a>
+            <a class="preview-nav-button" data-tone="orange" href="./crm.html">
+              <span class="nav-icon" data-icon="crm"></span><span>CRM</span>
+            </a>
+            <a class="preview-nav-button" data-tone="yellow" href="./outreach.html">
+              <span class="nav-icon" data-icon="outreach"></span><span>Outreach</span>
+            </a>
+            <section class="module-group" data-tone="green">
+              <a class="preview-nav-button is-active" href="./finances.html">
+                <span class="nav-icon" data-icon="fundraising"></span><span>Fundraising</span>
+              </a>
+              <div class="subnav">
+                <button class="is-current" type="button">Grants</button>
+                <button type="button">Donors</button>
+                <button type="button">Campaigns</button>
+                <button type="button">Earned Income</button>
+              </div>
+            </section>
+            <a class="preview-nav-button" data-tone="blue" href="./marketing.html">
+              <span class="nav-icon" data-icon="marketing"></span><span>Marketing</span>
+            </a>
+            <a class="preview-nav-button" data-tone="navy" href="./operations.html">
+              <span class="nav-icon" data-icon="operations"></span><span>Operations</span>
+            </a>
+            <a class="preview-nav-button" data-tone="purple" href="./admin.html">
+              <span class="nav-icon" data-icon="admin"></span><span>Admin</span>
+            </a>
+          </nav>
+        </div>
+
+        <section class="quick-actions" aria-label="Quick actions">
+          <h2>Quick Actions</h2>
+          <button class="quick-button" type="button"><span class="nav-icon" data-icon="plus"></span>New Grant</button>
+          <button class="quick-button" data-preview-view-target="answers" type="button"><span class="nav-icon" data-icon="plus"></span>New Answer</button>
+          <button class="quick-button" data-preview-view-target="documents" type="button"><span class="nav-icon" data-icon="plus"></span>Upload Document</button>
+        </section>
+
+        <div class="account">
+          <span class="avatar">SO</span>
+          <strong>Shannon Oddo</strong>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="page-header">
+          <div class="page-title">
+            <h1>Fundraising</h1>
+          </div>
+          <div class="header-actions">
+            <button class="primary-action" type="button"><span data-icon="plus"></span><span data-primary-action-label>New Grant</span></button>
+          </div>
+        </header>
+
+        <section class="summary-strip" aria-label="Grant summary">
+          <div class="summary-item"><strong>7</strong><span>Open Grants</span></div>
+          <div class="summary-item"><strong>3</strong><span>Due in 45 Days</span></div>
+          <div class="summary-item"><strong>2</strong><span>Submitted</span></div>
+          <div class="summary-item"><strong>1</strong><span>Awarded</span></div>
+        </section>
+
+        <nav class="preview-feature-tabs" aria-label="Grant workspace views" role="tablist">
+          <button class="is-active" data-preview-view="pipeline" type="button" role="tab" aria-selected="true">
+            <span data-icon="columns"></span><span>Pipeline</span>
+          </button>
+          <button data-preview-view="deadlines" type="button" role="tab" aria-selected="false">
+            <span data-icon="calendar"></span><span>Deadlines</span>
+          </button>
+          <button data-preview-view="answers" type="button" role="tab" aria-selected="false">
+            <span data-icon="note"></span><span>Answer Library</span>
+          </button>
+          <button data-preview-view="organization" type="button" role="tab" aria-selected="false">
+            <span data-icon="building"></span><span>Organization</span>
+          </button>
+          <button data-preview-view="documents" type="button" role="tab" aria-selected="false">
+            <span data-icon="file"></span><span>Documents</span>
+          </button>
+        </nav>
+
+        <section class="preview-view is-active" data-preview-panel="pipeline" aria-label="Grant pipeline">
+          <div class="preview-toolbar">
+            <div>
+              <h2>Status Pipeline</h2>
+              <p>Grant opportunities grouped by application stage.</p>
+            </div>
+            <label class="preview-search">
+              <span class="sr-only">Search grants</span>
+              <span data-icon="search"></span>
+              <input type="search" placeholder="Search grants">
+            </label>
+          </div>
+
+          <div class="grant-board" data-grant-board>
+            <section class="grant-column" data-stage="Researching">
+              <header><span>Researching</span><strong>2</strong></header>
+              <div class="grant-column-body" data-drop-zone>
+                <article class="grant-board-card" draggable="true" data-grant-card>
+                  <div class="grant-card-heading"><strong>Community Wellness Fund</strong><span>$25k</span></div>
+                  <p>Northwest Health Foundation</p>
+                  <div class="grant-card-meta"><span>Opens Aug 1</span><span>Nutrition</span></div>
+                </article>
+                <article class="grant-board-card" draggable="true" data-grant-card>
+                  <div class="grant-card-heading"><strong>Children's Health Initiative</strong><span>$15k</span></div>
+                  <p>Ford Family Foundation</p>
+                  <div class="grant-card-meta"><span>Rolling</span><span>Rural health</span></div>
+                </article>
+              </div>
+            </section>
+
+            <section class="grant-column" data-stage="Planning">
+              <header><span>Planning</span><strong>2</strong></header>
+              <div class="grant-column-body" data-drop-zone>
+                <article class="grant-board-card" draggable="true" data-grant-card>
+                  <div class="grant-card-heading"><strong>Healthy Families Grant</strong><span>$12k</span></div>
+                  <p>Yamhill Giving Fund</p>
+                  <div class="grant-card-meta"><span>Due Aug 12</span><span>Family wellness</span></div>
+                </article>
+                <article class="grant-board-card" draggable="true" data-grant-card>
+                  <div class="grant-card-heading"><strong>Community Impact Award</strong><span>$8k</span></div>
+                  <p>First Federal Foundation</p>
+                  <div class="grant-card-meta"><span>Due Sep 4</span><span>Youth</span></div>
+                </article>
+              </div>
+            </section>
+
+            <section class="grant-column" data-stage="In Progress">
+              <header><span>In Progress</span><strong>1</strong></header>
+              <div class="grant-column-body" data-drop-zone>
+                <article class="grant-board-card is-priority" draggable="true" data-grant-card>
+                  <div class="grant-card-heading"><strong>Nutrition Access Grant</strong><span>$30k</span></div>
+                  <p>Oregon Community Foundation</p>
+                  <div class="grant-card-meta"><span>Due Jul 29</span><span>8 days</span></div>
+                </article>
+              </div>
+            </section>
+
+            <section class="grant-column" data-stage="Submitted">
+              <header><span>Submitted</span><strong>2</strong></header>
+              <div class="grant-column-body" data-drop-zone>
+                <article class="grant-board-card" draggable="true" data-grant-card>
+                  <div class="grant-card-heading"><strong>Family Nutrition Fund</strong><span>$20k</span></div>
+                  <p>Community Health Foundation</p>
+                  <div class="grant-card-meta"><span>Submitted Jul 10</span><span>Decision Sep</span></div>
+                </article>
+                <article class="grant-board-card" draggable="true" data-grant-card>
+                  <div class="grant-card-heading"><strong>Local Food Education</strong><span>$5k</span></div>
+                  <p>Spirit Mountain Community Fund</p>
+                  <div class="grant-card-meta"><span>Submitted Jun 28</span><span>Decision Aug</span></div>
+                </article>
+              </div>
+            </section>
+
+            <section class="grant-column" data-stage="Awarded">
+              <header><span>Awarded</span><strong>1</strong></header>
+              <div class="grant-column-body" data-drop-zone>
+                <article class="grant-board-card is-awarded" draggable="true" data-grant-card>
+                  <div class="grant-card-heading"><strong>Kids Thrive 2026</strong><span>$18k</span></div>
+                  <p>Willamette Valley Fund</p>
+                  <div class="grant-card-meta"><span>Report due Dec 15</span><span>Awarded</span></div>
+                </article>
+              </div>
+            </section>
+          </div>
+          <p class="preview-status" data-drag-status role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="preview-view" data-preview-panel="deadlines" aria-label="Upcoming grant deadlines" hidden>
+          <div class="preview-toolbar">
+            <div>
+              <h2>Upcoming Deadlines</h2>
+              <p>Application, decision, and reporting dates in one queue.</p>
+            </div>
+            <div class="preview-toolbar-actions">
+              <button class="preview-icon-button" type="button" aria-label="Previous month"><span data-icon="chevron-left"></span></button>
+              <button class="preview-date-button" type="button">July - September 2026</button>
+              <button class="preview-icon-button" type="button" aria-label="Next month"><span data-icon="chevron-right"></span></button>
+            </div>
+          </div>
+          <div class="deadline-layout">
+            <section class="deadline-band">
+              <div class="deadline-date"><strong>29</strong><span>Jul</span></div>
+              <div class="deadline-copy"><strong>Nutrition Access Grant</strong><span>Oregon Community Foundation</span></div>
+              <span class="deadline-type is-application">Application</span>
+              <span class="deadline-owner">Shannon</span>
+              <strong class="deadline-amount">$30,000</strong>
+            </section>
+            <section class="deadline-band">
+              <div class="deadline-date"><strong>12</strong><span>Aug</span></div>
+              <div class="deadline-copy"><strong>Healthy Families Grant</strong><span>Yamhill Giving Fund</span></div>
+              <span class="deadline-type is-application">Application</span>
+              <span class="deadline-owner">Shannon</span>
+              <strong class="deadline-amount">$12,000</strong>
+            </section>
+            <section class="deadline-band">
+              <div class="deadline-date"><strong>22</strong><span>Aug</span></div>
+              <div class="deadline-copy"><strong>Local Food Education</strong><span>Spirit Mountain Community Fund</span></div>
+              <span class="deadline-type is-decision">Decision</span>
+              <span class="deadline-owner">Shannon</span>
+              <strong class="deadline-amount">$5,000</strong>
+            </section>
+            <section class="deadline-band">
+              <div class="deadline-date"><strong>15</strong><span>Dec</span></div>
+              <div class="deadline-copy"><strong>Kids Thrive 2026</strong><span>Willamette Valley Fund</span></div>
+              <span class="deadline-type is-report">Report</span>
+              <span class="deadline-owner">Cynthia</span>
+              <strong class="deadline-amount">$18,000</strong>
+            </section>
+          </div>
+        </section>
+
+        <section class="preview-view" data-preview-panel="answers" aria-label="Reusable grant application answers" hidden>
+          <div class="preview-toolbar">
+            <div>
+              <h2>Answer Library</h2>
+              <p>Approved copy blocks ready to reuse in grant applications.</p>
+            </div>
+            <label class="preview-search">
+              <span class="sr-only">Search answers</span>
+              <span data-icon="search"></span>
+              <input type="search" placeholder="Search answers">
+            </label>
+          </div>
+          <div class="answer-workspace">
+            <aside class="answer-list" aria-label="Saved answers">
+              <button class="is-selected" type="button"><strong>Organization mission</strong><span>Organization | 96 words</span></button>
+              <button type="button"><strong>Community need</strong><span>Need statement | 214 words</span></button>
+              <button type="button"><strong>Program description</strong><span>Programs | 308 words</span></button>
+              <button type="button"><strong>Equity and access</strong><span>Approach | 176 words</span></button>
+              <button type="button"><strong>Evaluation plan</strong><span>Outcomes | 245 words</span></button>
+              <button type="button"><strong>Sustainability</strong><span>Organization | 188 words</span></button>
+            </aside>
+            <article class="answer-detail">
+              <div class="answer-detail-heading">
+                <div><span>Organization</span><h3>Organization mission</h3></div>
+                <div><button type="button">Copy</button><button class="edit-button" type="button">Edit</button></div>
+              </div>
+              <p>Our mission is to improve the health and wellness of children and youth in Yamhill County. The SNACK Program offers free nutrition education and wellness activities that help children and families build sustainable, lifelong healthy habits while maintaining equitable access for the diverse communities we serve.</p>
+              <dl class="answer-meta">
+                <div><dt>Word Count</dt><dd>54</dd></div>
+                <div><dt>Last Updated</dt><dd>July 18, 2026</dd></div>
+                <div><dt>Last Used</dt><dd>Nutrition Access Grant</dd></div>
+                <div><dt>Variants</dt><dd>Short, Standard, Spanish</dd></div>
+              </dl>
+            </article>
+          </div>
+        </section>
+
+        <section class="preview-view" data-preview-panel="organization" aria-label="Saved organization information" hidden>
+          <div class="preview-toolbar">
+            <div>
+              <h2>Organization Information</h2>
+              <p>Frequently requested organization details and current reference documents.</p>
+            </div>
+            <button class="preview-outline-action" type="button">Edit Information</button>
+          </div>
+          <div class="organization-grid">
+            <section class="organization-section">
+              <h3>Identity</h3>
+              <dl>
+                <div><dt>Legal Name</dt><dd>Student Nutrition &amp; Activity Clinic for Kids</dd></div>
+                <div><dt>DBA</dt><dd>The SNACK Program</dd></div>
+                <div><dt>EIN</dt><dd>XX-XXXXXXX</dd></div>
+                <div><dt>Year Founded</dt><dd>2022</dd></div>
+                <div><dt>Annual Budget</dt><dd>$185,000</dd></div>
+              </dl>
+            </section>
+            <section class="organization-section">
+              <h3>Contact</h3>
+              <dl>
+                <div><dt>Address</dt><dd>2435 NE Cumulus Ave, Suite A<br>McMinnville, OR 97128</dd></div>
+                <div><dt>Phone</dt><dd>(971) 202-0232</dd></div>
+                <div><dt>Email</dt><dd>director@snackprogram.org</dd></div>
+                <div><dt>Website</dt><dd>snackprogram.org</dd></div>
+              </dl>
+            </section>
+            <section class="organization-section is-wide">
+              <h3>Core Language</h3>
+              <dl>
+                <div><dt>Mission</dt><dd>Improve the health and wellness of children and youth in Yamhill County.</dd></div>
+                <div><dt>Primary Programs</dt><dd>Family nutrition appointments, youth cooking classes, community outreach, and free nutrition resources.</dd></div>
+                <div><dt>Service Area</dt><dd>Yamhill County, Oregon</dd></div>
+              </dl>
+            </section>
+          </div>
+        </section>
+
+        <section class="preview-view" data-preview-panel="documents" aria-label="Grant document management" hidden>
+          <div class="preview-toolbar">
+            <div>
+              <h2>Grant Documents</h2>
+              <p>Current organization files and documents linked to individual grants.</p>
+            </div>
+            <button class="preview-outline-action" type="button"><span data-icon="upload"></span>Upload Document</button>
+          </div>
+          <div class="document-filters" role="group" aria-label="Document filters">
+            <button class="is-active" type="button">All Files <span>12</span></button>
+            <button type="button">Organization <span>5</span></button>
+            <button type="button">Financial <span>3</span></button>
+            <button type="button">Grant Specific <span>4</span></button>
+          </div>
+          <div class="document-table" role="table" aria-label="Grant documents">
+            <div class="document-row document-head" role="row">
+              <span role="columnheader">Document</span><span role="columnheader">Category</span><span role="columnheader">Linked Grant</span><span role="columnheader">Updated</span><span></span>
+            </div>
+            <div class="document-row" role="row">
+              <span class="document-name"><span data-icon="file"></span><span><strong>IRS Determination Letter.pdf</strong><small>PDF | 248 KB</small></span></span>
+              <span>Organization</span><span>All grants</span><span>Jul 18, 2026</span><button type="button">Open</button>
+            </div>
+            <div class="document-row" role="row">
+              <span class="document-name"><span data-icon="file"></span><span><strong>2025 Financial Statements.pdf</strong><small>PDF | 1.2 MB</small></span></span>
+              <span>Financial</span><span>All grants</span><span>Jul 10, 2026</span><button type="button">Open</button>
+            </div>
+            <div class="document-row" role="row">
+              <span class="document-name"><span data-icon="file"></span><span><strong>SNACK Program Budget.xlsx</strong><small>Excel | 86 KB</small></span></span>
+              <span>Financial</span><span>Nutrition Access Grant</span><span>Jul 20, 2026</span><button type="button">Open</button>
+            </div>
+            <div class="document-row" role="row">
+              <span class="document-name"><span data-icon="file"></span><span><strong>Board Member List.pdf</strong><small>PDF | 112 KB</small></span></span>
+              <span>Organization</span><span>All grants</span><span>Jun 30, 2026</span><button type="button">Open</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./fundraising-future-preview.js?v=20260721-fundraising-preview1"></script>
+  </body>
+</html>

@@ -13,6 +13,7 @@ import {
   blockTimePayload,
   cleanAppointmentType,
   completedAppointmentPayload,
+  completedLessonForNextAppointment,
   defaultNextAppointmentDate,
   formatAppointmentDate,
   formatScheduleWeekRange,
@@ -25,6 +26,7 @@ import {
   offsetScheduleDate,
   prepForAppointment,
   rescheduleAppointmentPayloads,
+  scheduleClientOutcomeUpdates,
   scheduleTimeMinutes,
   scheduleTimeOptions,
   scheduleWeekDates
@@ -35,29 +37,33 @@ import {
   appointmentPrepGroups,
   appointmentPrepPage,
   dailyAppointmentNotePages,
+  dailyFormPacketRequests,
+  dailyFormsPrintDocumentHtml,
   dailyPrepPages,
   dailyPrintPacketPages,
   dailySchedulePages,
   lessonRetentionPrompts,
   noteRetentionForAppointment,
   printableScheduleItems,
-  printDocumentHtml
+  printDocumentHtml,
+  selectedPrintDocumentHtml
 } from "../../frontend/public/modules/schedule-print.js";
+import { appointmentCompletionValidationError } from "../routes/appointments.js";
 
 const printClients = new Map([
-  ["rafael", {
-    id: "rafael",
-    firstName: "Rafael",
-    lastName: "Hernandez Garcia",
-    parentName: "Neiva Hernandez",
+  ["milo", {
+    id: "milo",
+    firstName: "Milo",
+    lastName: "Exampleton Garcia",
+    parentName: "Jordan Exampleton",
     preferredLanguage: "Spanish",
     dateOfBirth: "2013-08-14"
   }],
-  ["janney", {
-    id: "janney",
-    firstName: "Janney",
-    lastName: "Hernandez Garcia",
-    parentName: "Neiva Hernandez",
+  ["tessa", {
+    id: "tessa",
+    firstName: "Tessa",
+    lastName: "Exampleton Garcia",
+    parentName: "Jordan Exampleton",
     preferredLanguage: "Spanish",
     dateOfBirth: "2017-03-02"
   }]
@@ -74,8 +80,8 @@ function printAppointment(overrides = {}) {
     lesson: "Nutrient Density",
     goal: "Try one new vegetable",
     staff: "Cynthia Esparza",
-    clientIds: ["rafael", "janney"],
-    clientNames: ["Rafael Hernandez Garcia", "Janney Hernandez Garcia"],
+    clientIds: ["milo", "tessa"],
+    clientNames: ["Milo Exampleton Garcia", "Tessa Exampleton Garcia"],
     ...overrides
   };
 }
@@ -119,11 +125,42 @@ test("the print center stays accessible without returning it to schedule navigat
     "utf8"
   );
 
-  assert.match(cleanSource, /subpages: \["Clinic", "Public Booking"\]/);
+  assert.match(cleanSource, /subpages: \["Clinic", "Kitchen", "School", "Public Booking"\]/);
   assert.match(cleanSource, /quickActions: \["New Appointment", "Block Time", "Print Forms"\]/);
   assert.match(cleanSource, /data-open-schedule-print-center/);
   assert.match(cleanSource, /setScheduleSubpage\(module, "Print Forms"\)/);
-  assert.match(cleanSource, /Daily Print Packet/);
+  assert.match(cleanSource, /Choose What to Print/);
+  assert.match(cleanSource, /data-schedule-print-selection/);
+  assert.match(cleanSource, /data-schedule-print-selected/);
+  assert.match(cleanSource, /dailyFormsPrintDocumentHtml/);
+  assert.match(cleanSource, /data-new-appointment-duration/);
+});
+
+test("new appointment action retries a failed schedule load", () => {
+  const cleanSource = readFileSync(
+    new URL("../../frontend/public/clean.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(cleanSource, /async function openNewAppointmentPanel\(preselectedClientIds = \[\], selectedTime = ""\)/);
+  assert.match(cleanSource, /if \(scheduleDataState === "error"\) \{[\s\S]*await loadScheduleData\(scheduleCurrentUser\);/);
+  assert.match(cleanSource, /Appointments could not be loaded\. Click New Appointment to try again\./);
+});
+
+test("clicking an open Day calendar time starts a new appointment at that time", () => {
+  const cleanSource = readFileSync(
+    new URL("../../frontend/public/clean.js", import.meta.url),
+    "utf8"
+  );
+  const cleanCss = readFileSync(
+    new URL("../../frontend/public/clean.css", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(cleanSource, /data-schedule-new-time="\$\{escapeHtml\(time\)\}"/);
+  assert.match(cleanSource, /openNewAppointmentPanel\(\[\], scheduleOpenSlot\.dataset\.scheduleNewTime\)/);
+  assert.match(cleanSource, /renderNewAppointmentTimeOptions\(selectedTime\)/);
+  assert.match(cleanCss, /\.schedule-open-slot/);
 });
 
 test("blocked time uses the selected date, time, and staff without a client", () => {
@@ -168,22 +205,40 @@ test("new appointments use existing client records and preserve the selected ser
     appointmentTime: "3:30 PM",
     lesson: "Sugar",
     goal: "Compare drinks",
+    durationMinutes: "60",
     status: "Completed",
     staffMember: "Cynthia Esparza",
     notes: "Sibling appointment"
   }, [
-    { id: "rafael", firstName: "Rafael", lastName: "Hernández García" },
-    { id: "janney", firstName: "Janney", lastName: "Hernández García" }
+    { id: "milo", firstName: "Milo", lastName: "Exampleton García" },
+    { id: "tessa", firstName: "Tessa", lastName: "Exampleton García" }
   ]);
 
-  assert.deepEqual(payload.clientIds, ["rafael", "janney"]);
-  assert.deepEqual(payload.clientNames, ["Rafael Hernández García", "Janney Hernández García"]);
+  assert.deepEqual(payload.clientIds, ["milo", "tessa"]);
+  assert.deepEqual(payload.clientNames, ["Milo Exampleton García", "Tessa Exampleton García"]);
   assert.equal(payload.appointmentType, "Nutrition Education");
   assert.equal(payload.publicBookingServiceId, "spanish-nutrition-education");
   assert.equal(payload.publicBookingServiceLabel, "Cita de educación nutricional en español");
   assert.equal(payload.appointmentTime, "15:30");
-  assert.equal(payload.durationMinutes, 30);
+  assert.equal(payload.durationMinutes, 60);
   assert.equal(payload.status, "Completed");
+});
+
+test("schedule uses its limited client and settings endpoints", () => {
+  const cleanSource = readFileSync(
+    new URL("../../frontend/public/clean.js", import.meta.url),
+    "utf8"
+  );
+  const routeSource = readFileSync(
+    new URL("../routes/appointments.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(cleanSource, /\/api\/schedule\/clients/);
+  assert.match(cleanSource, /\/api\/schedule\/settings/);
+  assert.match(cleanSource, /\/api\/schedule\/clients\/\$\{encodeURIComponent\(clientId\)\}\/outcome/);
+  assert.match(routeSource, /router\.get\("\/api\/schedule\/clients"/);
+  assert.match(routeSource, /router\.patch\("\/api\/schedule\/clients\/:clientId\/outcome"/);
 });
 
 test("new appointments use the schedule detail panel instead of a popup", () => {
@@ -195,6 +250,21 @@ test("new appointments use the schedule detail panel instead of a popup", () => 
   assert.match(cleanSource, /data-new-appointment-side/);
   assert.match(cleanSource, /data-new-appointment-main/);
   assert.doesNotMatch(cleanSource, /data-new-appointment-dialog/);
+});
+
+test("schedule detail tabs rearrange instead of overlapping in a narrow detail panel", () => {
+  const cleanSource = readFileSync(
+    new URL("../../frontend/public/clean.js", import.meta.url),
+    "utf8"
+  );
+  const cleanCss = readFileSync(
+    new URL("../../frontend/public/clean.css", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(cleanSource, /moduleId === "schedule" \? `data-compact-label=/);
+  assert.match(cleanCss, /@container \(max-width: 420px\) \{[\s\S]*?data-module-id="schedule"\] \.tabs\.has-icons \{[\s\S]*?grid-template-columns: repeat\(3/);
+  assert.match(cleanCss, /@container \(max-width: 270px\) \{[\s\S]*?data-module-id="schedule"\] \.tabs\.has-icons \{[\s\S]*?grid-template-columns: repeat\(2/);
 });
 
 test("blocked time uses the schedule detail panel instead of a popup", () => {
@@ -279,17 +349,17 @@ test("nutrition education prep uses the prize and food snack checklist", () => {
 
 test("multi-client appointments map into the approved schedule details", () => {
   const clientsById = new Map([
-    ["rafael", {
-      firstName: "Rafael",
-      lastName: "Hernández García",
-      parentName: "Neiva",
+    ["milo", {
+      firstName: "Milo",
+      lastName: "Exampleton García",
+      parentName: "Jordan",
       preferredLanguage: "Spanish",
       phone: "9714472646"
     }],
-    ["janney", {
-      firstName: "Janney",
-      lastName: "Hernández García",
-      parentName: "Neiva",
+    ["tessa", {
+      firstName: "Tessa",
+      lastName: "Exampleton García",
+      parentName: "Jordan",
       preferredLanguage: "Spanish",
       phone: "9714472646"
     }]
@@ -297,7 +367,7 @@ test("multi-client appointments map into the approved schedule details", () => {
 
   const mapped = mapAppointment({
     id: "appointment-1",
-    clientIds: ["rafael", "janney"],
+    clientIds: ["milo", "tessa"],
     appointmentDate: "2026-07-07",
     appointmentTime: "2:30 PM",
     appointmentType: "Enrollment Appointment",
@@ -308,7 +378,7 @@ test("multi-client appointments map into the approved schedule details", () => {
     prepChecklist: { enrollmentForm: true }
   }, clientsById);
 
-  assert.equal(mapped.title, "Rafael & Janney");
+  assert.equal(mapped.title, "Milo & Tessa");
   assert.equal(mapped.subtitle, "Enrollment");
   assert.equal(mapped.status, "Completed");
   assert.equal(mapped.date, "2026-07-07");
@@ -316,14 +386,14 @@ test("multi-client appointments map into the approved schedule details", () => {
   assert.equal(mapped.endTime, "15:00");
   assert.equal(mapped.duration, 30);
   assert.equal(mapped.compact, false);
-  assert.equal(mapped.caregiver, "Neiva");
-  assert.equal(mapped.siblings, "Rafael, Janney");
+  assert.equal(mapped.caregiver, "Jordan");
+  assert.equal(mapped.siblings, "Milo, Tessa");
   assert.equal(mapped.language, "Spanish");
   assert.equal(mapped.phone, "(971) 447-2646");
   assert.equal(mapped.staff, "Cynthia Esparza");
   assert.equal(mapped.notes, "-");
   assert.equal(mapped.appointmentNote, "Legacy appointment note");
-  assert.deepEqual(mapped.clientIds, ["rafael", "janney"]);
+  assert.deepEqual(mapped.clientIds, ["milo", "tessa"]);
   assert.deepEqual(mapped.prepChecklist, { enrollmentForm: true });
   assert.equal(mapped.forms.length, 4);
   assert.equal(mapped.supplies.length, 2);
@@ -332,7 +402,7 @@ test("multi-client appointments map into the approved schedule details", () => {
 test("current appointments keep Details notes separate from the appointment note", () => {
   const mapped = mapAppointment({
     id: "appointment-notes",
-    clientNames: ["Rafael Hernandez"],
+    clientNames: ["Milo Exampleton"],
     appointmentDate: "2026-07-15",
     appointmentTime: "14:30",
     appointmentType: "Nutrition Education",
@@ -381,8 +451,8 @@ test("blocked slots keep the full Blocked Time card title", () => {
 test("appointment outcomes preserve the complete appointment data", () => {
   const item = {
     id: "appointment-1",
-    clientIds: ["rafael", "janney"],
-    clientNames: ["Rafael Hernandez", "Janney Hernandez"],
+    clientIds: ["milo", "tessa"],
+    clientNames: ["Milo Exampleton", "Tessa Exampleton"],
     staff: "Cynthia Esparza",
     notes: "Bring workbook",
     source: {
@@ -397,7 +467,7 @@ test("appointment outcomes preserve the complete appointment data", () => {
 
   const completed = appointmentStatusPayload(item, "Completed");
   assert.equal(completed.status, "Completed");
-  assert.deepEqual(completed.clientIds, ["rafael", "janney"]);
+  assert.deepEqual(completed.clientIds, ["milo", "tessa"]);
   assert.equal(completed.appointmentDate, "2026-07-07");
 
   const { original, replacement } = rescheduleAppointmentPayloads(item, {
@@ -422,7 +492,45 @@ test("wrap up advances enrollment and nutrition lessons in order", () => {
   assert.equal(defaultNextAppointmentDate({ date: "2026-07-15" }), "2026-07-22");
 });
 
-test("wrap up preserves siblings and engagement details", () => {
+test("completing the final Healthy Habits appointment graduates the client", () => {
+  const finalLesson = scheduleClientOutcomeUpdates({
+    type: "Nutrition Education",
+    lesson: "Healthy Habits",
+    date: "2026-07-20"
+  }, "Completed", { hasFutureAppointment: false });
+  const earlierLesson = scheduleClientOutcomeUpdates({
+    type: "Nutrition Education",
+    lesson: "Mindful Eating",
+    date: "2026-07-13"
+  }, "Completed", { hasFutureAppointment: true });
+
+  assert.deepEqual(finalLesson, {
+    status: "Graduated",
+    mostRecentAppointmentDate: "2026-07-20",
+    graduationDate: "2026-07-20"
+  });
+  assert.deepEqual(earlierLesson, {
+    status: "Active",
+    mostRecentAppointmentDate: "2026-07-13"
+  });
+});
+
+test("a changed next lesson advances the client through the prior lesson", () => {
+  assert.equal(completedLessonForNextAppointment("1"), "enrollment");
+  assert.equal(completedLessonForNextAppointment("3"), "lesson-2");
+  assert.equal(completedLessonForNextAppointment("Healthy Habits"), "lesson-6");
+  assert.equal(completedLessonForNextAppointment(""), "");
+
+  assert.deepEqual(scheduleClientOutcomeUpdates({
+    type: "Nutrition Education",
+    lesson: "3"
+  }, "Scheduled", { currentLesson: "lesson-2" }), {
+    status: "Active",
+    currentLesson: "lesson-2"
+  });
+});
+
+test("completion preserves sibling engagement saved from the appointment note", () => {
   const item = {
     id: "appointment-1",
     type: "Enrollment",
@@ -430,8 +538,8 @@ test("wrap up preserves siblings and engagement details", () => {
     time: "14:30",
     staff: "Cynthia Esparza",
     language: "Spanish",
-    clientIds: ["rafael", "janney"],
-    clientNames: ["Rafael Hernandez", "Janney Hernandez"],
+    clientIds: ["milo", "tessa"],
+    clientNames: ["Milo Exampleton", "Tessa Exampleton"],
     source: {
       id: "appointment-1",
       appointmentDate: "2026-07-15",
@@ -447,31 +555,111 @@ test("wrap up preserves siblings and engagement details", () => {
     caregiverMood: "Good",
     confidence: "High",
     participation: "Engaged",
-    barriers: "None"
+    barriers: "None",
+    participantGoals: [
+      { clientId: "milo", clientName: "Milo Exampleton", goal: "Try one new vegetable", goalResult: "Achieved" },
+      { clientId: "tessa", clientName: "Tessa Exampleton", goal: "Drink water with dinner", goalResult: "Partly Achieved" }
+    ]
   });
   const next = nextAppointmentPayload(item, {
+    lesson: "3",
     appointmentDate: "2026-07-22",
     appointmentTime: "3:30 PM",
     staffMember: "Cynthia Esparza",
-    goal: "Try one new vegetable",
+    participantGoals: [
+      { clientId: "milo", clientName: "Milo Exampleton", goal: "Try one new vegetable" },
+      { clientId: "tessa", clientName: "Tessa Exampleton", goal: "Drink water with dinner" }
+    ],
     notes: "Bring workbook"
   });
 
   assert.equal(completed.status, "Completed");
   assert.equal(completed.appointmentNote, "Enrollment complete");
   assert.equal(completed.participation, "Engaged");
-  assert.deepEqual(completed.clientIds, ["rafael", "janney"]);
+  assert.equal(completed.goalResult, "Achieved");
+  assert.equal(completed.participantGoals[1].goalResult, "Partly Achieved");
+  assert.deepEqual(completed.clientIds, ["milo", "tessa"]);
 
   assert.equal(next.appointmentType, "Nutrition Education");
   assert.equal(next.publicBookingServiceId, "spanish-nutrition-education");
   assert.equal(next.publicBookingServiceLabel, "Cita de educación nutricional en español");
-  assert.equal(next.lesson, "1");
+  assert.equal(next.lesson, "3");
   assert.equal(next.appointmentTime, "15:30");
-  assert.deepEqual(next.clientIds, ["rafael", "janney"]);
-  assert.deepEqual(next.clientNames, ["Rafael Hernandez", "Janney Hernandez"]);
+  assert.deepEqual(next.clientIds, ["milo", "tessa"]);
+  assert.deepEqual(next.clientNames, ["Milo Exampleton", "Tessa Exampleton"]);
+  assert.deepEqual(next.participantGoals.map((entry) => entry.goal), ["Try one new vegetable", "Drink water with dinner"]);
 });
 
-test("clean schedule connects Mark Complete to the Wrap Up form", () => {
+test("completion reuses engagement already saved on the appointment", () => {
+  const completed = completedAppointmentPayload({
+    id: "appointment-1",
+    status: "Scheduled",
+    clientIds: ["milo"],
+    clientNames: ["Milo Exampleton"],
+    source: {
+      appointmentDate: "2026-07-15",
+      appointmentTime: "14:30",
+      appointmentType: "Nutrition Education",
+      status: "Scheduled",
+      appointmentNote: "Reviewed the family plan.",
+      participantGoals: [{
+        clientId: "milo",
+        clientName: "Milo Exampleton",
+        goal: "Try one new vegetable",
+        goalResult: "Partly Achieved"
+      }],
+      caregiverMood: "Okay",
+      confidence: "Medium",
+      participation: "Somewhat Engaged",
+      barriers: "Schedule"
+    }
+  });
+
+  assert.equal(completed.appointmentNote, "Reviewed the family plan.");
+  assert.equal(completed.goalResult, "Partly Achieved");
+  assert.equal(completed.caregiverMood, "Okay");
+  assert.equal(completed.confidence, "Medium");
+  assert.equal(completed.participation, "Somewhat Engaged");
+  assert.equal(completed.barriers, "Schedule");
+  assert.deepEqual(completed.participantGoals, [{
+    clientId: "milo",
+    clientName: "Milo Exampleton",
+    goal: "Try one new vegetable",
+    goalResult: "Partly Achieved"
+  }]);
+});
+
+test("appointment completion requires one goal result per child", () => {
+  const siblingAppointment = {
+    appointmentNote: "Completed appointment note.",
+    clientIds: ["milo", "tessa"],
+    clientNames: ["Milo Exampleton", "Tessa Exampleton"],
+    participantGoals: [
+      { clientId: "milo", clientName: "Milo Exampleton", goalResult: "Achieved" }
+    ]
+  };
+
+  assert.match(appointmentCompletionValidationError(siblingAppointment), /Tessa Exampleton/);
+  assert.equal(appointmentCompletionValidationError({
+    ...siblingAppointment,
+    participantGoals: [
+      ...siblingAppointment.participantGoals,
+      { clientId: "tessa", clientName: "Tessa Exampleton", goalResult: "Not Assessed" }
+    ]
+  }), "");
+  assert.equal(appointmentCompletionValidationError({
+    appointmentNote: "Completed appointment note.",
+    clientIds: ["milo"],
+    clientNames: ["Milo Exampleton"],
+    goalResult: "Achieved"
+  }), "");
+  assert.match(appointmentCompletionValidationError({
+    ...siblingAppointment,
+    appointmentNote: ""
+  }), /appointment note/i);
+});
+
+test("Appointment Note completes the visit and Wrap Up only schedules the next visit", () => {
   const cleanSource = readFileSync(
     new URL("../../frontend/public/clean.js", import.meta.url),
     "utf8"
@@ -479,18 +667,33 @@ test("clean schedule connects Mark Complete to the Wrap Up form", () => {
 
   assert.match(cleanSource, /data-schedule-detail-panel="wrap-up"/);
   assert.match(cleanSource, /data-schedule-wrap-up-form/);
-  assert.match(cleanSource, /data-wrap-up-schedule-next/);
-  assert.match(cleanSource, /setScheduleDetailTab\(module, "wrap-up"\)/);
-  assert.match(cleanSource, /completedAppointmentPayload\(item, completionValues\)/);
+  assert.match(cleanSource, /scheduleParticipantGoalsFromForm\(formData, "nextParticipant"\)/);
+  assert.match(cleanSource, /setScheduleDetailTab\(module, "appt-note"\)/);
+  assert.match(cleanSource, /Complete Appt/);
+  assert.match(cleanSource, /Schedule Next Appt/);
+  assert.match(cleanSource, /data-schedule-wrap-up-next>Next: Appt Note/);
+  assert.match(cleanSource, /event\.target\.closest\("\[data-schedule-wrap-up-next\]"\)/);
+  assert.match(cleanSource, /name="nextAppointmentLesson" required/);
+  assert.match(cleanSource, /completedLessonForNextAppointment\(nextPayload\.lesson\)/);
+  assert.match(cleanSource, /appointmentNote" rows="8"[^>]*required/);
+  assert.match(cleanSource, /completedAppointmentPayload\(item, values\)/);
+  assert.match(cleanSource, /updateScheduleClients\(module, item, "Completed"\)/);
   assert.match(cleanSource, /nextAppointmentPayload\(item, nextValues\)/);
+  assert.match(cleanSource, /setScheduleAppointmentNoteStatus\("Next appointment scheduled\. Finish the appointment note and engagement to complete this appointment\."\)/);
+  const wrapUpSource = cleanSource.slice(
+    cleanSource.indexOf("async function saveScheduleWrapUp"),
+    cleanSource.indexOf("async function saveScheduleAppointmentNote")
+  );
+  assert.doesNotMatch(wrapUpSource, /completedAppointmentPayload/);
+  assert.doesNotMatch(wrapUpSource, /status.*Completed/);
 });
 
 test("appointment notes save separately from scheduling notes", () => {
   const item = {
     id: "appointment-1",
     status: "Scheduled",
-    clientIds: ["rafael", "janney"],
-    clientNames: ["Rafael Hernandez", "Janney Hernandez"],
+    clientIds: ["milo", "tessa"],
+    clientNames: ["Milo Exampleton", "Tessa Exampleton"],
     source: {
       appointmentDate: "2026-07-15",
       appointmentTime: "14:30",
@@ -505,7 +708,32 @@ test("appointment notes save separately from scheduling notes", () => {
 
   assert.equal(payload.notes, "Bring workbook");
   assert.equal(payload.appointmentNote, "Discussed nutrient density and practiced bingo.");
-  assert.deepEqual(payload.clientIds, ["rafael", "janney"]);
+  assert.deepEqual(payload.clientIds, ["milo", "tessa"]);
+
+  const engagementPayload = appointmentNotePayload(item, {
+    appointmentNote: "Family called before the visit.",
+    participantGoals: [
+      { clientId: "milo", clientName: "Milo Exampleton", goal: "Try fruit", goalResult: "Achieved" },
+      { clientId: "tessa", clientName: "Tessa Exampleton", goal: "Drink water", goalResult: "Not Assessed" }
+    ],
+    interpreterUse: "Yes",
+    caregiverMood: "Concerned",
+    confidence: "Low",
+    participation: "Not Engaged",
+    barriers: "Transportation"
+  });
+
+  assert.equal(engagementPayload.status, "Scheduled");
+  assert.equal(engagementPayload.appointmentNote, "Family called before the visit.");
+  assert.equal(engagementPayload.interpreterUse, "Yes");
+  assert.equal(engagementPayload.caregiverMood, "Concerned");
+  assert.equal(engagementPayload.confidence, "Low");
+  assert.equal(engagementPayload.participation, "Not Engaged");
+  assert.equal(engagementPayload.barriers, "Transportation");
+  assert.deepEqual(engagementPayload.participantGoals, [
+    { clientId: "milo", clientName: "Milo Exampleton", goal: "Try fruit", goalResult: "Achieved" },
+    { clientId: "tessa", clientName: "Tessa Exampleton", goal: "Drink water", goalResult: "Not Assessed" }
+  ]);
 
   const legacyItem = {
     ...item,
@@ -532,7 +760,21 @@ test("clean schedule renders Details and Appointment Note as separate tabs", () 
   assert.match(cleanSource, /detailTabs: \["Details", "Wrap Up", "Appt Note", "Activity", "Forms"\]/);
   assert.match(cleanSource, /data-schedule-detail-panel="details"/);
   assert.match(cleanSource, /data-schedule-appointment-note-form/);
+  const wrapUpSource = cleanSource.slice(
+    cleanSource.indexOf("function renderScheduleWrapUp"),
+    cleanSource.indexOf("function renderScheduleAppointmentNote")
+  );
+  const appointmentNoteSource = cleanSource.slice(
+    cleanSource.indexOf("function renderScheduleAppointmentNote"),
+    cleanSource.indexOf("function formatScheduleActivityDate")
+  );
+  assert.doesNotMatch(wrapUpSource, /<h3>Engagement<\/h3>/);
+  assert.match(appointmentNoteSource, /<h3>Engagement<\/h3>/);
+  assert.match(appointmentNoteSource, /renderScheduleParticipantGoals\(item, "participant", \{ includeResult: true \}\)/);
+  assert.match(cleanSource, /scheduleParticipantGoalsFromForm\(formData, "participant"\)/);
+  assert.match(appointmentNoteSource, /Complete Appt/);
   assert.match(cleanSource, /saveScheduleAppointmentNote\(module, event\.target\)/);
+  assert.match(cleanSource, /Appointment completed\./);
 });
 
 test("appointment Activity combines client contact history with appointment history", () => {
@@ -544,7 +786,7 @@ test("appointment Activity combines client contact history with appointment hist
     type: "Enrollment",
     lesson: "Enrollment",
     staff: "Cynthia Esparza",
-    clientIds: ["rafael", "janney"],
+    clientIds: ["milo", "tessa"],
     source: {
       appointmentDate: "2026-08-12",
       appointmentTime: "14:00",
@@ -555,8 +797,8 @@ test("appointment Activity combines client contact history with appointment hist
   }, [
     {
       relatedType: "client",
-      relatedId: "rafael",
-      title: "Outbound call to Neiva",
+      relatedId: "milo",
+      title: "Outbound call to Jordan",
       result: "Reached",
       description: "Confirmed appointment",
       activityDate: "2026-08-11",
@@ -575,7 +817,7 @@ test("appointment Activity combines client contact history with appointment hist
   assert.deepEqual(items.map((item) => item.title), [
     "Last updated",
     "Completed",
-    "Outbound call to Neiva",
+    "Outbound call to Jordan",
     "Appointment created"
   ]);
   assert.equal(items[1].detail, "Enrollment | Cynthia Esparza");
@@ -589,10 +831,30 @@ test("clean schedule loads and renders the Activity tab", () => {
     "utf8"
   );
 
-  assert.match(cleanSource, /fetch\(`\$\{apiBaseUrl\}\/api\/activity-logs`/);
+  assert.match(cleanSource, /fetch\(`\$\{apiBaseUrl\}\/api\/schedule\/activity-logs`/);
   assert.match(cleanSource, /appointmentActivityItems\(item, scheduleActivityLogs\)/);
   assert.match(cleanSource, /data-schedule-detail-panel='activity'/);
   assert.match(cleanSource, /schedule-activity-list/);
+});
+
+test("appointment Forms link the native forms to the selected appointment", () => {
+  const cleanSource = readFileSync(
+    new URL("../../frontend/public/clean.js", import.meta.url),
+    "utf8"
+  );
+  const cleanCss = readFileSync(
+    new URL("../../frontend/public/clean.css", import.meta.url),
+    "utf8"
+  );
+  assert.match(cleanSource, /Appointment Forms/);
+  assert.match(cleanSource, /appointmentId: item\.id/);
+  assert.match(cleanSource, /Program Enrollment/);
+  assert.match(cleanSource, /Caregiver Feedback/);
+  assert.match(cleanSource, /api\/evaluation-instruments\?status=Active/);
+  assert.match(cleanSource, /data-appointment-third-icon>\$\{icons\.check\}/);
+  assert.match(cleanSource, /schedule-appointment-form-clients/);
+  assert.match(cleanCss, /\.schedule-appointment-forms-card \{\s*grid-template-columns: minmax\(0, 1fr\);/);
+  assert.match(cleanCss, /\.schedule-appointment-form-clients \{[\s\S]*display: grid;[\s\S]*gap: 18px;/);
 });
 
 test("appointment edits preserve identifying data and update editable details", () => {
@@ -601,8 +863,8 @@ test("appointment edits preserve identifying data and update editable details", 
     type: "Nutrition Education",
     staff: "Cynthia Esparza",
     notes: "Original note",
-    clientIds: ["rafael", "janney"],
-    clientNames: ["Rafael Hernandez", "Janney Hernandez"],
+    clientIds: ["milo", "tessa"],
+    clientNames: ["Milo Exampleton", "Tessa Exampleton"],
     source: {
       id: "appointment-1",
       appointmentDate: "2026-07-15",
@@ -616,6 +878,7 @@ test("appointment edits preserve identifying data and update editable details", 
   const payload = appointmentEditPayload(item, {
     appointmentType: "Nutrition Education",
     staffMember: "Shannon Oddo",
+    durationMinutes: "45",
     lesson: "Sugar",
     goal: "Compare drinks",
     notes: "Updated note"
@@ -625,8 +888,9 @@ test("appointment edits preserve identifying data and update editable details", 
   assert.equal(payload.appointmentDate, "2026-07-15");
   assert.equal(payload.appointmentTime, "14:30");
   assert.equal(payload.status, "Scheduled");
-  assert.deepEqual(payload.clientIds, ["rafael", "janney"]);
+  assert.deepEqual(payload.clientIds, ["milo", "tessa"]);
   assert.equal(payload.staffMember, "Shannon Oddo");
+  assert.equal(payload.durationMinutes, 45);
   assert.equal(payload.lesson, "Sugar");
   assert.equal(payload.goal, "Compare drinks");
   assert.equal(payload.notes, "Updated note");
@@ -639,8 +903,8 @@ test("appointment cancellation is protected inside Edit and keeps history", () =
   );
   const canceled = appointmentStatusPayload({
     source: { id: "appointment-1", status: "Scheduled" },
-    clientIds: ["rafael"],
-    clientNames: ["Rafael Hernandez"]
+    clientIds: ["milo"],
+    clientNames: ["Milo Exampleton"]
   }, "Canceled");
 
   assert.equal(canceled.status, "Canceled");
@@ -672,18 +936,18 @@ test("print retention lists match the approved lesson progression", () => {
     { 1: 0, 2: 1, 3: 3, 4: 6, 5: 8, 6: 10, 7: 12 }
   );
   assert.deepEqual(lessonRetentionPrompts[7], [
-    "Mindful eating & how to do it",
-    "Hunger & fullness cues",
-    "2 micro (small) nutrients",
-    "Why eat the rainbow",
-    "3 macro (big) nutrients",
-    "Fiber, protein, fat foods",
-    "5 food groups",
-    "Whole vs. white grains",
-    "# food groups each meal / day",
-    "Natural sugar & added sugar",
-    "Find added sugar on label & # grams",
-    "Nutrient dense / sometimes foods"
+    "Mindful Eating & How to Do It",
+    "Hunger & Fullness Cues",
+    "2 Micro (Small) Nutrients",
+    "Why Eat the Rainbow",
+    "3 Macro (Big) Nutrients",
+    "Fiber, Protein, Fat Foods",
+    "5 Food Groups",
+    "Whole vs. White Grains",
+    "# Food Groups Each Meal / Day",
+    "Natural Sugar & Added Sugar",
+    "Find Added Sugar on Label & # Grams",
+    "Nutrient Dense / Sometimes Foods"
   ]);
   assert.equal(noteRetentionForAppointment(printAppointment({ lesson: "Sugar" })).length, 1);
   assert.equal(noteRetentionForAppointment(printAppointment({ lesson: "Healthy Habits" })).length, 12);
@@ -728,13 +992,16 @@ test("print lists exclude canceled and rescheduled appointments but keep blocked
 test("appointment note pages use full sibling names, stacked birthdates, and caregiver first names", () => {
   const html = appointmentNotePage(printAppointment(), printClients, []);
 
-  assert.match(html, /Rafael Hernandez Garcia &amp; Janney Hernandez Garcia/);
-  assert.match(html, /Rafael: 8\/14\/2013/);
-  assert.match(html, /Janney: 3\/2\/2017/);
-  assert.match(html, /<dd>Neiva<\/dd>/);
-  assert.doesNotMatch(html, /Neiva Hernandez/);
+  assert.match(html, /Milo Exampleton Garcia &amp; Tessa Exampleton Garcia/);
+  assert.match(html, /Milo: 8\/14\/2013/);
+  assert.match(html, /Tessa: 3\/2\/2017/);
+  assert.match(html, /<dd>Jordan<\/dd>/);
+  assert.doesNotMatch(html, /Jordan Exampleton/);
   assert.match(html, /Previous Goal/);
+  assert.match(html, /Previous Goal:<\/strong>/);
   assert.match(html, /Try one new vegetable/);
+  assert.match(html, /<i aria-hidden="true"><\/i><strong>Next Appointment Scheduled<\/strong>/);
+  assert.match(html, /Next Lesson/);
 });
 
 test("lesson, enrollment, and check-in print the correct note layouts", () => {
@@ -744,6 +1011,8 @@ test("lesson, enrollment, and check-in print the correct note layouts", () => {
   assert.match(appointmentNotePage(printAppointment({ lesson: "Healthy Habits" }), printClients, []), /knowledge-list is-variable is-two-column/);
   assert.match(appointmentNotePage(printAppointment({ type: "Enrollment", lesson: "Enrollment" }), printClients, []), /Enrollment Conversation/);
   assert.match(appointmentNotePage(printAppointment({ lesson: "Check In" }), printClients, []), /Today’s Conversation/);
+  assert.match(appointmentNotePage(printAppointment({ lesson: "Sugar" }), printClients, []), /next-steps-writing-grid/);
+  assert.match(appointmentNotePage(printAppointment({ lesson: "Check In" }), printClients, []), /Next Lesson/);
 });
 
 test("individual prep prints None for empty forms and workbook as a supply", () => {
@@ -763,6 +1032,59 @@ test("daily packets keep schedule, prep, and appointment notes in that order", (
   assert.match(pages[1], /Daily Prep List/);
   assert.match(pages[2], /Nutrient Density Appointment Note/);
   assert.deepEqual(dailyPrintPacketPages(items, "2026-07-16", printClients), []);
+});
+
+test("daily form requests include Enrollment and Graduation packets for every linked child", () => {
+  const items = [
+    printAppointment({ id: "enrollment", type: "Enrollment", lesson: "Enrollment" }),
+    printAppointment({ id: "graduation", type: "Nutrition Education", lesson: "Healthy Habits", time: "15:00" }),
+    printAppointment({ id: "ordinary", lesson: "Nutrient Density", time: "15:30" }),
+    printAppointment({ id: "canceled", type: "Enrollment", lesson: "Enrollment", status: "Canceled", time: "16:00" })
+  ];
+
+  assert.deepEqual(dailyFormPacketRequests(items, "2026-07-15", printClients), [
+    { appointmentId: "enrollment", clientId: "milo", clientName: "Milo Exampleton Garcia", packet: "enrollment" },
+    { appointmentId: "enrollment", clientId: "tessa", clientName: "Tessa Exampleton Garcia", packet: "enrollment" },
+    { appointmentId: "graduation", clientId: "milo", clientName: "Milo Exampleton Garcia", packet: "graduation" },
+    { appointmentId: "graduation", clientId: "tessa", clientName: "Tessa Exampleton Garcia", packet: "graduation" }
+  ]);
+});
+
+test("combined daily forms document loads native packets and appointment notes before printing", () => {
+  const html = dailyFormsPrintDocumentHtml({
+    title: "Daily Forms - July 15, 2026",
+    packetRequests: [{ appointmentId: "enrollment", clientId: "milo", clientName: "Milo", packet: "enrollment" }],
+    notePages: ["<article class=\"print-page\">Appointment note</article>"],
+    baseHref: "http://localhost:4191/"
+  });
+
+  assert.match(html, /client-form\.html\?/);
+  assert.match(html, /embed:\s*"1"/);
+  assert.match(html, /client-form-paper-packet/);
+  assert.match(html, /Appointment note/);
+  assert.match(html, /window\.print\(\)/);
+  assert.match(html, /status\.textContent = "Preparing " \+ selection\.label/);
+  assert.match(html, /print-duplex-spacer/);
+  assert.match(html, /dataset\.printPageCount/);
+  assert.match(html, /Appointment Note/);
+});
+
+test("selected print documents keep checked items separate for double-sided printing", () => {
+  const html = selectedPrintDocumentHtml({
+    title: "Selected Forms",
+    selections: [
+      { kind: "static", label: "Daily Schedule", pageCount: 1, pages: ["<article>Schedule</article>"] },
+      { kind: "static", label: "Appointment Note", pageCount: 1, pages: ["<article>Note</article>"] }
+    ],
+    baseHref: "http://localhost:4191/"
+  });
+
+  assert.match(html, /selected-print-document/);
+  assert.match(html, /Blank page for double-sided printing/);
+  assert.match(html, /printButton\.addEventListener\("click", \(\) => window\.print\(\)\)/);
+  assert.match(html, /Date\.now\(\) - startedAt < 60000/);
+  assert.match(html, /const failure = await loadPacket\(selection, marker\)/);
+  assert.doesNotMatch(html, /Promise\.all\(packetLoads\)/);
 });
 
 test("print documents stay open and include a reliable Print button", () => {
@@ -788,5 +1110,7 @@ test("clean schedule exposes print center and individual appointment print actio
   assert.match(cleanSource, /data-schedule-print-center/);
   assert.match(cleanSource, /data-schedule-print-action="appointment-prep"/);
   assert.match(cleanSource, /data-schedule-print-action="appointment-note"/);
+  assert.match(cleanSource, /data-schedule-print-select-all/);
+  assert.match(cleanSource, /data-schedule-print-clear-all/);
   assert.match(cleanSource, /dailyPrintPacketPages/);
 });

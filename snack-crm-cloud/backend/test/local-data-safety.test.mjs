@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { GeoPoint, Timestamp } from "@google-cloud/firestore";
 import {
@@ -7,11 +8,27 @@ import {
   backupCounts,
   decodeFirestoreValue,
   encodeFirestoreValue,
+  isLocalFixtureRecord,
   localEmulatorAddress,
   parseCliArguments,
   parseCollectionSelection,
   validateLocalBackup
 } from "../scripts/lib/local-data-safety.mjs";
+import {
+  assertFullSystemFixtureCoverage,
+  fullSystemFixtureCoverage,
+  requiredFixtureCoverage
+} from "../scripts/lib/full-system-fixtures.mjs";
+import {
+  buildControlledCountingQaRecords,
+  controlledCountingQaCollections,
+  controlledCountingQaFixtureSet
+} from "../scripts/lib/controlled-counting-qa-fixtures.mjs";
+
+const controlledQaSource = await readFile(
+  new URL("../scripts/controlled-counting-qa.mjs", import.meta.url),
+  "utf8"
+);
 
 test("local data tools accept only a loopback Firestore emulator", () => {
   assert.deepEqual(localEmulatorAddress("127.0.0.1:8085"), {
@@ -48,6 +65,66 @@ test("local data tools refuse the production project", () => {
       port: 8085
     }
   );
+});
+
+test("full-system fixture cleanup removes only explicitly marked local records", () => {
+  assert.equal(isLocalFixtureRecord("qa-system-client", {}, "full-system-test"), true);
+  assert.equal(isLocalFixtureRecord("client-1", { qaFixture: true }, "full-system-test"), true);
+  assert.equal(isLocalFixtureRecord("client-2", { qaFixtureSet: "full-system-test" }, "full-system-test"), true);
+  assert.equal(isLocalFixtureRecord("client-3", { qaFixtureSet: "another-set" }, "full-system-test"), false);
+  assert.equal(isLocalFixtureRecord("client-4", {}, "full-system-test"), false);
+});
+
+test("full-system fixtures require the workflow states needed for the Monday test", () => {
+  const records = requiredFixtureCoverage.flatMap(({ collectionName, field, values }) => (
+    values.map((value, index) => [collectionName, `${collectionName}-${index}`, { [field]: value }])
+  ));
+  records.push(
+    ["performanceEvaluationQuestions", "question", {}],
+    ["performanceEvaluationInstruments", "instrument", {}],
+    ["performanceEvaluationResponses", "response", {
+      instrumentId: "clinic-knowledge-2026-2",
+      administrationPoint: "Graduation",
+      status: "Complete",
+      answers: Array.from({ length: 34 }, (_, index) => ({
+        questionId: `CKA2-${String(index + 1).padStart(2, "0")}`,
+        beforeValue: "No",
+        nowValue: "Yes"
+      }))
+    }]
+  );
+
+  assert.equal(fullSystemFixtureCoverage([]).ready, false);
+  assert.throws(() => assertFullSystemFixtureCoverage([]), /fixtures are incomplete/i);
+  assert.deepEqual(assertFullSystemFixtureCoverage(records), { ready: true, missing: [] });
+});
+
+test("controlled counting QA fixtures are isolated and backed up before replacement", () => {
+  const records = buildControlledCountingQaRecords();
+  const populatedCollections = new Set(records.map(([collectionName]) => collectionName));
+  const startActionIndex = controlledQaSource.lastIndexOf('if (action === "start") {');
+  const resetActionIndex = controlledQaSource.indexOf(
+    'if (action === "reset") {',
+    startActionIndex
+  );
+  const startActionSource = controlledQaSource.slice(startActionIndex, resetActionIndex);
+
+  records.forEach(([, documentId, data]) => {
+    assert.match(documentId, /^qa-counting-/);
+    assert.equal(data.qaFixture, true);
+    assert.equal(data.qaFixtureSet, controlledCountingQaFixtureSet);
+  });
+  populatedCollections.forEach((collectionName) => {
+    assert.ok(controlledCountingQaCollections.includes(collectionName));
+  });
+  assert.match(controlledQaSource, /assertSafeLocalTarget/);
+  assert.match(startActionSource, /await backupControlledCollections\(firestore, backupPath\)/);
+  assert.ok(
+    startActionSource.indexOf("await backupControlledCollections(firestore, backupPath)")
+      < startActionSource.indexOf("await clearControlledCollections(firestore)")
+  );
+  assert.match(controlledQaSource, /START CONTROLLED COUNTING QA/);
+  assert.match(controlledQaSource, /RESTORE CONTROLLED COUNTING QA/);
 });
 
 test("local data collection selection is explicit and validated", () => {

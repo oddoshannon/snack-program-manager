@@ -1,0 +1,25 @@
+.gcloudignore
+.git
+.gitignore
+.firebase
+**/node_modules
+**/.env
+**/.env.*
+backend/.data
+docs
+output
+outputs
+tmp
+real-data-import
+real data import
+**/*.csv
+**/*.tsv
+**/*.xlsx
+**/*.xls
+**/*.pdf
+**/*.doc
+**/*.docx
+**/*.zip
+**/*backup*
+**/*export*
+**/*reconciliation*

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Book with The SNACK Program</title>
     <link rel="icon" type="image/png" href="./favicon.png">
-    <link rel="stylesheet" href="./booking.css?v=20260716-1">
+    <link rel="stylesheet" href="./booking.css?v=20260721-1">
   </head>
   <body>
     <header class="landing-header">
@@ -16,13 +16,14 @@
         </a>
         <nav class="landing-nav" aria-label="Booking page sections">
           <a href="#services">Appointment Types</a>
+          <a href="#classes">Cooking Classes</a>
           <a href="#team">Team</a>
           <a href="#about">About</a>
           <a href="#gallery">Gallery</a>
           <a href="#policies">Policies</a>
           <a href="#contact">Contact</a>
         </nav>
-        <a class="call-link" href="tel:+19712020232">Call us&nbsp; (971) 202-0232</a>
+        <a class="call-link" href="tel:+19712020232">Call Us&nbsp; (971) 202-0232</a>
       </div>
     </header>
 
@@ -38,14 +39,14 @@
       <section id="services" class="content-section services-section" aria-labelledby="services-title">
         <div class="section-intro">
           <p>Family Nutrition Appointments</p>
-          <h2 id="services-title">Choose an appointment type</h2>
+          <h2 id="services-title">Choose an Appointment Type</h2>
         </div>
 
         <div class="landing-layout">
           <div class="services-panel">
-            <div class="service-group">
+            <div id="english-service-group" class="service-group">
               <h3>Appointments in English</h3>
-              <div class="service-list">
+              <div id="english-service-list" class="service-list" aria-live="polite">
                 <article class="service-item">
                   <div>
                     <h4>Enrollment Appointment</h4>
@@ -66,9 +67,9 @@
               </div>
             </div>
 
-            <div class="service-group">
+            <div id="spanish-service-group" class="service-group">
               <h3>Citas en español</h3>
-              <div class="service-list">
+              <div id="spanish-service-list" class="service-list" aria-live="polite">
                 <article class="service-item">
                   <div>
                     <h4>Cita de inscripción en español</h4>
@@ -116,6 +117,16 @@
               <a href="https://maps.google.com/?q=2435+NE+Cumulus+Ave+Suite+A+McMinnville+OR+97128">Get directions</a>
             </section>
           </aside>
+        </div>
+      </section>
+
+      <section id="classes" class="content-section classes-section" aria-labelledby="classes-title">
+        <div class="section-intro">
+          <p>Kids and Teen Cooking Classes</p>
+          <h2 id="classes-title">Upcoming Cooking Classes</h2>
+        </div>
+        <div id="public-class-list" class="class-session-list" aria-live="polite">
+          <p class="class-list-message">Loading upcoming classes...</p>
         </div>
       </section>
 
@@ -198,8 +209,8 @@
           <div class="policy-grid">
             <article>
               <h3>Booking Policy</h3>
-              <p>Please list every child who will attend the appointment. The SNACK office is inside Physicians' Medical Center. When you enter, head to the right and check in at Reception A. Appointments may be booked up to three months in advance.</p>
-              <p lang="es">Por favor, incluya a todos los niños que asistirán a la cita. La oficina de SNACK está dentro de Physicians' Medical Center. Al entrar, diríjase a la derecha y regístrese en la Recepción A. Las citas se pueden reservar con hasta tres meses de anticipación.</p>
+              <p>Please list every child who will attend the appointment. The SNACK office is inside Physicians' Medical Center. When you enter, head to the left and check in at Reception A. Appointments may be booked up to three months in advance.</p>
+              <p lang="es">Por favor, incluya a todos los niños que asistirán a la cita. La oficina de SNACK está dentro de Physicians' Medical Center. Al entrar, diríjase a la izquierda y regístrese en la Recepción A. Las citas se pueden reservar con hasta tres meses de anticipación.</p>
             </article>
             <article>
               <h3>Cancellation Policy</h3>
@@ -275,6 +286,6 @@
     </dialog>
 
     <script src="./app-config.js"></script>
-    <script src="./booking.js?v=20260716-1"></script>
+    <script src="./booking.js?v=20260721-1"></script>
   </body>
 </html>

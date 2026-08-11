@@ -10,6 +10,7 @@ import {
   appointmentRangesOverlap,
   appointmentTimeMinutes,
   cleanActivityLogPayload,
+  cleanAppointmentParticipantGoals,
   cleanAppointmentPrepChecklist,
   cleanAppointmentPayload,
   cleanBoolean,
@@ -17,6 +18,11 @@ import {
   cleanGrantOrganizationInfoPayload,
   cleanGrantPayload,
   cleanGrantQuestionPayload,
+  cleanFundraisingCampaignPayload,
+  cleanFundraisingDonorPayload,
+  cleanFundraisingGiftPayload,
+  cleanMarketingCampaignPayload,
+  cleanEarnedIncomePayload,
   cleanNetworkProvider,
   cleanOptionalInteger,
   cleanOptionalNumber,
@@ -25,6 +31,7 @@ import {
   cleanPersonPayload,
   cleanProviderLink,
   cleanPublicBookingPayload,
+  cleanPublicClassRegistrationPayload,
   cleanReferralNetworkPayload,
   cleanSchedulingSettingsPayload,
   cleanSiblingZohoRecordIds,
@@ -33,8 +40,11 @@ import {
   clientPayloadFromReferral,
   daysBetweenDateStrings,
   defaultSchedulingSettingsNormalized,
+  defaultStaffAccessLevels,
   fetchAllDocuments,
   formatAppointmentTimeValue,
+  googleCalendarEventForAppointment,
+  googleCalendarScopes,
   hasRequiredPersonFields,
   isActiveTaskStatus,
   isAdminBulkDeleteEnabled,
@@ -45,6 +55,11 @@ import {
   normalizeActivityType,
   normalizeAppointmentStatus,
   normalizeAppointmentTimeValue,
+  normalizeAddressState,
+  normalizeClientStatusDefinitions,
+  normalizeMailingAddress,
+  normalizeStaffAccessLevels,
+  normalizeStaffRole,
   normalizeStatus,
   normalizeTaskPriority,
   normalizeTaskStatus,
@@ -59,6 +74,8 @@ import {
   publicBookingServiceFromId,
   publicBookingServices,
   publicBookingValidationError,
+  publicClassRegistrationValidationError,
+  publicKitchenSessionAvailability,
   publicManageClientIdsFromAppointment,
   publicBookingManageUrl,
   publicManageTokenHash,
@@ -69,6 +86,17 @@ import {
   serializePublicManagedBooking,
   schedulingWindowEndLabel,
   schedulingWindowError,
+  staffAccountIsActive,
+  staffFinanceSectionForApiPath,
+  staffFinanceSectionsForRole,
+  staffAccessLevelForRole,
+  staffModuleForApiPath,
+  staffModulesCanAccessApiPath,
+  staffModulesForRole,
+  staffRoleCanAccessApiPath,
+  staffRoleCanAccessModule,
+  syncClinicAppointmentCalendar,
+  verifyGoogleCalendarLifecycle,
   siblingIdsForImportedRecord,
   startDayTaskIntent,
   startDayTaskSubject,
@@ -76,12 +104,20 @@ import {
   toActivityLog,
   toAppointment,
   toClient,
+  toScheduleClient,
   toGrant,
   toGrantOrganizationInfo,
   toGrantQuestion,
+  toFundraisingCampaign,
+  toFundraisingDonor,
+  toFundraisingGift,
+  toMarketingCampaign,
+  toEarnedIncome,
   toReferral,
+  toStaffUser,
   toTask
 } from "../server.js";
+import { staleAppointmentWorkflowTask } from "../routes/tasks.js";
 
 const dockerfile = await readFile(new URL("../Dockerfile", import.meta.url), "utf8");
 
@@ -89,6 +125,10 @@ test("Cloud Run container includes the reorganized backend files", () => {
   assert.match(dockerfile, /^COPY server\.js \.\/$/m);
   assert.match(dockerfile, /^COPY lib \.\/lib$/m);
   assert.match(dockerfile, /^COPY routes \.\/routes$/m);
+});
+
+test("the server does not advertise its internal web framework", () => {
+  assert.equal(app.get("x-powered-by"), false);
 });
 
 function snapshot(id, data) {
@@ -115,8 +155,22 @@ test("cleanString trims only string values", () => {
   assert.equal(cleanString(42), "");
 });
 
+test("mailing addresses use consistent street, direction, city, and state formatting", () => {
+  assert.equal(
+    normalizeMailingAddress("2435 ne cumulus avenue, suite a, mcminnville, oregon 97128"),
+    "2435 NE Cumulus Ave, Suite A, McMinnville, OR 97128"
+  );
+  assert.equal(
+    normalizeMailingAddress("the SNACK program office"),
+    "The SNACK Program Office"
+  );
+  assert.equal(normalizeAddressState("Oregon"), "OR");
+  assert.equal(normalizeAddressState("or"), "OR");
+  assert.equal(normalizeAddressState("wa"), "WA");
+});
+
 test("cleanBoolean accepts checked-style true values", () => {
-  for (const value of [true, "true", "yes", "Y", "1", "checked"]) {
+  for (const value of [true, "true", "yes", "Y", "1", "checked", "on"]) {
     assert.equal(cleanBoolean(value), true);
   }
 
@@ -157,12 +211,179 @@ test("admin bulk delete is disabled unless explicitly enabled", () => {
   }
 });
 
+test("staff access levels expose their configured modules", () => {
+  assert.deepEqual(staffModulesForRole("Admin"), ["schedule", "crm", "outreach", "fundraising", "marketing", "operations", "admin"]);
+  assert.deepEqual(staffModulesForRole("Manager"), ["schedule", "crm", "outreach", "fundraising"]);
+  assert.deepEqual(staffFinanceSectionsForRole("Manager"), ["Grants", "Giving"]);
+  assert.deepEqual(staffModulesForRole("Staff"), ["schedule", "crm", "outreach"]);
+  assert.deepEqual(staffModulesForRole("Intern"), ["schedule", "outreach"]);
+  assert.equal(staffRoleCanAccessModule("Intern", "schedule"), true);
+  assert.equal(staffRoleCanAccessModule("Intern", "crm"), false);
+  assert.equal(normalizeStaffRole("Admin", "intern@snackprogram.org"), "Admin");
+  assert.equal(normalizeStaffRole("Admin", "director@snackprogram.org"), "Admin");
+  assert.equal(staffAccountIsActive({ isAdmin: true, configured: false }), true);
+  assert.equal(staffAccountIsActive({ configured: true, active: true }), true);
+  assert.equal(staffAccountIsActive({ configured: true, active: false }), false);
+  assert.equal(staffAccountIsActive({ configured: false, active: true }), false);
+
+  const accessLevels = normalizeStaffAccessLevels([
+    ...defaultStaffAccessLevels,
+    {
+      id: "custom-coordinator",
+      name: "Program Coordinator",
+      modules: ["schedule", "crm", "operations"]
+    }
+  ]);
+  assert.equal(staffAccessLevelForRole("custom-coordinator", accessLevels).name, "Program Coordinator");
+  assert.deepEqual(
+    staffModulesForRole("custom-coordinator", accessLevels),
+    ["schedule", "crm", "operations"]
+  );
+  assert.equal(
+    staffRoleCanAccessApiPath("custom-coordinator", "/api/operations", accessLevels),
+    true
+  );
+  assert.equal(
+    staffRoleCanAccessApiPath("custom-coordinator", "/api/outreach-events", accessLevels),
+    false
+  );
+  assert.equal(
+    staffModulesCanAccessApiPath(["schedule", "outreach"], "/api/clients"),
+    false
+  );
+});
+
+test("staff profiles preserve directory fields separately from access", () => {
+  const user = toStaffUser(snapshot("staff@snackprogram.org", {
+    email: " staff@snackprogram.org ",
+    displayName: " Cynthia Esparza ",
+    title: " Nutrition Coordinator ",
+    phone: " (971) 202-0232 ",
+    programs: ["Clinic", "Kitchen"],
+    role: "Staff",
+    active: true
+  }));
+
+  assert.equal(user.displayName, "Cynthia Esparza");
+  assert.equal(user.title, "Nutrition Coordinator");
+  assert.equal(user.phone, "(971) 202-0232");
+  assert.deepEqual(user.programs, ["Clinic", "Kitchen"]);
+  assert.deepEqual(user.modules, ["schedule", "crm", "outreach"]);
+});
+
+test("protected API areas follow the staff module boundary", () => {
+  assert.equal(staffModuleForApiPath("/api/schedule/clients"), "schedule");
+  assert.equal(staffModuleForApiPath("/api/schedule/activity-logs"), "schedule");
+  assert.equal(staffModuleForApiPath("/api/clients"), "crm");
+  assert.equal(staffModuleForApiPath("/api/tasks"), "crm");
+  assert.equal(staffModuleForApiPath("/api/activity-logs"), "crm");
+  assert.equal(staffModuleForApiPath("/api/outreach-tasks"), "outreach");
+  assert.equal(staffModuleForApiPath("/api/financial-activity"), "fundraising");
+  assert.equal(staffModuleForApiPath("/api/donors"), "fundraising");
+  assert.equal(staffModuleForApiPath("/api/gifts/gift-1"), "fundraising");
+  assert.equal(staffModuleForApiPath("/api/campaigns"), "fundraising");
+  assert.equal(staffModuleForApiPath("/api/earned-income"), "fundraising");
+  assert.equal(staffFinanceSectionForApiPath("/api/grants/grant-1"), "Grants");
+  assert.equal(staffFinanceSectionForApiPath("/api/gifts/gift-1"), "Giving");
+  assert.equal(staffFinanceSectionForApiPath("/api/financial-activity"), "Financial Activity");
+  assert.equal(staffModuleForApiPath("/api/operations"), "operations");
+  assert.equal(staffModuleForApiPath("/api/operations/evaluation-instruments/draft"), "operations");
+  assert.equal(staffModuleForApiPath("/api/evaluation-instruments"), "crm");
+  assert.equal(staffModuleForApiPath("/api/evaluation-responses?clientId=client-1"), "crm");
+  assert.equal(staffRoleCanAccessApiPath("Intern", "/api/schedule/clients"), true);
+  assert.equal(staffRoleCanAccessApiPath("Intern", "/api/schedule/activity-logs"), true);
+  assert.equal(staffRoleCanAccessApiPath("Intern", "/api/outreach-tasks"), true);
+  assert.equal(staffRoleCanAccessApiPath("Intern", "/api/clients"), false);
+  assert.equal(staffRoleCanAccessApiPath("Intern", "/api/tasks"), false);
+  assert.equal(staffRoleCanAccessApiPath("Intern", "/api/donors"), false);
+  assert.equal(staffRoleCanAccessApiPath("Staff", "/api/referrals"), true);
+  assert.equal(staffRoleCanAccessApiPath("Staff", "/api/evaluation-responses"), true);
+  assert.equal(staffRoleCanAccessApiPath("Intern", "/api/evaluation-responses"), false);
+  assert.equal(staffRoleCanAccessApiPath("Staff", "/api/grants"), false);
+  assert.equal(staffRoleCanAccessApiPath("Manager", "/api/grants"), true);
+  assert.equal(staffRoleCanAccessApiPath("Manager", "/api/donors"), true);
+  assert.equal(staffRoleCanAccessApiPath("Manager", "/api/financial-activity"), false);
+  assert.equal(staffRoleCanAccessApiPath("Manager", "/api/hrsn-claims"), false);
+  assert.equal(staffRoleCanAccessApiPath("Manager", "/api/budget-categories"), false);
+  assert.equal(staffRoleCanAccessApiPath("Admin", "/api/admin/staff-users"), true);
+});
+
+test("client statuses are editable while Scheduled remains available", () => {
+  assert.deepEqual(normalizeClientStatusDefinitions([
+    { name: "Age Limit", color: "#D27354" },
+    { name: "Custom Review", color: "not-a-color" },
+    { name: "custom review", color: "#ffffff" }
+  ]), [
+    { name: "Scheduled", color: "#078b4d" },
+    { name: "Age Limit", color: "#d27354" },
+    { name: "Custom Review", color: "#475467" }
+  ]);
+});
+
+test("schedule client records contain only calendar-safe profile fields", () => {
+  const client = toScheduleClient(snapshot("client-1", {
+    firstName: "Ari",
+    lastName: "Rivera",
+    parentName: "Morgan Rivera",
+    phone: "503-555-0100",
+    email: "private@example.com",
+    addressStreet: "123 Main St",
+    preferredLanguage: "English",
+    status: "Active"
+  }));
+  assert.equal(client.firstName, "Ari");
+  assert.equal(client.phone, "503-555-0100");
+  assert.equal(client.email, undefined);
+  assert.equal(client.addressStreet, undefined);
+});
+
 test("cleanOptionalNumber returns numbers or null", () => {
   assert.equal(cleanOptionalNumber(" 8 "), 8);
   assert.equal(cleanOptionalNumber(""), null);
   assert.equal(cleanOptionalNumber("not a number"), null);
   assert.equal(cleanOptionalInteger("4.6"), 5);
   assert.equal(cleanOptionalInteger("-2"), 0);
+});
+
+test("marketing campaign payloads trim text and preserve reporting numbers", () => {
+  const payload = cleanMarketingCampaignPayload({
+    name: "  Back to School Newsletter  ",
+    status: " Scheduled ",
+    campaignType: " Newsletter ",
+    channel: " Email ",
+    audienceCount: "78",
+    sentCount: "75",
+    openCount: "42",
+    spend: "10.555"
+  });
+
+  assert.equal(payload.name, "Back to School Newsletter");
+  assert.equal(payload.status, "Scheduled");
+  assert.equal(payload.campaignType, "Newsletter");
+  assert.equal(payload.channel, "Email");
+  assert.equal(payload.audienceCount, 78);
+  assert.equal(payload.sentCount, 75);
+  assert.equal(payload.openCount, 42);
+  assert.equal(payload.spend, 10.555);
+});
+
+test("marketing campaign serializer keeps delivery and analytics fields", () => {
+  const campaign = toMarketingCampaign(snapshot("marketing-1", {
+    name: "Summer Newsletter",
+    status: "Sent",
+    channel: "Newsletter",
+    sendDate: "2026-07-20",
+    sentCount: 78,
+    openCount: 52,
+    externalCampaignId: "ml-123"
+  }));
+
+  assert.equal(campaign.id, "marketing-1");
+  assert.equal(campaign.name, "Summer Newsletter");
+  assert.equal(campaign.sendDate, "2026-07-20");
+  assert.equal(campaign.sentCount, 78);
+  assert.equal(campaign.openCount, 52);
+  assert.equal(campaign.externalCampaignId, "ml-123");
 });
 
 test("normalizeStatus maps legacy caregiver callback labels", () => {
@@ -181,6 +402,7 @@ test("cleanPersonPayload normalizes profile data", () => {
     emailOptOut: "checked",
     textOptOut: "",
     ycco: "yes",
+    yccoId: " 123ABC456 ",
     hrsn: "1",
     assessmentScore: "8",
     willingnessScore: "5"
@@ -191,6 +413,7 @@ test("cleanPersonPayload normalizes profile data", () => {
   assert.equal(payload.emailOptOut, true);
   assert.equal(payload.textOptOut, false);
   assert.equal(payload.ycco, true);
+  assert.equal(payload.yccoId, "123ABC456");
   assert.equal(payload.hrsn, true);
   assert.equal(payload.assessmentScore, 8);
   assert.equal(payload.willingnessScore, 5);
@@ -305,6 +528,7 @@ test("clientPayloadFromReferral carries conversion and provider-source fields", 
     emailOptOut: true,
     textOptOut: false,
     ycco: "checked",
+    yccoId: " 123ABC456 ",
     hrsn: "yes",
     assessmentScore: 8,
     willingnessScore: 5,
@@ -322,6 +546,7 @@ test("clientPayloadFromReferral carries conversion and provider-source fields", 
   assert.equal(payload.providerLinks[0].providerName, "William Koenig, DO");
   assert.equal(payload.providerLinks[0].organizationName, "Physicians' Medical Center");
   assert.equal(payload.ycco, true);
+  assert.equal(payload.yccoId, "123ABC456");
   assert.equal(payload.hrsn, true);
   assert.equal(payload.createdBy, "director@snackprogram.org");
   assert.equal(payload.convertedAt, "2026-06-15T16:00:00.000Z");
@@ -348,6 +573,8 @@ test("cleanGrantPayload normalizes grant tracker details and document links", ()
     mimeType: " application/pdf ",
     fileSize: "1234",
     uploadedAt: " 2026-06-16T12:00:00.000Z ",
+    category: " Application ",
+    uploadedBy: " director@snackprogram.org ",
     notes: " Final "
   });
 
@@ -359,6 +586,8 @@ test("cleanGrantPayload normalizes grant tracker details and document links", ()
   assert.equal(documentLink.mimeType, "application/pdf");
   assert.equal(documentLink.fileSize, 1234);
   assert.equal(documentLink.uploadedAt, "2026-06-16T12:00:00.000Z");
+  assert.equal(documentLink.category, "Application");
+  assert.equal(documentLink.uploadedBy, "director@snackprogram.org");
 
   const payload = cleanGrantPayload({
     foundationName: " Oregon Foundation ",
@@ -448,6 +677,66 @@ test("grant question and organization info payloads preserve reusable grant cont
   assert.equal(organizationInfo.copyBlocks[0].title, "Mission");
   assert.equal(organizationInfo.documents[0].title, "DEI");
   assert.equal(organizationInfo.documents[1].type, "Balance Sheet");
+});
+
+test("fundraising payloads clean donor, campaign, gift, and earned income records", () => {
+  const donor = cleanFundraisingDonorPayload({
+    name: " Community Donor ",
+    status: " Recurring ",
+    lifetimeGiving: "1250.55",
+    recurringAmount: "50"
+  });
+  assert.equal(donor.name, "Community Donor");
+  assert.equal(donor.status, "Recurring");
+  assert.equal(donor.donorType, "Individual");
+  assert.equal(donor.lifetimeGiving, 1250.55);
+
+  const campaign = cleanFundraisingCampaignPayload({
+    name: " Annual Appeal ",
+    goalAmount: "10000",
+    raisedAmount: "2500"
+  });
+  assert.equal(campaign.name, "Annual Appeal");
+  assert.equal(campaign.status, "Planning");
+  assert.equal(campaign.goalAmount, 10000);
+
+  const gift = cleanFundraisingGiftPayload({
+    donorId: " donor-1 ",
+    giftDate: " 2026-07-27 ",
+    amount: "125.555",
+    giftType: " Sponsorship ",
+    recurring: "on"
+  });
+  assert.equal(gift.donorId, "donor-1");
+  assert.equal(gift.amount, 125.56);
+  assert.equal(gift.giftType, "Sponsorship");
+  assert.equal(gift.recurring, true);
+
+  const income = cleanEarnedIncomePayload({
+    name: " YCCO Reimbursement ",
+    amountBilled: "4000",
+    amountReceived: "1500"
+  });
+  assert.equal(income.name, "YCCO Reimbursement");
+  assert.equal(income.status, "Planning");
+  assert.equal(income.amountReceived, 1500);
+});
+
+test("fundraising serializers preserve record ids and money values", () => {
+  const donor = toFundraisingDonor(snapshot("donor-1", { name: "Donor", lifetimeGiving: 1200 }));
+  const campaign = toFundraisingCampaign(snapshot("campaign-1", { name: "Campaign", goalAmount: 5000 }));
+  const gift = toFundraisingGift(snapshot("gift-1", { donorId: "donor-1", amount: 125, recurring: true }));
+  const income = toEarnedIncome(snapshot("income-1", { name: "Income", amountReceived: 900 }));
+
+  assert.equal(donor.id, "donor-1");
+  assert.equal(donor.lifetimeGiving, 1200);
+  assert.equal(campaign.id, "campaign-1");
+  assert.equal(campaign.goalAmount, 5000);
+  assert.equal(gift.id, "gift-1");
+  assert.equal(gift.amount, 125);
+  assert.equal(gift.recurring, true);
+  assert.equal(income.id, "income-1");
+  assert.equal(income.amountReceived, 900);
 });
 
 test("cleanOutreachEventPayload defaults type and integer counts", () => {
@@ -585,10 +874,17 @@ test("cleanAppointmentPayload supports CSV-like client fields and public duratio
     durationMinutes: "30",
     publicBookingServiceId: "nutrition-education",
     publicBookingServiceLabel: "Nutrition Education Appointment",
+    interpreterUse: " Yes ",
     caregiverMood: " Good ",
     confidence: " High ",
     participation: " Engaged ",
     barriers: " None ",
+    goalResult: " Achieved ",
+    participantGoals: [
+      { clientId: "a", clientName: "Andi Smith", goal: " Try a fruit ", goalResult: " Achieved " },
+      { clientId: "b", clientName: "Jessie Kellmer", goal: " Drink water ", goalResult: " Not Assessed " },
+      { clientId: "a", clientName: "Duplicate", goalResult: "Not Achieved" }
+    ],
     notes: " Bring workbook ",
     appointmentNote: " Discussed nutrient density. "
   });
@@ -598,10 +894,17 @@ test("cleanAppointmentPayload supports CSV-like client fields and public duratio
   assert.equal(payload.appointmentTime, "14:15");
   assert.equal(payload.durationMinutes, 30);
   assert.equal(payload.publicBookingServiceId, "nutrition-education");
+  assert.equal(payload.interpreterUse, "Yes");
   assert.equal(payload.caregiverMood, "Good");
   assert.equal(payload.confidence, "High");
   assert.equal(payload.participation, "Engaged");
   assert.equal(payload.barriers, "None");
+  assert.equal(payload.goalResult, "Achieved");
+  assert.deepEqual(payload.participantGoals, [
+    { clientId: "a", clientName: "Andi Smith", goal: "Try a fruit", goalResult: "Achieved" },
+    { clientId: "b", clientName: "Jessie Kellmer", goal: "Drink water", goalResult: "Not Assessed" }
+  ]);
+  assert.deepEqual(cleanAppointmentParticipantGoals("not-an-array"), []);
   assert.equal(payload.notes, "Bring workbook");
   assert.equal(payload.appointmentNote, "Discussed nutrient density.");
 });
@@ -630,15 +933,15 @@ test("resolveAppointmentImportClients matches CSV client names to existing clien
 
 test("resolveAppointmentImportClients can preserve unmatched appointment names on import", async () => {
   const payload = cleanAppointmentPayload({
-    clientNames: "Rafael De Jesús Hernández García, Aaliyah Martinez Nambo",
+    clientNames: "Milo De Jesús Exampleton García, Avery Sample",
     appointmentDate: "2026-06-30",
     appointmentTime: "2:30 PM"
   });
   const clientsByName = new Map([
-    [normalizedLookupKey("Rafael de Jesus Hernandez Garcia"), {
+    [normalizedLookupKey("Milo de Jesus Exampleton Garcia"), {
       id: "client-1",
-      firstName: "Rafael de Jesús",
-      lastName: "Hernández García"
+      firstName: "Milo de Jesús",
+      lastName: "Exampleton García"
     }]
   ]);
 
@@ -646,7 +949,7 @@ test("resolveAppointmentImportClients can preserve unmatched appointment names o
 
   assert.equal(error, "");
   assert.deepEqual(payload.clientIds, ["client-1"]);
-  assert.deepEqual(payload.clientNames, ["Rafael De Jesús Hernández García", "Aaliyah Martinez Nambo"]);
+  assert.deepEqual(payload.clientNames, ["Milo De Jesús Exampleton García", "Avery Sample"]);
 });
 
 test("cleanTaskPayload normalizes task defaults", () => {
@@ -678,6 +981,7 @@ test("task helper functions classify generated active tasks", () => {
   assert.equal(isActiveTaskStatus("Waiting"), true);
   assert.equal(isActiveTaskStatus("Done"), false);
   assert.equal(isGeneratedTaskSource("Start the Day"), true);
+  assert.equal(isGeneratedTaskSource("Workflow Automation"), true);
   assert.equal(isGeneratedTaskSource("Manual"), false);
 });
 
@@ -694,6 +998,149 @@ test("start-day task matching catches duplicate reschedule work", () => {
   };
 
   assert.equal(tasksMatchStartDayIntent(existingTask, payload), true);
+});
+
+test("generated scheduling tasks deduplicate schedule and reschedule wording for one client", () => {
+  assert.equal(tasksMatchStartDayIntent({
+    title: "Reschedule Avery Rivera",
+    clientId: "client-1"
+  }, {
+    title: "Schedule next appointment for Avery Rivera",
+    clientId: "client-1"
+  }), true);
+});
+
+test("scheduled appointments create one linked outcome-review candidate the next day", () => {
+  const candidate = staleAppointmentWorkflowTask({
+    id: "appointment-1",
+    status: "Scheduled",
+    appointmentDate: "2026-07-29",
+    appointmentTime: "13:00",
+    durationMinutes: 30,
+    clientIds: ["client-1"],
+    clientNames: ["Avery Rivera"],
+    staffMember: "Cynthia Esparza"
+  }, new Date("2026-07-30T19:00:00.000Z"));
+
+  assert.equal(candidate.title, "Update outcome for Avery Rivera");
+  assert.equal(candidate.appointmentId, "appointment-1");
+  assert.equal(candidate.clientId, "client-1");
+  assert.equal(candidate.dueDate, "2026-07-30");
+  assert.equal(staleAppointmentWorkflowTask({
+    status: "Scheduled",
+    appointmentDate: "2026-07-29",
+    appointmentTime: "13:00",
+    durationMinutes: 30
+  }, new Date("2026-07-29T23:59:59.000Z")), null);
+  assert.equal(staleAppointmentWorkflowTask({
+    status: "Completed",
+    appointmentDate: "2026-07-29"
+  }, new Date("2026-07-31T12:00:00.000Z")), null);
+});
+
+test("Clinic calendar events use limited client details and stable private record IDs", () => {
+  const event = googleCalendarEventForAppointment({
+    id: "appointment-1",
+    appointmentDate: "2026-08-04",
+    appointmentTime: "1:30 PM",
+    durationMinutes: 45,
+    clientNames: ["Avery Rivera", "Jordan Rivera"],
+    appointmentType: "Nutrition Education",
+    staffMember: "Cynthia Esparza",
+    location: "123 Clinic Street",
+    phone: "503-555-0101",
+    notes: "Private health notes"
+  });
+
+  assert.equal(event.summary, "Avery R. + Jordan R. | Nutrition Education");
+  assert.equal(event.start.dateTime, "2026-08-04T13:30:00");
+  assert.equal(event.end.dateTime, "2026-08-04T14:15:00");
+  assert.equal(event.start.timeZone, "America/Los_Angeles");
+  assert.equal(event.extendedProperties.private.snackRecordId, "appointment-1");
+  assert.doesNotMatch(JSON.stringify(event), /503-555-0101|Private health notes/);
+});
+
+test("Clinic calendar permission covers both the connection check and event changes", () => {
+  assert.deepEqual(googleCalendarScopes, [
+    "https://www.googleapis.com/auth/calendar.events",
+    "https://www.googleapis.com/auth/calendar.readonly"
+  ]);
+  assert.equal(googleCalendarScopes.includes("https://www.googleapis.com/auth/calendar"), false);
+});
+
+test("Clinic calendar synchronization creates, updates, and removes one event", async () => {
+  const requests = [];
+  const fetchImpl = async (url, options) => {
+    requests.push({ url, options });
+    if (options.method === "DELETE") return new Response(null, { status: 204 });
+    return new Response(JSON.stringify({ id: "event-1" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
+  };
+  const base = {
+    id: "appointment-1",
+    appointmentDate: "2026-08-04",
+    appointmentTime: "13:30",
+    clientNames: ["Avery Rivera"],
+    appointmentType: "Enrollment",
+    status: "Scheduled"
+  };
+  const options = {
+    enabled: true,
+    calendarId: "clinic@test.example",
+    accessToken: "test-token",
+    fetchImpl
+  };
+
+  const created = await syncClinicAppointmentCalendar(base, options);
+  const updated = await syncClinicAppointmentCalendar({
+    ...base,
+    googleCalendarId: "clinic@test.example",
+    googleEventId: created.eventId,
+    appointmentTime: "14:00"
+  }, options);
+  const removed = await syncClinicAppointmentCalendar({
+    ...base,
+    googleCalendarId: "clinic@test.example",
+    googleEventId: updated.eventId,
+    status: "Canceled"
+  }, options);
+
+  assert.deepEqual(requests.map((request) => request.options.method), ["POST", "PATCH", "DELETE"]);
+  assert.equal(created.eventId, "event-1");
+  assert.equal(updated.eventId, "event-1");
+  assert.equal(removed.eventId, "");
+});
+
+test("controlled Clinic calendar verification checks access and cleans up its QA event", async () => {
+  const requests = [];
+  const fetchImpl = async (url, options) => {
+    requests.push({ url, options });
+    if (options.method === "GET") {
+      return new Response(JSON.stringify({ summary: "Clinic Appts", accessRole: "writer" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    if (options.method === "DELETE") return new Response(null, { status: 204 });
+    return new Response(JSON.stringify({ id: "qa-event-1" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
+  };
+
+  const result = await verifyGoogleCalendarLifecycle({
+    calendarId: "clinic@test.example",
+    accessToken: "test-token",
+    fetchImpl,
+    testDate: "2026-08-07"
+  });
+
+  assert.deepEqual(requests.map((request) => request.options.method), ["GET", "POST", "PATCH", "DELETE"]);
+  assert.deepEqual(result.lifecycle, { created: true, updated: true, removed: true });
+  assert.equal(result.calendarName, "Clinic Appts");
+  assert.equal(result.accessRole, "writer");
 });
 
 test("start-day task subject removes action prefixes", () => {
@@ -756,10 +1203,10 @@ test("public appointment drafts are scheduled and private-safe", () => {
 });
 
 test("public slots respect service duration and appointment conflicts", () => {
-  const date = nextUtcWeekday(3);
+  const date = "2026-07-29";
+  const nonblockingDate = "2026-07-30";
   const service = publicBookingServiceFromId("enrollment");
-  const historicalNow = new Date(`${date}T00:00:00Z`);
-  historicalNow.setUTCDate(historicalNow.getUTCDate() - 1);
+  const historicalNow = new Date("2026-07-27T12:00:00Z");
   const slots = publicSlotValuesForDate(date, service, [
     { appointmentDate: date, appointmentTime: "13:00", durationMinutes: 30, status: "Scheduled" }
   ], defaultSchedulingSettingsNormalized, historicalNow);
@@ -770,7 +1217,7 @@ test("public slots respect service duration and appointment conflicts", () => {
   assert.equal(values.includes("13:30"), true);
   assert.equal(values.at(-1), "17:30");
 
-  const nonblockingSlots = publicSlotValuesForDate(nextUtcWeekday(4), service, [
+  const nonblockingSlots = publicSlotValuesForDate(nonblockingDate, service, [
     { appointmentDate: date, appointmentTime: "13:00", durationMinutes: 30, status: "Canceled" }
   ], defaultSchedulingSettingsNormalized, historicalNow);
 
@@ -822,12 +1269,13 @@ test("public management tokens and serialized bookings are private-safe", () => 
   const hash = publicManageTokenHash(token);
   const booking = serializePublicManagedBooking({
     id: "appt-1",
-    clientNames: ["Rafael Hernandez", "Janney Hernandez"],
+    clientNames: ["Milo Exampleton", "Tessa Exampleton"],
     publicBookingServiceId: "spanish-nutrition-education",
     publicBookingServiceLabel: "Cita de educación nutricional en español",
     appointmentDate: nextUtcWeekday(2),
     appointmentTime: "14:30",
     durationMinutes: 30,
+    location: "2435 NE Cumulus Ave, Suite A, McMinnville, OR 97128",
     status: "Scheduled"
   });
 
@@ -838,7 +1286,8 @@ test("public management tokens and serialized bookings are private-safe", () => 
   assert.equal(booking.serviceId, "spanish-nutrition-education");
   assert.equal(booking.serviceLabel, "Cita de educación nutricional en español");
   assert.equal(booking.appointmentTimeLabel, "2:30 PM");
-  assert.equal(booking.clientName, "Rafael Hernandez, Janney Hernandez");
+  assert.equal(booking.clientName, "Milo Exampleton, Tessa Exampleton");
+  assert.equal(booking.location, "2435 NE Cumulus Ave, Suite A, McMinnville, OR 97128");
   assert.equal(Object.hasOwn(booking, "publicManageTokenHash"), false);
 });
 
@@ -847,8 +1296,8 @@ test("public booking confirmation content includes the private management link",
     appointmentId: "appt-1",
     manageToken: "private-token",
     bookingPageUrl: "https://booking.example.org/booking.html?old=value#section",
-    caregiverName: "Neiva",
-    clientNames: ["Rafael Hernandez", "Janney Hernandez"],
+    caregiverName: "Jordan",
+    clientNames: ["Milo Exampleton", "Tessa Exampleton"],
     serviceLabel: "Nutrition Education Appointment",
     appointmentDate: "2026-07-21",
     appointmentTimeLabel: "2:30 PM",
@@ -859,13 +1308,13 @@ test("public booking confirmation content includes the private management link",
 
   assert.equal(
     confirmation.manageUrl,
-    "https://booking.example.org/booking.html?appointmentId=appt-1&token=private-token"
+    "https://booking.example.org/booking.html?appointmentId=appt-1#token=private-token"
   );
   assert.match(confirmation.email.subject, /appointment is confirmed/i);
-  assert.match(confirmation.email.text, /Rafael Hernandez and Janney Hernandez/);
+  assert.match(confirmation.email.text, /Milo Exampleton and Tessa Exampleton/);
   assert.match(confirmation.email.text, /Tuesday, July 21, 2026/);
   assert.match(confirmation.email.text, /private link/);
-  assert.match(confirmation.email.html, /appointmentId=appt-1&amp;token=private-token/);
+  assert.match(confirmation.email.html, /appointmentId=appt-1#token=private-token/);
   assert.match(confirmation.text.body, /Manage appointment:/);
 });
 
@@ -896,8 +1345,8 @@ test("confirmation delivery remains disabled or preview-only", () => {
     appointmentId: "appt-3",
     manageToken: "private-token",
     bookingPageUrl: "https://booking.example.org/booking.html",
-    caregiverName: "Neiva",
-    clientNames: ["Rafael"],
+    caregiverName: "Jordan",
+    clientNames: ["Milo"],
     serviceLabel: "Enrollment Appointment",
     appointmentDate: "2026-07-23",
     appointmentTimeLabel: "1:00 PM",
@@ -946,7 +1395,7 @@ test("cleanPublicBookingPayload accepts child aliases and service language defau
     caregiverName: " Arianna ",
     mobilePhone: " 503 ",
     email: " family@example.com ",
-    address: " 2435 NE Cumulus Ave ",
+    address: " 2435 ne cumulus avenue, mcminnville, oregon 97128 ",
     preferredContactMethod: "Phone Call",
     consentReminders: "on",
     appointmentDate: nextUtcWeekday(2),
@@ -959,6 +1408,7 @@ test("cleanPublicBookingPayload accepts child aliases and service language defau
   assert.equal(payload.parentName, "Arianna");
   assert.equal(payload.preferredLanguage, "Spanish");
   assert.equal(payload.phone, "503");
+  assert.equal(payload.address, "2435 NE Cumulus Ave, McMinnville, OR 97128");
   assert.equal(payload.appointmentTime, "13:00");
 });
 
@@ -987,7 +1437,7 @@ test("public booking validation rejects spam traps and malformed public input", 
   assert.match(publicBookingValidationError({ ...validPayload, spamTrap: "bot.example" }, defaultSchedulingSettingsNormalized, validationNow), /Could not submit/);
   assert.match(publicBookingValidationError({ ...validPayload, email: "not-an-email" }, defaultSchedulingSettingsNormalized, validationNow), /valid email/);
   assert.match(publicBookingValidationError({ ...validPayload, email: "" }, defaultSchedulingSettingsNormalized, validationNow), /required/);
-  assert.match(publicBookingValidationError({ ...validPayload, consentReminders: false }, defaultSchedulingSettingsNormalized, validationNow), /required/);
+  assert.match(publicBookingValidationError({ ...validPayload, consentReminders: false, serviceEmailConsent: false, serviceTextConsent: false }, defaultSchedulingSettingsNormalized, validationNow), /Choose email reminders/);
   assert.match(publicBookingValidationError({ ...validPayload, notes: "x".repeat(601) }, defaultSchedulingSettingsNormalized, validationNow), /shorten/);
 
   const tooSoonPayload = {
@@ -1001,17 +1451,94 @@ test("public booking validation rejects spam traps and malformed public input", 
   );
 });
 
+test("public Kitchen registration reuses family fields and keeps food restrictions", () => {
+  const payload = cleanPublicClassRegistrationPayload({
+    sessionId: "class-1",
+    children: [
+      { childName: "Milo Garcia", dateOfBirth: "2016-01-02", gender: "Male" },
+      { childName: "Tessa Garcia", dateOfBirth: "2018-03-04", gender: "Female" }
+    ],
+    caregiverName: "Jordan",
+    mobilePhone: "(503) 555-0100",
+    email: "family@example.com",
+    address: "2435 NE Cumulus Ave",
+    preferredLanguage: "Spanish",
+    preferredContactMethod: "Text",
+    yccoMember: "Yes",
+    yccoId: "member-1",
+    consentReminders: true,
+    foodRestrictions: " Peanut allergy "
+  });
+
+  assert.equal(payload.sessionId, "class-1");
+  assert.equal(payload.children.length, 2);
+  assert.equal(payload.parentName, "Jordan");
+  assert.equal(payload.preferredLanguage, "Spanish");
+  assert.equal(payload.foodRestrictions, "Peanut allergy");
+});
+
+test("public Kitchen sessions enforce notice, capacity, and whole-family waitlisting", () => {
+  const session = {
+    id: "class-1",
+    program: "Kitchen",
+    title: "Kids Cooking + Nutrition Class - Ages 8-12",
+    classTypeId: "kids-cooking-ages-8-12",
+    sessionDate: "2026-07-23",
+    startTime: "13:00",
+    durationMinutes: 120,
+    capacity: 8,
+    status: "Scheduled"
+  };
+  const now = new Date("2026-07-21T19:00:00Z");
+  const availability = publicKitchenSessionAvailability(session, [
+    { status: "Registered", attendeeCount: 7 }
+  ], defaultSchedulingSettingsNormalized, now);
+  const payload = cleanPublicClassRegistrationPayload({
+    sessionId: "class-1",
+    children: [{ childName: "Ana Bello", dateOfBirth: "2015-01-02", gender: "Female" }],
+    caregiverName: "Arianna",
+    mobilePhone: "503-555-0100",
+    email: "family@example.com",
+    address: "2435 NE Cumulus Ave",
+    preferredLanguage: "English",
+    preferredContactMethod: "Phone Call",
+    consentReminders: true
+  });
+
+  assert.equal(availability.spacesRemaining, 1);
+  assert.equal(availability.nextStatus, "Registered");
+  assert.equal(publicClassRegistrationValidationError(payload, session, defaultSchedulingSettingsNormalized, now), "");
+
+  const tooSoon = { ...session, sessionDate: "2026-07-22" };
+  assert.match(
+    publicClassRegistrationValidationError(
+      payload,
+      tooSoon,
+      defaultSchedulingSettingsNormalized,
+      new Date("2026-07-21T20:30:00Z")
+    ),
+    /no longer available/
+  );
+});
+
 test("serializers produce stable API shapes", () => {
-  const referral = toReferral(snapshot("r1", { firstName: "Ana", ycco: "yes", siblingIds: ["r2"] }));
-  const client = toClient(snapshot("c1", { firstName: "Ana", hrsn: "checked", providerLinks: [{ providerName: "William" }] }));
+  const referral = toReferral(snapshot("r1", { firstName: "Ana", ycco: "yes", yccoId: "123ABC456", siblingIds: ["r2"] }));
+  const client = toClient(snapshot("c1", { firstName: "Ana", hrsn: "checked", yccoId: "789XYZ012", providerLinks: [{ providerName: "William" }] }));
   const appointment = toAppointment(snapshot("a1", {
     clientIds: ["c1"],
     appointmentTime: "13:00",
     durationMinutes: 15,
+    goalResult: "Partly Achieved",
+    participantGoals: [{ clientId: "c1", clientName: "Ana", goal: "Try fruit", goalResult: "Achieved" }],
     prepChecklist: { sticker: true, unknownItem: true }
   }));
   const task = toTask(snapshot("t1", { title: "Call", type: "forms", status: "Open" }));
-  const activity = toActivityLog(snapshot("l1", { type: "Call", direction: "Outbound" }));
+  const activity = toActivityLog(snapshot("l1", {
+    type: "Call",
+    direction: "Outbound",
+    createdBy: "shannon@snackprogram.org",
+    createdByDisplayName: "Shannon Oddo"
+  }));
   const grant = toGrant(snapshot("g1", { foundationName: "Foundation", pastGrantReceived: true, documents: [{ title: "Application" }] }));
   const question = toGrantQuestion(snapshot("q1", { prompt: "Question", answer: "Answer" }));
   const organizationInfo = toGrantOrganizationInfo(snapshot("grantOrganizationInfo", {
@@ -1021,9 +1548,15 @@ test("serializers produce stable API shapes", () => {
 
   assert.equal(referral.id, "r1");
   assert.equal(referral.ycco, true);
+  assert.equal(referral.yccoId, "123ABC456");
   assert.equal(client.hrsn, true);
+  assert.equal(activity.createdBy, "shannon@snackprogram.org");
+  assert.equal(activity.createdByDisplayName, "Shannon Oddo");
+  assert.equal(client.yccoId, "789XYZ012");
   assert.equal(client.providerLinks[0].providerName, "William");
   assert.equal(appointment.durationMinutes, 15);
+  assert.equal(appointment.goalResult, "Partly Achieved");
+  assert.equal(appointment.participantGoals[0].goalResult, "Achieved");
   assert.deepEqual(appointment.prepChecklist, { sticker: true });
   assert.equal(task.type, "Form");
   assert.equal(activity.direction, "Outbound");
@@ -1056,6 +1589,9 @@ test("public and protected API routes are registered with expected middleware", 
 
   assert.ok(routes.indexOf("/api/public/booking-options") < routes.indexOf("/api/message"));
   assert.ok(routes.indexOf("/api/public/availability") < routes.indexOf("/api/message"));
+  assert.ok(routes.indexOf("/api/public/classes") < routes.indexOf("/api/message"));
+  assert.ok(routes.indexOf("/api/public/classes/:sessionId") < routes.indexOf("/api/message"));
+  assert.ok(routes.indexOf("/api/public/class-registrations") < routes.indexOf("/api/message"));
   assert.ok(routes.indexOf("/api/public/bookings") < routes.indexOf("/api/message"));
   assert.ok(routes.indexOf("/api/public/bookings/:appointmentId") < routes.indexOf("/api/message"));
   assert.ok(routes.indexOf("/api/public/bookings/:appointmentId/cancel") < routes.indexOf("/api/message"));
@@ -1065,17 +1601,44 @@ test("public and protected API routes are registered with expected middleware", 
   assert.ok(routes.includes("/api/grant-questions"));
   assert.ok(routes.includes("/api/grant-questions/:questionId"));
   assert.ok(routes.includes("/api/grant-organization-info"));
+  assert.ok(routes.includes("/api/donors"));
+  assert.ok(routes.includes("/api/donors/:donorId"));
+  assert.ok(routes.includes("/api/campaigns"));
+  assert.ok(routes.includes("/api/campaigns/:campaignId"));
+  assert.ok(routes.includes("/api/earned-income"));
+  assert.ok(routes.includes("/api/earned-income/:incomeId"));
+  assert.ok(routes.includes("/api/marketing-campaigns"));
+  assert.ok(routes.includes("/api/marketing-campaigns/:campaignId"));
+  assert.ok(routes.includes("/api/marketing/mailerlite/status"));
+  assert.ok(routes.includes("/api/marketing/mailerlite/test-sync"));
+  assert.ok(routes.includes("/api/public/mailerlite/webhook"));
+  assert.equal(routes.includes("/api/marketing/send"), false);
   assert.ok(routes.includes("/api/admin/scheduling-settings"));
+  assert.ok(routes.includes("/api/admin/google-calendar/status"));
   assert.ok(routes.includes("/api/appointments/:appointmentId/prep"));
   assert.ok(routes.includes("/api/outreach-events"));
   assert.ok(routes.includes("/api/outreach-events/:eventId"));
   assert.ok(routes.includes("/api/outreach-contacts"));
   assert.ok(routes.includes("/api/outreach-contacts/:contactId"));
   assert.ok(routes.includes("/api/outreach-contacts/:contactId/link-referral"));
+  assert.ok(routes.includes("/api/outreach-tasks"));
+  assert.ok(routes.includes("/api/outreach-tasks/:taskId"));
+  assert.ok(routes.includes("/api/tasks/reconcile"));
+  assert.ok(routes.includes("/api/staff-directory"));
+  assert.ok(routes.includes("/api/schedule/activity-logs"));
   const healthRoute = registeredRoutes.find((route) => route.path === "/health");
   const bookingOptionsRoute = registeredRoutes.find((route) => route.path === "/api/public/booking-options");
+  const publicClassesRoute = registeredRoutes.find((route) => route.path === "/api/public/classes");
+  const publicClassRegistrationRoute = registeredRoutes.find((route) => route.path === "/api/public/class-registrations");
   const prepRoute = registeredRoutes.find((route) => route.path === "/api/appointments/:appointmentId/prep");
   const outreachEventsRoute = registeredRoutes.find((route) => route.path === "/api/outreach-events");
+  const donorRoute = registeredRoutes.find((route) => route.path === "/api/donors" && route.methods.get);
+  const campaignRoute = registeredRoutes.find((route) => route.path === "/api/campaigns" && route.methods.get);
+  const earnedIncomeRoute = registeredRoutes.find((route) => route.path === "/api/earned-income" && route.methods.get);
+  const marketingCampaignRoute = registeredRoutes.find((route) => route.path === "/api/marketing-campaigns" && route.methods.get);
+  const mailerLiteStatusRoute = registeredRoutes.find((route) => route.path === "/api/marketing/mailerlite/status");
+  const mailerLiteTestSyncRoute = registeredRoutes.find((route) => route.path === "/api/marketing/mailerlite/test-sync");
+  const mailerLiteWebhookRoute = registeredRoutes.find((route) => route.path === "/api/public/mailerlite/webhook");
   const outreachDeleteRoute = registeredRoutes.find((route) => (
     route.path === "/api/outreach-events/:eventId" && route.methods.delete
   ));
@@ -1087,10 +1650,24 @@ test("public and protected API routes are registered with expected middleware", 
   assert.equal(healthRoute.stack.length, 1);
   assert.equal(bookingOptionsRoute.stack.length, 1);
   assert.equal(bookingOptionsRoute.methods.get, true);
+  assert.equal(publicClassesRoute.methods.get, true);
+  assert.equal(publicClassesRoute.stack.length, 1);
+  assert.equal(publicClassRegistrationRoute.methods.post, true);
+  assert.equal(publicClassRegistrationRoute.stack.length, 2);
   assert.equal(prepRoute.methods.patch, true);
   assert.equal(prepRoute.stack.length, 2);
   assert.equal(outreachEventsRoute.methods.get, true);
   assert.equal(outreachEventsRoute.stack.length, 2);
+  assert.equal(donorRoute.stack.length, 2);
+  assert.equal(campaignRoute.stack.length, 2);
+  assert.equal(earnedIncomeRoute.stack.length, 2);
+  assert.equal(marketingCampaignRoute.stack.length, 2);
+  assert.equal(mailerLiteStatusRoute.methods.get, true);
+  assert.equal(mailerLiteStatusRoute.stack.length, 2);
+  assert.equal(mailerLiteTestSyncRoute.methods.post, true);
+  assert.equal(mailerLiteTestSyncRoute.stack.length, 2);
+  assert.equal(mailerLiteWebhookRoute.methods.post, true);
+  assert.equal(mailerLiteWebhookRoute.stack.length, 1);
   assert.equal(outreachDeleteRoute.stack.length, 2);
   assert.equal(outreachReferralLinkRoute.methods.patch, true);
   assert.equal(outreachReferralLinkRoute.stack.length, 2);

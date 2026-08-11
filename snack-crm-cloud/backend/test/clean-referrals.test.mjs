@@ -14,18 +14,27 @@ import {
   mapCrmNetworkEntries,
   mapCrmNetworkEntry,
   mapCrmReferral,
-  mapCrmReferrals
+  mapCrmReferrals,
+  referralStatusOptions
 } from "../../frontend/public/modules/referrals.js";
 
 const cleanSource = await readFile(new URL("../../frontend/public/clean.js", import.meta.url), "utf8");
 const cleanCss = await readFile(new URL("../../frontend/public/clean.css", import.meta.url), "utf8");
 
+test("referral status choices put Scheduled before the three closed-by-default groups", () => {
+  assert.ok(referralStatusOptions.indexOf("Scheduled") < referralStatusOptions.indexOf("Caregiver Will Call Back"));
+  assert.match(cleanSource, /crmExpandedReferralStatuses = new Set\(\["New", "Texted", "Left Voicemail", "Emailed", "Requested Call Back", "Scheduled"\]\)/);
+  assert.match(cleanSource, /data-crm-add-referral-partner/);
+  assert.match(cleanSource, /data-crm-complete-public-review/);
+  assert.match(cleanCss, /\.crm-record-review-alert/);
+});
+
 const referrals = [
   {
     id: "referral-2",
-    firstName: "Janney",
-    lastName: "Hernandez",
-    parentName: "Neiva",
+    firstName: "Tessa",
+    lastName: "Exampleton",
+    parentName: "Jordan",
     preferredLanguage: "Spanish",
     preferredContactMethod: "Text",
     referralType: "Self Referral",
@@ -35,9 +44,10 @@ const referrals = [
     mostRecentContactDate: "2026-07-12",
     status: "Texted",
     phone: "971-555-0101",
-    email: "neiva@example.com",
+    email: "jordan@example.com",
     siblingIds: ["referral-1"],
     ycco: true,
+    yccoId: "123ABC456",
     hrsn: false,
     providerLinks: [{
       networkId: "network-1",
@@ -48,23 +58,23 @@ const referrals = [
   },
   {
     id: "referral-1",
-    firstName: "Rafael",
-    lastName: "Hernandez",
-    parentName: "Neiva",
+    firstName: "Milo",
+    lastName: "Exampleton",
+    parentName: "Jordan",
     status: "New",
     siblingIds: ["referral-2"]
   },
   {
     id: "referral-3",
-    firstName: "Cali",
-    lastName: "Flint",
+    firstName: "Cora",
+    lastName: "Sample",
     status: "Scheduled",
     convertedClientId: "client-3"
   },
   {
     id: "referral-4",
-    firstName: "Mark",
-    lastName: "Flint",
+    firstName: "Max",
+    lastName: "Sample",
     status: "Closed / No Further Outreach"
   }
 ];
@@ -100,36 +110,38 @@ test("clean referrals map family, contact, provider, and conversion information"
       activityTime: "14:30"
     }]
   });
-  const janney = items.find((item) => item.id === "referral-2");
+  const tessa = items.find((item) => item.id === "referral-2");
 
   assert.deepEqual(items.map((item) => item.title), [
-    "Janney Hernandez",
-    "Mark Flint",
-    "Rafael Hernandez"
+    "Milo Exampleton",
+    "Tessa Exampleton",
+    "Max Sample"
   ]);
-  assert.equal(janney.siblings, "Rafael Hernandez");
-  assert.deepEqual(janney.siblingProfiles, [{
+  assert.equal(tessa.siblings, "Milo Exampleton");
+  assert.deepEqual(tessa.siblingProfiles, [{
     id: "referral-1",
-    name: "Rafael Hernandez",
+    name: "Milo Exampleton",
     section: "Referrals"
   }]);
-  assert.equal(janney.recentContact, "7/15/26");
-  assert.equal(janney.providerProfiles, "Dr. Rivera (Physicians Medical Center)");
-  assert.deepEqual(janney.providerProfileLinks, [{
+  assert.equal(tessa.subtitle, "7/15/26 | 971-555-0101 | Jordan | Spanish");
+  assert.equal(tessa.recentContact, "7/15/26");
+  assert.equal(tessa.providerProfiles, "Dr. Rivera (Physicians Medical Center)");
+  assert.deepEqual(tessa.providerProfileLinks, [{
     networkId: "network-1",
     providerId: "provider-1",
     label: "Dr. Rivera (Physicians Medical Center)"
   }]);
-  assert.equal(janney.insurance, "YCCO");
-  assert.equal(janney.hrsn, "Not Eligible");
-  assert.equal(janney.convertedClientId, "");
+  assert.equal(tessa.insurance, "YCCO");
+  assert.equal(tessa.yccoId, "123ABC456");
+  assert.equal(tessa.hrsn, "Not Eligible");
+  assert.equal(tessa.convertedClientId, "");
 });
 
 test("clean referrals and referral partners handle long names and missing fields", () => {
   const referral = mapCrmReferral({
     id: "referral-long",
     firstName: "Lucia",
-    lastName: "Martinez de la Cruz Hernandez",
+    lastName: "Martinez de la Cruz Exampleton",
     siblingIds: ["missing-referral"],
     providerLinks: [{ organizationName: "A Very Long Community Health Organization" }]
   });
@@ -140,7 +152,7 @@ test("clean referrals and referral partners handle long names and missing fields
     providers: [{ id: "provider-1", name: "Elena Ruiz", email: "", notes: "Call or text." }]
   });
 
-  assert.equal(referral.title, "Lucia Martinez de la Cruz Hernandez");
+  assert.equal(referral.title, "Lucia Martinez de la Cruz Exampleton");
   assert.equal(referral.siblings, "-");
   assert.deepEqual(referral.siblingProfiles, []);
   assert.equal(referral.email, "-");
@@ -162,17 +174,18 @@ test("clean referral summaries and searches cover the complete referral workflow
     ["0", "Scheduled"],
     ["1", "Closed"]
   ]);
-  const janney = items.find((item) => item.id === "referral-2");
-  assert.equal(crmReferralMatches(janney, "dr. rivera"), true);
-  assert.equal(crmReferralMatches(janney, "public booking"), true);
-  assert.equal(crmReferralMatches(janney, "not present"), false);
+  const tessa = items.find((item) => item.id === "referral-2");
+  assert.equal(crmReferralMatches(tessa, "dr. rivera"), true);
+  assert.equal(crmReferralMatches(tessa, "public booking"), true);
+  assert.equal(crmReferralMatches(tessa, "not present"), false);
 });
 
 test("clean referral forms produce safe server payloads and linked activity", () => {
   assert.deepEqual(crmReferralPayload({
-    firstName: " Janney ",
+    firstName: " Tessa ",
     referralType: " Self Referral ",
     ycco: "on",
+    yccoId: " 123ABC456 ",
     emailOptOut: false,
     providerLinks: [{
       networkId: " network-1 ",
@@ -181,9 +194,10 @@ test("clean referral forms produce safe server payloads and linked activity", ()
       providerName: " Dr. Rivera "
     }]
   }), {
-    firstName: "Janney",
+    firstName: "Tessa",
     referralType: "Self Referral",
     ycco: true,
+    yccoId: "123ABC456",
     emailOptOut: false,
     providerLinks: [{
       networkId: "network-1",
@@ -201,7 +215,7 @@ test("clean referral forms produce safe server payloads and linked activity", ()
     description: " Call tomorrow "
   }, {
     id: " referral-2 ",
-    title: " Janney Hernandez "
+    title: " Tessa Exampleton "
   }, "Call"), {
     direction: "Inbound",
     result: "Requested call back",
@@ -211,7 +225,7 @@ test("clean referral forms produce safe server payloads and linked activity", ()
     type: "Call",
     relatedType: "referral",
     relatedId: "referral-2",
-    relatedName: "Janney Hernandez",
+    relatedName: "Tessa Exampleton",
     title: "Inbound Call"
   });
 });
@@ -251,6 +265,12 @@ test("clean referral editor scopes provider choices to one organization", () => 
   assert.match(cleanSource, /checkbox\.disabled = !isSelected/);
   assert.match(cleanSource, /formData\.get\("providerOrganizationId"\)/);
   assert.match(cleanCss, /\.crm-provider-choices \{[\s\S]*?grid-template-columns: minmax\(0, 0\.95fr\) minmax\(0, 1\.05fr\);/);
+});
+
+test("clean referrals use searchable siblings and collapsible status groups", () => {
+  assert.match(cleanSource, /renderCrmReferralSiblingChoices/);
+  assert.match(cleanSource, /data-crm-referral-status-toggle/);
+  assert.match(cleanSource, /data-crm-referral-status-expand/);
 });
 
 test("clean referral network footer preserves green, blue, and red actions", () => {

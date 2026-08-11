@@ -1,13 +1,15 @@
 # Locked Product Decisions
 
-Last updated: August 4, 2026
+Last updated: August 5, 2026
 
 These decisions are approved unless you explicitly reopen them.
 
 ## Product Structure
 
 - The first staff screen is Home, not a marketing page or a module page.
-- Home is compact and does not duplicate the CRM Dashboard queues.
+- Home is the combined daily dashboard. It keeps Today's Schedule and Tasks and
+  also shows the four CRM Workflow queues: New Referrals, Reschedule, No Next
+  Appointment, and Waiting on Family.
 - Main modules are Schedule, CRM, Outreach, Finances, Marketing, Operations,
   and Admin.
 - The clean template controls typography, spacing, tabs, colors, navigation,
@@ -29,18 +31,26 @@ Finances navigation order:
 Giving contains Gifts, Donors, and Campaigns as tabs.
 
 Admin contains Settings, Schedule, and Integrations. Settings contains Team,
-Access, Forms, and Data. Admin has no Quick Actions panel.
+Access, CRM, Forms, and Data. Admin has no Quick Actions panel.
 
 ## Access
 
 - Access levels are configurable by an Admin, not hardcoded forever.
-- Initial roles are Admin, Staff, and Intern.
+- Initial roles are Admin, Manager, Staff, and Intern.
+- Manager has Schedule, CRM, Outreach, and Finances. Inside Finances, Manager can
+  use only Grants and Giving.
+- Finance section access is editable for reusable access levels and must be
+  enforced by both the screen and server.
 - Staff initially has Schedule, CRM, and Outreach.
 - Intern initially has Schedule and Outreach.
 - Admins can add access levels, change module access, activate accounts, and
   assign additional Admins.
 - The protected director account cannot be demoted or deactivated if doing so
   would remove the last owner.
+- Admin may remove a temporary staff account from SNACK Program Manager with a
+  two-step confirmation. This removes the app profile and access only, never the
+  person's Google account. The protected director account and the account
+  currently in use cannot be removed.
 - `consultant@snackprogram.org` may have temporary Admin access only while the
   system contains sample data.
 - Ordinary production cleanup never removes protected staff accounts,
@@ -96,11 +106,36 @@ Access, Forms, and Data. Admin has no Quick Actions panel.
 - In QuickBooks source terminology, `HRSN` maps to the app's `Clinic` program and
   `Kids CAN!` maps to the app's `Kitchen` program. The QuickBooks names remain
   source labels only and are not the display names used by SNACK Program Manager.
+- `General operating` maps to `General Operations`. The main system allocation
+  choices are Clinic, Kitchen, School, Community Programs, and General
+  Operations. Unresolved items remain Unallocated. HRSN billing is Clinic work;
+  Outreach and events normally belong to Community Programs unless they support
+  a specific program; organization-wide administration and marketing belong to
+  General Operations unless they support a specific program.
+- `Commit To Be Fit` and `Monster Mania` map to `Community Programs`.
+  `Dayton Nutrition Education` maps to `School`. `SMCF - Spirit Mt Community
+  Fund` and `SNACK pass` map to `Clinic`.
+- QuickBooks `Printing` and `Member benefit` costs follow the linked class or
+  recipient program. Dayton printing is School nutrition workbooks, and Dayton
+  member benefits are student incentives. Do not hardcode either account to one
+  program because those accounts also contain costs for other classes.
 - Payroll classification may use employee hours and hourly rates supplied by
   the director. The private review calculates each program's wage amount and
   percentage; related payroll taxes can follow the approved wage allocation.
+- Cynthia's monthly planning rule is 4 Kitchen hours and 2 fewer Clinic hours in
+  the Kitchen-class week. Use actual paid hours when available instead of the
+  average-month estimate.
+- The Executive Director planning estimate is 8 Clinic hours, 8 Kitchen hours,
+  and 15 Community Program hours per month. School is seasonal: plan 40 School
+  hours in each of two fall months, or 80 hours total. General Operations gets
+  the remaining paid hours: about 142.34 in a normal month and 102.34 in a
+  40-hour School month. Replace these estimates with tracked monthly hours when
+  available.
 - Imported QuickBooks actual spending, payroll allocation, and detailed
   classification review are Admin-only.
+- The private payroll and expense review workbook is a planning aid, not an
+  import file. Uncertain staff time, class aliases, and program assignments stay
+  visibly unresolved until the user confirms them.
 
 ## Clinic Evaluation And Forms
 
@@ -122,6 +157,8 @@ Access, Forms, and Data. Admin has no Quick Actions panel.
 - Calculate each child's Before SNACK and Now scores by averaging the seven
   lesson percentages, then average each completed child's percentage-point
   change for the program KPI. Keep lesson- and item-level results visible.
+- A completed retrospective Knowledge Assessment shows Before SNACK, Now, and
+  the percentage-point gain together on the client's Forms tab.
 - Report absolute score movement carefully; final public wording for a 57.1
   point change can be workshopped later.
 - Questionnaire 2026.1 is used at Enrollment and Graduation.
@@ -165,14 +202,77 @@ Access, Forms, and Data. Admin has no Quick Actions panel.
   and strong person matches still require the specified review; anonymous
   responses remain aggregate-only and are never guessed onto a client profile.
 - Program Enrollment may update linked client data, including YCCO number.
-- Leave HRSN Screener wording unchanged; prefill name, date, birthdate, and YCCO
-  number when available.
+- HRSN Screener uses the exact original reimbursement explanation. Prefill name,
+  date, birthdate, and YCCO number when available; remove primary care provider
+  phone and hide Program Point in client, staff, and print views.
+- Child and Caregiver Feedback use a four-choice scale: 1 = Not at all, 2 = A
+  little, 3 = Mostly, and 4 = Completely. Show the meaning once in the
+  instructions, keep all four choices on one line when space allows, and do not
+  repeat the helper under every printed question.
+- Preserve retired 0-5 feedback forms and their scoring for older responses.
 - Add satisfaction and confidence to feedback forms.
 - Retain `How did you hear about SNACK?` on Enrollment.
 - Replace broad `My health improved` feedback wording with focused quality-of-life
   questions.
 - Record who answered only when it supports interpretation; do not add workflow
   burden without a defined use.
+- On the client Forms tab, show Program Enrollment first, followed by
+  Questionnaire, HRSN Screener, Knowledge Assessment, Child Feedback, and
+  Caregiver Feedback. Show the program point and action buttons, but hide the
+  internal version, effective date, and description.
+- Schedule > Print Forms uses one checklist so staff can print only the daily
+  schedule, prep lists, client forms, and appointment notes they choose. Keep
+  every selected form as its own document. When double-sided printing would put
+  two different forms on opposite sides of one sheet, insert a blank back page.
+- The printable family referral is a separate handwriting form with checkboxes,
+  writing lines, and room for three children. It does not replace the online
+  referral form.
+- The appointment note keeps the participant goal and goal result used for
+  performance reporting, the completed lesson, narrative notes, and whether an
+  interpreter was used. Preferred language comes from the client profile,
+  timestamps remain automatic, and whether a next visit exists is derived from
+  the actual schedule rather than re-entered on the note.
+
+## CRM And Schedule Settings
+
+- Client statuses and their colors are editable in Admin > Settings > CRM.
+- Age Limit is a standard status for children outside SNACK's 6-18 age range.
+- Scheduled cannot be removed because new client records start there.
+- Default appointment length is editable in Admin > Schedule.
+- The public and staff page name is Finances. The old Fundraising address may
+  exist only as a safe forward to Finances.
+- Group the CRM client list by status. Reschedule, Scheduled, and Active begin
+  open; Waiting on Family, Graduated, and Inactive begin closed. Include Expand
+  All and Collapse All controls.
+- Display Oregon as `OR` in addresses throughout the application.
+- Kitchen class registration begins with a client search. Do not show an
+  initial alphabetic checkbox list. Selecting an existing child fills stored
+  caregiver, phone, and email details when available.
+- An automatic Kitchen registration status applies to the whole selected
+  family: register everyone when every child fits, otherwise waitlist everyone.
+- Public appointment booking and public Kitchen registration reuse an existing
+  CRM client only when exactly one safe match exists: child name plus birthdate,
+  or, when birthdate is missing, child name plus caregiver phone or email.
+  Never guess between multiple matches; create a separate reviewable record and
+  a high-priority staff task instead. The CRM profile must show the possible
+  match and let staff mark the review complete.
+- The public family referral form creates one New referral per child and links
+  children submitted together as siblings. It does not create client records.
+- Public referral details may link to one existing referral-network provider
+  only when the organization and provider identify exactly one record. Unknown
+  or unclear providers remain on the referral, create a high-priority staff
+  task, and show a prefilled Add to Referral Network action. They never create a
+  trusted network entry automatically. Adding or linking the provider closes
+  the review task.
+- Client and referral sibling fields begin with a search and do not show a long
+  checkbox list. Client and referral lists group records by status and include
+  Expand All and Collapse All controls.
+- Referral status order places Scheduled above Caregiver Will Call Back.
+  Caregiver Will Call Back, Not Interested, and Closed/No Further Outreach begin
+  collapsed; every other referral status begins expanded.
+- Staff may permanently remove an incomplete native-form draft through two
+  deliberate clicks: Delete Draft, then Confirm Delete. Completed forms are not
+  deletable through this control.
 
 ## HRSN Billing
 
@@ -185,6 +285,10 @@ Access, Forms, and Data. Admin has no Quick Actions panel.
 
 ## Workflow Automation
 
+- New staff-entered and public referrals create one shared first-call task. A
+  logged referral call completes that task.
+- A referral may change to Not Interested only after staff explicitly confirms
+  the closing result. Confirmed closure also completes its remaining open tasks.
 - A No-show creates one same-day call task per linked child needing rescheduling.
 - A completed or canceled appointment creates one next-appointment task when the
   child remains in Needs Reschedule.
@@ -193,16 +297,60 @@ Access, Forms, and Data. Admin has no Quick Actions panel.
 - Reopening a dashboard must not duplicate tasks.
 - Recording an outcome closes the review task.
 - Scheduling a replacement closes active scheduling/rescheduling tasks.
-- Google Voice remains separate; do not build partial calling or texting inside
-  the app.
+- Completing an Enrollment appointment without a completed Program Enrollment
+  form creates one missing-form task. Completing that form closes the task.
+- Tasks are shared across staff who have CRM access. `Assigned to` identifies an
+  owner, but it does not create a separate private task list. The default Intern
+  level cannot see CRM tasks because it has no CRM access.
+- Schedule appointment Forms show the native CRM forms that belong to that
+  appointment. Enrollment appointments show Program Enrollment, Questionnaire
+  Enrollment, and HRSN. Final Healthy Habits/Lesson 7 appointments show
+  Questionnaire Graduation, Knowledge Assessment, Child Feedback, and Caregiver
+  Feedback. Saved responses keep the appointment link.
+- Real provider connection failures may create one shared Admin task without
+  including secrets or client message content. Intentionally paused or
+  unconfigured providers do not create failure tasks.
+- Google Voice remains separate until a complete Twilio phone-number, calling,
+  texting, consent, and logging plan is approved. Do not build a partial live
+  communication workflow.
 
 ## External Connections
 
 - SNACK Program Manager becomes the appointment source of truth after cutover.
-- Setmore remains available until the final controlled booking and Calendar
-  tests pass; disable it when SNACK takes over new booking.
+- Setmore remains available until the August 5, 1:00 PM cutover. The final
+  controlled staff and public booking tests passed; reconcile every future
+  Setmore appointment before SNACK takes over new booking.
 - Google Calendar is one-way Clinic synchronization with private-safe event text.
 - Kitchen and School Calendar synchronization are future work.
 - MailerLite syncing must honor consent source/date and opt-outs. Sending remains
   disabled until Marketing workflows pass testing.
+- MailerLite connection status means MailerLite accepted the stored token in a
+  read-only request; the presence of a token alone is not a successful check.
+- The MailerLite token is stored in Google Secret Manager, attached to the
+  production service, and passed the signed-in read-only connection check on
+  August 5. Contact writes and email sending remain disabled.
+- General Squarespace contacts may be copied through a read-only Contacts API
+  connection while preserving the Squarespace marketing-permission value.
+  Contacts without clear permission are not eligible for marketing email.
+- The sticker-request form needs a form-specific connection because an ordinary
+  contact record does not identify which website form was submitted. Its first
+  approved action is to create or update the Marketing contact and create a
+  shared staff task to send the sticker email; it must not send automatically
+  until the template and sending rules are approved. Zapier and a Google Sheet
+  connection remain the two implementation choices.
+- Twilio is the selected text-reminder provider. The optional test-credential
+  simulation may be skipped; it is not required for the later real integration.
+  Real texts remain disabled until the phone number or Messaging Service,
+  required registration, consent, bilingual wording, timing, and logging are
+  approved and one controlled live test passes.
+- Never store or paste a Twilio live auth token in the repository or chat. A
+  future connection should use a restricted, replaceable API key stored as a
+  secret.
+- The existing Google Voice number may be moved to Twilio later. If the transfer
+  succeeds, the public phone number stays the same; old Google Voice history does
+  not move with it. Do not start the transfer until the Twilio calling/texting
+  plan, registration, record export, and cutover checks are ready. Browser
+  calling remains an optional later feature. MailerLite remains the approved
+  marketing-email service unless a separate change is approved; Twilio SendGrid
+  is not automatically part of the Twilio phone account.
 - English messages and forms are locked before Spanish versions.

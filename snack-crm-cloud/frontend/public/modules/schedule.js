@@ -113,8 +113,9 @@ export const newAppointmentServices = Object.freeze([
   })
 ]);
 
-export function newAppointmentService(serviceId) {
-  return newAppointmentServices.find((service) => service.id === serviceId) || newAppointmentServices[0];
+export function newAppointmentService(serviceId, services = newAppointmentServices) {
+  const availableServices = Array.isArray(services) && services.length ? services : newAppointmentServices;
+  return availableServices.find((service) => service.id === serviceId) || availableServices[0];
 }
 
 export function scheduleTimeOptions(settings = {}, durationMinutes = 30) {
@@ -195,8 +196,9 @@ export function clientFullName(client) {
   return [client?.firstName, client?.lastName].filter(Boolean).join(" ").trim();
 }
 
-export function newAppointmentPayload(values = {}, selectedClients = []) {
-  const service = newAppointmentService(values.serviceId);
+export function newAppointmentPayload(values = {}, selectedClients = [], services = newAppointmentServices) {
+  const service = newAppointmentService(values.serviceId, services);
+  const requestedDuration = Number(values.durationMinutes);
   const clients = selectedClients.filter((client, index, items) => client?.id
     && items.findIndex((candidate) => candidate?.id === client.id) === index);
   const clientIds = clients.map((client) => client.id);
@@ -215,7 +217,7 @@ export function newAppointmentPayload(values = {}, selectedClients = []) {
     appointmentType: service.appointmentType,
     publicBookingServiceId: service.id,
     publicBookingServiceLabel: service.label,
-    durationMinutes: service.durationMinutes,
+    durationMinutes: requestedDuration > 0 ? requestedDuration : service.durationMinutes,
     status,
     lesson: isNutritionEducation ? String(values.lesson || "").trim() : "",
     goal: isNutritionEducation ? String(values.goal || "").trim() : "",
@@ -344,6 +346,36 @@ export const appointmentLessonTitles = Object.freeze({
   7: "Healthy Habits"
 });
 
+export function scheduleClientOutcomeUpdates(item = {}, status = "", options = {}) {
+  const appointmentType = item.type || item.source?.appointmentType || "";
+  const appointmentDate = item.date || item.source?.appointmentDate || "";
+  const isFinalLesson = /nutrition education|educaci[oó]n nutricional/i.test(appointmentType)
+    && appointmentLessonNumber(item.lesson || item.source?.lesson) === 7;
+  const updates = {};
+
+  if (status === "Completed") {
+    updates.status = isFinalLesson ? "Graduated" : options.hasFutureAppointment ? "Active" : "Needs Reschedule";
+    updates.mostRecentAppointmentDate = appointmentDate;
+    if (isFinalLesson) updates.graduationDate = appointmentDate;
+  }
+
+  if (status === "No-show") {
+    updates.status = "Needs Reschedule";
+    updates.mostRecentAppointmentDate = options.mostRecentCompletedDate || "";
+  }
+
+  if (status === "Scheduled") {
+    updates.status = /enrollment|inscripci[oó]n/i.test(appointmentType) ? "Scheduled" : "Active";
+    if (options.currentLesson) updates.currentLesson = options.currentLesson;
+  }
+
+  if (status === "Canceled") {
+    updates.status = options.hasFutureAppointment ? "Active" : "Needs Reschedule";
+  }
+
+  return updates;
+}
+
 export const appointmentWrapUpDefaults = Object.freeze({
   caregiverMood: "Good",
   confidence: "High",
@@ -352,6 +384,8 @@ export const appointmentWrapUpDefaults = Object.freeze({
 });
 
 export const appointmentWrapUpOptions = Object.freeze({
+  goalResult: Object.freeze(["Achieved", "Partly Achieved", "Not Achieved", "Not Assessed"]),
+  interpreterUse: Object.freeze(["Not needed", "Yes", "No"]),
   caregiverMood: Object.freeze(["Good", "Okay", "Stressed", "Concerned"]),
   confidence: Object.freeze(["High", "Medium", "Low"]),
   participation: Object.freeze(["Engaged", "Somewhat Engaged", "Quiet", "Not Engaged"]),
@@ -382,22 +416,64 @@ export function defaultNextAppointmentDate(item = {}) {
   return appointmentDate ? offsetScheduleDate(appointmentDate, 7) : "";
 }
 
-export function completedAppointmentPayload(item, values = {}) {
-  return {
-    ...appointmentStatusPayload(item, "Completed"),
-    appointmentNote: String(values.appointmentNote ?? item?.source?.appointmentNote ?? "").trim(),
-    caregiverMood: String(values.caregiverMood || appointmentWrapUpDefaults.caregiverMood).trim(),
-    confidence: String(values.confidence || appointmentWrapUpDefaults.confidence).trim(),
-    participation: String(values.participation || appointmentWrapUpDefaults.participation).trim(),
-    barriers: String(values.barriers || appointmentWrapUpDefaults.barriers).trim()
-  };
+export function completedLessonForNextAppointment(lessonValue) {
+  const nextLesson = appointmentLessonNumber(lessonValue);
+  if (!nextLesson) return "";
+  return nextLesson === 1 ? "enrollment" : `lesson-${nextLesson - 1}`;
 }
 
-export function appointmentNotePayload(item, appointmentNote) {
+export function completedAppointmentPayload(item, values = {}) {
+  const storedParticipantGoals = Array.isArray(item?.source?.participantGoals)
+    ? item.source.participantGoals
+    : [];
+  const participantGoalsSource = Array.isArray(values.participantGoals)
+    ? values.participantGoals
+    : storedParticipantGoals;
+  const participantGoals = participantGoalsSource.map((entry) => ({
+      clientId: String(entry.clientId || "").trim(),
+      clientName: String(entry.clientName || "").trim(),
+      goal: String(entry.goal || "").trim(),
+      goalResult: String(entry.goalResult || "").trim()
+    }));
+  const firstParticipantGoal = participantGoals[0];
+  const payload = {
+    ...appointmentStatusPayload(item, "Completed"),
+    appointmentNote: String(values.appointmentNote ?? item?.source?.appointmentNote ?? "").trim(),
+    goal: firstParticipantGoal?.goal || String(item?.source?.goal || "").trim(),
+    goalResult: firstParticipantGoal?.goalResult || String(values.goalResult || item?.source?.goalResult || "").trim(),
+    interpreterUse: String(values.interpreterUse || item?.source?.interpreterUse || "Not needed").trim(),
+    caregiverMood: String(values.caregiverMood || item?.source?.caregiverMood || appointmentWrapUpDefaults.caregiverMood).trim(),
+    confidence: String(values.confidence || item?.source?.confidence || appointmentWrapUpDefaults.confidence).trim(),
+    participation: String(values.participation || item?.source?.participation || appointmentWrapUpDefaults.participation).trim(),
+    barriers: String(values.barriers || item?.source?.barriers || appointmentWrapUpDefaults.barriers).trim()
+  };
+  if (participantGoals.length) payload.participantGoals = participantGoals;
+  return payload;
+}
+
+export function appointmentNotePayload(item, values = {}) {
+  const fields = typeof values === "string" ? { appointmentNote: values } : values;
+  const participantGoals = Array.isArray(fields.participantGoals)
+    ? fields.participantGoals.map((entry) => ({
+      clientId: String(entry.clientId || "").trim(),
+      clientName: String(entry.clientName || "").trim(),
+      goal: String(entry.goal || "").trim(),
+      goalResult: String(entry.goalResult || "").trim()
+    }))
+    : [];
+  const firstParticipantGoal = participantGoals[0];
   const payload = {
     ...appointmentStatusPayload(item, item?.source?.status || item?.status || "Scheduled"),
-    appointmentNote: String(appointmentNote || "").trim()
+    appointmentNote: String(fields.appointmentNote || "").trim(),
+    goal: firstParticipantGoal?.goal || String(item?.source?.goal || "").trim(),
+    goalResult: firstParticipantGoal?.goalResult || String(item?.source?.goalResult || "").trim(),
+    interpreterUse: String(fields.interpreterUse || item?.source?.interpreterUse || "Not needed").trim(),
+    caregiverMood: String(fields.caregiverMood || item?.source?.caregiverMood || appointmentWrapUpDefaults.caregiverMood).trim(),
+    confidence: String(fields.confidence || item?.source?.confidence || appointmentWrapUpDefaults.confidence).trim(),
+    participation: String(fields.participation || item?.source?.participation || appointmentWrapUpDefaults.participation).trim(),
+    barriers: String(fields.barriers || item?.source?.barriers || appointmentWrapUpDefaults.barriers).trim()
   };
+  if (participantGoals.length) payload.participantGoals = participantGoals;
   const sourceNote = String(item?.source?.notes || "").trim();
   const usesLegacyAppointmentNote = item?.status === "Completed"
     && !String(item?.source?.appointmentNote || "").trim()
@@ -411,7 +487,9 @@ export function appointmentNotePayload(item, appointmentNote) {
 }
 
 export function nextAppointmentPayload(item, values = {}) {
-  const nextLesson = nextAppointmentLessonNumber(item);
+  const defaultNextLesson = nextAppointmentLessonNumber(item);
+  const selectedNextLesson = appointmentLessonNumber(values.lesson);
+  const nextLesson = selectedNextLesson || defaultNextLesson;
   if (!nextLesson) {
     return null;
   }
@@ -421,6 +499,14 @@ export function nextAppointmentPayload(item, values = {}) {
   const sourceServiceId = String(item?.source?.publicBookingServiceId || "");
   const useSpanishService = sourceServiceId.startsWith("spanish-") || /^spanish$/i.test(String(item?.language || ""));
   const service = newAppointmentService(useSpanishService ? "spanish-nutrition-education" : "nutrition-education");
+  const participantGoals = Array.isArray(values.participantGoals)
+    ? values.participantGoals.map((entry) => ({
+      clientId: String(entry.clientId || "").trim(),
+      clientName: String(entry.clientName || "").trim(),
+      goal: String(entry.goal || "").trim(),
+      goalResult: ""
+    }))
+    : [];
 
   return {
     clientId: clientIds[0] || item?.source?.clientId || "",
@@ -435,7 +521,8 @@ export function nextAppointmentPayload(item, values = {}) {
     durationMinutes: service.durationMinutes,
     status: "Scheduled",
     lesson: String(nextLesson),
-    goal: String(values.goal || "").trim(),
+    goal: participantGoals[0]?.goal || String(values.goal || "").trim(),
+    participantGoals,
     staffMember: String(values.staffMember || item?.staff || item?.source?.staffMember || "").trim(),
     notes: String(values.notes || "").trim()
   };
@@ -514,10 +601,14 @@ export function appointmentStatusPayload(item, status) {
 export function appointmentEditPayload(item, values = {}) {
   const appointmentType = cleanAppointmentType(values.appointmentType || item?.type);
   const isNutritionEducation = appointmentType === "Nutrition Education";
+  const requestedDuration = Number(values.durationMinutes);
 
   return {
     ...appointmentStatusPayload(item, item?.source?.status || item?.status || "Scheduled"),
     appointmentType,
+    durationMinutes: requestedDuration > 0
+      ? requestedDuration
+      : Number(item?.duration || item?.source?.durationMinutes) || 30,
     staffMember: String(values.staffMember || item?.staff || "").trim(),
     lesson: isNutritionEducation ? String(values.lesson || "").trim() : "",
     goal: isNutritionEducation ? String(values.goal || "").trim() : "",

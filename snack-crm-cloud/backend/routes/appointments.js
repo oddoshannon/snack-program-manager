@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  allowedClientStatuses,
   allowedAppointmentPrepKeys,
   appointmentFitsSchedulingWindow,
   appointments,
@@ -7,21 +8,174 @@ import {
   cleanAppointmentPayload,
   cleanString,
   clients,
+  completeOutcomeTasksForAppointment,
   completeRescheduleTasksForAppointment,
+  createGeneratedTaskIfMissing,
   fetchAllDocuments,
   findAppointmentConflict,
   firestore,
   formatAppointmentTimeValue,
   loadSchedulingSettings,
   normalizedLookupKey,
+  persistClinicAppointmentCalendarSync,
+  performanceEvaluationResponses,
   requireAuth,
   resolveAppointmentImportClients,
   schedulingWindowError,
+  serializeSchedulingSettings,
+  todayDateString,
   toAppointment,
-  toClient
+  toClient,
+  toScheduleClient
 } from "../lib/core.js";
 
 const router = express.Router();
+
+function appointmentCompletionValidationError(payload = {}) {
+  if (!cleanString(payload.appointmentNote)) {
+    return "Add an appointment note before completing the appointment.";
+  }
+
+  const clientIds = Array.isArray(payload.clientIds) ? payload.clientIds.filter(Boolean) : [];
+  const clientNames = Array.isArray(payload.clientNames) ? payload.clientNames.filter(Boolean) : [];
+  const participants = clientIds.length
+    ? clientIds.map((clientId, index) => ({
+      clientId,
+      clientName: clientNames[index] || `Child ${index + 1}`
+    }))
+    : clientNames.map((clientName) => ({ clientId: "", clientName }));
+  const participantGoals = Array.isArray(payload.participantGoals) ? payload.participantGoals : [];
+
+  if (participants.length === 1 && !participantGoals.length && payload.goalResult) {
+    return "";
+  }
+
+  for (const participant of participants) {
+    const result = participantGoals.find((entry) => (
+      participant.clientId
+        ? entry.clientId === participant.clientId
+        : cleanString(entry.clientName).toLowerCase() === participant.clientName.toLowerCase()
+    ));
+    if (!result?.goalResult) {
+      return `Choose a Goal Result for ${participant.clientName}.`;
+    }
+  }
+
+  return "";
+}
+
+router.get("/api/schedule/clients", requireAuth, async (_request, response, next) => {
+  try {
+    const documents = await fetchAllDocuments(clients);
+    response.json({ clients: documents.map(toScheduleClient) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/api/schedule/settings", requireAuth, async (_request, response, next) => {
+  try {
+    response.json({
+      schedulingSettings: serializeSchedulingSettings(await loadSchedulingSettings())
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/api/schedule/clients/:clientId/outcome", requireAuth, async (request, response, next) => {
+  try {
+    const clientId = cleanString(request.params.clientId);
+    const status = cleanString(request.body.status);
+    if (!clientId) {
+      response.status(400).json({ error: "Client ID is required." });
+      return;
+    }
+    if (!allowedClientStatuses.has(status)) {
+      response.status(400).json({ error: "Client status is not valid." });
+      return;
+    }
+
+    const docRef = clients.doc(clientId);
+    const snapshot = await docRef.get();
+    if (!snapshot.exists) {
+      response.status(404).json({ error: "Client was not found." });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const client = toClient(snapshot);
+    const clientName = `${client.firstName || ""} ${client.lastName || ""}`.trim() || "client";
+    const updates = {
+      status,
+      updatedAt: now,
+      updatedBy: request.user.email
+    };
+    for (const field of ["mostRecentAppointmentDate", "graduationDate", "currentLesson"]) {
+      if (Object.hasOwn(request.body, field)) {
+        updates[field] = cleanString(request.body[field]);
+      }
+    }
+    await docRef.update(updates);
+
+    let workflowTask = null;
+    let workflowTaskCreated = false;
+    const workflowReason = cleanString(request.body.workflowReason);
+    if (status === "Needs Reschedule" && ["Completed", "No-show", "Canceled"].includes(workflowReason)) {
+      const isNoShow = workflowReason === "No-show";
+      const result = await createGeneratedTaskIfMissing({
+        title: isNoShow ? `Call ${clientName} to reschedule` : `Schedule next appointment for ${clientName}`,
+        type: isNoShow ? "Call" : "Task",
+        status: "Open",
+        priority: "Normal",
+        dueDate: todayDateString(),
+        assignedTo: cleanString(request.body.staffMember),
+        clientId,
+        clientName,
+        appointmentId: cleanString(request.body.appointmentId),
+        source: "Workflow Automation",
+        notes: `${workflowReason} appointment${cleanString(request.body.appointmentDate) ? ` on ${cleanString(request.body.appointmentDate)}` : ""}; another appointment is needed.`
+      }, request.user.email, now);
+      workflowTask = result.task;
+      workflowTaskCreated = result.created;
+    }
+
+    if (workflowReason === "Completed" && cleanString(request.body.appointmentType) === "Enrollment") {
+      const responseDocuments = await fetchAllDocuments(performanceEvaluationResponses.where("clientId", "==", clientId));
+      const enrollmentComplete = responseDocuments.some((document) => {
+        const record = document.data();
+        return record.status === "Complete"
+          && record.administrationPoint === "Enrollment"
+          && (record.instrumentName === "Program Enrollment" || String(record.instrumentId || "").startsWith("clinic-enrollment-"));
+      });
+      if (!enrollmentComplete) {
+        const result = await createGeneratedTaskIfMissing({
+          title: `Complete Program Enrollment for ${clientName}`,
+          type: "Form",
+          status: "Open",
+          priority: "High",
+          dueDate: todayDateString(),
+          assignedTo: cleanString(request.body.staffMember),
+          clientId,
+          clientName,
+          appointmentId: cleanString(request.body.appointmentId),
+          source: "Workflow Automation",
+          notes: "The Enrollment appointment was completed, but the Program Enrollment form is not complete."
+        }, request.user.email, now);
+        workflowTask = result.task;
+        workflowTaskCreated = result.created;
+      }
+    }
+
+    response.json({
+      client: toScheduleClient(await docRef.get()),
+      workflowTask,
+      workflowTaskCreated
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.get("/api/appointments", requireAuth, async (_request, response, next) => {
   try {
@@ -47,6 +201,14 @@ router.post("/api/appointments", requireAuth, async (request, response, next) =>
       return;
     }
 
+    if (payload.status === "Completed") {
+      const completionError = appointmentCompletionValidationError(payload);
+      if (completionError) {
+        response.status(400).json({ error: completionError });
+        return;
+      }
+    }
+
     if (!payload.clientNames.length) {
       const clientNames = [];
       for (const clientId of payload.clientIds) {
@@ -61,6 +223,7 @@ router.post("/api/appointments", requireAuth, async (request, response, next) =>
     }
 
     const settings = await loadSchedulingSettings();
+    payload.location = payload.location || settings.clinicLocation;
 
     if (!appointmentFitsSchedulingWindow(payload, settings)) {
       response.status(400).json({
@@ -84,12 +247,19 @@ router.post("/api/appointments", requireAuth, async (request, response, next) =>
       updatedAt: now,
       createdBy: request.user.email
     });
-    const created = await docRef.get();
+    let created = await docRef.get();
+    const calendarSync = await persistClinicAppointmentCalendarSync(
+      docRef,
+      toAppointment(created),
+      request.user.email
+    );
+    if (!["inactive", "paused"].includes(calendarSync.state)) created = await docRef.get();
     const completedRescheduleTasks = await completeRescheduleTasksForAppointment(payload, request.user.email, now);
 
     response.status(201).json({
       appointment: toAppointment(created),
-      completedRescheduleTasks
+      completedRescheduleTasks,
+      calendarSync
     });
   } catch (error) {
     next(error);
@@ -218,8 +388,18 @@ router.patch("/api/appointments/:appointmentId", requireAuth, async (request, re
       return;
     }
 
+    const wasCompleted = cleanString(snapshot.data()?.status).toLowerCase() === "completed";
+    if (!wasCompleted && payload.status === "Completed") {
+      const completionError = appointmentCompletionValidationError(payload);
+      if (completionError) {
+        response.status(400).json({ error: completionError });
+        return;
+      }
+    }
+
     const now = new Date().toISOString();
     const settings = await loadSchedulingSettings();
+    payload.location = payload.location || settings.clinicLocation;
 
     if (!appointmentFitsSchedulingWindow(payload, settings)) {
       response.status(400).json({
@@ -242,12 +422,24 @@ router.patch("/api/appointments/:appointmentId", requireAuth, async (request, re
       updatedAt: now,
       updatedBy: request.user.email
     });
-    const updated = await docRef.get();
+    let updated = await docRef.get();
+    const calendarSync = await persistClinicAppointmentCalendarSync(
+      docRef,
+      toAppointment(updated),
+      request.user.email
+    );
+    if (!["inactive", "paused"].includes(calendarSync.state)) updated = await docRef.get();
     const completedRescheduleTasks = await completeRescheduleTasksForAppointment(payload, request.user.email, now);
+    const completedOutcomeTasks = await completeOutcomeTasksForAppointment({
+      ...payload,
+      id: appointmentId
+    }, request.user.email, now);
 
     response.json({
       appointment: toAppointment(updated),
-      completedRescheduleTasks
+      completedRescheduleTasks,
+      completedOutcomeTasks,
+      calendarSync
     });
   } catch (error) {
     next(error);
@@ -315,14 +507,22 @@ router.delete("/api/appointments/:appointmentId", requireAuth, async (request, r
       return;
     }
 
+    const calendarSync = await persistClinicAppointmentCalendarSync(
+      docRef,
+      { ...toAppointment(snapshot), status: "Canceled" },
+      request.user.email
+    );
     await docRef.delete();
 
     response.json({
-      ok: true
+      ok: true,
+      calendarSync
     });
   } catch (error) {
     next(error);
   }
 });
+
+export { appointmentCompletionValidationError };
 
 export default router;

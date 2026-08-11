@@ -1,3 +1,5 @@
+import { normalizeMailingAddress } from "./modules/public-booking.js";
+
 const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL || "";
 const timeScreen = document.querySelector("#time-screen");
 const detailsScreen = document.querySelector("#details-screen");
@@ -14,6 +16,12 @@ const summaryDateRow = document.querySelector("#summary-date-row");
 const summaryTimeRow = document.querySelector("#summary-time-row");
 const summaryDate = document.querySelector("#summary-date");
 const summaryTime = document.querySelector("#summary-time");
+const summaryLocationRow = document.querySelector("#summary-location-row");
+const summaryLocation = document.querySelector("#summary-location");
+const summaryKindLabel = document.querySelector("#summary-kind-label");
+const summaryAvailabilityRow = document.querySelector("#summary-availability-row");
+const summaryAvailability = document.querySelector("#summary-availability");
+const bookingHelp = document.querySelector("#booking-help");
 const calendarTitle = document.querySelector("#calendar-title");
 const calendarDays = document.querySelector("#calendar-days");
 const previousMonthButton = document.querySelector("#previous-month");
@@ -23,17 +31,25 @@ const timeOptions = document.querySelector("#time-options");
 const timeStatus = document.querySelector("#time-status");
 const continueButton = document.querySelector("#continue-to-details");
 const bookingForm = document.querySelector("#public-booking-form");
+const addressInput = bookingForm.elements.address;
 const childrenEl = document.querySelector("#public-children");
 const addChildButton = document.querySelector("#public-add-child");
 const preferredLanguageSelect = document.querySelector("#public-preferred-language");
 const yccoMemberSelect = document.querySelector("#public-ycco-member");
 const yccoIdInput = document.querySelector("#public-ycco-id");
+const foodRestrictionsField = document.querySelector("#food-restrictions-field");
+const familyInformationCopy = document.querySelector("#family-information-copy");
 const returnToTime = document.querySelector("#return-to-time");
 const returnToDetails = document.querySelector("#return-to-details");
+const reviewAppointmentButton = document.querySelector("#review-appointment");
+const reviewTitle = document.querySelector("#review-title");
+const reviewCopy = document.querySelector("#review-copy");
 const reviewDetails = document.querySelector("#review-details");
 const bookingStatus = document.querySelector("#booking-status");
 const submitButton = document.querySelector("#public-booking-submit");
 const confirmationDetails = document.querySelector("#confirmation-details");
+const confirmationTitle = document.querySelector("#confirmation-title");
+const confirmationHelp = document.querySelector("#confirmation-help");
 const manageAppointmentLink = document.querySelector("#manage-appointment-link");
 const managementSummary = document.querySelector("#management-summary");
 const managementStatus = document.querySelector("#management-status");
@@ -48,7 +64,9 @@ const serviceAliases = {
 };
 
 let bookingServices = [];
+let bookingScheduling = {};
 let activeService = null;
+let activeClassSession = null;
 let availabilityDates = [];
 let selectedDate = "";
 let selectedSlot = null;
@@ -105,12 +123,31 @@ function currentRequestedServiceId() {
   return serviceAliases[requested] || requested;
 }
 
+function currentRequestedClassId() {
+  return new URLSearchParams(window.location.search).get("class")?.trim() || "";
+}
+
+function isClassRegistrationMode() {
+  return Boolean(activeClassSession);
+}
+
 function managementAppointmentId() {
   return new URLSearchParams(window.location.search).get("appointmentId")?.trim() || "";
 }
 
 function managementToken() {
-  return new URLSearchParams(window.location.search).get("token")?.trim() || "";
+  const appointmentId = managementAppointmentId();
+  const storageKey = `snack-booking-token:${appointmentId}`;
+  const query = new URLSearchParams(window.location.search);
+  const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const suppliedToken = fragment.get("token")?.trim() || query.get("token")?.trim() || "";
+  if (suppliedToken) {
+    sessionStorage.setItem(storageKey, suppliedToken);
+    query.delete("token");
+    const cleanUrl = `${window.location.pathname}${query.size ? `?${query}` : ""}`;
+    history.replaceState({}, "", cleanUrl);
+  }
+  return suppliedToken || sessionStorage.getItem(storageKey) || "";
 }
 
 function hasManagementParams() {
@@ -171,6 +208,12 @@ function formatPublicNameList(names) {
   return `${visibleNames.slice(0, -1).join(", ")}, and ${visibleNames.at(-1)}`;
 }
 
+function setBookingLocation(value) {
+  const location = String(value || "").trim();
+  summaryLocationRow.hidden = !location;
+  summaryLocation.textContent = location;
+}
+
 function bookingManageUrl(booking) {
   const appointmentId = booking.appointmentId || booking.id;
   const token = booking.manageToken;
@@ -198,10 +241,55 @@ function selectService(serviceId) {
   selectedServiceDuration.textContent = `${activeService.durationMinutes} min`;
   summaryService.textContent = activeService.label;
   summaryDuration.textContent = `${activeService.durationMinutes} minutes`;
+  setBookingLocation(bookingScheduling.clinicLocation);
+  bookingHelp.textContent = bookingScheduling.clinicLocation
+    ? `Appointments are free and held at ${bookingScheduling.clinicLocation}.`
+    : "Appointments are free and held at the SNACK Program office.";
 
   if (activeService.defaultLanguage) {
     preferredLanguageSelect.value = activeService.defaultLanguage;
   }
+}
+
+function configureClassRegistration(session) {
+  activeClassSession = session;
+  activeService = {
+    id: `class:${session.id}`,
+    label: session.title,
+    durationMinutes: session.durationMinutes
+  };
+  selectedDate = session.sessionDate;
+  selectedSlot = {
+    appointmentDate: session.sessionDate,
+    appointmentTime: session.startTime,
+    timeLabel: session.startTimeLabel
+  };
+
+  document.title = "Register for a Cooking Class | The SNACK Program";
+  summaryKindLabel.textContent = "Class";
+  summaryService.textContent = session.title;
+  summaryDuration.textContent = `${session.durationMinutes} minutes`;
+  summaryDate.textContent = formatDateLabel(session.sessionDate, true);
+  summaryTime.textContent = session.startTimeLabel;
+  setBookingLocation(session.location);
+  summaryDateRow.hidden = false;
+  summaryTimeRow.hidden = false;
+  summaryAvailabilityRow.hidden = false;
+  summaryAvailability.textContent = session.isFull
+    ? (session.waitlistEnabled ? "Waitlist available" : "Class full")
+    : `${session.spacesRemaining} of ${session.capacity} spots available`;
+  bookingHelp.textContent = session.location && session.location !== "Location to be confirmed"
+    ? `Cooking classes are free and held at ${session.location}.`
+    : "Cooking classes are free. The location will be confirmed before class.";
+  familyInformationCopy.textContent = "Add each child who will attend this class.";
+  foodRestrictionsField.hidden = false;
+  reviewAppointmentButton.textContent = "Review Registration";
+  reviewAppointmentButton.disabled = !session.canRegister;
+  reviewTitle.textContent = "Confirm Your Registration";
+  reviewCopy.textContent = "Check the details below before registering.";
+  submitButton.textContent = session.nextStatus === "Waitlisted" ? "Join Waitlist" : "Register Family";
+  submitButton.disabled = !session.canRegister;
+  returnToTime.textContent = "Back";
 }
 
 function openDates() {
@@ -260,7 +348,7 @@ function renderCalendar() {
 
 function renderTimes() {
   timeOptions.replaceChildren();
-  timesTitle.textContent = selectedDate ? formatDateLabel(selectedDate) : "Choose a date";
+  timesTitle.textContent = selectedDate ? formatDateLabel(selectedDate) : "Choose a Date";
   const slots = slotsForDate(selectedDate).filter((slot) => !(
     isRescheduling
     && selectedDate === managedBooking?.appointmentDate
@@ -307,7 +395,7 @@ async function loadAvailability() {
     return;
   }
 
-  calendarTitle.textContent = "Loading dates...";
+  calendarTitle.textContent = "Loading Dates...";
   timeOptions.innerHTML = '<p class="booking-empty">Loading available times...</p>';
   setTimeStatus("");
 
@@ -351,11 +439,11 @@ function renderPublicChild(index) {
     <legend>Child ${index + 1}</legend>
     <button class="remove-child-button" type="button">Remove</button>
     <label class="wide-field">
-      <span>Child name</span>
-      <input name="childName" type="text" autocomplete="name" placeholder="First and last name" required>
+      <span>Child Name</span>
+      <input name="childName" type="text" autocomplete="name" placeholder="First and Last Name" required>
     </label>
     <label>
-      <span>Date of birth</span>
+      <span>Date of Birth</span>
       <input name="childDob" type="date" required>
     </label>
     <label>
@@ -365,7 +453,7 @@ function renderPublicChild(index) {
         <option value="Female">Female</option>
         <option value="Male">Male</option>
         <option value="Nonbinary">Nonbinary</option>
-        <option value="Prefer not to say">Prefer not to say</option>
+        <option value="Prefer not to say">Prefer Not to Say</option>
       </select>
     </label>
   `;
@@ -408,8 +496,8 @@ function updateYccoIdState() {
 }
 
 function showTimeScreen() {
-  continueButton.textContent = isRescheduling ? "Reschedule appointment" : "Continue";
-  showScreen(timeScreen, isRescheduling ? "Choose a new time" : "Select a time");
+  continueButton.textContent = isRescheduling ? "Reschedule Appointment" : "Continue";
+  showScreen(timeScreen, isRescheduling ? "Choose a New Time" : "Select a Time");
 }
 
 function showDetailsScreen() {
@@ -417,7 +505,7 @@ function showDetailsScreen() {
     setTimeStatus("Choose an appointment time.", true);
     return;
   }
-  showScreen(detailsScreen, "Your details");
+  showScreen(detailsScreen, "Your Details");
 }
 
 function appendReviewRow(list, label, value) {
@@ -434,27 +522,38 @@ function showReviewScreen() {
   const formData = new FormData(bookingForm);
   const children = publicBookingChildrenFromForm();
   const list = document.createElement("dl");
-  appendReviewRow(list, "Appointment", activeService?.label || "Appointment");
+  appendReviewRow(list, isClassRegistrationMode() ? "Class" : "Appointment", activeService?.label || "Appointment");
   appendReviewRow(list, "Date", formatDateLabel(selectedSlot.appointmentDate, true));
   appendReviewRow(list, "Time", `${selectedSlot.timeLabel} · ${activeService?.durationMinutes || 30} minutes`);
   appendReviewRow(list, "Children", formatPublicNameList(children.map((child) => child.childName)));
   appendReviewRow(list, "Caregiver", formData.get("caregiverName"));
   appendReviewRow(list, "Contact", `${formData.get("mobilePhone")} · ${formData.get("email")}`);
+  if (isClassRegistrationMode()) {
+    appendReviewRow(list, "Food Restrictions", formData.get("foodRestrictions") || "None shared");
+  }
   reviewDetails.replaceChildren(list);
   setBookingStatus("");
-  showScreen(reviewScreen, "Review appointment");
+  showScreen(reviewScreen, isClassRegistrationMode() ? "Review Registration" : "Review Appointment");
 }
 
 function bookingPayload() {
   const formData = new FormData(bookingForm);
   const payload = Object.fromEntries(formData.entries());
-  payload.serviceId = activeService.id;
-  payload.appointmentDate = selectedSlot.appointmentDate;
-  payload.appointmentTime = selectedSlot.appointmentTime;
+  if (isClassRegistrationMode()) {
+    payload.sessionId = activeClassSession.id;
+  } else {
+    payload.serviceId = activeService.id;
+    payload.appointmentDate = selectedSlot.appointmentDate;
+    payload.appointmentTime = selectedSlot.appointmentTime;
+  }
   payload.children = publicBookingChildrenFromForm();
   payload.phone = payload.mobilePhone;
   payload.parentName = payload.caregiverName;
-  payload.consentReminders = Boolean(formData.get("consentReminders"));
+  payload.address = normalizeMailingAddress(payload.address);
+  payload.serviceEmailConsent = Boolean(formData.get("serviceEmailConsent"));
+  payload.serviceTextConsent = Boolean(formData.get("serviceTextConsent"));
+  payload.marketingConsent = Boolean(formData.get("marketingConsent"));
+  payload.consentReminders = payload.serviceEmailConsent || payload.serviceTextConsent;
   return payload;
 }
 
@@ -464,29 +563,52 @@ async function submitBooking() {
     return;
   }
 
-  setBookingStatus("Booking appointment...");
+  setBookingStatus(isClassRegistrationMode() ? "Saving registration..." : "Booking appointment...");
   submitButton.disabled = true;
 
   try {
     const payload = bookingPayload();
-    const data = await publicFetch("/api/public/bookings", {
+    const data = await publicFetch(isClassRegistrationMode() ? "/api/public/class-registrations" : "/api/public/bookings", {
       method: "POST",
       body: JSON.stringify(payload)
     });
+    if (isClassRegistrationMode()) {
+      const registration = data.registration || {};
+      const childNames = Array.isArray(registration.clientNames) && registration.clientNames.length
+        ? registration.clientNames
+        : payload.children.map((child) => child.childName);
+      const waitlisted = registration.status === "Waitlisted";
+      const familyVerb = childNames.length === 1 ? "is" : "are";
+      confirmationTitle.textContent = waitlisted ? "Added to the Waitlist" : "Registration Confirmed";
+      confirmationDetails.textContent = `${formatPublicNameList(childNames)} ${waitlisted ? `${familyVerb} on the waitlist for` : `${familyVerb} registered for`} ${activeClassSession.title} on ${formatDateLabel(activeClassSession.sessionDate, true)} at ${activeClassSession.startTimeLabel}${activeClassSession.location && activeClassSession.location !== "Location to be confirmed" ? ` at ${activeClassSession.location}` : ""}.`;
+      confirmationHelp.textContent = waitlisted
+        ? "The SNACK Program will contact you if space becomes available."
+        : "The SNACK Program will contact you if any class details change.";
+      manageAppointmentLink.hidden = true;
+      showScreen(confirmationScreen, waitlisted ? "Waitlist Confirmed" : "Registration Confirmed");
+      return;
+    }
+
     const booking = data.booking || {};
     const childNames = Array.isArray(booking.clientNames) && booking.clientNames.length
       ? booking.clientNames
       : payload.children.map((child) => child.childName);
-    confirmationDetails.textContent = `${booking.serviceLabel || activeService.label} for ${formatPublicNameList(childNames)} on ${formatDateLabel(booking.appointmentDate, true)} at ${booking.appointmentTimeLabel || selectedSlot.timeLabel}.`;
+    confirmationDetails.textContent = `${booking.serviceLabel || activeService.label} for ${formatPublicNameList(childNames)} on ${formatDateLabel(booking.appointmentDate, true)} at ${booking.appointmentTimeLabel || selectedSlot.timeLabel}${booking.location ? ` at ${booking.location}` : ""}.`;
     const manageUrl = bookingManageUrl(booking);
     manageAppointmentLink.hidden = !manageUrl;
     if (manageUrl) {
       manageAppointmentLink.href = manageUrl;
     }
-    showScreen(confirmationScreen, "Appointment confirmed");
+    confirmationTitle.textContent = "Appointment Booked";
+    confirmationHelp.textContent = "Save the private link below if you need to cancel or choose a new time.";
+    showScreen(confirmationScreen, "Appointment Confirmed");
   } catch (error) {
-    setBookingStatus(error.message || "Could not book the appointment yet.", true);
-    await loadAvailability();
+    setBookingStatus(error.message || (isClassRegistrationMode()
+      ? "Could not save the registration yet."
+      : "Could not book the appointment yet."), true);
+    if (!isClassRegistrationMode()) {
+      await loadAvailability();
+    }
   } finally {
     submitButton.disabled = false;
   }
@@ -495,14 +617,14 @@ async function submitBooking() {
 function renderManagementSummary() {
   const names = managedBooking?.clientNames || [managedBooking?.clientName];
   managementSummary.textContent = managedBooking
-    ? `${managedBooking.serviceLabel} for ${formatPublicNameList(names)} on ${formatDateLabel(managedBooking.appointmentDate, true)} at ${managedBooking.appointmentTimeLabel || managedBooking.appointmentTime}.`
+    ? `${managedBooking.serviceLabel} for ${formatPublicNameList(names)} on ${formatDateLabel(managedBooking.appointmentDate, true)} at ${managedBooking.appointmentTimeLabel || managedBooking.appointmentTime}${managedBooking.location ? ` at ${managedBooking.location}` : ""}.`
     : "We could not load this appointment.";
   cancelAppointmentButton.disabled = !managedBooking?.canCancel;
   startRescheduleButton.disabled = !managedBooking?.canReschedule;
 }
 
 async function loadManagedBooking() {
-  showScreen(managementScreen, "Manage appointment");
+  showScreen(managementScreen, "Manage Appointment");
   setManagementStatus("Loading appointment...");
 
   try {
@@ -552,7 +674,7 @@ async function rescheduleManagedBooking() {
     isRescheduling = false;
     renderManagementSummary();
     setManagementStatus(`Appointment rescheduled to ${formatDateLabel(managedBooking.appointmentDate, true)} at ${managedBooking.appointmentTimeLabel}.`);
-    showScreen(managementScreen, "Manage appointment");
+    showScreen(managementScreen, "Manage Appointment");
   } catch (error) {
     setTimeStatus(error.message || "Could not reschedule the appointment yet.", true);
     continueButton.disabled = false;
@@ -587,9 +709,25 @@ async function initialize() {
   addPublicChild();
   updateYccoIdState();
 
+  const classSessionId = currentRequestedClassId();
+  if (classSessionId && !hasManagementParams()) {
+    try {
+      const data = await publicFetch(`/api/public/classes/${encodeURIComponent(classSessionId)}`);
+      configureClassRegistration(data.class);
+      showDetailsScreen();
+    } catch (error) {
+      selectedServiceTitle.textContent = "Cooking Class";
+      selectedServiceDuration.textContent = "";
+      setTimeStatus(error.message || "That cooking class could not be loaded.", true);
+      showScreen(timeScreen, "Class Registration");
+    }
+    return;
+  }
+
   try {
     const data = await publicFetch("/api/public/booking-options");
     bookingServices = Array.isArray(data.services) ? data.services : [];
+    bookingScheduling = data.scheduling || {};
   } catch (error) {
     setTimeStatus(error.message || "Booking options could not be loaded.", true);
     return;
@@ -619,28 +757,50 @@ continueButton.addEventListener("click", () => {
     showDetailsScreen();
   }
 });
-returnToTime.addEventListener("click", showTimeScreen);
-returnToDetails.addEventListener("click", () => showScreen(detailsScreen, "Your details"));
+returnToTime.addEventListener("click", () => {
+  if (isClassRegistrationMode()) {
+    window.location.href = "./booking.html#classes";
+  } else {
+    showTimeScreen();
+  }
+});
+returnToDetails.addEventListener("click", () => showScreen(detailsScreen, "Your Details"));
 bookingForm.addEventListener("submit", (event) => {
   event.preventDefault();
+  const serviceEmailConsent = bookingForm.elements.serviceEmailConsent;
+  const serviceTextConsent = bookingForm.elements.serviceTextConsent;
+  const hasServiceConsent = serviceEmailConsent.checked || serviceTextConsent.checked;
+  serviceEmailConsent.setCustomValidity(hasServiceConsent ? "" : "Choose email reminders, text reminders, or both.");
   if (bookingForm.reportValidity()) {
     showReviewScreen();
   }
 });
+[bookingForm.elements.serviceEmailConsent, bookingForm.elements.serviceTextConsent].forEach((input) => {
+  input.addEventListener("change", () => {
+    bookingForm.elements.serviceEmailConsent.setCustomValidity("");
+  });
+});
 submitButton.addEventListener("click", submitBooking);
 addChildButton.addEventListener("click", addPublicChild);
+addressInput.addEventListener("blur", () => {
+  addressInput.value = normalizeMailingAddress(addressInput.value);
+});
 yccoMemberSelect.addEventListener("change", updateYccoIdState);
 startRescheduleButton.addEventListener("click", startReschedule);
 cancelAppointmentButton.addEventListener("click", cancelManagedBooking);
 bookingBack.addEventListener("click", () => {
   if (!reviewScreen.hidden) {
-    showScreen(detailsScreen, "Your details");
+    showScreen(detailsScreen, "Your Details");
   } else if (!detailsScreen.hidden) {
-    showTimeScreen();
+    if (isClassRegistrationMode()) {
+      window.location.href = "./booking.html#classes";
+    } else {
+      showTimeScreen();
+    }
   } else if (!timeScreen.hidden && isRescheduling) {
     isRescheduling = false;
     renderManagementSummary();
-    showScreen(managementScreen, "Manage appointment");
+    showScreen(managementScreen, "Manage Appointment");
   } else {
     window.location.href = "./booking.html";
   }

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Refer a Family | The SNACK Program</title>
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <link rel="stylesheet" href="./refer.css?v=20260805-family1">
+  </head>
+  <body>
+    <header class="referral-header">
+      <a class="referral-brand" href="https://snackprogram.org" aria-label="The SNACK Program home">
+        <img src="./favicon.png" alt="">
+        <span><strong>The SNACK Program</strong></span>
+      </a>
+      <div class="referral-header-actions"><a href="./refer-print.html" target="_blank" rel="noopener">Print Blank Form</a><a href="tel:+19712020232">(971) 202-0232</a></div>
+    </header>
+
+    <main class="referral-main">
+      <header class="referral-title">
+        <h1>Refer a Family to the SNACK Program</h1>
+        <p>Share the information our team needs to contact the family about free nutrition education services.</p>
+      </header>
+
+      <form id="public-referral-form" class="referral-form">
+        <section aria-labelledby="referral-source-title">
+          <div class="section-heading">
+            <span>1</span>
+            <div><h2 id="referral-source-title">Referral Source</h2><p>Tell us who is making this referral.</p></div>
+          </div>
+          <div class="field-grid">
+            <label class="wide-field">
+              <span>Referral Type</span>
+              <select id="referral-type" name="referralType" required>
+                <option value="External Clinic Referral">Clinic or Healthcare Provider</option>
+                <option value="Community Org Referral">Community Organization</option>
+                <option value="Self Referral">Parent or Caregiver</option>
+                <option value="Other">Other</option>
+              </select>
+            </label>
+            <div id="provider-fields" class="provider-fields wide-field">
+              <label>
+                <span>Organization</span>
+                <input name="referralOrganization" type="text" autocomplete="organization" required>
+              </label>
+              <label>
+                <span>Your Name</span>
+                <input name="referrerName" type="text" autocomplete="name" required>
+              </label>
+              <label>
+                <span>Your Email <small>Optional</small></span>
+                <input name="referrerEmail" type="email" autocomplete="email">
+              </label>
+              <label>
+                <span>Your Phone <small>Optional</small></span>
+                <input name="referrerPhone" type="tel" autocomplete="tel">
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="child-title">
+          <div class="section-heading">
+            <span>2</span>
+            <div><h2 id="child-title">Children</h2><p>Enter each child who may participate in SNACK.</p></div>
+          </div>
+          <div class="children-fieldset">
+            <div id="referral-children" class="referral-children">
+              <div class="referral-child" data-referral-child>
+                <div class="referral-child-heading"><strong>Child 1</strong></div>
+                <div class="field-grid">
+                  <label><span>First Name</span><input data-child-field="firstName" type="text" autocomplete="given-name" required></label>
+                  <label><span>Last Name</span><input data-child-field="lastName" type="text" autocomplete="family-name" required></label>
+                  <label><span>Date of Birth <small>Optional</small></span><input data-child-field="dateOfBirth" type="date"></label>
+                </div>
+              </div>
+            </div>
+            <button class="add-child-button" data-add-child type="button">+ Add Another Child</button>
+          </div>
+        </section>
+
+        <section aria-labelledby="caregiver-title">
+          <div class="section-heading">
+            <span>3</span>
+            <div><h2 id="caregiver-title">Parent or Caregiver</h2><p>This is the person SNACK will contact.</p></div>
+          </div>
+          <div class="field-grid">
+            <label>
+              <span>Name</span>
+              <input name="parentName" type="text" autocomplete="name" required>
+            </label>
+            <label>
+              <span>Phone</span>
+              <input name="phone" type="tel" autocomplete="tel" required>
+            </label>
+            <label>
+              <span>Email <small>Optional</small></span>
+              <input name="email" type="email" autocomplete="email">
+            </label>
+            <label>
+              <span>Preferred Language</span>
+              <select name="preferredLanguage" required>
+                <option value="English">English</option>
+                <option value="Spanish">Spanish</option>
+                <option value="Other">Other</option>
+              </select>
+            </label>
+            <label>
+              <span>Preferred Contact</span>
+              <select name="preferredContactMethod">
+                <option value="Phone Call">Phone Call</option>
+                <option value="Text">Text</option>
+                <option value="Email">Email</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section aria-labelledby="reason-title">
+          <div class="section-heading">
+            <span>4</span>
+            <div><h2 id="reason-title">Referral Details</h2><p>Briefly share what would be helpful for our team to know.</p></div>
+          </div>
+          <div class="field-grid">
+            <label class="wide-field">
+              <span>Reason for Referral <small>Optional</small></span>
+              <textarea name="reason" rows="4"></textarea>
+            </label>
+            <label class="wide-field">
+              <span>Additional Information <small>Optional</small></span>
+              <textarea name="notes" rows="4"></textarea>
+            </label>
+            <label class="consent-field wide-field">
+              <input name="permissionToContact" type="checkbox" required>
+              <span>I confirm that the parent or caregiver has agreed to be contacted by The SNACK Program.</span>
+            </label>
+            <label class="honeypot" aria-hidden="true">
+              <span>Website</span>
+              <input name="website" type="text" tabindex="-1" autocomplete="off">
+            </label>
+          </div>
+        </section>
+
+        <footer class="referral-actions">
+          <p>Information is sent securely to authorized SNACK staff.</p>
+          <button id="submit-referral" type="submit">Submit Referral</button>
+        </footer>
+        <p id="referral-status" class="referral-status" role="status" aria-live="polite"></p>
+      </form>
+
+      <section id="referral-confirmation" class="referral-confirmation" hidden>
+        <span aria-hidden="true">&#10003;</span>
+        <h2 tabindex="-1">Referral received</h2>
+        <p>Thank you. A SNACK staff member will contact the family.</p>
+        <button type="button" data-new-referral>Submit Another Referral</button>
+      </section>
+    </main>
+
+    <script src="./app-config.js?v=20260716-localhost1"></script>
+    <script type="module" src="./refer.js?v=20260805-family1"></script>
+  </body>
+</html>

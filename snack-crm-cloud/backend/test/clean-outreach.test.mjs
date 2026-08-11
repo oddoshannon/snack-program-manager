@@ -9,6 +9,8 @@ import {
   outreachContactPayload,
   outreachEventMatches,
   outreachEventPayload,
+  outreachLeadIsConverted,
+  outreachLeadsForView,
   outreachReport,
   outreachSummary,
   outreachTaskMatches,
@@ -18,6 +20,8 @@ import {
 const outreachHtml = await readFile(new URL("../../frontend/public/outreach.html", import.meta.url), "utf8");
 const operationsHtml = await readFile(new URL("../../frontend/public/operations.html", import.meta.url), "utf8");
 const cleanSource = await readFile(new URL("../../frontend/public/clean.js", import.meta.url), "utf8");
+const cleanCss = await readFile(new URL("../../frontend/public/clean.css", import.meta.url), "utf8");
+const routeSource = await readFile(new URL("../routes/outreach.js", import.meta.url), "utf8");
 
 const events = [
   {
@@ -98,7 +102,7 @@ test("clean Outreach calculates the annual rulebook counters from real records",
   assert.deepEqual(outreachSummary(events, contacts, 2026), [
     ["1", "Annual events"],
     ["180", "Families reached"],
-    ["1", "New contacts"],
+    ["1", "New Leads"],
     ["$1.8k", "Event costs"]
   ]);
 
@@ -116,7 +120,7 @@ test("clean Outreach calculates the annual rulebook counters from real records",
   });
 });
 
-test("clean Outreach payloads trim text and preserve linked records", () => {
+test("clean Outreach payloads trim text and preserve lead audiences", () => {
   assert.deepEqual(outreachEventPayload({
     name: "  County Fair  ",
     status: " Planning ",
@@ -147,7 +151,17 @@ test("clean Outreach payloads trim text and preserve linked records", () => {
     costAmount: 24.57
   });
 
-  assert.equal(outreachContactPayload({ contactName: " Maria ", eventId: " event-1 " }).contactName, "Maria");
+  const leadPayload = outreachContactPayload({
+    contactName: " Maria ",
+    eventId: " event-1 ",
+    interestType: "Volunteer",
+    marketingConsent: true,
+    consentSource: "Event signup"
+  });
+  assert.equal(leadPayload.contactName, "Maria");
+  assert.deepEqual(leadPayload.audienceGroups, ["Volunteers"]);
+  assert.equal(leadPayload.marketingConsent, true);
+  assert.equal(leadPayload.consentSource, "Event signup");
   assert.deepEqual(outreachTaskPayload({ title: " Follow up ", dueDate: "2026-08-04" }, events[0]), {
     title: "Follow up",
     type: "Task",
@@ -161,6 +175,26 @@ test("clean Outreach payloads trim text and preserve linked records", () => {
     source: "Outreach",
     notes: ""
   });
+});
+
+test("clean Outreach separates active leads from conversion history", () => {
+  const items = mapOutreachContacts([
+    contacts[0],
+    {
+      ...contacts[0],
+      id: "contact-2",
+      contactName: "Jordan Partner",
+      status: "Community Partner",
+      conversionType: "Community Partner",
+      convertedAt: "2026-08-03T12:00:00.000Z"
+    }
+  ], events);
+
+  assert.equal(outreachLeadIsConverted(items.find((item) => item.id === "contact-1")), false);
+  assert.equal(outreachLeadIsConverted(items.find((item) => item.id === "contact-2")), true);
+  assert.equal(outreachLeadIsConverted(null), false);
+  assert.deepEqual(outreachLeadsForView(items, "active").map(({ id }) => id), ["contact-1"]);
+  assert.deepEqual(outreachLeadsForView(items, "history").map(({ id }) => id), ["contact-2"]);
 });
 
 test("clean Outreach search covers event, contact, and task context", () => {
@@ -182,7 +216,7 @@ test("clean Outreach page loads configuration before its interface code", () => 
   assert.match(cleanSource, /initializeOutreachData\(\)/);
 });
 
-test("clean Outreach navigation stays focused while Operations hosts its report", () => {
+test("clean Outreach navigation uses Leads while Operations hosts its report", () => {
   const outreachConfig = cleanSource.slice(
     cleanSource.indexOf("  outreach: {"),
     cleanSource.indexOf("  fundraising: {")
@@ -192,12 +226,32 @@ test("clean Outreach navigation stays focused while Operations hosts its report"
     cleanSource.indexOf("  admin: {")
   );
 
-  assert.match(outreachConfig, /subpages: \["Events", "Contacts"\]/);
-  assert.match(outreachConfig, /views: \["Events", "Contacts"\]/);
+  assert.match(outreachConfig, /subpages: \["Events", "Leads", "Volunteers"\]/);
+  assert.match(outreachConfig, /views: \["Events", "Leads"\]/);
   assert.doesNotMatch(outreachConfig, /subpages: \[[^\]]*"Tasks"/);
   assert.doesNotMatch(outreachConfig, /subpages: \[[^\]]*"Reports"/);
+  assert.match(cleanSource, /data-outreach-lead-view="active"/);
+  assert.match(cleanSource, /data-outreach-convert="referral"/);
+  assert.match(cleanSource, /data-outreach-convert="audience"/);
+  assert.match(cleanSource, /data-outreach-convert="partner"/);
+  assert.match(cleanSource, /data-outreach-convert="closed"/);
+  assert.match(cleanSource, /outreachSubpage === "Leads" && outreachLeadIsConverted\(item\)/);
+  assert.match(cleanSource, /class="status-line is-module-status outreach-status-readonly"/);
+  assert.match(cleanCss, /\.outreach-lead-switch/);
+  assert.match(cleanCss, /\.outreach-conversion-actions/);
+  assert.match(cleanCss, /\.outreach-status-readonly/);
   assert.match(operationsConfig, /subpages: \[[^\]]*"Reports"\]/);
   assert.match(cleanSource, /function isOperationsOutreachReport\(\)/);
+  assert.match(cleanSource, /normalizedOutreachInitialSection === "Reports" && isOperationsOutreachReport\(\)/);
   assert.match(cleanSource, /\.\/operations\.html\?section=Reports/);
   assert.ok(operationsHtml.indexOf("app-config.js") < operationsHtml.indexOf("clean.js"));
+});
+
+test("Outreach conversion routes retain history and community audience membership", () => {
+  assert.match(routeSource, /router\.patch\("\/api\/outreach-contacts\/:contactId\/link-referral", requireAuth/);
+  assert.match(routeSource, /conversionType: "Referral"/);
+  assert.match(routeSource, /router\.post\("\/api\/outreach-contacts\/:contactId\/convert", requireAuth/);
+  assert.match(routeSource, /fetchAllDocuments\(referralNetwork\)/);
+  assert.match(routeSource, /"Community Partners"/);
+  assert.match(routeSource, /status: conversionType/);
 });

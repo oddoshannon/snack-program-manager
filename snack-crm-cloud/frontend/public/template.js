@@ -94,7 +94,7 @@ function renderTemplate() {
           </button>
           <div class="brand-copy">
             <strong>SNACK</strong>
-            <span>Program Manager</span>
+            <span>Program Hub</span>
           </div>
         </div>
 

@@ -9,6 +9,8 @@
     "dev": "node --env-file=.env --watch server.js",
     "refresh:local-data": "node --env-file=.env scripts/refresh-local-data.mjs",
     "seed:local-crm": "node --env-file=.env scripts/seed-local-crm.mjs",
+    "seed:local-system": "node --env-file=.env scripts/seed-local-system.mjs",
+    "qa:counting": "node --env-file=.env scripts/controlled-counting-qa.mjs",
     "local-data": "node --env-file=.env scripts/manage-local-data.mjs",
     "test": "node --test test/*.test.mjs",
     "qa:public-booking-api": "node test/qa-public-booking-api.mjs"
@@ -17,6 +19,7 @@
     "@google-cloud/firestore": "^8.6.0",
     "cors": "^2.8.5",
     "express": "^4.19.2",
+    "google-auth-library": "^10.6.2",
     "jose": "^6.2.3",
     "proto3-json-serializer": "^3.0.4"
   },

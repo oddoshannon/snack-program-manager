@@ -47,7 +47,7 @@ function outreachEventName(event = {}) {
 }
 
 function outreachContactName(contact = {}) {
-  return cleanText(contact.contactName) || cleanText(contact.childName) || "Unnamed contact";
+  return cleanText(contact.contactName) || cleanText(contact.childName) || "Unnamed lead";
 }
 
 const outreachEventStatusOptions = [
@@ -63,11 +63,17 @@ const outreachEventStatusOptions = [
 const outreachContactStatusOptions = [
   "New",
   "Contacted",
+  "Follow Up"
+];
+
+const convertedOutreachLeadStatuses = new Set([
   "Referral Created",
+  "Audience Only",
+  "Community Partner",
   "Scheduled",
   "Not Interested",
   "Closed"
-];
+]);
 
 const outreachTaskStatusOptions = ["Open", "In Progress", "Waiting", "Done", "Canceled"];
 const outreachTaskPriorityOptions = ["Low", "Normal", "Urgent"];
@@ -119,18 +125,48 @@ function outreachEventPayload(values = {}) {
 }
 
 function outreachContactPayload(values = {}) {
+  const audienceGroups = marketingValues(values.audienceGroups);
+  if (!audienceGroups.length) {
+    const interest = cleanText(values.interestType).toLowerCase();
+    if (interest.includes("newsletter")) audienceGroups.push("Newsletter");
+    if (interest.includes("class")) audienceGroups.push("Cooking Classes");
+    if (interest.includes("volunteer")) audienceGroups.push("Volunteers");
+    if (interest.includes("partnership")) audienceGroups.push("Community Partners");
+  }
   return {
     eventId: cleanText(values.eventId),
     contactName: cleanText(values.contactName),
     childName: cleanText(values.childName),
+    organizationName: cleanText(values.organizationName),
     phone: cleanText(values.phone),
-    email: cleanText(values.email),
+    email: cleanText(values.email).toLowerCase(),
     preferredLanguage: cleanText(values.preferredLanguage),
     interestType: cleanText(values.interestType),
     status: cleanText(values.status) || "New",
+    audienceGroups,
+    marketingConsent: values.marketingConsent === true || values.marketingConsent === "true" || values.marketingConsent === "on",
+    consentSource: cleanText(values.consentSource),
+    consentDate: cleanText(values.consentDate),
     referralId: cleanText(values.referralId),
+    conversionType: cleanText(values.conversionType),
+    convertedAt: cleanText(values.convertedAt),
+    convertedRecordId: cleanText(values.convertedRecordId),
     notes: cleanText(values.notes)
   };
+}
+
+function marketingValues(value) {
+  const values = Array.isArray(value) ? value : cleanText(value).split(",");
+  return [...new Set(values.map(cleanText).filter(Boolean))];
+}
+
+function outreachLeadIsConverted(item = {}) {
+  const lead = item || {};
+  return Boolean(cleanText(lead.conversionType) || convertedOutreachLeadStatuses.has(cleanText(lead.status)));
+}
+
+function outreachLeadsForView(items = [], view = "active") {
+  return items.filter((item) => view === "history" ? outreachLeadIsConverted(item) : !outreachLeadIsConverted(item));
 }
 
 function outreachTaskPayload(values = {}, event = {}) {
@@ -220,11 +256,21 @@ function mapOutreachContact(contact = {}, eventsById = new Map()) {
     eventId: cleanText(contact.eventId),
     contactName: cleanText(contact.contactName) || "-",
     childName: cleanText(contact.childName) || "-",
+    organizationName: cleanText(contact.organizationName) || "-",
     phone: cleanText(contact.phone) || "-",
     email: cleanText(contact.email) || "-",
     language: cleanText(contact.preferredLanguage) || "-",
     interestType: cleanText(contact.interestType) || "-",
+    audienceGroups: marketingValues(contact.audienceGroups),
+    audienceGroupSummary: marketingValues(contact.audienceGroups).join(", ") || "-",
+    marketingConsent: contact.marketingConsent === true,
+    consentSource: cleanText(contact.consentSource) || "-",
+    consentDate: formatOutreachDate(contact.consentDate),
+    consentDateValue: cleanText(contact.consentDate),
     referralId: cleanText(contact.referralId),
+    conversionType: cleanText(contact.conversionType),
+    convertedAt: formatOutreachDate(contact.convertedAt),
+    convertedRecordId: cleanText(contact.convertedRecordId),
     notes: cleanText(contact.notes) || "-",
     createdDate: formatOutreachDate(contact.createdAt),
     source: contact
@@ -282,7 +328,7 @@ function outreachEventMatches(item, query) {
 function outreachContactMatches(item, query) {
   const normalized = cleanText(query).toLowerCase();
   if (!normalized) return true;
-  return [item.title, item.status, item.event, item.childName, item.phone, item.email, item.language, item.interestType, item.notes]
+  return [item.title, item.status, item.event, item.childName, item.organizationName, item.phone, item.email, item.language, item.interestType, item.audienceGroupSummary, item.notes]
     .some((value) => cleanText(value).toLowerCase().includes(normalized));
 }
 
@@ -305,7 +351,7 @@ function outreachSummary(events = [], contacts = [], year = new Date().getFullYe
   return [
     [String(annualEvents.length), "Annual events"],
     [String(familiesReached), "Families reached"],
-    [String(annualContacts.length), "New contacts"],
+    [String(annualContacts.length), "New Leads"],
     [formatOutreachMoney(eventCosts), "Event costs"]
   ];
 }
@@ -358,6 +404,8 @@ export {
   outreachEventStatusOptions,
   outreachEventTypeOptions,
   outreachInterestTypeOptions,
+  outreachLeadIsConverted,
+  outreachLeadsForView,
   outreachReport,
   outreachSummary,
   outreachTaskMatches,

@@ -6,12 +6,31 @@ export const localDataCollections = [
   "appointments",
   "tasks",
   "activityLogs",
+  "securityAuditLogs",
   "grants",
   "grantQuestions",
+  "fundraisingDonors",
+  "fundraisingCampaigns",
+  "fundraisingGifts",
+  "earnedIncome",
+  "marketingCampaigns",
+  "marketingSubscribers",
+  "performanceMetrics",
+  "performanceMeasurements",
+  "performanceEvaluationQuestions",
+  "performanceEvaluationInstruments",
+  "performanceEvaluationResponses",
+  "hrsnClaims",
+  "budgetCategories",
+  "programSessions",
+  "programRegistrations",
   "referralNetwork",
   "outreachEvents",
   "outreachContacts",
+  "volunteerProfiles",
+  "volunteerOpportunities",
   "adminSettings",
+  "staffUsers",
   "messages"
 ];
 
@@ -46,6 +65,12 @@ export function assertSafeLocalTarget({ projectId, emulatorHost }) {
     projectId: normalizedProjectId,
     ...address
   };
+}
+
+export function isLocalFixtureRecord(documentId, data = {}, fixtureSet = "") {
+  return String(documentId || "").startsWith("qa-")
+    || data.qaFixture === true
+    || (Boolean(fixtureSet) && data.qaFixtureSet === fixtureSet);
 }
 
 export function parseCollectionSelection(value) {
