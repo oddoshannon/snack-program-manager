@@ -1,6 +1,10 @@
 import express from "express";
-import { cleanString, requireAuth } from "../lib/core.js";
-import { clientMessageDeliveryPolicy, clientMessageTemplates } from "../lib/client-messages.js";
+import { adminSettings, cleanString, requireAuth } from "../lib/core.js";
+import {
+  clientMessageDeliveryPolicy,
+  clientMessageTemplates,
+  defaultClientMessageTemplateRecords
+} from "../lib/client-messages.js";
 import { gmailConfigurationStatus, sendGmailMessage } from "../lib/gmail-sender.js";
 
 const router = express.Router();
@@ -51,6 +55,83 @@ function azureCommunicationConfigurationStatus(environment = process.env) {
   };
 }
 
+function messageTemplateApprovalStatus(savedTemplates = []) {
+  const savedById = new Map((Array.isArray(savedTemplates) ? savedTemplates : [])
+    .filter((template) => template && typeof template === "object" && template.id)
+    .map((template) => [String(template.id), template]));
+  const expected = defaultClientMessageTemplateRecords();
+  const summarize = (language) => {
+    const templates = expected.filter((template) => template.language === language);
+    const approvedCount = templates.filter((template) => {
+      const saved = savedById.get(template.id);
+      return saved?.status === "Approved"
+        && Boolean(cleanString(saved.approvedAt))
+        && Boolean(cleanString(saved.approvedBy));
+    }).length;
+    return {
+      approvedCount,
+      totalCount: templates.length,
+      complete: approvedCount === templates.length
+    };
+  };
+  return {
+    english: summarize("English"),
+    spanish: summarize("Spanish")
+  };
+}
+
+function messagingLaunchConfigurationStatus({ environment = process.env, savedTemplates = [] } = {}) {
+  const templates = messageTemplateApprovalStatus(savedTemplates);
+  const workspaceEmail = gmailConfigurationStatus({
+    serviceAccountEmail: environment.GOOGLE_GMAIL_SERVICE_ACCOUNT_EMAIL,
+    senderEmail: environment.GOOGLE_GMAIL_SENDER_EMAIL,
+    senderName: environment.GOOGLE_GMAIL_SENDER_NAME,
+    replyTo: environment.GOOGLE_GMAIL_REPLY_TO,
+    automaticDeliveryEnabled: environment.GOOGLE_GMAIL_DELIVERY_ENABLED
+  });
+  const azure = azureCommunicationConfigurationStatus(environment);
+  const reminderAutomationReady = enabledEnvironmentValue(environment.MESSAGING_REMINDER_AUTOMATION_READY);
+  const deliveryLoggingReady = enabledEnvironmentValue(environment.MESSAGING_DELIVERY_LOGGING_READY);
+  const productionApproved = enabledEnvironmentValue(environment.MESSAGING_PRODUCTION_APPROVED);
+  const checklist = [
+    {
+      id: "english-templates",
+      label: `English service templates approved and locked (${templates.english.approvedCount}/${templates.english.totalCount})`,
+      complete: templates.english.complete
+    },
+    {
+      id: "spanish-templates",
+      label: `Spanish family templates approved and locked (${templates.spanish.approvedCount}/${templates.spanish.totalCount})`,
+      complete: templates.spanish.complete
+    },
+    { id: "workspace-email", label: "Google Workspace service-email sender verified", complete: workspaceEmail.configured },
+    { id: "consent", label: "Separate service-email, service-text, and Marketing consent gates are active", complete: true },
+    { id: "reminder-automation", label: "Booking confirmations and 48-hour email / 6-hour text reminders tested", complete: reminderAutomationReady },
+    { id: "azure", label: "Azure number, registration, inbound events, and calling are ready", complete: azure.ready },
+    { id: "delivery-logging", label: "Delivered, failed, replied, and opt-out logging passed controlled tests", complete: deliveryLoggingReady },
+    { id: "production-approval", label: "Executive Director production approval recorded", complete: productionApproved }
+  ];
+  const completedCount = checklist.filter((item) => item.complete).length;
+  const ready = completedCount === checklist.length;
+  const deliveryEnabled = ready
+    && workspaceEmail.automaticDeliveryEnabled
+    && azure.deliveryEnabled;
+  return {
+    ready,
+    safeMode: !deliveryEnabled,
+    deliveryEnabled,
+    completedCount,
+    totalCount: checklist.length,
+    checklist,
+    templates,
+    connectionMode: ready
+      ? deliveryEnabled
+        ? "All launch gates passed and production delivery is enabled"
+        : "All launch gates passed; production delivery remains off"
+      : `${completedCount} of ${checklist.length} messaging launch gates complete; family delivery remains off`
+  };
+}
+
 router.get("/api/reminders/azure/status", requireAuth, (_request, response) => {
   response.json(azureCommunicationConfigurationStatus());
 });
@@ -64,6 +145,18 @@ router.get("/api/reminders/policy", requireAuth, (_request, response) => {
 
 router.get("/api/reminders/email/status", requireAuth, (_request, response) => {
   response.json(gmailConfigurationStatus());
+});
+
+router.get("/api/reminders/launch-status", requireAuth, async (_request, response, next) => {
+  try {
+    const snapshot = await adminSettings.doc("messageTemplates").get();
+    const savedTemplates = snapshot.exists && Array.isArray(snapshot.data()?.templates)
+      ? snapshot.data().templates
+      : [];
+    response.json(messagingLaunchConfigurationStatus({ savedTemplates }));
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.post("/api/reminders/email/test", requireAuth, async (request, response, next) => {
@@ -103,5 +196,9 @@ router.post("/api/reminders/azure/readiness-test", requireAuth, async (request, 
   response.json({ ...azureCommunicationConfigurationStatus(), messageSent: false, callPlaced: false });
 });
 
-export { azureCommunicationConfigurationStatus };
+export {
+  azureCommunicationConfigurationStatus,
+  messageTemplateApprovalStatus,
+  messagingLaunchConfigurationStatus
+};
 export default router;

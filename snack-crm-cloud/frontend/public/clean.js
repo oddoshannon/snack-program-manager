@@ -670,7 +670,11 @@ let adminIntegrationStatus = {
   azure: "checking",
   azureLabel: "Checking",
   azureMode: "Checking readiness...",
-  azureChecklist: []
+  azureChecklist: [],
+  messagingLaunch: "checking",
+  messagingLaunchLabel: "Checking",
+  messagingLaunchMode: "Checking launch gates...",
+  messagingLaunchChecklist: []
 };
 let blockTimeEditingId = "";
 let blockTimeDeletePendingId = "";
@@ -13768,6 +13772,20 @@ function renderAdminIntegrationsWorkspace() {
     ${renderAdminComplianceChecklist()}
     ${renderAdminVendorRegister()}
     <section class="admin-security-section">
+      <header><div><h2>Messaging Launch</h2><p>One fail-closed checklist for service email, texting, consent, bilingual wording, delivery records, and final approval.</p></div></header>
+      <div class="admin-integration-grid">
+        ${renderAdminIntegrationCard({
+          iconName: "marketing",
+          name: "Family Messaging",
+          description: "Appointment confirmations, reminders, schedule changes, replies, and staff delivery alerts.",
+          state: adminIntegrationStatus.messagingLaunch,
+          statusLabel: adminIntegrationStatus.messagingLaunchLabel,
+          detail: adminIntegrationStatus.messagingLaunchMode
+        })}
+      </div>
+      ${adminIntegrationStatus.messagingLaunchChecklist?.length ? `<ul class="admin-azure-checklist">${adminIntegrationStatus.messagingLaunchChecklist.map((item) => `<li class="${item.complete ? "is-complete" : ""}">${item.complete ? icons.check : icons.clock}<span>${escapeHtml(item.label)}</span></li>`).join("")}</ul>` : ""}
+    </section>
+    <section class="admin-security-section">
       <header><div><h2>System Connections</h2><p>Live status only. Messaging and calendar delivery remain off until their separate launch approvals are complete.</p></div></header>
       <div class="admin-integration-grid">${cards.map(renderAdminIntegrationCard).join("")}</div>
       ${adminIntegrationStatus.azureChecklist?.length ? `<ul class="admin-azure-checklist">${adminIntegrationStatus.azureChecklist.map((item) => `<li class="${item.complete ? "is-complete" : ""}">${item.complete ? icons.check : icons.clock}<span>${escapeHtml(item.label)}</span></li>`).join("")}</ul>` : ""}
@@ -14361,12 +14379,16 @@ async function loadAdminIntegrationStatus() {
     azure: "checking",
     azureLabel: "Checking",
     azureMode: "Checking readiness...",
-    azureChecklist: []
+    azureChecklist: [],
+    messagingLaunch: "checking",
+    messagingLaunchLabel: "Checking",
+    messagingLaunchMode: "Checking launch gates...",
+    messagingLaunchChecklist: []
   };
   refreshAdminIntegrationsWorkspace();
 
   const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL || "";
-  const [healthResult, accessResult, databaseResult, workspaceEmailResult, mailerLiteResult, azureResult, calendarResult, securityResult] = await Promise.allSettled([
+  const [healthResult, accessResult, databaseResult, workspaceEmailResult, mailerLiteResult, azureResult, messagingLaunchResult, calendarResult, securityResult] = await Promise.allSettled([
     fetch(`${apiBaseUrl}/health`).then((response) => {
       if (!response.ok) throw new Error("Data service unavailable");
       return response.json();
@@ -14376,6 +14398,7 @@ async function loadAdminIntegrationStatus() {
     adminAccessFetch("/api/reminders/email/status"),
     adminAccessFetch("/api/marketing/mailerlite/status"),
     adminAccessFetch("/api/reminders/azure/status"),
+    adminAccessFetch("/api/reminders/launch-status"),
     adminAccessFetch("/api/admin/google-calendar/status"),
     adminAccessFetch("/api/admin/security-compliance")
   ]);
@@ -14383,6 +14406,7 @@ async function loadAdminIntegrationStatus() {
   const mailerLite = mailerLiteResult.status === "fulfilled" ? mailerLiteResult.value : null;
   const workspaceEmail = workspaceEmailResult.status === "fulfilled" ? workspaceEmailResult.value : null;
   const azure = azureResult.status === "fulfilled" ? azureResult.value : null;
+  const messagingLaunch = messagingLaunchResult.status === "fulfilled" ? messagingLaunchResult.value : null;
   const calendar = calendarResult.status === "fulfilled" ? calendarResult.value : null;
   const securityRecords = securityResult.status === "fulfilled" ? securityResult.value : null;
   if (securityRecords) {
@@ -14436,7 +14460,21 @@ async function loadAdminIntegrationStatus() {
           ? `${azure.completedCount || 0}/${azure.totalCount || 6} Complete`
           : "Not Connected",
     azureMode: azure?.connectionMode || (azureResult.status === "fulfilled" ? "Azure resource details have not been configured in the Hub" : "Connection check failed"),
-    azureChecklist: Array.isArray(azure?.checklist) ? azure.checklist : []
+    azureChecklist: Array.isArray(azure?.checklist) ? azure.checklist : [],
+    messagingLaunch: messagingLaunch?.ready
+      ? "ready"
+      : messagingLaunchResult.status === "fulfilled"
+        ? "paused"
+        : "error",
+    messagingLaunchLabel: messagingLaunch?.deliveryEnabled
+      ? "Delivery Enabled"
+      : messagingLaunch?.ready
+        ? "Ready · Delivery Off"
+        : messagingLaunchResult.status === "fulfilled"
+          ? `${messagingLaunch?.completedCount || 0}/${messagingLaunch?.totalCount || 8} Complete`
+          : "Check Failed",
+    messagingLaunchMode: messagingLaunch?.connectionMode || (messagingLaunchResult.status === "fulfilled" ? "Messaging launch gates have not been configured" : "Connection check failed"),
+    messagingLaunchChecklist: Array.isArray(messagingLaunch?.checklist) ? messagingLaunch.checklist : []
   };
   const failureTasks = [
     adminIntegrationStatus.calendar === "error"

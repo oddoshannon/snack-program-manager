@@ -18,7 +18,12 @@ import {
   isAdminQaFixtureDocument
 } from "../routes/admin.js";
 import { accessLevelDeletionError } from "../routes/access.js";
-import { azureCommunicationConfigurationStatus } from "../routes/reminders.js";
+import {
+  azureCommunicationConfigurationStatus,
+  messageTemplateApprovalStatus,
+  messagingLaunchConfigurationStatus
+} from "../routes/reminders.js";
+import { defaultClientMessageTemplateRecords } from "../lib/client-messages.js";
 import { fullSystemFixtureCollectionNames } from "../scripts/lib/full-system-fixtures.mjs";
 import { localDataCollections } from "../scripts/lib/local-data-safety.mjs";
 import { parseAdminCsv, prepareAdminCsvImport } from "../../frontend/public/modules/admin-data.js";
@@ -232,9 +237,12 @@ test("Admin Security & Integrations combines compliance, vendor, and live connec
   assert.match(adminRouteSource, /TEST CLINIC CALENDAR/);
   assert.match(cleanSource, /\/api\/marketing\/mailerlite\/status/);
   assert.match(cleanSource, /\/api\/reminders\/azure\/status/);
+  assert.match(cleanSource, /\/api\/reminders\/launch-status/);
   assert.match(cleanSource, /\/api\/admin\/security-compliance/);
   assert.match(cleanSource, /Compliance Checklist/);
   assert.match(cleanSource, /Vendor Agreements/);
+  assert.match(cleanSource, /Messaging Launch/);
+  assert.match(cleanSource, /Family Messaging/);
   assert.match(cleanSource, /System Connections/);
   assert.match(cleanSource, /Secret keys are never shown here/);
   assert.match(cleanCss, /\.admin-integration-grid/);
@@ -272,6 +280,59 @@ test("Azure readiness stays in safe mode until every external requirement is com
   assert.equal(completeButDisabled.ready, true);
   assert.equal(completeButDisabled.deliveryEnabled, false);
   assert.equal(completeButDisabled.safeMode, true);
+});
+
+test("messaging launch stays fail-closed until bilingual, provider, logging, and approval gates pass", () => {
+  const englishApproved = defaultClientMessageTemplateRecords().map((template) => template.language === "English"
+    ? { ...template, status: "Approved", approvedAt: "2026-08-10T12:00:00.000Z", approvedBy: "director@snackprogram.org" }
+    : template);
+  const approval = messageTemplateApprovalStatus(englishApproved);
+  assert.deepEqual(approval.english, { approvedCount: 9, totalCount: 9, complete: true });
+  assert.deepEqual(approval.spanish, { approvedCount: 0, totalCount: 8, complete: false });
+
+  const partial = messagingLaunchConfigurationStatus({
+    environment: {
+      GOOGLE_GMAIL_SERVICE_ACCOUNT_EMAIL: "snack-mailer@snack-crm.iam.gserviceaccount.com",
+      GOOGLE_GMAIL_SENDER_EMAIL: "appointments@snackprogram.org",
+      GOOGLE_GMAIL_REPLY_TO: "director@snackprogram.org"
+    },
+    savedTemplates: englishApproved
+  });
+  assert.equal(partial.completedCount, 3);
+  assert.equal(partial.ready, false);
+  assert.equal(partial.deliveryEnabled, false);
+  assert.equal(partial.safeMode, true);
+
+  const allApproved = defaultClientMessageTemplateRecords().map((template) => ({
+    ...template,
+    status: "Approved",
+    approvedAt: "2026-08-17T12:00:00.000Z",
+    approvedBy: "director@snackprogram.org"
+  }));
+  const readyButDisabled = messagingLaunchConfigurationStatus({
+    environment: {
+      GOOGLE_GMAIL_SERVICE_ACCOUNT_EMAIL: "snack-mailer@snack-crm.iam.gserviceaccount.com",
+      GOOGLE_GMAIL_SENDER_EMAIL: "appointments@snackprogram.org",
+      GOOGLE_GMAIL_REPLY_TO: "director@snackprogram.org",
+      GOOGLE_GMAIL_DELIVERY_ENABLED: "false",
+      AZURE_COMMUNICATIONS_CONNECTION_STRING: "endpoint=https://example.communication.azure.com/;accesskey=secret",
+      AZURE_COMMUNICATIONS_PHONE_NUMBER: "+19712020232",
+      AZURE_COMMUNICATIONS_TEN_DLC_REGISTERED: "true",
+      AZURE_COMMUNICATIONS_EVENT_GRID_CONFIGURED: "true",
+      AZURE_COMMUNICATIONS_CALLING_READY: "true",
+      AZURE_COMMUNICATIONS_READY: "true",
+      AZURE_COMMUNICATIONS_DELIVERY_ENABLED: "false",
+      MESSAGING_REMINDER_AUTOMATION_READY: "true",
+      MESSAGING_DELIVERY_LOGGING_READY: "true",
+      MESSAGING_PRODUCTION_APPROVED: "true"
+    },
+    savedTemplates: allApproved
+  });
+  assert.equal(readyButDisabled.completedCount, 8);
+  assert.equal(readyButDisabled.ready, true);
+  assert.equal(readyButDisabled.deliveryEnabled, false);
+  assert.equal(readyButDisabled.safeMode, true);
+  assert.match(readyButDisabled.connectionMode, /production delivery remains off/);
 });
 
 test("security and vendor records are normalized and restricted to managers", () => {

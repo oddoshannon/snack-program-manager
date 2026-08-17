@@ -1,6 +1,6 @@
 # Remaining Work
 
-Last updated: August 10, 2026
+Last updated: August 17, 2026
 
 ## Immediate: Post-Cutover Staff-Test Edits
 
@@ -50,12 +50,15 @@ already been removed.
    The Azure Communication Services resource and $10 budget alert were created
    by the user. No Hub credential, phone number, messaging registration, sender,
    calling action, or texting action is connected yet.
-   MailerLite's read-only check is complete; contact sync and marketing delivery
-   remain disabled.
+   MailerLite's director-only private contact sync and signed opt-out webhook
+   are working. The exact allowlist contains only the Executive Director's test
+   address; campaign delivery remains disabled.
 6. The English templates are approved. Human-review the editable Spanish Drafts
    before approving them. The
    Workspace sender and Reply-To behavior are already verified; automatic
    service-email delivery remains off.
+   The combined fail-closed launch checklist and operating procedure are in
+   `docs/MESSAGING-LAUNCH-PACKAGE-2026-08-17.md`.
 7. Continue the August 5 private finance workbook review. All eight named class
    mappings and the first Executive Director planning split are recorded.
    Confirm Alessandra's exact SNACK payment and program split, September intern
@@ -142,7 +145,9 @@ inventory.
 - Enable one-way Clinic Calendar sync only after the future Setmore appointments
   are reconciled at cutover. The lifecycle and controlled appointment tests pass.
 - Implement guarded monthly QuickBooks report imports and reconciliation.
-- Connect MailerLite contacts only after consent and opt-out behavior passes.
+- Keep MailerLite in the director-only private group until the full Marketing
+  audience is reviewed. The private opt-out path is connected; campaign sending
+  remains outside the Hub.
 - Build a read-only Squarespace general-contact sync only after its key is
   supplied. Build the sticker-request task route only after choosing Zapier or a
   dedicated Google Sheet. Do not send the sticker email automatically.

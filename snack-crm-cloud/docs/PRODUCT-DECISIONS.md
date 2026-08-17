@@ -326,9 +326,10 @@ Access, CRM, Forms, and Data. Admin has no Quick Actions panel.
   disabled until Marketing workflows pass testing.
 - MailerLite connection status means MailerLite accepted the stored token in a
   read-only request; the presence of a token alone is not a successful check.
-- The MailerLite token is stored in Google Secret Manager, attached to the
-  production service, and passed the signed-in read-only connection check on
-  August 5. Contact writes and email sending remain disabled.
+- The MailerLite token and webhook secret are stored in Google Secret Manager.
+  Private contact synchronization and unsubscribe/bounce/spam-report events are
+  restricted to the exact Executive Director test allowlist and private test
+  group. Campaign sending remains unavailable from the Hub.
 - General Squarespace contacts may be copied through a read-only Contacts API
   connection while preserving the Squarespace marketing-permission value.
   Contacts without clear permission are not eligible for marketing email.
@@ -352,3 +353,8 @@ Access, CRM, Forms, and Data. Admin has no Quick Actions panel.
   calling remains an optional later feature. MailerLite remains the approved
   marketing-email service unless a separate change is approved.
 - English messages and forms are locked before Spanish versions.
+- Family messaging uses one combined fail-closed launch gate. Provider
+  connection alone is never enough: English and Spanish approvals, separate
+  consent and opt-outs, reminder timing, Azure readiness, delivery/reply
+  logging, and Executive Director approval must all pass before production
+  delivery can be enabled.
