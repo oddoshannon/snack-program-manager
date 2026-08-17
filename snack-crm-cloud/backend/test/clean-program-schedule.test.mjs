@@ -224,7 +224,7 @@ test("clean schedule exposes Kitchen and School without enabling School public b
   const programRouteSource = readFileSync(new URL("../routes/program-schedule.js", import.meta.url), "utf8");
 
   assert.match(cleanSource, /subpages: \["Clinic", "Kitchen", "School", "Public Booking"\]/);
-  assert.match(cleanSource, /subpages: \["Settings", "Schedule", "Integrations"\]/);
+  assert.match(cleanSource, /subpages: \["Settings", "Schedule", "Security & Integrations"\]/);
   assert.match(cleanSource, /const adminSettingsTabs = Object\.freeze\(\["Team", "Access", "CRM", "Forms", "Data"\]\)/);
   assert.match(cleanSource, /data-program-settings-form/);
   assert.match(cleanSource, /data-program-registration-form/);

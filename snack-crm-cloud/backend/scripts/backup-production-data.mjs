@@ -55,7 +55,7 @@ async function backupCollection(collection, collections) {
   collections[collection.path] = rows;
 }
 
-const db = new Firestore({ projectId });
+const db = new Firestore({ projectId, preferRest: true });
 try {
   const collections = {};
   for (const collection of await db.listCollections()) {

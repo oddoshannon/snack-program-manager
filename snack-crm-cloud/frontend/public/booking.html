@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Book with The SNACK Program</title>
     <link rel="icon" type="image/png" href="./favicon.png">
-    <link rel="stylesheet" href="./booking.css?v=20260721-1">
+    <link rel="stylesheet" href="./booking.css?v=20260817-language-reviews1">
   </head>
   <body>
     <header class="landing-header">
@@ -20,10 +20,22 @@
           <a href="#team">Team</a>
           <a href="#about">About</a>
           <a href="#gallery">Gallery</a>
+          <a href="#reviews">Reviews</a>
           <a href="#policies">Policies</a>
           <a href="#contact">Contact</a>
         </nav>
-        <a class="call-link" href="tel:+19712020232">Call Us&nbsp; (971) 202-0232</a>
+        <div class="language-switcher" data-language-switcher>
+          <button class="language-toggle" type="button" data-language-toggle aria-label="Choose language" aria-expanded="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
+            <span data-language-current>English</span>
+            <span aria-hidden="true">⌄</span>
+          </button>
+          <div class="language-menu" data-language-menu role="radiogroup" aria-label="Language" hidden>
+            <button type="button" role="radio" data-language-option="en">English (US)</button>
+            <button type="button" role="radio" data-language-option="es">Español (MX)</button>
+          </div>
+        </div>
+        <a class="call-link" href="tel:+19712020232"><span>Call Us</span>&nbsp; (971) 202-0232</a>
       </div>
     </header>
 
@@ -44,7 +56,7 @@
 
         <div class="landing-layout">
           <div class="services-panel">
-            <div id="english-service-group" class="service-group">
+            <div id="english-service-group" class="service-group" lang="en">
               <h3>Appointments in English</h3>
               <div id="english-service-list" class="service-list" aria-live="polite">
                 <article class="service-item">
@@ -67,7 +79,7 @@
               </div>
             </div>
 
-            <div id="spanish-service-group" class="service-group">
+            <div id="spanish-service-group" class="service-group" lang="es">
               <h3>Citas en español</h3>
               <div id="spanish-service-list" class="service-list" aria-live="polite">
                 <article class="service-item">
@@ -200,6 +212,20 @@
         </div>
       </section>
 
+      <section id="reviews" class="reviews-section" aria-labelledby="reviews-title">
+        <div class="content-section reviews-inner">
+          <div class="section-intro">
+            <p>What Families Say</p>
+            <h2 id="reviews-title">Reviews</h2>
+          </div>
+          <p class="reviews-intro">Read reviews from SNACK families</p>
+          <div id="public-review-summary" class="review-summary" aria-live="polite"></div>
+          <div id="public-review-list" class="public-review-list" aria-live="polite">
+            <p class="review-list-message">Loading reviews...</p>
+          </div>
+        </div>
+      </section>
+
       <section id="policies" class="policies-section" aria-labelledby="policies-title">
         <div class="content-section policies-inner">
           <div class="section-intro">
@@ -209,13 +235,13 @@
           <div class="policy-grid">
             <article>
               <h3>Booking Policy</h3>
-              <p>Please list every child who will attend the appointment. The SNACK office is inside Physicians' Medical Center. When you enter, head to the left and check in at Reception A. Appointments may be booked up to three months in advance.</p>
+              <p lang="en">Please list every child who will attend the appointment. The SNACK office is inside Physicians' Medical Center. When you enter, head to the left and check in at Reception A. Appointments may be booked up to three months in advance.</p>
               <p lang="es">Por favor, incluya a todos los niños que asistirán a la cita. La oficina de SNACK está dentro de Physicians' Medical Center. Al entrar, diríjase a la izquierda y regístrese en la Recepción A. Las citas se pueden reservar con hasta tres meses de anticipación.</p>
             </article>
             <article>
               <h3>Cancellation Policy</h3>
-              <p>You can cancel or reschedule anytime before the appointment time. If you need to cancel or reschedule an appointment within 24 hours of the appointment time, please call or text <a href="tel:+19712020232">(971) 202-0232</a>.</p>
-              <p class="manage-note">Your booking confirmation includes a private link you can use to cancel or choose a new time.</p>
+              <p lang="en">You can cancel or reschedule anytime before the appointment time. If you need to cancel or reschedule an appointment within 24 hours of the appointment time, please call or text <a href="tel:+19712020232">(971) 202-0232</a>.</p>
+              <p class="manage-note" lang="en">Your booking confirmation includes a private link you can use to cancel or choose a new time.</p>
               <p lang="es">Puede cancelar o reprogramar su cita en cualquier momento antes de la hora programada. Si necesita cancelar o reprogramar dentro de las 24 horas previas a la cita, llame o envíe un mensaje de texto al <a href="tel:+19712020232">(971) 202-0232</a>.</p>
               <p class="manage-note" lang="es">La confirmación de su cita incluye un enlace privado que puede usar para cancelar o elegir una nueva hora.</p>
             </article>
@@ -271,7 +297,7 @@
         <img src="./booking-assets/shannon.jpeg" alt="">
         <div><h2 id="shannon-bio-title">Shannon Oddo</h2><p>Executive Director</p></div>
       </div>
-      <p>Shannon is the SNACK Program's Executive Director. She has her Master's degree in Nutrition, and works especially well with clients aged 10–18 because she can tailor nutrition education to meet more complex, individualized needs. Her advanced nutrition knowledge allows her to address specific health concerns and adapt lessons to be age appropriate and meaningful. Shannon is committed to creating inclusive spaces, separating food from morality and judgement, and reducing weight stigma.</p>
+      <p lang="en">Shannon is the SNACK Program's Executive Director. She has her Master's degree in Nutrition, and works especially well with clients aged 10–18 because she can tailor nutrition education to meet more complex, individualized needs. Her advanced nutrition knowledge allows her to address specific health concerns and adapt lessons to be age appropriate and meaningful. Shannon is committed to creating inclusive spaces, separating food from morality and judgement, and reducing weight stigma.</p>
       <p lang="es">Shannon es la Directora Ejecutiva del Programa SNACK. Tiene una Maestría en Nutrición y trabaja especialmente bien con clientes de 10 a 18 años, ya que puede adaptar la educación nutricional a necesidades más complejas e individualizadas. Sus amplios conocimientos sobre nutrición le permiten abordar problemas de salud específicos y adaptar las lecciones para que sean apropiadas y significativas según la edad. Shannon se compromete a crear espacios inclusivos, separando la comida de la moralidad y los juicios, y reduciendo el estigma del peso.</p>
     </dialog>
 
@@ -281,11 +307,11 @@
         <img src="./booking-assets/cynthia.jpeg" alt="">
         <div><h2 id="cynthia-bio-title">Cynthia Esparza</h2><p>Nutrition Coordinator</p></div>
       </div>
-      <p>Cynthia is the SNACK Program's Nutrition Coordinator. She has a Doctorate in Clinical Nutrition and is a certified personal trainer. Cynthia has been supporting individuals in building healthier habits for over four years through her own nutrition business. She enjoys working with children and families and focuses on making nutrition simple, engaging, and easy to apply in everyday life.</p>
+      <p lang="en">Cynthia is the SNACK Program’s Nutrition Coordinator. She has a Doctorate in Clinical Nutrition and is a certified personal trainer. Cynthia has been supporting individuals in building healthier habits for over four years through her own nutrition business. She enjoys working with children and families and focuses on making nutrition simple, engaging, and easy to apply in everyday life.</p>
       <p lang="es">Cynthia es la Coordinadora de Nutrición del Programa SNACK. Cuenta con un doctorado en Nutrición Clínica y es entrenadora personal certificada. Cynthia lleva más de cuatro años ayudando a las personas a desarrollar hábitos más saludables a través de su propio negocio de nutrición. Disfruta trabajando con niños y familias, y se centra en hacer que la nutrición sea sencilla, atractiva y fácil de aplicar en la vida cotidiana.</p>
     </dialog>
 
     <script src="./app-config.js"></script>
-    <script src="./booking.js?v=20260721-1"></script>
+    <script type="module" src="./booking.js?v=20260817-language-reviews1"></script>
   </body>
 </html>

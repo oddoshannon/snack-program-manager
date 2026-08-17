@@ -28,6 +28,7 @@ import {
   parseDateOnly,
   persistClinicAppointmentCalendarSync,
   publicAppointmentCanManage,
+  publicAppointmentCanReview,
   publicAppointmentDraft,
   publicAvailabilityDefaultDays,
   publicAvailabilityMaxDays,
@@ -55,6 +56,45 @@ import {
 } from "../lib/core.js";
 
 const router = express.Router();
+const publicReviews = firestore.collection("publicReviews");
+const carriedForwardReviews = [
+  {
+    displayName: "María A.",
+    rating: 5,
+    comment: "Excelente programa para hacer a los niños conscientes de su alimentación, son bilingües y están dentro de los consultorios de PMC.",
+    reviewDate: "2026-08-12"
+  },
+  {
+    displayName: "Silvia N.",
+    rating: 5,
+    comment: "Great experience. My kids love it.",
+    reviewDate: "2026-07-17"
+  },
+  {
+    displayName: "Jenessa H.",
+    rating: 5,
+    comment: "Jenessa really enjoyed the program and asked to go back. She said the leaders were really nice and the food was so good.",
+    reviewDate: "2026-06-14"
+  }
+];
+
+function publicReviewerDisplayName(value) {
+  const parts = cleanString(value).split(/\s+/).filter(Boolean);
+  if (!parts.length) return "";
+  const firstName = parts[0].slice(0, 50);
+  const lastName = parts.at(-1);
+  if (parts.length === 1 || !lastName) return firstName;
+  return `${firstName} ${Array.from(lastName)[0]?.toLocaleUpperCase() || ""}.`;
+}
+
+function serializePublicReview(review = {}) {
+  return {
+    displayName: cleanString(review.displayName),
+    rating: Number(review.rating),
+    comment: cleanString(review.comment),
+    reviewDate: cleanString(review.reviewDate || review.createdAt).slice(0, 10)
+  };
+}
 
 function normalizedPublicPhone(value) {
   return cleanString(value).replace(/\D/g, "").slice(-10);
@@ -246,6 +286,20 @@ router.get("/api/public/classes/:sessionId", async (request, response, next) => 
     }
 
     response.json({ class: publicClass });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/api/public/reviews", async (_request, response, next) => {
+  try {
+    const documents = await fetchAllDocuments(publicReviews.orderBy("reviewDate", "desc"));
+    const submitted = documents.map((document) => serializePublicReview({ id: document.id, ...document.data() }));
+    response.json({
+      reviews: [...submitted, ...carriedForwardReviews.map(serializePublicReview)]
+        .filter((review) => review.displayName && review.comment && review.rating >= 1 && review.rating <= 5)
+        .sort((first, second) => second.reviewDate.localeCompare(first.reviewDate))
+    });
   } catch (error) {
     next(error);
   }
@@ -696,6 +750,65 @@ router.get("/api/public/bookings/:appointmentId", async (request, response, next
     response.json({
       booking: serializePublicManagedBooking(appointment)
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/api/public/bookings/:appointmentId/review", publicBookingRateLimit, async (request, response, next) => {
+  try {
+    const appointment = await loadPublicManagedAppointment(request.params.appointmentId, publicManageTokenFromRequest(request));
+
+    if (!appointment) {
+      response.status(404).json({ error: "We could not verify that private appointment link." });
+      return;
+    }
+
+    if (!publicAppointmentCanReview(appointment)) {
+      response.status(400).json({
+        error: appointment.publicReviewSubmittedAt
+          ? "A review has already been submitted from this private link."
+          : "The review link becomes available after the appointment is completed."
+      });
+      return;
+    }
+
+    const displayName = publicReviewerDisplayName(request.body?.reviewerName);
+    const rating = Number(request.body?.rating);
+    const comment = cleanString(request.body?.comment).slice(0, 1000);
+
+    if (!displayName || !Number.isInteger(rating) || rating < 1 || rating > 5 || comment.length < 5) {
+      response.status(400).json({ error: "Enter your name, choose a rating, and write a brief review." });
+      return;
+    }
+
+    const reviewRef = publicReviews.doc(appointment.id);
+    const existingReview = await reviewRef.get();
+    if (existingReview.exists) {
+      response.status(409).json({ error: "A review has already been submitted from this private link." });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const review = {
+      appointmentId: appointment.id,
+      displayName,
+      rating,
+      comment,
+      reviewDate: todayDateString(),
+      createdAt: now,
+      createdVia: "Private appointment link"
+    };
+    const batch = firestore.batch();
+    batch.set(reviewRef, review);
+    batch.update(appointments.doc(appointment.id), {
+      publicReviewSubmittedAt: now,
+      updatedAt: now,
+      updatedBy: "public-booking"
+    });
+    await batch.commit();
+
+    response.status(201).json({ review: serializePublicReview({ id: reviewRef.id, ...review }) });
   } catch (error) {
     next(error);
   }

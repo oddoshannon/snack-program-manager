@@ -31,12 +31,15 @@ import {
 import {
   canApproveMessageTemplates,
   cleanMessageTemplateUpdate,
+  mailerLiteContactSyncIntent,
   mailerLiteOptOutUpdate,
   mailerLiteReadOnlyStatus,
   mailerLiteSafeSubscriberPayload,
+  mailerLiteSyncMetadata,
   mailerLiteSyncConfiguration,
   mailerLiteTestSyncReadiness,
   mergeMessageTemplates,
+  syncPrivateMailerLiteContact,
   verifyMailerLiteWebhookSignature
 } from "../routes/marketing.js";
 
@@ -216,6 +219,12 @@ test("contact payloads and summaries preserve consent safety", () => {
 
   const cleaned = cleanMarketingSubscriberPayload(payload);
   assert.equal(marketingSubscriberValidationError(cleaned), "Consent source and consent date are required before a contact can be Active.");
+  assert.equal(cleanMarketingSubscriberPayload({
+    fullName: "Stopped",
+    email: "stopped@example.org",
+    status: "Unsubscribed",
+    emailOptOut: false
+  }).emailOptOut, true);
 
   const items = mapMarketingSubscribers([
     { id: "one", fullName: "Ready", email: "ready@example.com", status: "Active", eligible: true, eligibilityLabel: "Ready for MailerLite" },
@@ -443,10 +452,12 @@ test("MailerLite private syncing requires an explicit allowlist and complete con
     MAILERLITE_TEST_GROUP_ID: "private-group",
     MAILERLITE_TEST_ALLOWLIST: " shannon@example.org, second@example.org ",
     MAILERLITE_TEST_SYNC_ENABLED: "true",
-    MAILERLITE_WEBHOOK_ENABLED: "false"
+    MAILERLITE_WEBHOOK_ENABLED: "false",
+    MAILERLITE_WEBHOOK_SCOPE: "private-test"
   });
   assert.equal(configuration.testSyncEnabled, true);
   assert.equal(configuration.webhookEnabled, false);
+  assert.equal(configuration.webhookScope, "private-test");
   assert.deepEqual([...configuration.testAllowlist], ["shannon@example.org", "second@example.org"]);
 
   const contact = {
@@ -468,6 +479,86 @@ test("MailerLite private syncing requires an explicit allowlist and complete con
     groups: ["private-group"]
   });
   assert.equal(mailerLiteSafeSubscriberPayload({ ...contact, eligible: false }, "private-group"), null);
+  assert.equal(mailerLiteContactSyncIntent(contact, configuration).action, "upsert");
+  assert.equal(mailerLiteContactSyncIntent({ ...contact, status: "Unsubscribed", emailOptOut: true }, configuration).action, "unsubscribe");
+  assert.equal(mailerLiteContactSyncIntent({ ...contact, email: "family@example.org" }, configuration).action, "ignored");
+});
+
+test("MailerLite private lifecycle syncs consent and propagates Hub opt-outs without reactivation", async () => {
+  const configuration = mailerLiteSyncConfiguration({
+    MAILERLITE_API_TOKEN: "token",
+    MAILERLITE_TEST_GROUP_ID: "private-group",
+    MAILERLITE_TEST_ALLOWLIST: "director@snackprogram.org",
+    MAILERLITE_TEST_SYNC_ENABLED: "true"
+  });
+  const requests = [];
+  const fetchImpl = async (url, options) => {
+    requests.push({ url, options });
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { id: "ml-director", status: options.method === "PUT" ? "unsubscribed" : "active" } })
+    };
+  };
+  const contact = {
+    email: "director@snackprogram.org",
+    firstName: "Shannon",
+    lastName: "Oddo",
+    status: "Active",
+    eligible: true
+  };
+  const consentResult = await syncPrivateMailerLiteContact(contact, configuration, fetchImpl);
+  assert.equal(consentResult.state, "synced");
+  assert.equal(consentResult.subscriberId, "ml-director");
+  assert.equal(requests[0].url, "https://connect.mailerlite.com/api/subscribers");
+  assert.equal(requests[0].options.method, "POST");
+  assert.deepEqual(JSON.parse(requests[0].options.body), {
+    email: "director@snackprogram.org",
+    fields: { name: "Shannon", last_name: "Oddo" },
+    groups: ["private-group"]
+  });
+
+  const optOutResult = await syncPrivateMailerLiteContact({
+    ...contact,
+    eligible: false,
+    status: "Unsubscribed",
+    emailOptOut: true,
+    mailerLiteSubscriberId: "ml-director"
+  }, configuration, fetchImpl);
+  assert.equal(optOutResult.state, "unsubscribed");
+  assert.equal(requests[1].url, "https://connect.mailerlite.com/api/subscribers/ml-director");
+  assert.equal(requests[1].options.method, "PUT");
+  assert.deepEqual(JSON.parse(requests[1].options.body), { status: "unsubscribed" });
+  assert.deepEqual(mailerLiteSyncMetadata(optOutResult, "2026-08-17T12:00:00.000Z"), {
+    mailerLiteSubscriberId: "ml-director",
+    mailerLiteStatus: "unsubscribed",
+    mailerLiteSyncStatus: "unsubscribed",
+    mailerLiteSyncError: "",
+    mailerLiteLastSyncedAt: "2026-08-17T12:00:00.000Z",
+    mailerLiteSyncMode: "Private Test"
+  });
+});
+
+test("MailerLite never automatically reactivates a provider-suppressed address", async () => {
+  const configuration = mailerLiteSyncConfiguration({
+    MAILERLITE_API_TOKEN: "token",
+    MAILERLITE_TEST_GROUP_ID: "private-group",
+    MAILERLITE_TEST_ALLOWLIST: "director@snackprogram.org",
+    MAILERLITE_TEST_SYNC_ENABLED: "true"
+  });
+  const result = await syncPrivateMailerLiteContact({
+    email: "director@snackprogram.org",
+    firstName: "Shannon",
+    lastName: "Oddo",
+    status: "Active",
+    eligible: true
+  }, configuration, async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({ data: { id: "ml-director", status: "unsubscribed" } })
+  }));
+  assert.equal(result.state, "suppressed");
+  assert.match(result.reason, /will not reactivate/i);
 });
 
 test("MailerLite opt-outs are signed and flow one way into the Hub", () => {
@@ -490,7 +581,30 @@ test("MailerLite opt-outs are signed and flow one way into the Hub", () => {
     type: "subscriber.active",
     data: { subscriber: { email: "family@example.org" } }
   }), null);
+  assert.deepEqual(mailerLiteOptOutUpdate({
+    event: "subscriber.bounced",
+    id: "ml-root",
+    email: "Director@SnackProgram.org",
+    status: "bounced"
+  }), {
+    email: "director@snackprogram.org",
+    mailerLiteSubscriberId: "ml-root",
+    status: "Bounced",
+    emailOptOut: true,
+    mailerLiteStatus: "bounced",
+    mailerLiteOptOutEvent: "subscriber.bounced"
+  });
+  assert.equal(mailerLiteOptOutUpdate({
+    event: "subscriber.spam_reported",
+    id: "ml-spam",
+    email: "director@snackprogram.org",
+    status: "junk"
+  }).status, "Complained");
   assert.match(routeSource, /router\.post\("\/api\/marketing\/mailerlite\/test-sync", requireAuth/);
   assert.match(routeSource, /router\.post\("\/api\/public\/mailerlite\/webhook"/);
+  assert.match(routeSource, /configuration\.webhookScope === "private-test"/);
+  assert.match(routeSource, /mailerLiteSyncStatus: "provider-opt-out"/);
+  assert.match(routeSource, /persistPrivateMailerLiteSync\(targetRef, contact/);
+  assert.match(routeSource, /Unsubscribe this MailerLite contact before changing its email address/);
   assert.match(routeSource, /sendingEnabled: false/);
 });

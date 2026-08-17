@@ -1,4 +1,12 @@
 import { normalizeMailingAddress } from "./modules/public-booking.js";
+import {
+  applyPublicLanguage,
+  currentPublicLanguage,
+  initializePublicLanguage,
+  publicLocale,
+  publicText,
+  publicUrl
+} from "./modules/public-language.js";
 
 const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL || "";
 const timeScreen = document.querySelector("#time-screen");
@@ -24,6 +32,7 @@ const summaryAvailability = document.querySelector("#summary-availability");
 const bookingHelp = document.querySelector("#booking-help");
 const calendarTitle = document.querySelector("#calendar-title");
 const calendarDays = document.querySelector("#calendar-days");
+const calendarWeekdays = document.querySelector(".calendar-weekdays");
 const previousMonthButton = document.querySelector("#previous-month");
 const nextMonthButton = document.querySelector("#next-month");
 const timesTitle = document.querySelector("#times-title");
@@ -51,16 +60,26 @@ const confirmationDetails = document.querySelector("#confirmation-details");
 const confirmationTitle = document.querySelector("#confirmation-title");
 const confirmationHelp = document.querySelector("#confirmation-help");
 const manageAppointmentLink = document.querySelector("#manage-appointment-link");
+const confirmationHomeLink = document.querySelector(".confirmation-home-link");
 const managementSummary = document.querySelector("#management-summary");
 const managementStatus = document.querySelector("#management-status");
 const startRescheduleButton = document.querySelector("#start-reschedule");
 const cancelAppointmentButton = document.querySelector("#cancel-appointment");
+const publicReviewForm = document.querySelector("#public-review-form");
+const publicReviewStatus = document.querySelector("#public-review-status");
+const publicReviewThanks = document.querySelector("#public-review-thanks");
 
 const screens = [timeScreen, detailsScreen, reviewScreen, confirmationScreen, managementScreen];
 const serviceAliases = {
   nutrition: "nutrition-education",
   "enrollment-es": "spanish-enrollment",
   "nutrition-es": "spanish-nutrition-education"
+};
+const translatedServiceIds = {
+  enrollment: "spanish-enrollment",
+  "nutrition-education": "spanish-nutrition-education",
+  "spanish-enrollment": "enrollment",
+  "spanish-nutrition-education": "nutrition-education"
 };
 
 let bookingServices = [];
@@ -99,7 +118,7 @@ function formatDateLabel(value, includeYear = false) {
     return value;
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(publicLocale(), {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -108,7 +127,7 @@ function formatDateLabel(value, includeYear = false) {
 }
 
 function formatMonthLabel(date) {
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(publicLocale(), {
     month: "long",
     year: "numeric"
   }).format(date);
@@ -175,7 +194,7 @@ function showScreen(screen, title) {
   screens.forEach((candidate) => {
     candidate.hidden = candidate !== screen;
   });
-  bookingTitle.textContent = title;
+  bookingTitle.textContent = publicText(title);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -198,14 +217,14 @@ function formatPublicNameList(names) {
   const visibleNames = names.map((name) => String(name || "").trim()).filter(Boolean);
 
   if (visibleNames.length <= 1) {
-    return visibleNames[0] || "your child";
+    return visibleNames[0] || publicText("your child");
   }
 
   if (visibleNames.length === 2) {
-    return `${visibleNames[0]} and ${visibleNames[1]}`;
+    return `${visibleNames[0]} ${currentPublicLanguage() === "es" ? "y" : "and"} ${visibleNames[1]}`;
   }
 
-  return `${visibleNames.slice(0, -1).join(", ")}, and ${visibleNames.at(-1)}`;
+  return `${visibleNames.slice(0, -1).join(", ")}, ${currentPublicLanguage() === "es" ? "y" : "and"} ${visibleNames.at(-1)}`;
 }
 
 function setBookingLocation(value) {
@@ -227,6 +246,7 @@ function bookingManageUrl(booking) {
   url.hash = "";
   url.searchParams.set("appointmentId", appointmentId);
   url.searchParams.set("token", token);
+  url.searchParams.set("lang", currentPublicLanguage());
   return url.toString();
 }
 
@@ -237,14 +257,16 @@ function selectService(serviceId) {
     return;
   }
 
-  selectedServiceTitle.textContent = activeService.label;
+  selectedServiceTitle.textContent = publicText(activeService.label);
   selectedServiceDuration.textContent = `${activeService.durationMinutes} min`;
-  summaryService.textContent = activeService.label;
-  summaryDuration.textContent = `${activeService.durationMinutes} minutes`;
+  summaryService.textContent = publicText(activeService.label);
+  summaryDuration.textContent = `${activeService.durationMinutes} ${currentPublicLanguage() === "es" ? "minutos" : "minutes"}`;
   setBookingLocation(bookingScheduling.clinicLocation);
   bookingHelp.textContent = bookingScheduling.clinicLocation
-    ? `Appointments are free and held at ${bookingScheduling.clinicLocation}.`
-    : "Appointments are free and held at the SNACK Program office.";
+    ? (currentPublicLanguage() === "es"
+      ? `Las citas son gratuitas y se realizan en ${bookingScheduling.clinicLocation}.`
+      : `Appointments are free and held at ${bookingScheduling.clinicLocation}.`)
+    : publicText("Appointments are free and held at the SNACK Program office.");
 
   if (activeService.defaultLanguage) {
     preferredLanguageSelect.value = activeService.defaultLanguage;
@@ -265,10 +287,15 @@ function configureClassRegistration(session) {
     timeLabel: session.startTimeLabel
   };
 
-  document.title = "Register for a Cooking Class | The SNACK Program";
-  summaryKindLabel.textContent = "Class";
-  summaryService.textContent = session.title;
-  summaryDuration.textContent = `${session.durationMinutes} minutes`;
+  document.title = currentPublicLanguage() === "es" ? "Inscribirse en una clase de cocina | El Programa SNACK" : "Register for a Cooking Class | The SNACK Program";
+  summaryKindLabel.textContent = publicText("Class");
+  summaryService.textContent = currentPublicLanguage() === "es"
+    ? String(session.title || "")
+      .replace(/^Kids Cooking \+ Nutrition Class/i, "Clase de cocina + nutrición para niños")
+      .replace(/^Teen Cooking \+ Nutrition Class/i, "Clase de cocina + nutrición para adolescentes")
+      .replace(/^Cooking Class/i, "Clase de cocina")
+    : session.title;
+  summaryDuration.textContent = `${session.durationMinutes} ${currentPublicLanguage() === "es" ? "minutos" : "minutes"}`;
   summaryDate.textContent = formatDateLabel(session.sessionDate, true);
   summaryTime.textContent = session.startTimeLabel;
   setBookingLocation(session.location);
@@ -276,20 +303,22 @@ function configureClassRegistration(session) {
   summaryTimeRow.hidden = false;
   summaryAvailabilityRow.hidden = false;
   summaryAvailability.textContent = session.isFull
-    ? (session.waitlistEnabled ? "Waitlist available" : "Class full")
-    : `${session.spacesRemaining} of ${session.capacity} spots available`;
+    ? publicText(session.waitlistEnabled ? "Waitlist available" : "Class full")
+    : (currentPublicLanguage() === "es"
+      ? `${session.spacesRemaining} de ${session.capacity} lugares disponibles`
+      : `${session.spacesRemaining} of ${session.capacity} spots available`);
   bookingHelp.textContent = session.location && session.location !== "Location to be confirmed"
-    ? `Cooking classes are free and held at ${session.location}.`
-    : "Cooking classes are free. The location will be confirmed before class.";
-  familyInformationCopy.textContent = "Add each child who will attend this class.";
+    ? (currentPublicLanguage() === "es" ? `Las clases de cocina son gratuitas y se realizan en ${session.location}.` : `Cooking classes are free and held at ${session.location}.`)
+    : publicText("Cooking classes are free. The location will be confirmed before class.");
+  familyInformationCopy.textContent = publicText("Add each child who will attend this class.");
   foodRestrictionsField.hidden = false;
-  reviewAppointmentButton.textContent = "Review Registration";
+  reviewAppointmentButton.textContent = publicText("Review Registration");
   reviewAppointmentButton.disabled = !session.canRegister;
-  reviewTitle.textContent = "Confirm Your Registration";
-  reviewCopy.textContent = "Check the details below before registering.";
-  submitButton.textContent = session.nextStatus === "Waitlisted" ? "Join Waitlist" : "Register Family";
+  reviewTitle.textContent = publicText("Confirm Your Registration");
+  reviewCopy.textContent = publicText("Check the details below before registering.");
+  submitButton.textContent = publicText(session.nextStatus === "Waitlisted" ? "Join Waitlist" : "Register Family");
   submitButton.disabled = !session.canRegister;
-  returnToTime.textContent = "Back";
+  returnToTime.textContent = publicText("Back");
 }
 
 function openDates() {
@@ -305,9 +334,21 @@ function monthHasOpenDates(monthDate) {
   return openDates().some((date) => monthKeyFromDate(dateFromString(date.date)) === targetKey);
 }
 
+function renderCalendarWeekdays() {
+  calendarWeekdays.replaceChildren(...(currentPublicLanguage() === "es"
+    ? ["D", "L", "M", "M", "J", "V", "S"]
+    : ["S", "M", "T", "W", "T", "F", "S"]
+  ).map((label) => {
+    const day = document.createElement("span");
+    day.textContent = label;
+    return day;
+  }));
+}
+
 function renderCalendar() {
   calendarDays.replaceChildren();
   calendarTitle.textContent = formatMonthLabel(calendarMonth);
+  renderCalendarWeekdays();
 
   const year = calendarMonth.getFullYear();
   const monthIndex = calendarMonth.getMonth();
@@ -348,7 +389,7 @@ function renderCalendar() {
 
 function renderTimes() {
   timeOptions.replaceChildren();
-  timesTitle.textContent = selectedDate ? formatDateLabel(selectedDate) : "Choose a Date";
+  timesTitle.textContent = selectedDate ? formatDateLabel(selectedDate) : publicText("Choose a Date");
   const slots = slotsForDate(selectedDate).filter((slot) => !(
     isRescheduling
     && selectedDate === managedBooking?.appointmentDate
@@ -359,8 +400,8 @@ function renderTimes() {
     const empty = document.createElement("p");
     empty.className = "booking-empty";
     empty.textContent = selectedDate
-      ? "No open times remain on this date."
-      : "Choose an available date from the calendar.";
+      ? publicText("No open times remain on this date.")
+      : publicText("Choose an available date from the calendar.");
     timeOptions.append(empty);
     return;
   }
@@ -395,8 +436,8 @@ async function loadAvailability() {
     return;
   }
 
-  calendarTitle.textContent = "Loading Dates...";
-  timeOptions.innerHTML = '<p class="booking-empty">Loading available times...</p>';
+  calendarTitle.textContent = publicText("Loading Dates...");
+  timeOptions.innerHTML = `<p class="booking-empty">${publicText("Loading available times...")}</p>`;
   setTimeStatus("");
 
   try {
@@ -412,7 +453,7 @@ async function loadAvailability() {
       calendarMonth = new Date();
       renderCalendar();
       renderTimes();
-      setTimeStatus("No open appointment times are available right now. Please call or text (971) 202-0232.", true);
+      setTimeStatus(publicText("No open appointment times are available right now. Please call or text (971) 202-0232."), true);
       return;
     }
 
@@ -426,8 +467,8 @@ async function loadAvailability() {
     renderTimes();
   } catch (error) {
     availabilityDates = [];
-    timeOptions.innerHTML = '<p class="booking-empty">Available times could not be loaded.</p>';
-    setTimeStatus(error.message || "Available times could not be loaded.", true);
+    timeOptions.innerHTML = `<p class="booking-empty">${publicText("Available times could not be loaded.")}</p>`;
+    setTimeStatus(error.message || publicText("Available times could not be loaded."), true);
   }
 }
 
@@ -436,24 +477,24 @@ function renderPublicChild(index) {
   fieldset.className = "child-fields";
   fieldset.dataset.publicChild = String(index);
   fieldset.innerHTML = `
-    <legend>Child ${index + 1}</legend>
-    <button class="remove-child-button" type="button">Remove</button>
+    <legend>${publicText("Child")} ${index + 1}</legend>
+    <button class="remove-child-button" type="button">${publicText("Remove")}</button>
     <label class="wide-field">
-      <span>Child Name</span>
-      <input name="childName" type="text" autocomplete="name" placeholder="First and Last Name" required>
+      <span>${publicText("Child Name")}</span>
+      <input name="childName" type="text" autocomplete="name" placeholder="${publicText("First and Last Name")}" required>
     </label>
     <label>
-      <span>Date of Birth</span>
+      <span>${publicText("Date of Birth")}</span>
       <input name="childDob" type="date" required>
     </label>
     <label>
-      <span>Gender</span>
+      <span>${publicText("Gender")}</span>
       <select name="childGender" required>
-        <option value="">Choose</option>
-        <option value="Female">Female</option>
-        <option value="Male">Male</option>
-        <option value="Nonbinary">Nonbinary</option>
-        <option value="Prefer not to say">Prefer Not to Say</option>
+        <option value="">${publicText("Choose")}</option>
+        <option value="Female">${publicText("Female")}</option>
+        <option value="Male">${publicText("Male")}</option>
+        <option value="Nonbinary">${publicText("Nonbinary")}</option>
+        <option value="Prefer not to say">${publicText("Prefer Not to Say")}</option>
       </select>
     </label>
   `;
@@ -468,7 +509,7 @@ function updatePublicChildControls() {
   const childCards = [...childrenEl.querySelectorAll("[data-public-child]")];
   childCards.forEach((card, index) => {
     card.dataset.publicChild = String(index);
-    card.querySelector("legend").textContent = `Child ${index + 1}`;
+    card.querySelector("legend").textContent = `${publicText("Child")} ${index + 1}`;
     card.querySelector(".remove-child-button").hidden = childCards.length === 1;
   });
 }
@@ -496,13 +537,13 @@ function updateYccoIdState() {
 }
 
 function showTimeScreen() {
-  continueButton.textContent = isRescheduling ? "Reschedule Appointment" : "Continue";
+  continueButton.textContent = publicText(isRescheduling ? "Reschedule Appointment" : "Continue");
   showScreen(timeScreen, isRescheduling ? "Choose a New Time" : "Select a Time");
 }
 
 function showDetailsScreen() {
   if (!selectedSlot) {
-    setTimeStatus("Choose an appointment time.", true);
+    setTimeStatus(publicText("Choose an appointment time."), true);
     return;
   }
   showScreen(detailsScreen, "Your Details");
@@ -522,14 +563,14 @@ function showReviewScreen() {
   const formData = new FormData(bookingForm);
   const children = publicBookingChildrenFromForm();
   const list = document.createElement("dl");
-  appendReviewRow(list, isClassRegistrationMode() ? "Class" : "Appointment", activeService?.label || "Appointment");
-  appendReviewRow(list, "Date", formatDateLabel(selectedSlot.appointmentDate, true));
-  appendReviewRow(list, "Time", `${selectedSlot.timeLabel} · ${activeService?.durationMinutes || 30} minutes`);
-  appendReviewRow(list, "Children", formatPublicNameList(children.map((child) => child.childName)));
-  appendReviewRow(list, "Caregiver", formData.get("caregiverName"));
-  appendReviewRow(list, "Contact", `${formData.get("mobilePhone")} · ${formData.get("email")}`);
+  appendReviewRow(list, publicText(isClassRegistrationMode() ? "Class" : "Appointment"), activeService?.label || publicText("Appointment"));
+  appendReviewRow(list, publicText("Date"), formatDateLabel(selectedSlot.appointmentDate, true));
+  appendReviewRow(list, publicText("Time"), `${selectedSlot.timeLabel} · ${activeService?.durationMinutes || 30} ${currentPublicLanguage() === "es" ? "minutos" : "minutes"}`);
+  appendReviewRow(list, publicText("Children"), formatPublicNameList(children.map((child) => child.childName)));
+  appendReviewRow(list, publicText("Caregiver"), formData.get("caregiverName"));
+  appendReviewRow(list, publicText("Contact"), `${formData.get("mobilePhone")} · ${formData.get("email")}`);
   if (isClassRegistrationMode()) {
-    appendReviewRow(list, "Food Restrictions", formData.get("foodRestrictions") || "None shared");
+    appendReviewRow(list, publicText("Food Restrictions"), formData.get("foodRestrictions") || publicText("None shared"));
   }
   reviewDetails.replaceChildren(list);
   setBookingStatus("");
@@ -559,11 +600,11 @@ function bookingPayload() {
 
 async function submitBooking() {
   if (!selectedSlot || !activeService) {
-    setBookingStatus("Choose an appointment time.", true);
+    setBookingStatus(publicText("Choose an appointment time."), true);
     return;
   }
 
-  setBookingStatus(isClassRegistrationMode() ? "Saving registration..." : "Booking appointment...");
+  setBookingStatus(publicText(isClassRegistrationMode() ? "Saving registration..." : "Booking appointment..."));
   submitButton.disabled = true;
 
   try {
@@ -579,11 +620,13 @@ async function submitBooking() {
         : payload.children.map((child) => child.childName);
       const waitlisted = registration.status === "Waitlisted";
       const familyVerb = childNames.length === 1 ? "is" : "are";
-      confirmationTitle.textContent = waitlisted ? "Added to the Waitlist" : "Registration Confirmed";
-      confirmationDetails.textContent = `${formatPublicNameList(childNames)} ${waitlisted ? `${familyVerb} on the waitlist for` : `${familyVerb} registered for`} ${activeClassSession.title} on ${formatDateLabel(activeClassSession.sessionDate, true)} at ${activeClassSession.startTimeLabel}${activeClassSession.location && activeClassSession.location !== "Location to be confirmed" ? ` at ${activeClassSession.location}` : ""}.`;
-      confirmationHelp.textContent = waitlisted
+      confirmationTitle.textContent = publicText(waitlisted ? "Added to the Waitlist" : "Registration Confirmed");
+      confirmationDetails.textContent = currentPublicLanguage() === "es"
+        ? `${formatPublicNameList(childNames)} ${waitlisted ? "está en la lista de espera para" : "está inscrito para"} ${activeClassSession.title} el ${formatDateLabel(activeClassSession.sessionDate, true)} a las ${activeClassSession.startTimeLabel}${activeClassSession.location && activeClassSession.location !== "Location to be confirmed" ? ` en ${activeClassSession.location}` : ""}.`
+        : `${formatPublicNameList(childNames)} ${waitlisted ? `${familyVerb} on the waitlist for` : `${familyVerb} registered for`} ${activeClassSession.title} on ${formatDateLabel(activeClassSession.sessionDate, true)} at ${activeClassSession.startTimeLabel}${activeClassSession.location && activeClassSession.location !== "Location to be confirmed" ? ` at ${activeClassSession.location}` : ""}.`;
+      confirmationHelp.textContent = publicText(waitlisted
         ? "The SNACK Program will contact you if space becomes available."
-        : "The SNACK Program will contact you if any class details change.";
+        : "The SNACK Program will contact you if any class details change.");
       manageAppointmentLink.hidden = true;
       showScreen(confirmationScreen, waitlisted ? "Waitlist Confirmed" : "Registration Confirmed");
       return;
@@ -593,14 +636,16 @@ async function submitBooking() {
     const childNames = Array.isArray(booking.clientNames) && booking.clientNames.length
       ? booking.clientNames
       : payload.children.map((child) => child.childName);
-    confirmationDetails.textContent = `${booking.serviceLabel || activeService.label} for ${formatPublicNameList(childNames)} on ${formatDateLabel(booking.appointmentDate, true)} at ${booking.appointmentTimeLabel || selectedSlot.timeLabel}${booking.location ? ` at ${booking.location}` : ""}.`;
+    confirmationDetails.textContent = currentPublicLanguage() === "es"
+      ? `${publicText(booking.serviceLabel || activeService.label)} para ${formatPublicNameList(childNames)} el ${formatDateLabel(booking.appointmentDate, true)} a las ${booking.appointmentTimeLabel || selectedSlot.timeLabel}${booking.location ? ` en ${booking.location}` : ""}.`
+      : `${booking.serviceLabel || activeService.label} for ${formatPublicNameList(childNames)} on ${formatDateLabel(booking.appointmentDate, true)} at ${booking.appointmentTimeLabel || selectedSlot.timeLabel}${booking.location ? ` at ${booking.location}` : ""}.`;
     const manageUrl = bookingManageUrl(booking);
     manageAppointmentLink.hidden = !manageUrl;
     if (manageUrl) {
       manageAppointmentLink.href = manageUrl;
     }
-    confirmationTitle.textContent = "Appointment Booked";
-    confirmationHelp.textContent = "Save the private link below if you need to cancel or choose a new time.";
+    confirmationTitle.textContent = publicText("Appointment Booked");
+    confirmationHelp.textContent = publicText("Save the private link below if you need to cancel or choose a new time.");
     showScreen(confirmationScreen, "Appointment Confirmed");
   } catch (error) {
     setBookingStatus(error.message || (isClassRegistrationMode()
@@ -617,15 +662,49 @@ async function submitBooking() {
 function renderManagementSummary() {
   const names = managedBooking?.clientNames || [managedBooking?.clientName];
   managementSummary.textContent = managedBooking
-    ? `${managedBooking.serviceLabel} for ${formatPublicNameList(names)} on ${formatDateLabel(managedBooking.appointmentDate, true)} at ${managedBooking.appointmentTimeLabel || managedBooking.appointmentTime}${managedBooking.location ? ` at ${managedBooking.location}` : ""}.`
-    : "We could not load this appointment.";
+    ? (currentPublicLanguage() === "es"
+      ? `${publicText(managedBooking.serviceLabel)} para ${formatPublicNameList(names)} el ${formatDateLabel(managedBooking.appointmentDate, true)} a las ${managedBooking.appointmentTimeLabel || managedBooking.appointmentTime}${managedBooking.location ? ` en ${managedBooking.location}` : ""}.`
+      : `${managedBooking.serviceLabel} for ${formatPublicNameList(names)} on ${formatDateLabel(managedBooking.appointmentDate, true)} at ${managedBooking.appointmentTimeLabel || managedBooking.appointmentTime}${managedBooking.location ? ` at ${managedBooking.location}` : ""}.`)
+    : publicText("We could not load this appointment.");
   cancelAppointmentButton.disabled = !managedBooking?.canCancel;
   startRescheduleButton.disabled = !managedBooking?.canReschedule;
+  publicReviewForm.hidden = !managedBooking?.canReview;
+  publicReviewThanks.hidden = !managedBooking?.reviewSubmitted;
+}
+
+async function submitPublicReview(event) {
+  event.preventDefault();
+  if (!managedBooking?.id || !managedBooking.canReview || !publicReviewForm.reportValidity()) return;
+
+  const submit = publicReviewForm.querySelector('button[type="submit"]');
+  const formData = new FormData(publicReviewForm);
+  submit.disabled = true;
+  publicReviewStatus.textContent = publicText("Submitting review...");
+  publicReviewStatus.classList.remove("error");
+
+  try {
+    await publicFetch(`/api/public/bookings/${encodeURIComponent(managedBooking.id)}/review`, {
+      method: "POST",
+      body: JSON.stringify({
+        token: managementToken(),
+        reviewerName: formData.get("reviewerName"),
+        rating: Number(formData.get("rating")),
+        comment: formData.get("comment")
+      })
+    });
+    managedBooking = { ...managedBooking, canReview: false, reviewSubmitted: true };
+    publicReviewForm.reset();
+    renderManagementSummary();
+  } catch (error) {
+    publicReviewStatus.textContent = error.message || publicText("Your review could not be submitted yet.");
+    publicReviewStatus.classList.add("error");
+    submit.disabled = false;
+  }
 }
 
 async function loadManagedBooking() {
   showScreen(managementScreen, "Manage Appointment");
-  setManagementStatus("Loading appointment...");
+  setManagementStatus(publicText("Loading appointment..."));
 
   try {
     const data = await publicFetch(
@@ -634,11 +713,13 @@ async function loadManagedBooking() {
     managedBooking = data.booking || null;
     selectService(managedBooking?.serviceId);
     renderManagementSummary();
-    setManagementStatus(managedBooking?.status === "Scheduled" ? "" : `This appointment is ${String(managedBooking?.status || "unavailable").toLowerCase()}.`);
+    setManagementStatus(managedBooking?.status === "Scheduled" ? "" : (currentPublicLanguage() === "es"
+      ? `Esta cita está ${String(managedBooking?.status || "no disponible").toLowerCase()}.`
+      : `This appointment is ${String(managedBooking?.status || "unavailable").toLowerCase()}.`));
   } catch (error) {
     managedBooking = null;
     renderManagementSummary();
-    setManagementStatus(error.message || "We could not load that appointment.", true);
+    setManagementStatus(error.message || publicText("We could not load that appointment."), true);
   }
 }
 
@@ -683,7 +764,7 @@ async function rescheduleManagedBooking() {
 }
 
 async function cancelManagedBooking() {
-  if (!managedBooking?.id || !window.confirm("Cancel this appointment?")) {
+  if (!managedBooking?.id || !window.confirm(publicText("Cancel this appointment?"))) {
     return;
   }
 
@@ -706,6 +787,9 @@ async function cancelManagedBooking() {
 }
 
 async function initialize() {
+  document.title = currentPublicLanguage() === "es" ? "Reservar una cita | El Programa SNACK" : "Book an Appointment | The SNACK Program";
+  confirmationHomeLink.href = publicUrl("./booking.html");
+  renderCalendarWeekdays();
   addPublicChild();
   updateYccoIdState();
 
@@ -759,7 +843,7 @@ continueButton.addEventListener("click", () => {
 });
 returnToTime.addEventListener("click", () => {
   if (isClassRegistrationMode()) {
-    window.location.href = "./booking.html#classes";
+    window.location.href = publicUrl("./booking.html#classes");
   } else {
     showTimeScreen();
   }
@@ -788,12 +872,13 @@ addressInput.addEventListener("blur", () => {
 yccoMemberSelect.addEventListener("change", updateYccoIdState);
 startRescheduleButton.addEventListener("click", startReschedule);
 cancelAppointmentButton.addEventListener("click", cancelManagedBooking);
+publicReviewForm.addEventListener("submit", submitPublicReview);
 bookingBack.addEventListener("click", () => {
   if (!reviewScreen.hidden) {
     showScreen(detailsScreen, "Your Details");
   } else if (!detailsScreen.hidden) {
     if (isClassRegistrationMode()) {
-      window.location.href = "./booking.html#classes";
+      window.location.href = publicUrl("./booking.html#classes");
     } else {
       showTimeScreen();
     }
@@ -802,8 +887,33 @@ bookingBack.addEventListener("click", () => {
     renderManagementSummary();
     showScreen(managementScreen, "Manage Appointment");
   } else {
-    window.location.href = "./booking.html";
+    window.location.href = publicUrl("./booking.html");
   }
 });
 
+initializePublicLanguage({
+  onChange(language) {
+    document.title = language === "es" ? "Reservar una cita | El Programa SNACK" : "Book an Appointment | The SNACK Program";
+    confirmationHomeLink.href = publicUrl("./booking.html");
+    if (activeClassSession) {
+      configureClassRegistration(activeClassSession);
+    } else if (activeService) {
+      const pairedId = translatedServiceIds[activeService.id];
+      const pairedService = bookingServices.find((service) => service.id === pairedId);
+      if (pairedService) {
+        selectService(pairedService.id);
+        const url = new URL(window.location.href);
+        url.searchParams.set("service", pairedService.id);
+        history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+      } else {
+        selectService(activeService.id);
+      }
+    }
+    renderCalendar();
+    renderTimes();
+    updatePublicChildControls();
+    if (managedBooking) renderManagementSummary();
+    applyPublicLanguage();
+  }
+});
 initialize();

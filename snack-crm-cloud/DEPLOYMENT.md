@@ -143,34 +143,51 @@ gcloud run services update snack-crm-api \
   --update-secrets=MAILERLITE_API_TOKEN=mailerlite-api-token:latest
 ```
 
-The current connection check makes one read-only request to MailerLite. It does
-not create contacts or send email. Marketing delivery remains disabled.
+The connection check makes one read-only request to MailerLite. Private contact
+synchronization is separately restricted by all of the following settings:
 
-### Twilio test details
+- `MAILERLITE_TEST_SYNC_ENABLED=true`
+- `MAILERLITE_TEST_ALLOWLIST=director@snackprogram.org`
+- `MAILERLITE_TEST_GROUP_ID=195482882036204989`
 
-Use only the **Test Account SID** and **Test Auth Token** from Twilio's API keys
-and tokens page. Do not use live credentials for this check and never paste
-either value into chat.
+Prepare the signed opt-out webhook in a disabled state before attaching its
+secret to Cloud Run:
 
-Create both secrets from hidden Terminal prompts:
-
-```zsh
-read -s "TWILIO_TEST_SID?Paste the Twilio Test Account SID, then press Return: "
-printf '\n'
-printf '%s' "$TWILIO_TEST_SID" | gcloud secrets create twilio-test-account-sid \
-  --project=snack-crm --replication-policy=automatic --data-file=-
-unset TWILIO_TEST_SID
-
-read -s "TWILIO_TEST_TOKEN?Paste the Twilio Test Auth Token, then press Return: "
-printf '\n'
-printf '%s' "$TWILIO_TEST_TOKEN" | gcloud secrets create twilio-test-auth-token \
-  --project=snack-crm --replication-policy=automatic --data-file=-
-unset TWILIO_TEST_TOKEN
+```bash
+cd "/Users/shannonoddo/Desktop/CRM App/snack-crm-cloud/backend"
+GOOGLE_CLOUD_PROJECT=snack-crm node scripts/configure-mailerlite-optout-webhook.mjs \
+  --confirm="PREPARE PRIVATE MAILERLITE OPTOUT WEBHOOK"
 ```
 
-Give the Cloud Run service account access to those two secrets, then attach them
-as `TWILIO_TEST_ACCOUNT_SID` and `TWILIO_TEST_AUTH_TOKEN`. The Admin integration
-test always uses Twilio's fake test number and keeps real delivery disabled.
+Attach `mailerlite-webhook-secret:latest` as `MAILERLITE_WEBHOOK_SECRET`, set
+`MAILERLITE_WEBHOOK_SCOPE=private-test`, and deploy with
+`MAILERLITE_WEBHOOK_ENABLED=false`. After the live endpoint rejects an unsigned
+request, set `MAILERLITE_WEBHOOK_ENABLED=true` and enable the provider webhook:
+
+```bash
+GOOGLE_CLOUD_PROJECT=snack-crm node scripts/configure-mailerlite-optout-webhook.mjs \
+  --confirm="ENABLE PRIVATE MAILERLITE OPTOUT WEBHOOK"
+```
+
+The private webhook listens only for unsubscribe, bounce, and spam-report
+events. In `private-test` scope, it ignores every address except the exact test
+allowlist. The server has no MailerLite campaign-send action, so campaign
+delivery from the Hub remains disabled.
+
+### Azure Communication Services
+
+Do not attach a live Azure secret until the Microsoft organizational account,
+applicable agreement, phone-number ownership, 10DLC registration, and controlled
+test plan are documented. Never paste the connection string into chat or source
+code.
+
+When those prerequisites are complete, create
+`azure-communications-connection-string` in Google Secret Manager from a hidden
+Terminal prompt, grant the Cloud Run service account Secret Accessor, and attach
+it as `AZURE_COMMUNICATIONS_CONNECTION_STRING`. Configure the assigned number and
+readiness flags separately. Keep `AZURE_COMMUNICATIONS_DELIVERY_ENABLED=false`
+until the controlled text, reply, opt-out, quiet-hours, delivery-event, and call
+tests pass. The exact sequence is in `docs/AZURE-COMMUNICATIONS-CUTOVER.md`.
 
 Do not deploy Firebase Hosting. It is intentionally disabled; the active Hub
 pages are included in the Cloud Run container.

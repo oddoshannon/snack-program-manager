@@ -34,7 +34,7 @@ const allowedEmailDomain = process.env.ALLOWED_EMAIL_DOMAIN || "snackprogram.org
 const googleCalendarId = String(process.env.GOOGLE_CALENDAR_ID || "").trim();
 const googleCalendarEnabled = String(process.env.GOOGLE_CALENDAR_ENABLED || "").trim().toLowerCase() === "true";
 const googleCalendarTimeZone = "America/Los_Angeles";
-const staffAppUrl = String(process.env.STAFF_APP_URL || "https://hub.snackprogram.org").trim().replace(/\/$/, "");
+const approvedClinicGoogleCalendarId = "c_dce512191e2885e00d1d69a36f42333524f01cf84cf4b71ab289bbeae74eff96@group.calendar.google.com";
 const googleCalendarScopes = Object.freeze([
   "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/calendar.readonly"
@@ -1129,12 +1129,16 @@ function inferAppointmentGoalFromNotes(notes, lesson = "") {
     return cleanInferredGoalText(explicitGoal[1]);
   }
 
-  const firstLine = noteText.split(/\r?\n/).map((line) => line.trim()).find(Boolean) || "";
   const lessonFromNotes = lesson || inferAppointmentLessonFromNotes(noteText, "Nutrition Education");
   const lessonPattern = lessonFromNotes === "Check In"
     ? /^(check\s*in)\s*[:|-]\s*(.+)$/i
     : /^(nutrient density|nutrient dense|sugar|food groups?|fg|macros?|macronutrients?|micros?|micronutrients?|mindful eating|healthy habits?)\s*[:|-]\s*(.+)$/i;
-  const lessonPrefix = firstLine.match(lessonPattern);
+  const lessonPrefix = noteText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.match(lessonPattern))
+    .find(Boolean);
 
   return lessonPrefix?.[2] ? cleanInferredGoalText(lessonPrefix[2]) : "";
 }
@@ -1884,6 +1888,11 @@ function toMarketingSubscriber(snapshot) {
     dateSubscribed: data.dateSubscribed,
     notes: data.notes,
     mailerLiteSubscriberId: data.mailerLiteSubscriberId,
+    mailerLiteStatus: data.mailerLiteStatus,
+    mailerLiteSyncStatus: data.mailerLiteSyncStatus,
+    mailerLiteSyncError: data.mailerLiteSyncError,
+    mailerLiteLastSyncedAt: data.mailerLiteLastSyncedAt,
+    mailerLiteSyncMode: data.mailerLiteSyncMode,
     lastEmailOpenedAt: data.lastEmailOpenedAt,
     lastEmailClickedAt: data.lastEmailClickedAt,
     totalEmailsSent: data.totalEmailsSent ?? 0,
@@ -1915,7 +1924,8 @@ function cleanMarketingSubscriberPayload(body = {}) {
     status: allowedMarketingSubscriberStatuses.has(status) ? status : "Consent Needed",
     audienceGroups,
     tags: audienceGroups,
-    emailOptOut: Boolean(body.emailOptOut),
+    emailOptOut: Boolean(body.emailOptOut)
+      || ["Unsubscribed", "Bounced", "Complained", "Do Not Contact"].includes(status),
     signupSource: cleanString(body.signupSource),
     consentSource: cleanString(body.consentSource),
     consentDate: cleanString(body.consentDate),
@@ -3127,6 +3137,14 @@ function cleanAppointmentPayload(body) {
   return payload;
 }
 
+function appointmentLessonValidationError(payload = {}) {
+  const appointmentType = cleanString(payload.appointmentType).toLowerCase();
+  if (appointmentType === "nutrition education" && !cleanString(payload.lesson)) {
+    return "Choose a lesson for every Nutrition Education appointment.";
+  }
+  return "";
+}
+
 function normalizeProgram(value) {
   const program = cleanString(value);
   return allowedPrograms.has(program) ? program : "";
@@ -4061,6 +4079,32 @@ function googleCalendarDateTime(dateString, totalMinutes) {
   return `${resolvedDate}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
 }
 
+function googleCalendarLessonLabel(value) {
+  const lesson = cleanString(value);
+  return ({
+    "1": "Nutrient Density",
+    "2": "Sugar",
+    "3": "Food Groups",
+    "4": "Macronutrients",
+    "5": "Micronutrients",
+    "6": "Mindful Eating",
+    "7": "Healthy Habits"
+  })[lesson] || lesson;
+}
+
+function assertApprovedClinicGoogleCalendar(calendarId, options = {}) {
+  const approvedCalendarId = cleanString(options.approvedCalendarId) || approvedClinicGoogleCalendarId;
+  if (cleanString(calendarId) !== approvedCalendarId) {
+    throw new Error("Calendar synchronization stopped because the destination is not the approved Clinic Appts calendar.");
+  }
+}
+
+function googleCalendarEventBelongsToAppointment(event = {}, appointment = {}) {
+  const properties = event?.extendedProperties?.private || {};
+  return cleanString(properties.snackRecordType) === "clinicAppointment"
+    && cleanString(properties.snackRecordId) === cleanString(appointment.id);
+}
+
 function googleCalendarEventForAppointment(appointment = {}) {
   const startMinutes = appointmentTimeMinutes(appointment.appointmentTime);
   if (!appointment.id || !appointment.appointmentDate || startMinutes === null) {
@@ -4075,9 +4119,10 @@ function googleCalendarEventForAppointment(appointment = {}) {
   const privateNames = clientNames.map(googleCalendarSafeClientName).filter(Boolean);
   const appointmentType = cleanString(appointment.appointmentType) || "Clinic Appointment";
   const durationMinutes = appointmentDurationMinutesFromRecord(appointment);
+  const lesson = googleCalendarLessonLabel(appointment.lesson);
   const description = [
-    cleanString(appointment.staffMember) ? `Assigned staff: ${cleanString(appointment.staffMember)}` : "",
-    `${staffAppUrl}/schedule.html?appointment=${encodeURIComponent(appointment.id)}&date=${encodeURIComponent(appointment.appointmentDate)}`
+    lesson && lesson !== appointmentType ? `Lesson: ${lesson}` : "",
+    cleanString(appointment.staffMember) ? `Assigned staff: ${cleanString(appointment.staffMember)}` : ""
   ].filter(Boolean).join("\n");
 
   return {
@@ -4146,16 +4191,24 @@ async function syncClinicAppointmentCalendar(appointment = {}, options = {}) {
   if (!configuredCalendarId) return { state: "inactive", eventId: cleanString(appointment.googleEventId) };
   if (!enabled) return { state: "paused", eventId: cleanString(appointment.googleEventId) };
 
+  assertApprovedClinicGoogleCalendar(configuredCalendarId, options);
+
   const existingEventId = cleanString(appointment.googleEventId);
-  const targetCalendarId = existingEventId
-    ? cleanString(appointment.googleCalendarId) || configuredCalendarId
-    : configuredCalendarId;
-  const calendarPath = `/calendars/${encodeURIComponent(targetCalendarId)}/events`;
+  const storedCalendarId = cleanString(appointment.googleCalendarId);
+  if (existingEventId && storedCalendarId && storedCalendarId !== configuredCalendarId) {
+    throw new Error("Calendar synchronization stopped because this appointment points to a different calendar.");
+  }
+
+  const calendarPath = `/calendars/${encodeURIComponent(configuredCalendarId)}/events`;
   const removed = ["Canceled", "Rescheduled"].includes(appointment.status);
 
   if (removed) {
     if (existingEventId) {
       try {
+        const existingEvent = await googleCalendarApiRequest(`${calendarPath}/${encodeURIComponent(existingEventId)}`, options);
+        if (!googleCalendarEventBelongsToAppointment(existingEvent, appointment)) {
+          throw new Error("Calendar synchronization stopped because the event is not owned by this Hub appointment.");
+        }
         await googleCalendarApiRequest(`${calendarPath}/${encodeURIComponent(existingEventId)}`, {
           ...options,
           method: "DELETE"
@@ -4164,20 +4217,24 @@ async function syncClinicAppointmentCalendar(appointment = {}, options = {}) {
         if (![404, 410].includes(error.status)) throw error;
       }
     }
-    return { state: "removed", calendarId: targetCalendarId, eventId: "" };
+    return { state: "removed", calendarId: configuredCalendarId, eventId: "" };
   }
 
   const event = googleCalendarEventForAppointment(appointment);
   if (existingEventId) {
     try {
+      const existingEvent = await googleCalendarApiRequest(`${calendarPath}/${encodeURIComponent(existingEventId)}`, options);
+      if (!googleCalendarEventBelongsToAppointment(existingEvent, appointment)) {
+        throw new Error("Calendar synchronization stopped because the event is not owned by this Hub appointment.");
+      }
       const updated = await googleCalendarApiRequest(`${calendarPath}/${encodeURIComponent(existingEventId)}`, {
         ...options,
         method: "PATCH",
         body: event
       });
-      return { state: "synced", calendarId: targetCalendarId, eventId: updated?.id || existingEventId };
+      return { state: "synced", calendarId: configuredCalendarId, eventId: updated?.id || existingEventId };
     } catch (error) {
-      if (error.status !== 404) throw error;
+      if (![404, 410].includes(error.status)) throw error;
     }
   }
 
@@ -4220,6 +4277,8 @@ async function googleCalendarConnectionStatus(options = {}) {
   const calendarId = cleanString(options.calendarId ?? googleCalendarId);
   if (!calendarId) return { configured: false, enabled: false, connected: false };
   if (!enabled) return { configured: true, enabled: false, connected: false };
+
+  assertApprovedClinicGoogleCalendar(calendarId, options);
 
   const calendar = await googleCalendarApiRequest(`/calendars/${encodeURIComponent(calendarId)}`, options);
   return {
@@ -4378,6 +4437,11 @@ function publicAppointmentCanManage(appointment) {
   return appointment?.status === "Scheduled" && daysAhead !== null && daysAhead >= 0;
 }
 
+function publicAppointmentCanReview(appointment) {
+  return cleanString(appointment?.status).toLowerCase() === "completed"
+    && !cleanString(appointment?.publicReviewSubmittedAt);
+}
+
 function serializePublicManagedBooking(appointment) {
   const service = publicBookingServiceFromAppointment(appointment);
   const clientNames = Array.isArray(appointment.clientNames) && appointment.clientNames.length
@@ -4397,7 +4461,9 @@ function serializePublicManagedBooking(appointment) {
     location: appointment.location,
     status: appointment.status || "Scheduled",
     canCancel: publicAppointmentCanManage(appointment),
-    canReschedule: publicAppointmentCanManage(appointment)
+    canReschedule: publicAppointmentCanManage(appointment),
+    canReview: publicAppointmentCanReview(appointment),
+    reviewSubmitted: Boolean(cleanString(appointment.publicReviewSubmittedAt))
   };
 }
 
@@ -4779,6 +4845,7 @@ export {
   appointmentClientCountFromRecord,
   appointmentDurationMinutesFromRecord,
   appointmentFitsSchedulingWindow,
+  appointmentLessonValidationError,
   appointmentLessonKeywords,
   appointmentRangesOverlap,
   appointments,
@@ -4868,7 +4935,9 @@ export {
   googleCalendarConnectionStatus,
   googleCalendarEnabled,
   googleCalendarEventForAppointment,
+  googleCalendarEventBelongsToAppointment,
   googleCalendarId,
+  googleCalendarLessonLabel,
   googleCalendarScopes,
   googleCalendarSafeClientName,
   fundraisingCampaigns,
@@ -4946,6 +5015,7 @@ export {
   publicAppointmentDateTime,
   publicClassRegistrationValidationError,
   publicAppointmentCanManage,
+  publicAppointmentCanReview,
   publicAppointmentDraft,
   publicAvailabilityDefaultDays,
   publicAvailabilityMaxDays,

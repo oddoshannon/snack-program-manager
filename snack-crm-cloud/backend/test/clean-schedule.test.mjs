@@ -15,6 +15,7 @@ import {
   completedAppointmentPayload,
   completedLessonForNextAppointment,
   defaultNextAppointmentDate,
+  existingNextAppointment,
   formatAppointmentDate,
   formatScheduleWeekRange,
   formatScheduleTime,
@@ -492,6 +493,34 @@ test("wrap up advances enrollment and nutrition lessons in order", () => {
   assert.equal(defaultNextAppointmentDate({ date: "2026-07-15" }), "2026-07-22");
 });
 
+test("wrap up reuses the earliest scheduled appointment for the exact same clients", () => {
+  const current = {
+    id: "appointment-current",
+    date: "2026-08-20",
+    time: "13:30",
+    status: "Scheduled",
+    clientIds: ["client-1"]
+  };
+  const next = {
+    id: "appointment-next",
+    date: "2026-09-03",
+    time: "15:00",
+    status: "Scheduled",
+    clientIds: ["client-1"]
+  };
+
+  assert.equal(existingNextAppointment(current, [
+    current,
+    { id: "different-family", date: "2026-08-21", time: "10:00", status: "Scheduled", clientIds: ["client-2"] },
+    { id: "canceled", date: "2026-08-22", time: "10:00", status: "Canceled", clientIds: ["client-1"] },
+    next,
+    { id: "later", date: "2026-09-10", time: "15:00", status: "Scheduled", clientIds: ["client-1"] }
+  ])?.id, "appointment-next");
+  assert.equal(existingNextAppointment(current, [
+    { id: "sibling-combination", date: "2026-08-21", time: "10:00", status: "Scheduled", clientIds: ["client-1", "client-2"] }
+  ]), null);
+});
+
 test("completing the final Healthy Habits appointment graduates the client", () => {
   const finalLesson = scheduleClientOutcomeUpdates({
     type: "Nutrition Education",
@@ -679,7 +708,9 @@ test("Appointment Note completes the visit and Wrap Up only schedules the next v
   assert.match(cleanSource, /completedAppointmentPayload\(item, values\)/);
   assert.match(cleanSource, /updateScheduleClients\(module, item, "Completed"\)/);
   assert.match(cleanSource, /nextAppointmentPayload\(item, nextValues\)/);
-  assert.match(cleanSource, /setScheduleAppointmentNoteStatus\("Next appointment scheduled\. Finish the appointment note and engagement to complete this appointment\."\)/);
+  assert.match(cleanSource, /existingNextAppointment\(item, appointments\)/);
+  assert.match(cleanSource, /method: existingAppointmentId \? "PATCH" : "POST"/);
+  assert.match(cleanSource, /setScheduleAppointmentNoteStatus\(`\$\{existingAppointmentId \? "Next appointment updated" : "Next appointment scheduled"\}/);
   const wrapUpSource = cleanSource.slice(
     cleanSource.indexOf("async function saveScheduleWrapUp"),
     cleanSource.indexOf("async function saveScheduleAppointmentNote")

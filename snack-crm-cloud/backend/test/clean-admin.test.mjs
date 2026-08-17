@@ -7,15 +7,18 @@ import {
   protectedAdminDataCollectionNames
 } from "../lib/core.js";
 import {
+  adminCalendarCutoverAllowed,
+  adminSecurityManagerAllowed,
   adminDataCollectionAllowsCleanup,
+  eligibleGoogleCalendarBackfillAppointments,
+  mergeAdminSecurityRecords,
+  normalizeComplianceItem,
+  normalizeVendorAgreement,
   googleCalendarTestErrorMessage,
   isAdminQaFixtureDocument
 } from "../routes/admin.js";
 import { accessLevelDeletionError } from "../routes/access.js";
-import {
-  twilioSimulatedSmsTest,
-  twilioTestConfigurationStatus
-} from "../routes/reminders.js";
+import { azureCommunicationConfigurationStatus } from "../routes/reminders.js";
 import { fullSystemFixtureCollectionNames } from "../scripts/lib/full-system-fixtures.mjs";
 import { localDataCollections } from "../scripts/lib/local-data-safety.mjs";
 import { parseAdminCsv, prepareAdminCsvImport } from "../../frontend/public/modules/admin-data.js";
@@ -26,9 +29,9 @@ const cleanCss = await readFile(new URL("../../frontend/public/clean.css", impor
 const accessRouteSource = await readFile(new URL("../routes/access.js", import.meta.url), "utf8");
 const adminRouteSource = await readFile(new URL("../routes/admin.js", import.meta.url), "utf8");
 
-test("clean Admin organizes Settings, Schedule, and Integrations without quick actions", () => {
+test("clean Admin organizes Settings, Schedule, and Security & Integrations without quick actions", () => {
   assert.match(adminHtml, /SNACK_MODULE_ID = "admin"/);
-  assert.match(cleanSource, /subpages: \["Settings", "Schedule", "Integrations"\]/);
+  assert.match(cleanSource, /subpages: \["Settings", "Schedule", "Security & Integrations"\]/);
   assert.match(cleanSource, /const adminSettingsTabs = Object\.freeze\(\["Team", "Access", "CRM", "Forms", "Data"\]\)/);
   assert.match(cleanSource, /function renderAdminSettingsWorkspace\(\)/);
   assert.match(cleanSource, /function renderAdminTeamWorkspace\(\)/);
@@ -142,6 +145,22 @@ test("Admin Calendar lifecycle failures stay useful without exposing credentials
   assert.match(googleCalendarTestErrorMessage(new Error("forbidden")), /permission to edit/);
 });
 
+test("Admin Calendar cutover selects only future scheduled appointments in stable order", () => {
+  const documents = [
+    { id: "later", data: () => ({ appointmentDate: "2026-08-20", appointmentTime: "14:00", status: "Scheduled" }) },
+    { id: "canceled", data: () => ({ appointmentDate: "2026-08-20", appointmentTime: "13:00", status: "Canceled" }) },
+    { id: "past", data: () => ({ appointmentDate: "2026-08-16", appointmentTime: "13:00", status: "Scheduled" }) },
+    { id: "first", data: () => ({ appointmentDate: "2026-08-18", appointmentTime: "09:00", status: "scheduled" }) },
+    { id: "missing-time", data: () => ({ appointmentDate: "2026-08-21", status: "Scheduled" }) }
+  ];
+  assert.deepEqual(
+    eligibleGoogleCalendarBackfillAppointments(documents, "2026-08-17").map((item) => item.id),
+    ["first", "later"]
+  );
+  assert.equal(adminCalendarCutoverAllowed({ accessLevelId: "Admin" }), true);
+  assert.equal(adminCalendarCutoverAllowed({ accessLevelId: "Manager" }), false);
+});
+
 test("Admin CSV preview handles quoted values and blocks incomplete people", () => {
   const parsed = parseAdminCsv('First Name,Last Name,Parent Name,Mobile,Preferred Language,Status,Note\nAvery,Rivera,Morgan,503-555-0101,English,Scheduled,"Needs, follow-up"');
   assert.equal(parsed.rows.length, 1);
@@ -199,22 +218,28 @@ test("Admin Forms separates native assessments from the remaining bilingual pack
   assert.match(cleanCss, /\.admin-form-library/);
 });
 
-test("Admin Integrations reports live connections without exposing credentials", () => {
+test("Admin Security & Integrations combines compliance, vendor, and live connection records", () => {
   assert.match(cleanSource, /function loadAdminIntegrationStatus\(\)/);
   assert.match(cleanSource, /\/api\/access\/me/);
   assert.match(cleanSource, /\/api\/admin\/scheduling-settings/);
   assert.match(cleanSource, /\/api\/admin\/google-calendar\/status/);
   assert.match(cleanSource, /\/api\/admin\/google-calendar\/test/);
   assert.match(cleanSource, /data-admin-test-calendar/);
+  assert.match(cleanSource, /\/api\/admin\/google-calendar\/backfill/);
+  assert.match(cleanSource, /data-admin-sync-calendar/);
   assert.match(adminRouteSource, /router\.post\("\/api\/admin\/google-calendar\/test"/);
+  assert.match(adminRouteSource, /router\.post\("\/api\/admin\/google-calendar\/backfill"/);
   assert.match(adminRouteSource, /TEST CLINIC CALENDAR/);
   assert.match(cleanSource, /\/api\/marketing\/mailerlite\/status/);
-  assert.match(cleanSource, /\/api\/reminders\/twilio\/status/);
-  assert.match(cleanSource, /\/api\/reminders\/twilio\/test/);
-  assert.match(cleanSource, /TEST TWILIO WITHOUT SENDING/);
-  assert.match(cleanSource, /No text was sent and delivery remains off/);
-  assert.match(cleanSource, /Secret keys are configured on the server and never shown here/);
+  assert.match(cleanSource, /\/api\/reminders\/azure\/status/);
+  assert.match(cleanSource, /\/api\/admin\/security-compliance/);
+  assert.match(cleanSource, /Compliance Checklist/);
+  assert.match(cleanSource, /Vendor Agreements/);
+  assert.match(cleanSource, /System Connections/);
+  assert.match(cleanSource, /Secret keys are never shown here/);
   assert.match(cleanCss, /\.admin-integration-grid/);
+  assert.match(cleanCss, /\.admin-vendor-table/);
+  assert.match(cleanCss, /\.admin-compliance-row/);
 });
 
 test("real integration failures create one deduplicated Admin follow-up task", () => {
@@ -223,22 +248,53 @@ test("real integration failures create one deduplicated Admin follow-up task", (
   assert.match(cleanSource, /No secret keys or client messages/);
 });
 
-test("Twilio connection testing is simulated and cannot send a real text", async () => {
-  assert.equal(twilioTestConfigurationStatus("", "").configured, false);
-
-  let request = null;
-  const result = await twilioSimulatedSmsTest("ACtest", "test-token", async (url, options) => {
-    request = { url, options };
-    return { ok: true, status: 201 };
+test("Azure readiness stays in safe mode until every external requirement is complete", () => {
+  const incomplete = azureCommunicationConfigurationStatus({
+    AZURE_COMMUNICATIONS_CONNECTION_STRING: "endpoint=https://example.communication.azure.com/;accesskey=secret",
+    AZURE_COMMUNICATIONS_PHONE_NUMBER: "+19712020232",
+    AZURE_COMMUNICATIONS_TEN_DLC_REGISTERED: "true"
   });
+  assert.equal(incomplete.configured, true);
+  assert.equal(incomplete.ready, false);
+  assert.equal(incomplete.safeMode, true);
+  assert.equal(incomplete.deliveryEnabled, false);
+  assert.equal(incomplete.completedCount, 3);
 
-  assert.equal(result.configured, true);
-  assert.equal(result.connected, true);
-  assert.equal(result.simulated, true);
-  assert.equal(result.deliveryEnabled, false);
-  assert.match(request.url, /Accounts\/ACtest\/Messages\.json$/);
-  assert.equal(request.options.method, "POST");
-  assert.match(request.options.body, /From=%2B15005550006/);
-  assert.match(request.options.body, /To=%2B15005550006/);
-  assert.doesNotMatch(request.options.body, /9712020232/);
+  const completeButDisabled = azureCommunicationConfigurationStatus({
+    AZURE_COMMUNICATIONS_CONNECTION_STRING: "endpoint=https://example.communication.azure.com/;accesskey=secret",
+    AZURE_COMMUNICATIONS_PHONE_NUMBER: "+19712020232",
+    AZURE_COMMUNICATIONS_TEN_DLC_REGISTERED: "true",
+    AZURE_COMMUNICATIONS_EVENT_GRID_CONFIGURED: "true",
+    AZURE_COMMUNICATIONS_CALLING_READY: "true",
+    AZURE_COMMUNICATIONS_READY: "true",
+    AZURE_COMMUNICATIONS_DELIVERY_ENABLED: "false"
+  });
+  assert.equal(completeButDisabled.ready, true);
+  assert.equal(completeButDisabled.deliveryEnabled, false);
+  assert.equal(completeButDisabled.safeMode, true);
+});
+
+test("security and vendor records are normalized and restricted to managers", () => {
+  assert.equal(adminSecurityManagerAllowed({ accessLevelId: "Admin" }), true);
+  assert.equal(adminSecurityManagerAllowed({ accessLevelName: "Manager" }), true);
+  assert.equal(adminSecurityManagerAllowed({ accessLevelId: "Staff" }), false);
+  const vendor = normalizeVendorAgreement({
+    id: "vendor-1",
+    vendor: "Example",
+    status: "Complete",
+    documentUrl: "javascript:alert(1)",
+    reviewDate: "not-a-date"
+  });
+  assert.equal(vendor.status, "Complete");
+  assert.equal(vendor.documentUrl, "");
+  assert.equal(vendor.reviewDate, "");
+  const checklist = mergeAdminSecurityRecords([
+    { id: "mfa", item: "MFA", status: "Not Started" }
+  ], [
+    { id: "mfa", item: "MFA", status: "Complete" },
+    { id: "custom", item: "Custom", status: "In Progress" }
+  ], normalizeComplianceItem);
+  assert.deepEqual(checklist.map((item) => item.id), ["mfa", "custom"]);
+  assert.equal(checklist[0].status, "Complete");
+  assert.equal(checklist[1].status, "In Progress");
 });

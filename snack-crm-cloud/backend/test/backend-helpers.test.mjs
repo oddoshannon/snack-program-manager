@@ -7,6 +7,7 @@ import {
   appointmentClientCountFromRecord,
   appointmentDurationMinutesFromRecord,
   appointmentFitsSchedulingWindow,
+  appointmentLessonValidationError,
   appointmentRangesOverlap,
   appointmentTimeMinutes,
   cleanActivityLogPayload,
@@ -74,6 +75,7 @@ import {
   publicBookingServiceFromId,
   publicBookingServices,
   publicBookingValidationError,
+  publicAppointmentCanReview,
   publicClassRegistrationValidationError,
   publicKitchenSessionAvailability,
   publicManageClientIdsFromAppointment,
@@ -909,6 +911,34 @@ test("cleanAppointmentPayload supports CSV-like client fields and public duratio
   assert.equal(payload.appointmentNote, "Discussed nutrient density.");
 });
 
+test("appointment imports infer a lesson and goal from the matching Setmore note line", () => {
+  const payload = cleanAppointmentPayload({
+    clientName: "Test Client",
+    appointmentDate: "2026-08-20",
+    appointmentTime: "4:00 PM",
+    appointmentType: "Nutrition Education",
+    notes: "Tracker: Sugar\nSugar: eat fruit three times a day"
+  });
+
+  assert.equal(payload.lesson, "2");
+  assert.equal(payload.goal, "eat fruit three times a day");
+});
+
+test("staff-created Nutrition Education appointments require a lesson", () => {
+  assert.match(appointmentLessonValidationError({
+    appointmentType: "Nutrition Education",
+    lesson: ""
+  }), /choose a lesson/i);
+  assert.equal(appointmentLessonValidationError({
+    appointmentType: "Nutrition Education",
+    lesson: "Sugar"
+  }), "");
+  assert.equal(appointmentLessonValidationError({
+    appointmentType: "Enrollment",
+    lesson: ""
+  }), "");
+});
+
 test("resolveAppointmentImportClients matches CSV client names to existing clients", async () => {
   const payload = cleanAppointmentPayload({
     clientName: "Andi Jo Smith",
@@ -1046,6 +1076,7 @@ test("Clinic calendar events use limited client details and stable private recor
     durationMinutes: 45,
     clientNames: ["Avery Rivera", "Jordan Rivera"],
     appointmentType: "Nutrition Education",
+    lesson: "2",
     staffMember: "Cynthia Esparza",
     location: "123 Clinic Street",
     phone: "503-555-0101",
@@ -1056,8 +1087,9 @@ test("Clinic calendar events use limited client details and stable private recor
   assert.equal(event.start.dateTime, "2026-08-04T13:30:00");
   assert.equal(event.end.dateTime, "2026-08-04T14:15:00");
   assert.equal(event.start.timeZone, "America/Los_Angeles");
+  assert.equal(event.description, "Lesson: Sugar\nAssigned staff: Cynthia Esparza");
   assert.equal(event.extendedProperties.private.snackRecordId, "appointment-1");
-  assert.doesNotMatch(JSON.stringify(event), /503-555-0101|Private health notes/);
+  assert.doesNotMatch(JSON.stringify(event), /503-555-0101|Private health notes|hub\.snackprogram\.org/);
 });
 
 test("Clinic calendar permission covers both the connection check and event changes", () => {
@@ -1073,7 +1105,12 @@ test("Clinic calendar synchronization creates, updates, and removes one event", 
   const fetchImpl = async (url, options) => {
     requests.push({ url, options });
     if (options.method === "DELETE") return new Response(null, { status: 204 });
-    return new Response(JSON.stringify({ id: "event-1" }), {
+    return new Response(JSON.stringify({
+      id: "event-1",
+      extendedProperties: {
+        private: { snackRecordType: "clinicAppointment", snackRecordId: "appointment-1" }
+      }
+    }), {
       status: 200,
       headers: { "Content-Type": "application/json" }
     });
@@ -1089,6 +1126,7 @@ test("Clinic calendar synchronization creates, updates, and removes one event", 
   const options = {
     enabled: true,
     calendarId: "clinic@test.example",
+    approvedCalendarId: "clinic@test.example",
     accessToken: "test-token",
     fetchImpl
   };
@@ -1107,10 +1145,79 @@ test("Clinic calendar synchronization creates, updates, and removes one event", 
     status: "Canceled"
   }, options);
 
-  assert.deepEqual(requests.map((request) => request.options.method), ["POST", "PATCH", "DELETE"]);
+  assert.deepEqual(requests.map((request) => request.options.method), ["POST", "GET", "PATCH", "GET", "DELETE"]);
   assert.equal(created.eventId, "event-1");
   assert.equal(updated.eventId, "event-1");
   assert.equal(removed.eventId, "");
+});
+
+test("Clinic calendar synchronization refuses other calendars and events it does not own", async () => {
+  let requestCount = 0;
+  const base = {
+    id: "appointment-1",
+    appointmentDate: "2026-08-04",
+    appointmentTime: "13:30",
+    appointmentType: "Enrollment",
+    status: "Scheduled"
+  };
+
+  await assert.rejects(
+    syncClinicAppointmentCalendar(base, {
+      enabled: true,
+      calendarId: "another-calendar@test.example",
+      approvedCalendarId: "clinic@test.example",
+      accessToken: "test-token",
+      fetchImpl: async () => {
+        requestCount += 1;
+        return new Response("{}", { status: 200 });
+      }
+    }),
+    /not the approved Clinic Appts calendar/
+  );
+  assert.equal(requestCount, 0);
+
+  await assert.rejects(
+    syncClinicAppointmentCalendar({
+      ...base,
+      googleCalendarId: "another-calendar@test.example",
+      googleEventId: "event-1"
+    }, {
+      enabled: true,
+      calendarId: "clinic@test.example",
+      approvedCalendarId: "clinic@test.example",
+      accessToken: "test-token",
+      fetchImpl: async () => {
+        requestCount += 1;
+        return new Response("{}", { status: 200 });
+      }
+    }),
+    /points to a different calendar/
+  );
+  assert.equal(requestCount, 0);
+
+  await assert.rejects(
+    syncClinicAppointmentCalendar({
+      ...base,
+      googleCalendarId: "clinic@test.example",
+      googleEventId: "event-1"
+    }, {
+      enabled: true,
+      calendarId: "clinic@test.example",
+      approvedCalendarId: "clinic@test.example",
+      accessToken: "test-token",
+      fetchImpl: async () => {
+        requestCount += 1;
+        return new Response(JSON.stringify({
+          id: "event-1",
+          extendedProperties: {
+            private: { snackRecordType: "clinicAppointment", snackRecordId: "some-other-appointment" }
+          }
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+    }),
+    /event is not owned by this Hub appointment/
+  );
+  assert.equal(requestCount, 1);
 });
 
 test("controlled Clinic calendar verification checks access and cleans up its QA event", async () => {
@@ -1118,7 +1225,15 @@ test("controlled Clinic calendar verification checks access and cleans up its QA
   const fetchImpl = async (url, options) => {
     requests.push({ url, options });
     if (options.method === "GET") {
-      return new Response(JSON.stringify({ summary: "Clinic Appts", accessRole: "writer" }), {
+      const payload = url.includes("/events/")
+        ? {
+          id: "qa-event-1",
+          extendedProperties: {
+            private: { snackRecordType: "clinicAppointment", snackRecordId: requests[1]?.options?.body ? JSON.parse(requests[1].options.body).extendedProperties.private.snackRecordId : "" }
+          }
+        }
+        : { summary: "Clinic Appts", accessRole: "writer" };
+      return new Response(JSON.stringify(payload), {
         status: 200,
         headers: { "Content-Type": "application/json" }
       });
@@ -1132,12 +1247,13 @@ test("controlled Clinic calendar verification checks access and cleans up its QA
 
   const result = await verifyGoogleCalendarLifecycle({
     calendarId: "clinic@test.example",
+    approvedCalendarId: "clinic@test.example",
     accessToken: "test-token",
     fetchImpl,
     testDate: "2026-08-07"
   });
 
-  assert.deepEqual(requests.map((request) => request.options.method), ["GET", "POST", "PATCH", "DELETE"]);
+  assert.deepEqual(requests.map((request) => request.options.method), ["GET", "POST", "GET", "PATCH", "GET", "DELETE"]);
   assert.deepEqual(result.lifecycle, { created: true, updated: true, removed: true });
   assert.equal(result.calendarName, "Clinic Appts");
   assert.equal(result.accessRole, "writer");
@@ -1288,7 +1404,19 @@ test("public management tokens and serialized bookings are private-safe", () => 
   assert.equal(booking.appointmentTimeLabel, "2:30 PM");
   assert.equal(booking.clientName, "Milo Exampleton, Tessa Exampleton");
   assert.equal(booking.location, "2435 NE Cumulus Ave, Suite A, McMinnville, OR 97128");
+  assert.equal(booking.canReview, false);
+  assert.equal(booking.reviewSubmitted, false);
   assert.equal(Object.hasOwn(booking, "publicManageTokenHash"), false);
+});
+
+test("public review links open only for completed appointments without a prior review", () => {
+  assert.equal(publicAppointmentCanReview({ status: "Completed" }), true);
+  assert.equal(publicAppointmentCanReview({ status: "completed" }), true);
+  assert.equal(publicAppointmentCanReview({ status: "Scheduled" }), false);
+  assert.equal(publicAppointmentCanReview({
+    status: "Completed",
+    publicReviewSubmittedAt: "2026-08-17T12:00:00.000Z"
+  }), false);
 });
 
 test("public booking confirmation content includes the private management link", () => {
@@ -1615,6 +1743,7 @@ test("public and protected API routes are registered with expected middleware", 
   assert.equal(routes.includes("/api/marketing/send"), false);
   assert.ok(routes.includes("/api/admin/scheduling-settings"));
   assert.ok(routes.includes("/api/admin/google-calendar/status"));
+  assert.ok(routes.includes("/api/admin/google-calendar/backfill"));
   assert.ok(routes.includes("/api/appointments/:appointmentId/prep"));
   assert.ok(routes.includes("/api/outreach-events"));
   assert.ok(routes.includes("/api/outreach-events/:eventId"));

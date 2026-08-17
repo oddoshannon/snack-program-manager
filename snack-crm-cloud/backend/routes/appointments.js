@@ -3,6 +3,7 @@ import {
   allowedClientStatuses,
   allowedAppointmentPrepKeys,
   appointmentFitsSchedulingWindow,
+  appointmentLessonValidationError,
   appointments,
   cleanAppointmentPrepChecklist,
   cleanAppointmentPayload,
@@ -201,6 +202,12 @@ router.post("/api/appointments", requireAuth, async (request, response, next) =>
       return;
     }
 
+    const lessonError = appointmentLessonValidationError(payload);
+    if (lessonError) {
+      response.status(400).json({ error: lessonError });
+      return;
+    }
+
     if (payload.status === "Completed") {
       const completionError = appointmentCompletionValidationError(payload);
       if (completionError) {
@@ -385,6 +392,12 @@ router.patch("/api/appointments/:appointmentId", requireAuth, async (request, re
       response.status(400).json({
         error: "Client or referral name, appointment date, and appointment time are required."
       });
+      return;
+    }
+
+    const lessonError = appointmentLessonValidationError(payload);
+    if (lessonError) {
+      response.status(400).json({ error: lessonError });
       return;
     }
 

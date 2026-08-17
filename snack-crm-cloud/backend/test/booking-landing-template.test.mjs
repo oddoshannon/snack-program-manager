@@ -103,7 +103,7 @@ test("approved public booking pages are connected at their real launch URLs", as
   assert.match(landingHtml, /id="public-class-list"/);
   assert.match(landingHtml, /id="english-service-list"/);
   assert.match(landingHtml, /id="spanish-service-list"/);
-  assert.match(landingScript, /renderPublicServices\(data\.services\)/);
+  assert.match(landingScript, /renderPublicServices\(loadedServices\)/);
 
   assert.match(schedulerHtml, /book\.css/);
   assert.match(schedulerHtml, /book\.js/);
@@ -158,6 +158,31 @@ test("Spanish appointment choices carry Spanish preference into the scheduler", 
   assert.match(landingHtml, /service=spanish-enrollment/);
   assert.match(landingHtml, /service=spanish-nutrition-education/);
   assert.match(schedulerScript, /preferredLanguageSelect\.value = activeService\.defaultLanguage/);
+});
+
+test("public booking pages support a complete language switch and private-link reviews", async () => {
+  const landingHtml = await readPublicFile("booking.html");
+  const landingScript = await readPublicFile("booking.js");
+  const schedulerHtml = await readPublicFile("book.html");
+  const schedulerScript = await readPublicFile("book.js");
+  const languageScript = await readPublicFile("modules/public-language.js");
+  const publicRoute = await readFile(new URL("../routes/public-booking.js", import.meta.url), "utf8");
+
+  assert.match(landingHtml, /data-language-switcher/);
+  assert.match(schedulerHtml, /data-language-switcher/);
+  assert.match(landingHtml, /English \(US\)/);
+  assert.match(landingHtml, /Español \(MX\)/);
+  assert.match(languageScript, /snack-public-language/);
+  assert.match(languageScript, /document\.documentElement\.lang/);
+  assert.match(landingHtml, /id="public-review-list"/);
+  assert.match(landingScript, /\/api\/public\/reviews/);
+  assert.match(schedulerHtml, /id="public-review-form"/);
+  assert.match(schedulerScript, /\/api\/public\/bookings\/\$\{encodeURIComponent\(managedBooking\.id\)\}\/review/);
+  assert.match(publicRoute, /Private appointment link/);
+  assert.match(publicRoute, /María A\./);
+  assert.match(publicRoute, /Silvia N\./);
+  assert.match(publicRoute, /Jenessa H\./);
+  assert.doesNotMatch(landingHtml, /Setmore/i);
 });
 
 test("production booking verification is read-only", async () => {

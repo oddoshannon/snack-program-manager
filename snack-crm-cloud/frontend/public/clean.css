@@ -11357,6 +11357,165 @@ button.crm-dashboard-row:focus-visible {
   background: var(--module-soft);
 }
 
+.admin-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.admin-security-section {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: var(--surface);
+}
+
+.admin-security-section > header h2,
+.admin-security-section > header p {
+  margin: 0;
+}
+
+.admin-security-section > header h2 {
+  font-size: 16px;
+}
+
+.admin-security-section > header p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.admin-compliance-list {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-compliance-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 2fr) minmax(130px, .7fr) minmax(140px, .8fr) 140px minmax(190px, 1fr);
+  align-items: start;
+  gap: 9px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.admin-compliance-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.admin-compliance-row > div {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-compliance-row strong {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.admin-compliance-row label,
+.admin-vendor-table label {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-compliance-row label > span,
+.admin-vendor-table label > span {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.admin-security-section input,
+.admin-security-section select,
+.admin-security-section textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 7px 8px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+}
+
+.admin-security-section textarea {
+  resize: vertical;
+}
+
+.admin-vendor-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-vendor-table {
+  width: 100%;
+  min-width: 1080px;
+  border-collapse: collapse;
+}
+
+.admin-vendor-table th,
+.admin-vendor-table td {
+  border-top: 1px solid var(--line);
+  padding: 9px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-vendor-table thead th {
+  border-top: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.admin-vendor-table td {
+  min-width: 150px;
+}
+
+.admin-vendor-table td:first-child,
+.admin-vendor-table td:last-child {
+  min-width: 240px;
+}
+
+.admin-vendor-table td > * + * {
+  margin-top: 6px;
+}
+
+.admin-azure-checklist {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-azure-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.admin-azure-checklist li svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+}
+
+.admin-azure-checklist li.is-complete {
+  border-color: color-mix(in srgb, var(--green) 35%, var(--line));
+  color: var(--green);
+}
+
 .admin-team-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -12680,6 +12839,18 @@ button.crm-dashboard-row:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .admin-compliance-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-compliance-row > div {
+    grid-column: 1 / -1;
+  }
+
+  .admin-azure-checklist {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .admin-access-level-row {
     grid-template-columns: minmax(180px, .65fr) minmax(0, 1.7fr);
   }
@@ -12808,6 +12979,11 @@ button.crm-dashboard-row:focus-visible {
     flex-direction: column;
   }
 
+  .admin-heading-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .admin-heading-action {
     align-self: flex-start;
   }
@@ -12818,6 +12994,15 @@ button.crm-dashboard-row:focus-visible {
   .admin-integration-grid,
   .admin-data-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-compliance-row,
+  .admin-azure-checklist {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-compliance-row > div {
+    grid-column: auto;
   }
 
   .admin-data-cleanup {

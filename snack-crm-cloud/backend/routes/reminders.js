@@ -4,81 +4,55 @@ import { clientMessageDeliveryPolicy, clientMessageTemplates } from "../lib/clie
 import { gmailConfigurationStatus, sendGmailMessage } from "../lib/gmail-sender.js";
 
 const router = express.Router();
-const twilioTestFromNumber = "+15005550006";
-const twilioTestToNumber = "+15005550006";
 
-function twilioTestConfigurationStatus(
-  accountSidValue = process.env.TWILIO_TEST_ACCOUNT_SID,
-  authTokenValue = process.env.TWILIO_TEST_AUTH_TOKEN
-) {
-  const accountSid = cleanString(accountSidValue);
-  const authToken = cleanString(authTokenValue);
-  const configured = Boolean(accountSid && authToken);
+function enabledEnvironmentValue(value) {
+  return cleanString(value).toLowerCase() === "true";
+}
+
+function azureCommunicationConfigurationStatus(environment = process.env) {
+  const resourceConfigured = Boolean(cleanString(environment.AZURE_COMMUNICATIONS_CONNECTION_STRING));
+  const numberConfigured = Boolean(cleanString(environment.AZURE_COMMUNICATIONS_PHONE_NUMBER));
+  const tenDlcRegistered = enabledEnvironmentValue(environment.AZURE_COMMUNICATIONS_TEN_DLC_REGISTERED);
+  const inboundWebhookConfigured = enabledEnvironmentValue(environment.AZURE_COMMUNICATIONS_EVENT_GRID_CONFIGURED);
+  const callingConfigured = enabledEnvironmentValue(environment.AZURE_COMMUNICATIONS_CALLING_READY);
+  const requestedReady = enabledEnvironmentValue(environment.AZURE_COMMUNICATIONS_READY);
+  const deliveryEnabled = enabledEnvironmentValue(environment.AZURE_COMMUNICATIONS_DELIVERY_ENABLED);
+  const ready = resourceConfigured
+    && numberConfigured
+    && tenDlcRegistered
+    && inboundWebhookConfigured
+    && callingConfigured
+    && requestedReady;
+  const checklist = [
+    { id: "resource", label: "Azure resource secret stored", complete: resourceConfigured },
+    { id: "number", label: "SNACK phone number assigned", complete: numberConfigured },
+    { id: "registration", label: "10DLC brand and campaign approved", complete: tenDlcRegistered },
+    { id: "inbound", label: "Incoming text and delivery events connected", complete: inboundWebhookConfigured },
+    { id: "calling", label: "Hub calling connection tested", complete: callingConfigured },
+    { id: "approval", label: "SNACK production-readiness approval recorded", complete: requestedReady }
+  ];
+  const completedCount = checklist.filter((item) => item.complete).length;
   return {
-    provider: "Twilio",
-    configured,
-    connected: false,
-    simulated: true,
-    deliveryEnabled: false,
-    connectionMode: configured
-      ? "Test details stored; ready for a no-send test"
-      : "Twilio test details have not been configured"
+    provider: "Azure Communication Services",
+    configured: resourceConfigured,
+    connected: ready,
+    ready,
+    deliveryEnabled: ready && deliveryEnabled,
+    deliveryRequested: deliveryEnabled,
+    safeMode: !(ready && deliveryEnabled),
+    checklist,
+    completedCount,
+    totalCount: checklist.length,
+    connectionMode: ready
+      ? deliveryEnabled
+        ? "Azure Communications is ready and production delivery is enabled"
+        : "All readiness checks passed; production delivery remains off"
+      : `${completedCount} of ${checklist.length} readiness checks complete; production delivery remains off`
   };
 }
 
-async function twilioSimulatedSmsTest(
-  accountSidValue = process.env.TWILIO_TEST_ACCOUNT_SID,
-  authTokenValue = process.env.TWILIO_TEST_AUTH_TOKEN,
-  fetchImpl = globalThis.fetch
-) {
-  const accountSid = cleanString(accountSidValue);
-  const authToken = cleanString(authTokenValue);
-  const base = twilioTestConfigurationStatus(accountSid, authToken);
-  if (!base.configured) return base;
-  if (typeof fetchImpl !== "function") {
-    return { ...base, connectionMode: "Twilio could not be reached" };
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-  try {
-    const requestBody = new URLSearchParams({
-      From: twilioTestFromNumber,
-      To: twilioTestToNumber,
-      Body: "SNACK reminder connection test. Twilio test details prevent delivery."
-    });
-    const providerResponse = await fetchImpl(
-      `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(accountSid)}/Messages.json`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: requestBody.toString(),
-        signal: controller.signal
-      }
-    );
-    if (providerResponse.ok) {
-      return {
-        ...base,
-        connected: true,
-        connectionMode: "Safe Twilio test passed; no text was sent"
-      };
-    }
-    if ([401, 403].includes(providerResponse.status)) {
-      return { ...base, connectionMode: "Twilio rejected the test details" };
-    }
-    return { ...base, connectionMode: "The safe Twilio test did not pass" };
-  } catch {
-    return { ...base, connectionMode: "Twilio could not be reached" };
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-router.get("/api/reminders/twilio/status", requireAuth, (_request, response) => {
-  response.json(twilioTestConfigurationStatus());
+router.get("/api/reminders/azure/status", requireAuth, (_request, response) => {
+  response.json(azureCommunicationConfigurationStatus());
 });
 
 router.get("/api/reminders/policy", requireAuth, (_request, response) => {
@@ -121,13 +95,13 @@ router.post("/api/reminders/email/test", requireAuth, async (request, response, 
   }
 });
 
-router.post("/api/reminders/twilio/test", requireAuth, async (request, response) => {
-  if (cleanString(request.body?.confirmation) !== "TEST TWILIO WITHOUT SENDING") {
-    response.status(400).json({ error: "The safe Twilio test confirmation is required." });
+router.post("/api/reminders/azure/readiness-test", requireAuth, async (request, response) => {
+  if (cleanString(request.body?.confirmation) !== "CHECK AZURE WITHOUT SENDING") {
+    response.status(400).json({ error: "The Azure no-send readiness confirmation is required." });
     return;
   }
-  response.json(await twilioSimulatedSmsTest());
+  response.json({ ...azureCommunicationConfigurationStatus(), messageSent: false, callPlaced: false });
 });
 
-export { twilioSimulatedSmsTest, twilioTestConfigurationStatus };
+export { azureCommunicationConfigurationStatus };
 export default router;

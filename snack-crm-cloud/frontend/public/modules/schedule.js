@@ -416,6 +416,39 @@ export function defaultNextAppointmentDate(item = {}) {
   return appointmentDate ? offsetScheduleDate(appointmentDate, 7) : "";
 }
 
+function appointmentParticipantIds(item = {}) {
+  return [...new Set(item.clientIds || item.source?.clientIds || [])]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+    .sort();
+}
+
+export function existingNextAppointment(item = {}, appointments = []) {
+  const participantIds = appointmentParticipantIds(item);
+  if (!participantIds.length) return null;
+
+  return appointments
+    .filter((candidate) => candidate?.id && candidate.id !== item.id)
+    .filter((candidate) => String(candidate.status || candidate.source?.status || "").toLowerCase() === "scheduled")
+    .filter((candidate) => {
+      const candidateIds = appointmentParticipantIds(candidate);
+      return candidateIds.length === participantIds.length
+        && candidateIds.every((clientId, index) => clientId === participantIds[index]);
+    })
+    .filter((candidate) => {
+      const candidateDate = candidate.date || candidate.source?.appointmentDate || "";
+      const candidateTime = candidate.time || candidate.source?.appointmentTime || "";
+      const itemDate = item.date || item.source?.appointmentDate || "";
+      const itemTime = item.time || item.source?.appointmentTime || "";
+      return `${candidateDate}T${candidateTime}` > `${itemDate}T${itemTime}`;
+    })
+    .sort((first, second) => {
+      const firstValue = `${first.date || first.source?.appointmentDate || ""}T${first.time || first.source?.appointmentTime || ""}`;
+      const secondValue = `${second.date || second.source?.appointmentDate || ""}T${second.time || second.source?.appointmentTime || ""}`;
+      return firstValue.localeCompare(secondValue);
+    })[0] || null;
+}
+
 export function completedLessonForNextAppointment(lessonValue) {
   const nextLesson = appointmentLessonNumber(lessonValue);
   if (!nextLesson) return "";

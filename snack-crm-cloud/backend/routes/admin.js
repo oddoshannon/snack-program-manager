@@ -2,6 +2,7 @@ import express from "express";
 import {
   adminDataCollections,
   adminSettings,
+  appointments,
   cleanSchedulingSettingsPayload,
   cleanString,
   clients,
@@ -14,9 +15,11 @@ import {
   loadSchedulingSettings,
   loadClientStatusDefinitions,
   normalizeClientStatusDefinitions,
+  persistClinicAppointmentCalendarSync,
   requireAuth,
   serializeSchedulingSettings,
   toSchedulingSettings,
+  todayDateString,
   verifyGoogleCalendarLifecycle
 } from "../lib/core.js";
 
@@ -27,6 +30,121 @@ const adminImportableCollectionKeys = new Set([
   "referral-network",
   "appointments"
 ]);
+
+const vendorAgreementStatuses = new Set([
+  "Complete",
+  "Pending Signature",
+  "Covered Through Partner",
+  "Review Required",
+  "Not Used for PHI",
+  "Retiring"
+]);
+
+const complianceStatuses = new Set(["Complete", "In Progress", "Not Started", "Not Applicable"]);
+
+const defaultVendorAgreements = Object.freeze([
+  { id: "google-workspace", vendor: "Google Workspace", service: "Gmail, Calendar, Drive, Forms, and managed accounts", agreementType: "HIPAA BAA", status: "Complete", owner: "Executive Director", documentUrl: "", reviewDate: "", renewalDate: "", notes: "BAA accepted in the Google Admin console." },
+  { id: "google-cloud", vendor: "Google Cloud", service: "Cloud Run, Firestore, Storage, Identity Platform, Secret Manager, and Logging", agreementType: "HIPAA BAA", status: "Complete", owner: "Executive Director", documentUrl: "", reviewDate: "", renewalDate: "", notes: "Use only services listed as covered by Google." },
+  { id: "pmc", vendor: "Physicians' Medical Center", service: "Clinic referrals and shared office workflows", agreementType: "BAA / data-sharing terms", status: "Pending Signature", owner: "Executive Director", documentUrl: "", reviewDate: "", renewalDate: "", notes: "Replacement agreement is being prepared for signature." },
+  { id: "ycco", vendor: "Yamhill Community Care", service: "HRSN referrals, engagement, and billing", agreementType: "HRSN Provider Agreement", status: "Complete", owner: "Executive Director", documentUrl: "", reviewDate: "", renewalDate: "", notes: "Signed by both parties; attach the fully executed copy." },
+  { id: "unite-us", vendor: "Unite Us", service: "YCCO member referrals", agreementType: "Covered through YCCO", status: "Covered Through Partner", owner: "Executive Director", documentUrl: "", reviewDate: "", renewalDate: "", notes: "YCCO confirmed coverage. Keep that confirmation with the agreement record." },
+  { id: "azure-communications", vendor: "Microsoft Azure Communication Services", service: "Future service texts and Hub calling", agreementType: "Microsoft HIPAA BAA / Product Terms", status: "Review Required", owner: "Executive Director", documentUrl: "", reviewDate: "", renewalDate: "", notes: "Do not enable family messaging until the organizational account, covered-service terms, phone registration, and controlled tests are documented." },
+  { id: "mailerlite", vendor: "MailerLite", service: "Marketing email only", agreementType: "Data processing terms", status: "Not Used for PHI", owner: "Executive Director", documentUrl: "", reviewDate: "", renewalDate: "", notes: "Keep appointment, referral, health, and HRSN information out of MailerLite." },
+  { id: "setmore", vendor: "Setmore", service: "Legacy booking and reminders during cutover", agreementType: "Legacy vendor review", status: "Retiring", owner: "Executive Director", documentUrl: "", reviewDate: "", renewalDate: "", notes: "Keep active until the SNACK booking and messaging cutover is verified." }
+]);
+
+const defaultComplianceChecklist = Object.freeze([
+  { id: "mfa", item: "Multi-factor authentication enabled for every staff account", status: "Complete", owner: "Executive Director", dueDate: "", evidenceUrl: "", notes: "Recheck during each quarterly access review." },
+  { id: "risk-analysis", item: "Written security risk analysis and risk-management plan", status: "In Progress", owner: "Executive Director", dueDate: "", evidenceUrl: "", notes: "Review whenever systems, vendors, or data flows materially change." },
+  { id: "incident-response", item: "Incident response and breach-escalation procedure approved", status: "In Progress", owner: "Executive Director", dueDate: "", evidenceUrl: "", notes: "Include vendor notification paths and an incident log." },
+  { id: "device-rules", item: "Staff device, screen lock, download, and lost-device rules approved", status: "In Progress", owner: "Executive Director", dueDate: "", evidenceUrl: "", notes: "Applies to computers, phones, tablets, and printed records." },
+  { id: "retention", item: "Record retention and secure deletion schedule approved", status: "Not Started", owner: "Executive Director", dueDate: "", evidenceUrl: "", notes: "Confirm contract, billing, personnel, and program-record requirements." },
+  { id: "backup-restore", item: "Backup restoration tested and recorded", status: "Not Started", owner: "Executive Director", dueDate: "", evidenceUrl: "", notes: "A successful download is not a restore test." },
+  { id: "access-review", item: "Quarterly staff access and MFA review scheduled", status: "In Progress", owner: "Executive Director", dueDate: "", evidenceUrl: "", notes: "Remove access promptly when a role or employment ends." },
+  { id: "audit-review", item: "Monthly security-history review scheduled", status: "Not Started", owner: "Executive Director", dueDate: "", evidenceUrl: "", notes: "Record reviewer, date, findings, and follow-up." },
+  { id: "training", item: "Annual confidentiality and security training documented", status: "In Progress", owner: "Executive Director", dueDate: "", evidenceUrl: "", notes: "Include new-hire acknowledgment and refresher training." },
+  { id: "vendor-review", item: "Vendor agreements and covered-service limits reviewed annually", status: "In Progress", owner: "Executive Director", dueDate: "", evidenceUrl: "", notes: "Recheck before enabling a new integration." }
+]);
+
+function adminSecurityManagerAllowed(user = {}) {
+  const accessLevel = cleanString(user.accessLevelId || user.accessLevelName || user.role).toLowerCase();
+  return ["admin", "manager"].includes(accessLevel);
+}
+
+function adminCalendarCutoverAllowed(user = {}) {
+  const accessLevel = cleanString(user.accessLevelId || user.accessLevelName || user.role).toLowerCase();
+  return accessLevel === "admin";
+}
+
+function eligibleGoogleCalendarBackfillAppointments(documents = [], minimumDate = todayDateString()) {
+  return documents
+    .map((document) => ({ id: document.id, ...document.data() }))
+    .filter((appointment) => (
+      cleanString(appointment.appointmentDate) >= minimumDate
+      && cleanString(appointment.status).toLowerCase() === "scheduled"
+      && cleanString(appointment.appointmentTime)
+    ))
+    .sort((left, right) => (
+      cleanString(left.appointmentDate).localeCompare(cleanString(right.appointmentDate))
+      || cleanString(left.appointmentTime).localeCompare(cleanString(right.appointmentTime))
+      || cleanString(left.id).localeCompare(cleanString(right.id))
+    ));
+}
+
+function cleanAdminDate(value) {
+  const date = cleanString(value);
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : "";
+}
+
+function cleanAdminDocumentUrl(value) {
+  const url = cleanString(value);
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" ? parsed.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
+function normalizeVendorAgreement(record = {}, fallback = {}) {
+  const status = cleanString(record.status);
+  return {
+    id: cleanString(record.id || fallback.id).slice(0, 80),
+    vendor: cleanString(record.vendor || fallback.vendor).slice(0, 160),
+    service: cleanString(record.service || fallback.service).slice(0, 300),
+    agreementType: cleanString(record.agreementType || fallback.agreementType).slice(0, 160),
+    status: vendorAgreementStatuses.has(status) ? status : fallback.status || "Review Required",
+    owner: cleanString(record.owner || fallback.owner).slice(0, 160),
+    documentUrl: cleanAdminDocumentUrl(record.documentUrl || fallback.documentUrl),
+    reviewDate: cleanAdminDate(record.reviewDate || fallback.reviewDate),
+    renewalDate: cleanAdminDate(record.renewalDate || fallback.renewalDate),
+    notes: cleanString(record.notes || fallback.notes).slice(0, 1200)
+  };
+}
+
+function normalizeComplianceItem(record = {}, fallback = {}) {
+  const status = cleanString(record.status);
+  return {
+    id: cleanString(record.id || fallback.id).slice(0, 80),
+    item: cleanString(record.item || fallback.item).slice(0, 300),
+    status: complianceStatuses.has(status) ? status : fallback.status || "Not Started",
+    owner: cleanString(record.owner || fallback.owner).slice(0, 160),
+    dueDate: cleanAdminDate(record.dueDate || fallback.dueDate),
+    evidenceUrl: cleanAdminDocumentUrl(record.evidenceUrl || fallback.evidenceUrl),
+    notes: cleanString(record.notes || fallback.notes).slice(0, 1200)
+  };
+}
+
+function mergeAdminSecurityRecords(defaults, saved, normalizer) {
+  const savedById = new Map((Array.isArray(saved) ? saved : []).map((item) => [cleanString(item?.id), item]));
+  const merged = defaults.map((fallback) => normalizer(savedById.get(fallback.id) || {}, fallback));
+  const defaultIds = new Set(defaults.map((item) => item.id));
+  (Array.isArray(saved) ? saved : [])
+    .filter((item) => item?.id && !defaultIds.has(cleanString(item.id)))
+    .forEach((item) => merged.push(normalizer(item)));
+  return merged.filter((item) => item.id);
+}
 
 function isAdminQaFixtureDocument(document) {
   const data = typeof document?.data === "function" ? document.data() : document || {};
@@ -281,6 +399,66 @@ router.patch("/api/admin/crm-settings", requireAuth, async (request, response, n
   }
 });
 
+router.get("/api/admin/security-compliance", requireAuth, async (request, response, next) => {
+  try {
+    if (!adminSecurityManagerAllowed(request.user)) {
+      response.status(403).json({ error: "Only an Admin or Manager can view security and vendor records." });
+      return;
+    }
+    const snapshot = await adminSettings.doc("securityCompliance").get();
+    const saved = snapshot.exists ? snapshot.data() : {};
+    response.json({
+      vendorAgreements: mergeAdminSecurityRecords(
+        defaultVendorAgreements,
+        saved.vendorAgreements,
+        normalizeVendorAgreement
+      ),
+      complianceChecklist: mergeAdminSecurityRecords(
+        defaultComplianceChecklist,
+        saved.complianceChecklist,
+        normalizeComplianceItem
+      ),
+      updatedAt: cleanString(saved.updatedAt),
+      updatedBy: cleanString(saved.updatedBy)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/api/admin/security-compliance", requireAuth, async (request, response, next) => {
+  try {
+    if (!adminSecurityManagerAllowed(request.user)) {
+      response.status(403).json({ error: "Only an Admin or Manager can update security and vendor records." });
+      return;
+    }
+    if (!Array.isArray(request.body?.vendorAgreements) || !Array.isArray(request.body?.complianceChecklist)) {
+      response.status(400).json({ error: "Vendor agreements and the compliance checklist are required." });
+      return;
+    }
+    const vendorAgreements = request.body.vendorAgreements
+      .map((item) => normalizeVendorAgreement(item))
+      .filter((item) => item.id && item.vendor);
+    const complianceChecklist = request.body.complianceChecklist
+      .map((item) => normalizeComplianceItem(item))
+      .filter((item) => item.id && item.item);
+    if (!vendorAgreements.length || !complianceChecklist.length) {
+      response.status(400).json({ error: "Keep at least one vendor agreement and one compliance item." });
+      return;
+    }
+    const now = new Date().toISOString();
+    await adminSettings.doc("securityCompliance").set({
+      vendorAgreements,
+      complianceChecklist,
+      updatedAt: now,
+      updatedBy: request.user.email
+    }, { merge: true });
+    response.json({ vendorAgreements, complianceChecklist, updatedAt: now, updatedBy: request.user.email });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get("/api/admin/google-calendar/status", requireAuth, async (_request, response) => {
   try {
     response.json(await googleCalendarConnectionStatus());
@@ -306,6 +484,62 @@ router.post("/api/admin/google-calendar/test", requireAuth, async (request, resp
     response.json(await verifyGoogleCalendarLifecycle());
   } catch (error) {
     response.status(503).json({ error: googleCalendarTestErrorMessage(error) });
+  }
+});
+
+router.get("/api/admin/google-calendar/backfill", requireAuth, async (request, response, next) => {
+  try {
+    if (!adminCalendarCutoverAllowed(request.user)) {
+      response.status(403).json({ error: "Only an Admin can prepare the Clinic Calendar cutover." });
+      return;
+    }
+    const candidates = eligibleGoogleCalendarBackfillAppointments(await fetchAllDocuments(appointments));
+    response.json({
+      count: candidates.length,
+      alreadyConnectedCount: candidates.filter((appointment) => cleanString(appointment.googleEventId)).length,
+      firstDate: cleanString(candidates[0]?.appointmentDate),
+      lastDate: cleanString(candidates.at(-1)?.appointmentDate)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/api/admin/google-calendar/backfill", requireAuth, async (request, response, next) => {
+  try {
+    if (!adminCalendarCutoverAllowed(request.user)) {
+      response.status(403).json({ error: "Only an Admin can run the Clinic Calendar cutover." });
+      return;
+    }
+    if (cleanString(request.body?.confirmation) !== "SYNC FUTURE APPOINTMENTS") {
+      response.status(400).json({ error: "Confirm the future Clinic appointment synchronization." });
+      return;
+    }
+
+    const documents = await fetchAllDocuments(appointments);
+    const candidates = eligibleGoogleCalendarBackfillAppointments(documents);
+    const documentById = new Map(documents.map((document) => [document.id, document]));
+    const results = [];
+
+    for (const appointment of candidates) {
+      const result = await persistClinicAppointmentCalendarSync(
+        documentById.get(appointment.id).ref,
+        appointment,
+        request.user.email,
+        { enabled: true }
+      );
+      results.push({ appointmentId: appointment.id, state: result.state });
+    }
+
+    const errors = results.filter((result) => result.state === "error");
+    response.status(errors.length ? 503 : 200).json({
+      attemptedCount: results.length,
+      syncedCount: results.filter((result) => result.state === "synced").length,
+      errorCount: errors.length,
+      results
+    });
+  } catch (error) {
+    next(error);
   }
 });
 
@@ -340,7 +574,13 @@ router.patch("/api/admin/scheduling-settings", requireAuth, async (request, resp
 
 export default router;
 export {
+  adminCalendarCutoverAllowed,
+  adminSecurityManagerAllowed,
   adminDataCollectionAllowsCleanup,
+  mergeAdminSecurityRecords,
+  normalizeComplianceItem,
+  normalizeVendorAgreement,
   googleCalendarTestErrorMessage,
+  eligibleGoogleCalendarBackfillAppointments,
   isAdminQaFixtureDocument
 };

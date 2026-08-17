@@ -1,6 +1,7 @@
 import {
   appointmentActivityItems,
   appointmentEditPayload,
+  appointmentLessonNumber,
   appointmentLessonTitles,
   appointmentNotePayload,
   appointmentStatusPayload,
@@ -12,6 +13,7 @@ import {
   completedLessonForNextAppointment,
   completedAppointmentPayload,
   defaultNextAppointmentDate,
+  existingNextAppointment,
   formatAppointmentDate,
   formatScheduleDate,
   formatScheduleWeekRange,
@@ -30,7 +32,7 @@ import {
   scheduleTimeMinutes,
   scheduleTimeOptions,
   scheduleWeekDates
-} from "./modules/schedule.js?v=20260805-duration1";
+} from "./modules/schedule.js?v=20260817-next-appointment1";
 import {
   mapProgramSessions,
   normalizeProgramScheduleSettings,
@@ -575,7 +577,7 @@ const modules = {
     icon: "admin",
     tone: "purple",
     theme: ["var(--purple)", "var(--purple-soft)", "#c8b7f0"],
-    subpages: ["Settings", "Schedule", "Integrations"],
+    subpages: ["Settings", "Schedule", "Security & Integrations"],
     views: [],
     primaryAction: "",
     quickActions: [],
@@ -612,7 +614,8 @@ const legacyAdminSections = Object.freeze({
   Access: { section: "Settings", tab: "Access" },
   Forms: { section: "Settings", tab: "Forms" },
   Data: { section: "Settings", tab: "Data" },
-  Scheduling: { section: "Schedule", tab: "Team" }
+  Scheduling: { section: "Schedule", tab: "Team" },
+  Integrations: { section: "Security & Integrations", tab: "Team" }
 });
 const legacyAdminSelection = legacyAdminSections[requestedAdminSubpage];
 let adminSubpage = modules.admin.subpages.includes(requestedAdminSubpage)
@@ -626,8 +629,8 @@ let adminOpenSignIn = null;
 let adminDataState = "loading";
 let adminDataMessage = adminSubpage === "Schedule"
   ? "Loading scheduling settings..."
-  : adminSubpage === "Integrations"
-    ? "Checking connections..."
+  : adminSubpage === "Security & Integrations"
+    ? "Loading security, vendor, and connection records..."
     : adminSettingsTab === "Access"
       ? "Loading access settings..."
       : adminSettingsTab === "Team"
@@ -650,6 +653,9 @@ let adminDataImportPreview = null;
 let adminSecurityEvents = [];
 let adminSecurityEventTotal = 0;
 let adminIntegrationActionBusy = false;
+let adminSecurityComplianceBusy = false;
+let adminVendorAgreements = [];
+let adminComplianceChecklist = [];
 let adminIntegrationStatus = {
   api: "checking",
   authentication: "checking",
@@ -661,9 +667,10 @@ let adminIntegrationStatus = {
   workspaceEmail: "checking",
   workspaceEmailMode: "Checking connection...",
   workspaceEmailSender: "appointments@snackprogram.org",
-  twilio: "checking",
-  twilioLabel: "Checking",
-  twilioMode: "Checking connection..."
+  azure: "checking",
+  azureLabel: "Checking",
+  azureMode: "Checking readiness...",
+  azureChecklist: []
 };
 let blockTimeEditingId = "";
 let blockTimeDeletePendingId = "";
@@ -5784,6 +5791,7 @@ function syncNewAppointmentServiceFields() {
   if (lessonField) lessonField.hidden = !showLessonFields;
   if (goalField) goalField.hidden = !showLessonFields;
   if (lesson) lesson.disabled = !showLessonFields;
+  if (lesson) lesson.required = showLessonFields;
   if (goal) goal.disabled = !showLessonFields;
   if (!showLessonFields) {
     if (lesson) lesson.value = "";
@@ -6176,6 +6184,7 @@ function syncAppointmentEditTypeFields() {
   if (lessonField) lessonField.hidden = !isNutritionEducation;
   if (goalField) goalField.hidden = !isNutritionEducation;
   if (lesson) lesson.disabled = !isNutritionEducation;
+  if (lesson) lesson.required = isNutritionEducation;
   if (goal) goal.disabled = !isNutritionEducation;
 }
 
@@ -6521,34 +6530,39 @@ function scheduleParticipantGoalsFromForm(formData, prefix) {
   }));
 }
 
-function renderScheduleWrapUp(item) {
+function renderScheduleWrapUp(item, appointments = []) {
   const nextLesson = nextAppointmentLessonNumber(item);
-  const nextDate = defaultNextAppointmentDate(item);
-  const nextTime = item.time || "";
+  const existingAppointment = existingNextAppointment(item, appointments);
+  const existingLesson = appointmentLessonNumber(existingAppointment?.lesson || existingAppointment?.source?.lesson);
+  const selectedNextLesson = existingLesson || nextLesson;
+  const nextDate = existingAppointment?.date || existingAppointment?.source?.appointmentDate || defaultNextAppointmentDate(item);
+  const nextTime = existingAppointment?.time || existingAppointment?.source?.appointmentTime || item.time || "";
   const timeOptions = scheduleTimeOptions(scheduleSettings, 30);
   if (nextTime && !timeOptions.includes(nextTime)) {
     timeOptions.push(nextTime);
     timeOptions.sort((first, second) => scheduleTimeMinutes(first) - scheduleTimeMinutes(second));
   }
   const staffOptions = ["Cynthia Esparza", "Shannon Oddo"];
-  if (item.staff && !staffOptions.includes(item.staff)) {
-    staffOptions.push(item.staff);
+  const nextStaff = existingAppointment?.staff || existingAppointment?.source?.staffMember || item.staff;
+  if (nextStaff && !staffOptions.includes(nextStaff)) {
+    staffOptions.push(nextStaff);
   }
 
   return `
     <form class="schedule-wrap-up-form" data-schedule-wrap-up-form>
+      <input type="hidden" name="nextAppointmentId" value="${escapeHtml(existingAppointment?.id || "")}">
       <section class="detail-card schedule-wrap-up-card">
         <div class="card-heading">
           <h3>Next Appointment</h3>
         </div>
         ${nextLesson ? `
-          <p class="schedule-wrap-up-next-choice">Choose the lesson for the next appointment. If lessons were combined, select the lesson that should come next.</p>
+          <p class="schedule-wrap-up-next-choice">${existingAppointment ? "This family already has a future appointment. Completing this step updates that appointment with its lesson and goal." : "Choose the lesson for the next appointment. If lessons were combined, select the lesson that should come next."}</p>
           <div class="appointment-edit-fields" data-wrap-up-next-fields>
             <label>
               <span>Lesson</span>
               <select name="nextAppointmentLesson" required>
                 ${Object.entries(appointmentLessonTitles).map(([lessonNumber, lessonTitle]) => `
-                  <option value="${escapeHtml(lessonNumber)}" ${Number(lessonNumber) === nextLesson ? "selected" : ""}>Lesson ${escapeHtml(lessonNumber)}: ${escapeHtml(lessonTitle)}</option>
+                  <option value="${escapeHtml(lessonNumber)}" ${Number(lessonNumber) === selectedNextLesson ? "selected" : ""}>Lesson ${escapeHtml(lessonNumber)}: ${escapeHtml(lessonTitle)}</option>
                 `).join("")}
               </select>
             </label>
@@ -6562,11 +6576,11 @@ function renderScheduleWrapUp(item) {
                 ${timeOptions.map((time) => `<option value="${time}" ${time === nextTime ? "selected" : ""}>${formatScheduleTime(scheduleTimeMinutes(time))}</option>`).join("")}
               </select>
             </label>
-            ${renderWrapUpSelect("nextAppointmentStaff", "Staff", staffOptions, item.staff)}
-            ${renderScheduleParticipantGoals(item, "nextParticipant", { blankGoals: true })}
+            ${renderWrapUpSelect("nextAppointmentStaff", "Staff", staffOptions, nextStaff)}
+            ${renderScheduleParticipantGoals(existingAppointment || item, "nextParticipant", { blankGoals: !existingAppointment })}
             <label class="is-full-width">
               <span>Notes</span>
-              <textarea name="nextAppointmentNotes" rows="2"></textarea>
+              <textarea name="nextAppointmentNotes" rows="2">${escapeHtml(existingAppointment?.notes === "-" ? "" : existingAppointment?.notes || existingAppointment?.source?.notes || "")}</textarea>
             </label>
           </div>
         ` : `<p class="schedule-wrap-up-finished">Program complete</p>`}
@@ -6574,7 +6588,7 @@ function renderScheduleWrapUp(item) {
 
       <p class="schedule-action-status" data-schedule-wrap-up-status role="status" aria-live="polite"></p>
       <div class="schedule-wrap-up-actions">
-        <button type="submit" data-schedule-wrap-up-submit ${nextLesson ? "" : "disabled"}>${nextLesson ? "Schedule Next Appt" : "Program Complete"}</button>
+        <button type="submit" data-schedule-wrap-up-submit ${nextLesson ? "" : "disabled"}>${nextLesson ? (existingAppointment ? "Update Next Appt" : "Schedule Next Appt") : "Program Complete"}</button>
         <button type="button" data-schedule-wrap-up-next>Next: Appt Note</button>
       </div>
     </form>
@@ -6668,7 +6682,7 @@ function setScheduleDetailTab(module, tab = "details") {
     const panel = document.querySelector("[data-schedule-detail-panel='wrap-up']");
     const item = module.items.find((candidate) => candidate.id === selectedItemId);
     if (panel) {
-      panel.innerHTML = item ? renderScheduleWrapUp(item) : "";
+      panel.innerHTML = item ? renderScheduleWrapUp(item, module.items) : "";
     }
   }
 
@@ -10777,6 +10791,11 @@ function renderMarketingSubscriberPanels(item) {
         <div class="card-heading"><h3>Email History</h3><button class="edit-button" data-marketing-edit type="button">Edit</button></div>
         ${renderMarketingValueFields([
           ["MailerLite Contact ID", item.mailerLiteSubscriberId],
+          ["Synchronization", item.mailerLiteSyncStatus],
+          ["Provider Status", item.mailerLiteStatus],
+          ["Last Synchronized", item.mailerLiteLastSyncedAt],
+          ["Synchronization Mode", item.mailerLiteSyncMode],
+          ["Synchronization Error", item.mailerLiteSyncError],
           ["Emails Sent", item.totalEmailsSent],
           ["Total Opens", item.totalOpens],
           ["Total Clicks", item.totalClicks],
@@ -11083,7 +11102,7 @@ function renderMarketingSubscriberEditorMain(item = null) {
           </div>
           <label class="is-full-width"><span>Additional Audience Groups</span><input name="additionalAudienceGroups" placeholder="Add another group, separated by commas"></label>
           <label class="is-full-width"><span>Notes</span><textarea name="notes" rows="3">${escapeHtml(marketingEditorValue(source, "notes"))}</textarea></label>
-          <label class="is-full-width"><span>MailerLite Contact ID</span><input name="mailerLiteSubscriberId" value="${escapeHtml(marketingEditorValue(source, "mailerLiteSubscriberId"))}"></label>
+          <label class="is-full-width"><span>MailerLite Contact ID</span><input name="mailerLiteSubscriberId" value="${escapeHtml(marketingEditorValue(source, "mailerLiteSubscriberId"))}" readonly></label>
         </div>
       </section>
       ${renderMarketingSubscriberEditorFooter(item)}
@@ -13188,7 +13207,7 @@ function isAdminSchedulePage(moduleId = currentModuleId()) {
 }
 
 function isAdminIntegrationsPage(moduleId = currentModuleId()) {
-  return moduleId === "admin" && adminSubpage === "Integrations";
+  return moduleId === "admin" && adminSubpage === "Security & Integrations";
 }
 
 function isAdminSettingsPage(moduleId = currentModuleId()) {
@@ -13590,7 +13609,7 @@ function adminIntegrationLabel(state) {
   })[state] || "Not Connected";
 }
 
-function renderAdminIntegrationCard({ iconName, name, description, state, detail, href = "", action = "", calendarTest = false, emailTest = false, twilioTest = false, statusLabel = "" }) {
+function renderAdminIntegrationCard({ iconName, name, description, state, detail, href = "", action = "", calendarTest = false, calendarBackfill = false, emailTest = false, statusLabel = "" }) {
   return `
     <article class="admin-integration-card" data-state="${escapeHtml(state)}">
       <header>
@@ -13601,16 +13620,71 @@ function renderAdminIntegrationCard({ iconName, name, description, state, detail
       <footer>
         <span>${escapeHtml(detail)}</span>
         ${calendarTest
-          ? `<button data-admin-test-calendar type="button" ${adminIntegrationActionBusy ? "disabled" : ""}>${adminIntegrationActionBusy ? "Testing..." : "Run Test"}</button>`
+          ? `${calendarBackfill ? `<button data-admin-sync-calendar type="button" ${adminIntegrationActionBusy ? "disabled" : ""}>${adminIntegrationActionBusy ? "Working..." : "Sync Future Appts"}</button>` : ""}<button data-admin-test-calendar type="button" ${adminIntegrationActionBusy ? "disabled" : ""}>${adminIntegrationActionBusy ? "Testing..." : "Run Test"}</button>`
           : emailTest
             ? `<button data-admin-test-workspace-email type="button" ${adminIntegrationActionBusy || state === "inactive" ? "disabled" : ""}>${adminIntegrationActionBusy ? "Sending..." : "Send Test to Me"}</button>`
-          : twilioTest
-            ? `<button data-admin-test-twilio type="button" ${adminIntegrationActionBusy || state === "inactive" ? "disabled" : ""}>${adminIntegrationActionBusy ? "Testing..." : "Run Safe Test"}</button>`
           : href && action
             ? `<a href="${escapeHtml(href)}">${escapeHtml(action)}</a>`
             : ""}
       </footer>
     </article>
+  `;
+}
+
+const adminVendorStatusChoices = Object.freeze([
+  "Complete",
+  "Pending Signature",
+  "Covered Through Partner",
+  "Review Required",
+  "Not Used for PHI",
+  "Retiring"
+]);
+const adminComplianceStatusChoices = Object.freeze(["Complete", "In Progress", "Not Started", "Not Applicable"]);
+
+function adminStatusOptions(choices, selected) {
+  return choices.map((choice) => `<option ${choice === selected ? "selected" : ""}>${escapeHtml(choice)}</option>`).join("");
+}
+
+function renderAdminComplianceChecklist() {
+  return `
+    <section class="admin-security-section">
+      <header><div><h2>Compliance Checklist</h2><p>Operational safeguards that need an owner, evidence, and a review date.</p></div></header>
+      <div class="admin-compliance-list">
+        ${adminComplianceChecklist.map((item) => `
+          <article class="admin-compliance-row" data-admin-compliance-row data-record-id="${escapeHtml(item.id)}">
+            <div><strong>${escapeHtml(item.item)}</strong><textarea name="notes" rows="2" aria-label="Notes for ${escapeHtml(item.item)}">${escapeHtml(item.notes)}</textarea></div>
+            <label><span>Status</span><select name="status">${adminStatusOptions(adminComplianceStatusChoices, item.status)}</select></label>
+            <label><span>Owner</span><input name="owner" value="${escapeHtml(item.owner)}"></label>
+            <label><span>Due Date</span><input name="dueDate" type="date" value="${escapeHtml(item.dueDate)}"></label>
+            <label><span>Evidence Link</span><input name="evidenceUrl" type="url" value="${escapeHtml(item.evidenceUrl)}" placeholder="https://drive.google.com/..."></label>
+          </article>
+        `).join("") || `<p>Loading compliance records...</p>`}
+      </div>
+    </section>
+  `;
+}
+
+function renderAdminVendorRegister() {
+  return `
+    <section class="admin-security-section">
+      <header><div><h2>Vendor Agreements</h2><p>One register for agreements, covered-service limits, renewals, and links to signed copies in Drive.</p></div></header>
+      <div class="admin-vendor-table-wrap">
+        <table class="admin-vendor-table">
+          <thead><tr><th>Vendor &amp; Use</th><th>Agreement</th><th>Status</th><th>Dates &amp; Owner</th><th>Document &amp; Notes</th></tr></thead>
+          <tbody>
+            ${adminVendorAgreements.map((item) => `
+              <tr data-admin-vendor-row data-record-id="${escapeHtml(item.id)}">
+                <td><input name="vendor" value="${escapeHtml(item.vendor)}" aria-label="Vendor"><textarea name="service" rows="3" aria-label="Service or use">${escapeHtml(item.service)}</textarea></td>
+                <td><input name="agreementType" value="${escapeHtml(item.agreementType)}" aria-label="Agreement type"></td>
+                <td><select name="status" aria-label="Agreement status">${adminStatusOptions(adminVendorStatusChoices, item.status)}</select></td>
+                <td><label><span>Owner</span><input name="owner" value="${escapeHtml(item.owner)}"></label><label><span>Reviewed</span><input name="reviewDate" type="date" value="${escapeHtml(item.reviewDate)}"></label><label><span>Renewal</span><input name="renewalDate" type="date" value="${escapeHtml(item.renewalDate)}"></label></td>
+                <td><input name="documentUrl" type="url" value="${escapeHtml(item.documentUrl)}" placeholder="Signed document link"><textarea name="notes" rows="3" aria-label="Agreement notes">${escapeHtml(item.notes)}</textarea></td>
+              </tr>
+            `).join("") || `<tr><td colspan="5">Loading vendor records...</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>
   `;
 }
 
@@ -13662,16 +13736,16 @@ function renderAdminIntegrationsWorkspace() {
       description: "One-way Clinic appointment synchronization to the private staff calendar.",
       state: adminIntegrationStatus.calendar,
       detail: adminIntegrationStatus.calendarMode,
-      calendarTest: true
+      calendarTest: true,
+      calendarBackfill: true
     },
     {
       iconName: "note",
-      name: "Twilio Text Reminders",
-      description: "Safe provider testing for future appointment confirmations and reminders.",
-      state: adminIntegrationStatus.twilio,
-      statusLabel: adminIntegrationStatus.twilioLabel,
-      detail: adminIntegrationStatus.twilioMode,
-      twilioTest: true
+      name: "Azure Communications",
+      description: "Future Hub texting, incoming replies, appointment reminders, and click-to-call.",
+      state: adminIntegrationStatus.azure,
+      statusLabel: adminIntegrationStatus.azureLabel,
+      detail: adminIntegrationStatus.azureMode
     },
     {
       iconName: "fundraising",
@@ -13685,13 +13759,19 @@ function renderAdminIntegrationsWorkspace() {
   return `
     <div class="admin-workspace-heading">
       <div>
-        <h2>Integrations</h2>
-        <p>Connection health and provider readiness. Secret keys are configured on the server and never shown here.</p>
+        <h2>Security &amp; Integrations</h2>
+        <p>Compliance work, vendor agreements, and live connection health in one place. Secret keys are never shown here.</p>
       </div>
-      <button class="admin-heading-action" data-admin-refresh-integrations type="button">Refresh Connections</button>
+      <div class="admin-heading-actions"><button class="admin-heading-action" data-admin-save-security type="button" ${adminSecurityComplianceBusy ? "disabled" : ""}>${adminSecurityComplianceBusy ? "Saving..." : "Save Security Records"}</button><button class="admin-heading-action" data-admin-refresh-integrations type="button">Refresh All</button></div>
     </div>
     ${adminDataMessage ? `<p class="admin-workspace-message" role="status">${escapeHtml(adminDataMessage)}</p>` : ""}
-    <div class="admin-integration-grid">${cards.map(renderAdminIntegrationCard).join("")}</div>
+    ${renderAdminComplianceChecklist()}
+    ${renderAdminVendorRegister()}
+    <section class="admin-security-section">
+      <header><div><h2>System Connections</h2><p>Live status only. Messaging and calendar delivery remain off until their separate launch approvals are complete.</p></div></header>
+      <div class="admin-integration-grid">${cards.map(renderAdminIntegrationCard).join("")}</div>
+      ${adminIntegrationStatus.azureChecklist?.length ? `<ul class="admin-azure-checklist">${adminIntegrationStatus.azureChecklist.map((item) => `<li class="${item.complete ? "is-complete" : ""}">${item.complete ? icons.check : icons.clock}<span>${escapeHtml(item.label)}</span></li>`).join("")}</ul>` : ""}
+    </section>
   `;
 }
 
@@ -13700,6 +13780,61 @@ function refreshAdminIntegrationsWorkspace() {
   if (!host) return;
   host.dataset.state = adminDataState;
   host.innerHTML = renderAdminIntegrationsWorkspace();
+}
+
+function adminSecurityField(row, name) {
+  return row.querySelector(`[name="${name}"]`)?.value?.trim() || "";
+}
+
+function adminSecurityRecordsFromPage() {
+  const vendorAgreements = [...document.querySelectorAll("[data-admin-vendor-row]")].map((row) => ({
+    id: row.dataset.recordId,
+    vendor: adminSecurityField(row, "vendor"),
+    service: adminSecurityField(row, "service"),
+    agreementType: adminSecurityField(row, "agreementType"),
+    status: adminSecurityField(row, "status"),
+    owner: adminSecurityField(row, "owner"),
+    documentUrl: adminSecurityField(row, "documentUrl"),
+    reviewDate: adminSecurityField(row, "reviewDate"),
+    renewalDate: adminSecurityField(row, "renewalDate"),
+    notes: adminSecurityField(row, "notes")
+  }));
+  const complianceChecklist = [...document.querySelectorAll("[data-admin-compliance-row]")].map((row) => {
+    const existing = adminComplianceChecklist.find((item) => item.id === row.dataset.recordId) || {};
+    return {
+      id: row.dataset.recordId,
+      item: existing.item || "Compliance item",
+      status: adminSecurityField(row, "status"),
+      owner: adminSecurityField(row, "owner"),
+      dueDate: adminSecurityField(row, "dueDate"),
+      evidenceUrl: adminSecurityField(row, "evidenceUrl"),
+      notes: adminSecurityField(row, "notes")
+    };
+  });
+  return { vendorAgreements, complianceChecklist };
+}
+
+async function saveAdminSecurityRecords() {
+  if (adminSecurityComplianceBusy) return;
+  adminSecurityComplianceBusy = true;
+  adminDataMessage = "Saving compliance and vendor records...";
+  const payload = adminSecurityRecordsFromPage();
+  refreshAdminIntegrationsWorkspace();
+  try {
+    const saved = await adminAccessFetch("/api/admin/security-compliance", {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    });
+    adminVendorAgreements = saved.vendorAgreements || [];
+    adminComplianceChecklist = saved.complianceChecklist || [];
+    adminDataMessage = "Security and vendor records saved.";
+  } catch (error) {
+    console.error(error);
+    adminDataMessage = error.message || "Security and vendor records could not be saved.";
+  } finally {
+    adminSecurityComplianceBusy = false;
+    refreshAdminIntegrationsWorkspace();
+  }
 }
 
 function renderAdminAccessLevelOptions(selectedId = "") {
@@ -14211,7 +14346,7 @@ async function saveAdminTeamProfile(form) {
 
 async function loadAdminIntegrationStatus() {
   adminDataState = "loading";
-  adminDataMessage = "Checking connections...";
+  adminDataMessage = "Loading security records and checking connections...";
   adminIntegrationStatus = {
     api: "checking",
     authentication: "checking",
@@ -14223,14 +14358,15 @@ async function loadAdminIntegrationStatus() {
     workspaceEmailSender: "appointments@snackprogram.org",
     mailerLite: "checking",
     mailerLiteMode: "Checking connection...",
-    twilio: "checking",
-    twilioLabel: "Checking",
-    twilioMode: "Checking connection..."
+    azure: "checking",
+    azureLabel: "Checking",
+    azureMode: "Checking readiness...",
+    azureChecklist: []
   };
   refreshAdminIntegrationsWorkspace();
 
   const apiBaseUrl = window.SNACK_CONFIG?.API_BASE_URL || "";
-  const [healthResult, accessResult, databaseResult, workspaceEmailResult, mailerLiteResult, twilioResult, calendarResult] = await Promise.allSettled([
+  const [healthResult, accessResult, databaseResult, workspaceEmailResult, mailerLiteResult, azureResult, calendarResult, securityResult] = await Promise.allSettled([
     fetch(`${apiBaseUrl}/health`).then((response) => {
       if (!response.ok) throw new Error("Data service unavailable");
       return response.json();
@@ -14239,14 +14375,20 @@ async function loadAdminIntegrationStatus() {
     adminAccessFetch("/api/admin/scheduling-settings"),
     adminAccessFetch("/api/reminders/email/status"),
     adminAccessFetch("/api/marketing/mailerlite/status"),
-    adminAccessFetch("/api/reminders/twilio/status"),
-    adminAccessFetch("/api/admin/google-calendar/status")
+    adminAccessFetch("/api/reminders/azure/status"),
+    adminAccessFetch("/api/admin/google-calendar/status"),
+    adminAccessFetch("/api/admin/security-compliance")
   ]);
 
   const mailerLite = mailerLiteResult.status === "fulfilled" ? mailerLiteResult.value : null;
   const workspaceEmail = workspaceEmailResult.status === "fulfilled" ? workspaceEmailResult.value : null;
-  const twilio = twilioResult.status === "fulfilled" ? twilioResult.value : null;
+  const azure = azureResult.status === "fulfilled" ? azureResult.value : null;
   const calendar = calendarResult.status === "fulfilled" ? calendarResult.value : null;
+  const securityRecords = securityResult.status === "fulfilled" ? securityResult.value : null;
+  if (securityRecords) {
+    adminVendorAgreements = Array.isArray(securityRecords.vendorAgreements) ? securityRecords.vendorAgreements : [];
+    adminComplianceChecklist = Array.isArray(securityRecords.complianceChecklist) ? securityRecords.complianceChecklist : [];
+  }
   const calendarState = calendar?.connected
     ? "ready"
     : calendar?.configured && !calendar?.enabled
@@ -14279,15 +14421,22 @@ async function loadAdminIntegrationStatus() {
           ? "inactive"
           : "error",
     mailerLiteMode: mailerLite?.connectionMode || (mailerLiteResult.status === "fulfilled" ? "API token has not been configured" : "Connection check failed"),
-    twilio: twilio?.connected
+    azure: azure?.ready
       ? "ready"
-      : twilio?.configured
+      : azure?.configured
         ? "paused"
-        : twilioResult.status === "fulfilled"
+        : azureResult.status === "fulfilled"
           ? "inactive"
           : "error",
-    twilioLabel: twilio?.connected ? "Test Passed" : twilio?.configured ? "Ready to Test" : "Not Connected",
-    twilioMode: twilio?.connectionMode || (twilioResult.status === "fulfilled" ? "Twilio test details have not been configured" : "Connection check failed")
+    azureLabel: azure?.deliveryEnabled
+      ? "Delivery Enabled"
+      : azure?.ready
+        ? "Ready · Delivery Off"
+        : azure?.configured
+          ? `${azure.completedCount || 0}/${azure.totalCount || 6} Complete`
+          : "Not Connected",
+    azureMode: azure?.connectionMode || (azureResult.status === "fulfilled" ? "Azure resource details have not been configured in the Hub" : "Connection check failed"),
+    azureChecklist: Array.isArray(azure?.checklist) ? azure.checklist : []
   };
   const failureTasks = [
     adminIntegrationStatus.calendar === "error"
@@ -14311,7 +14460,7 @@ async function loadAdminIntegrationStatus() {
     })
   }).catch((error) => console.error(`Could not record the ${service} connection task.`, error))));
   adminDataState = "ready";
-  adminDataMessage = "";
+  adminDataMessage = securityResult.status === "fulfilled" ? "" : "Connection status loaded, but security records could not be loaded.";
   refreshAdminIntegrationsWorkspace();
 }
 
@@ -14341,29 +14490,28 @@ async function testAdminGoogleCalendar() {
   }
 }
 
-async function testAdminTwilio() {
+async function syncAdminGoogleCalendarAppointments() {
   if (adminIntegrationActionBusy) return;
   adminIntegrationActionBusy = true;
-  adminDataMessage = "Running a Twilio simulation. No text will be sent.";
+  adminDataMessage = "Checking future Clinic appointments before synchronization...";
   refreshAdminIntegrationsWorkspace();
 
   try {
-    const result = await adminAccessFetch("/api/reminders/twilio/test", {
+    const preview = await adminAccessFetch("/api/admin/google-calendar/backfill");
+    if (!preview.count) {
+      adminDataMessage = "No future scheduled Clinic appointments need Calendar synchronization.";
+      return;
+    }
+    adminDataMessage = `Synchronizing ${preview.count} future Clinic appointment${preview.count === 1 ? "" : "s"}...`;
+    refreshAdminIntegrationsWorkspace();
+    const result = await adminAccessFetch("/api/admin/google-calendar/backfill", {
       method: "POST",
-      body: JSON.stringify({ confirmation: "TEST TWILIO WITHOUT SENDING" })
+      body: JSON.stringify({ confirmation: "SYNC FUTURE APPOINTMENTS" })
     });
-    adminIntegrationStatus.twilio = result.connected ? "ready" : "error";
-    adminIntegrationStatus.twilioLabel = result.connected ? "Test Passed" : "Check Failed";
-    adminIntegrationStatus.twilioMode = result.connectionMode || "The safe Twilio test did not pass";
-    adminDataMessage = result.connected
-      ? "The safe Twilio test passed. No text was sent and delivery remains off."
-      : adminIntegrationStatus.twilioMode;
+    adminDataMessage = `${result.syncedCount} future Clinic appointment${result.syncedCount === 1 ? "" : "s"} synchronized. Existing event IDs were reused when present.`;
   } catch (error) {
     console.error(error);
-    adminIntegrationStatus.twilio = "error";
-    adminIntegrationStatus.twilioLabel = "Check Failed";
-    adminIntegrationStatus.twilioMode = error.message || "The safe Twilio test could not be completed";
-    adminDataMessage = adminIntegrationStatus.twilioMode;
+    adminDataMessage = error.message || "Future Clinic appointments could not be synchronized.";
   } finally {
     adminIntegrationActionBusy = false;
     refreshAdminIntegrationsWorkspace();
@@ -14864,7 +15012,7 @@ function renderModulePage(moduleId) {
     : adminSchedule
       ? "Schedule Settings"
       : adminIntegrations
-        ? "Integrations"
+        ? "Security & Integrations"
         : cleanModulePageTitle(moduleId, module.label, activeSubpage, module.title);
   const showModuleSummary = moduleId !== "home" && !adminSpecialPage && cleanModuleSummaryVisible(moduleId, activeSubpage);
   const navigationModuleId = isOperationsOutreachReport() ? "operations" : moduleId;
@@ -14991,7 +15139,7 @@ function renderModulePage(moduleId) {
         ` : ""}
 
         ${adminIntegrations ? `
-          <section class="admin-integrations-workspace" data-admin-integrations-workspace aria-label="Integrations">
+          <section class="admin-integrations-workspace" data-admin-integrations-workspace aria-label="Security and integrations">
             ${renderAdminIntegrationsWorkspace()}
           </section>
         ` : ""}
@@ -16011,6 +16159,7 @@ async function saveScheduleWrapUp(module, form) {
   }
 
   const formData = new FormData(form);
+  const existingAppointmentId = String(formData.get("nextAppointmentId") || "").trim();
   const nextLesson = nextAppointmentLessonNumber(item);
   if (!nextLesson) {
     setScheduleWrapUpStatus("This client has completed the final Clinic lesson.", "error");
@@ -16031,17 +16180,21 @@ async function saveScheduleWrapUp(module, form) {
   }
 
   const nextPayload = nextAppointmentPayload(item, nextValues);
-  let nextAppointmentId = "";
+  let nextAppointmentId = existingAppointmentId;
+  let nextAppointmentSaved = false;
 
   setScheduleWrapUpStatus("");
   setScheduleActionBusy(true);
 
   try {
-    const result = await scheduleAuthedFetch("/api/appointments", {
-      method: "POST",
+    const result = await scheduleAuthedFetch(existingAppointmentId
+      ? `/api/appointments/${encodeURIComponent(existingAppointmentId)}`
+      : "/api/appointments", {
+      method: existingAppointmentId ? "PATCH" : "POST",
       body: JSON.stringify(nextPayload)
     });
     nextAppointmentId = result.appointment?.id || "";
+    nextAppointmentSaved = true;
     const createdItem = mapAppointment(result.appointment || { ...nextPayload, id: nextAppointmentId }, scheduleClientsById);
 
     await updateScheduleClients(module, createdItem, "Scheduled", {
@@ -16053,16 +16206,16 @@ async function saveScheduleWrapUp(module, form) {
     await loadScheduleData(scheduleCurrentUser);
     scheduleDetailTab = "appt-note";
     setScheduleDetailTab(module, "appt-note");
-    setScheduleAppointmentNoteStatus("Next appointment scheduled. Finish the appointment note and engagement to complete this appointment.");
+    setScheduleAppointmentNoteStatus(`${existingAppointmentId ? "Next appointment updated" : "Next appointment scheduled"}. Finish the appointment note and engagement to complete this appointment.`);
   } catch (error) {
     console.error(error);
-    if (nextAppointmentId) {
+    if (nextAppointmentSaved && nextAppointmentId) {
       scheduleVisibleDate = item.date;
       selectedItemId = item.id;
       await loadScheduleData(scheduleCurrentUser).catch(() => {});
       scheduleDetailTab = "appt-note";
       setScheduleDetailTab(module, "appt-note");
-      setScheduleAppointmentNoteStatus("Next appointment scheduled, but the client profile could not be updated. You can still finish this appointment note.", "error");
+      setScheduleAppointmentNoteStatus(`Next appointment ${existingAppointmentId ? "updated" : "scheduled"}, but the client profile could not be updated. You can still finish this appointment note.`, "error");
     } else {
       setScheduleWrapUpStatus(error.message || "Could not schedule the next appointment.", "error");
     }
@@ -17107,18 +17260,23 @@ function bindModulePage(moduleId) {
       return;
     }
 
+    if (moduleId === "admin" && event.target.closest("[data-admin-save-security]")) {
+      saveAdminSecurityRecords();
+      return;
+    }
+
     if (moduleId === "admin" && event.target.closest("[data-admin-test-calendar]")) {
       testAdminGoogleCalendar();
       return;
     }
 
-    if (moduleId === "admin" && event.target.closest("[data-admin-test-workspace-email]")) {
-      testAdminWorkspaceEmail();
+    if (moduleId === "admin" && event.target.closest("[data-admin-sync-calendar]")) {
+      syncAdminGoogleCalendarAppointments();
       return;
     }
 
-    if (moduleId === "admin" && event.target.closest("[data-admin-test-twilio]")) {
-      testAdminTwilio();
+    if (moduleId === "admin" && event.target.closest("[data-admin-test-workspace-email]")) {
+      testAdminWorkspaceEmail();
       return;
     }
 

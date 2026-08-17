@@ -310,7 +310,7 @@ Access, CRM, Forms, and Data. Admin has no Quick Actions panel.
 - Real provider connection failures may create one shared Admin task without
   including secrets or client message content. Intentionally paused or
   unconfigured providers do not create failure tasks.
-- Google Voice remains separate until a complete Twilio phone-number, calling,
+- Google Voice remains separate until a complete Azure phone-number, calling,
   texting, consent, and logging plan is approved. Do not build a partial live
   communication workflow.
 
@@ -338,19 +338,17 @@ Access, CRM, Forms, and Data. Admin has no Quick Actions panel.
   shared staff task to send the sticker email; it must not send automatically
   until the template and sending rules are approved. Zapier and a Google Sheet
   connection remain the two implementation choices.
-- Twilio is the selected text-reminder provider. The optional test-credential
-  simulation may be skipped; it is not required for the later real integration.
-  Real texts remain disabled until the phone number or Messaging Service,
-  required registration, consent, bilingual wording, timing, and logging are
-  approved and one controlled live test passes.
-- Never store or paste a Twilio live auth token in the repository or chat. A
-  future connection should use a restricted, replaceable API key stored as a
-  secret.
-- The existing Google Voice number may be moved to Twilio later. If the transfer
+- Azure Communication Services is the selected text and calling provider. Real
+  texts remain disabled until the phone number, 10DLC brand and campaign,
+  consent, bilingual wording, timing, incoming events, calling, and logging are
+  approved and controlled live tests pass.
+- Never store or paste an Azure connection string in the repository or chat.
+  Production credentials must be stored in Google Secret Manager and attached
+  only to the Cloud Run service.
+- The existing Google Voice number may be moved to Azure later. If the transfer
   succeeds, the public phone number stays the same; old Google Voice history does
-  not move with it. Do not start the transfer until the Twilio calling/texting
+  not move with it. Do not start the transfer until the Azure calling/texting
   plan, registration, record export, and cutover checks are ready. Browser
   calling remains an optional later feature. MailerLite remains the approved
-  marketing-email service unless a separate change is approved; Twilio SendGrid
-  is not automatically part of the Twilio phone account.
+  marketing-email service unless a separate change is approved.
 - English messages and forms are locked before Spanish versions.
