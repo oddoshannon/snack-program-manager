@@ -47,6 +47,7 @@ const staffModuleIds = Object.freeze([
   "fundraising",
   "marketing",
   "operations",
+  "clinical",
   "admin"
 ]);
 const staffFinanceSectionIds = Object.freeze([
@@ -85,6 +86,14 @@ const defaultStaffAccessLevels = Object.freeze([
     id: "Intern",
     name: "Intern",
     modules: Object.freeze(["schedule", "outreach"]),
+    financeSections: Object.freeze([]),
+    system: true,
+    admin: false
+  }),
+  Object.freeze({
+    id: "ClinicalAdvisor",
+    name: "Clinical Physician Advisor",
+    modules: Object.freeze(["clinical"]),
     financeSections: Object.freeze([]),
     system: true,
     admin: false
@@ -620,8 +629,7 @@ function normalizeStaffAccessLevels(value) {
     if (!id || seen.has(key)) continue;
     const defaultLevel = defaultStaffAccessLevels.find((level) => level.id === id);
     const admin = item?.admin === true || id === "Admin";
-    const modules = cleanStaffModules(item?.modules);
-    if (admin && !modules.includes("admin")) modules.push("admin");
+    const modules = admin ? [...staffModuleIds] : cleanStaffModules(item?.modules);
     const savedFinanceSections = cleanStaffFinanceSections(item?.financeSections);
     const financeSections = admin
       ? [...staffFinanceSectionIds]
@@ -702,6 +710,8 @@ function staffRoleCanAccessModule(role, moduleId, accessLevels = defaultStaffAcc
 function staffModuleForApiPath(pathname = "") {
   const path = String(pathname || "").split("?")[0];
   if (/^\/api\/admin(?:\/|$)/.test(path)) return "admin";
+  if (/^\/api\/clinical-reviews(?:\/|$)/.test(path)) return "clinical";
+  if (/^\/api\/clinical-clarifications(?:\/|$)/.test(path)) return "crm";
   if (/^\/api\/operations(?:\/|$)/.test(path)) return "operations";
   if (/^\/api\/(?:marketing-campaigns|marketing-subscribers|marketing)(?:\/|$)/.test(path)) return "marketing";
   if (/^\/api\/(?:grants|grant-questions|grant-organization-info|donors|gifts|campaigns|earned-income|financial-activity|hrsn-claims|budget-categories)(?:\/|$)/.test(path)) return "fundraising";

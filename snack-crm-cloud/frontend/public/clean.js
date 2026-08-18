@@ -283,6 +283,7 @@ const icons = {
   fundraising: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg>`,
   marketing: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 18-7-7 18-3-8-8-3zM11 14l10-10"/></svg>`,
   operations: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15v-4M12 15V7M16 15v-6"/></svg>`,
+  clinical: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v5a6 6 0 0 0 12 0V3M4 3h4M16 3h4M12 14v3a4 4 0 0 0 8 0v-2"/><circle cx="20" cy="13" r="2"/></svg>`,
   utensils: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2v6M10 2v6M6 5h4M8 8v14M16 2v20M16 2c3 2 3 6 0 8"/></svg>`,
   admin: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 7.04 4.3l.06.06A1.65 1.65 0 0 0 8.92 4a1.65 1.65 0 0 0 1-1.51V2a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.47.52.82 1 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
   plus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`,
@@ -301,12 +302,13 @@ const icons = {
   chevronRight: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>`
 };
 
-const moduleOrder = ["schedule", "crm", "outreach", "fundraising", "marketing", "operations", "admin"];
+const moduleOrder = ["schedule", "crm", "outreach", "fundraising", "marketing", "operations", "clinical", "admin"];
 const defaultStaffModuleAccess = Object.freeze({
   Admin: Object.freeze([...moduleOrder]),
   Manager: Object.freeze(["schedule", "crm", "outreach", "fundraising"]),
   Staff: Object.freeze(["schedule", "crm", "outreach"]),
-  Intern: Object.freeze(["schedule", "outreach"])
+  Intern: Object.freeze(["schedule", "outreach"]),
+  ClinicalAdvisor: Object.freeze(["clinical"])
 });
 const financeSectionOrder = Object.freeze(["Financial Activity", "Grants", "HRSN Billing", "Budget", "Giving"]);
 let staffAccessProfile = null;
@@ -563,6 +565,26 @@ const modules = {
     quickActions: [],
     summary: [["0", "Live Measures"], ["0", "Needs Definition"], ["0", "Manual Values Due"], ["0", "Data Issues"]],
     listTitle: "Performance Measures",
+    footerActions: [],
+    detailTabs: [],
+    sideTitle: "",
+    sideLink: "",
+    sideFields: [],
+    cards: [],
+    items: []
+  },
+  clinical: {
+    label: "Clinical Review",
+    title: "Clinical Review",
+    icon: "clinical",
+    tone: "purple",
+    theme: ["var(--purple)", "var(--purple-soft)", "#c8b7f0"],
+    subpages: [],
+    views: [],
+    primaryAction: "",
+    quickActions: [],
+    summary: [],
+    listTitle: "Recently Completed",
     footerActions: [],
     detailTabs: [],
     sideTitle: "",
@@ -986,6 +1008,7 @@ function icon(name) {
 function pageUrl(id) {
   if (id === "home") return "./index.html";
   if (id === "fundraising") return "./finances.html";
+  if (id === "clinical") return "./clinical-review.html";
   return id === "outreach" ? "./outreach.html" : `./${id}.html`;
 }
 
@@ -1224,6 +1247,12 @@ async function loadStaffAccess(user) {
       destinationUrl.searchParams.set("section", accessDecision.financeSection);
     }
     location.replace(destinationUrl);
+    return false;
+  }
+  if (currentModuleId() === "home"
+    && staffModules().length === 1
+    && staffCanAccessModule("clinical")) {
+    location.replace(pageUrl("clinical"));
     return false;
   }
   revealVerifiedStaffShell();
@@ -14632,6 +14661,9 @@ function homeItemUrl(item) {
   }
   if (item.kind === "task") {
     const task = item.source || {};
+    if (task.source === "Clinical Review" && task.appointmentId) {
+      return `./clinical-review.html?appointment=${encodeURIComponent(task.appointmentId)}&clarification=1`;
+    }
     if (task.referralId) return `./crm.html?section=Referrals&referral=${encodeURIComponent(task.referralId)}`;
     if (task.clientId) return `./crm.html?section=Clients&client=${encodeURIComponent(task.clientId)}`;
     if (task.appointmentId) return `./schedule.html?appointment=${encodeURIComponent(task.appointmentId)}`;

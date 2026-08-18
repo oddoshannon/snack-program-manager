@@ -214,7 +214,8 @@ test("admin bulk delete is disabled unless explicitly enabled", () => {
 });
 
 test("staff access levels expose their configured modules", () => {
-  assert.deepEqual(staffModulesForRole("Admin"), ["schedule", "crm", "outreach", "fundraising", "marketing", "operations", "admin"]);
+  assert.deepEqual(staffModulesForRole("Admin"), ["schedule", "crm", "outreach", "fundraising", "marketing", "operations", "clinical", "admin"]);
+  assert.deepEqual(staffModulesForRole("ClinicalAdvisor"), ["clinical"]);
   assert.deepEqual(staffModulesForRole("Manager"), ["schedule", "crm", "outreach", "fundraising"]);
   assert.deepEqual(staffFinanceSectionsForRole("Manager"), ["Grants", "Giving"]);
   assert.deepEqual(staffModulesForRole("Staff"), ["schedule", "crm", "outreach"]);

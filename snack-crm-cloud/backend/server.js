@@ -26,6 +26,7 @@ import operationsRoutes from "./routes/operations.js";
 import accessRoutes from "./routes/access.js";
 import reminderRoutes from "./routes/reminders.js";
 import securityRoutes from "./routes/security.js";
+import clinicalReviewRoutes from "./routes/clinical-reviews.js";
 
 const app = express();
 const frontendHosting = createFrontendHostingConfig();
@@ -73,6 +74,7 @@ app.get("/health", (_request, response) => {
 app.use(publicBookingRoutes);
 app.use(securityRoutes);
 app.use(accessRoutes);
+app.use(clinicalReviewRoutes);
 app.use(messageRoutes);
 app.use(adminRoutes);
 app.use(referralRoutes);

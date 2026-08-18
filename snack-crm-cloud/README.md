@@ -43,6 +43,7 @@ backend/
     reminders.js         Safe Workspace email and Azure Communications readiness checks
     referral-network.js  Provider and organization contacts
     admin.js             Data Center, Calendar checks, access-safe cleanup, and scheduling settings
+    clinical-reviews.js  Physician note review and clarification workflow
     public-booking.js    Public booking, canceling, and rescheduling
     messages.js          Connection check
   test/
@@ -66,6 +67,7 @@ frontend/public/
   modules/program-schedule.js  Kitchen and School schedule and roster rules
   modules/marketing.js   Marketing campaign, filter, and reporting rules
   modules/admin-data.js  CSV parsing, validation, normalization, and import previews
+  modules/clinical-review.js  Clinical review queue and action-state rules
   template.html          Visual rulebook preview
   template.js            Generic rulebook content and interactions
   schedule.html          Clean Scheduling page
@@ -76,6 +78,7 @@ frontend/public/
   marketing.html         Clean Marketing page
   operations.html        Clean Operations page
   admin.html             Clean Admin page
+  clinical-review.html   Minimal Clinical Physician Advisor review page
   index.html             Compact Home dashboard and default staff entry page
   client-form.html       Native iPad, print, and historical form reader
   client-form.js         Version-aware questionnaire workflow and autosave
@@ -91,6 +94,16 @@ in that browser's local storage, and cannot call the production API, send a
 message, change a calendar, or write to Firestore. Reset Training Data restores
 the original practice records. A separate training Google account is not
 required for this version.
+
+The Clinical Physician Advisor has a dedicated, single-purpose review page. It
+lists completed appointment notes using only each client's first name and last
+initial. Marking a note Reviewed records the advisor, title, review time, and
+the exact note version without changing the appointment or client workflow.
+Requesting clarification creates a staff task. The answer and original question
+remain together, and the note automatically returns to Ready for Review. New
+questions route to the director by default; an Admin can instead route them to
+the staff member listed on the appointment. The recorded “Reviewed by Clinical
+Physician Advisor” value is retained for future referring-provider updates.
 
 Fundraising grant files are stored in Firebase Storage under `grant-documents/`, while their labels and Storage paths are saved with the related grant or organization record in Firestore. Storage rules require an active staff record with Finances and Grants access. New uploads do not create permanent download-token links.
 

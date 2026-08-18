@@ -14332,3 +14332,226 @@ select:not([multiple]) {
     display: none;
   }
 }
+/* Clinical Review */
+.clinical-review-page .account-trigger > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.clinical-review-page .account-trigger small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clinical-review-main .page-title p {
+  margin: 5px 0 0;
+  color: var(--muted);
+}
+
+.clinical-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.clinical-workspace {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  min-height: 620px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.clinical-workspace > .panel {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.clinical-list-panel {
+  border-right: 1px solid var(--line) !important;
+}
+
+.clinical-detail-panel {
+  min-width: 0;
+  padding: 0;
+}
+
+.clinical-detail {
+  padding: 26px;
+}
+
+.clinical-detail > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.clinical-detail > header h2,
+.clinical-detail h3,
+.clinical-empty h2 {
+  margin: 0;
+}
+
+.clinical-detail > header p,
+.clinical-empty p {
+  margin: 5px 0 0;
+  color: var(--muted);
+}
+
+.clinical-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 24px;
+  margin: 0;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.clinical-facts div,
+.clinical-goals div {
+  min-width: 0;
+}
+
+.clinical-facts dt,
+.clinical-history article > span,
+.clinical-question-form label > span,
+.clinical-response-form label > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.clinical-facts dd {
+  margin: 4px 0 0;
+  font-weight: 600;
+}
+
+.clinical-note,
+.clinical-goals,
+.clinical-history {
+  padding: 22px 0 0;
+}
+
+.clinical-note p,
+.clinical-history p {
+  margin: 10px 0 0;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.clinical-goals > div,
+.clinical-history article {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 9px;
+  background: var(--surface-soft);
+}
+
+.clinical-goals small,
+.clinical-history strong {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.clinical-history article > span:not(:first-child) {
+  margin-top: 8px;
+}
+
+.clinical-question-form,
+.clinical-response-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+
+.clinical-question-form[hidden] {
+  display: none;
+}
+
+.clinical-question-form label,
+.clinical-response-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.clinical-question-form textarea,
+.clinical-response-form textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.clinical-question-form > div,
+.clinical-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.clinical-actions {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.clinical-returned-note {
+  margin: 14px 0 0;
+  color: var(--success);
+  text-align: right;
+}
+
+.clinical-settings-help {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+}
+
+.clinical-empty {
+  display: grid;
+  place-content: center;
+  min-height: 520px;
+  padding: 30px;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .clinical-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .clinical-list-panel {
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--line) !important;
+  }
+}
+
+@media (max-width: 620px) {
+  .clinical-summary,
+  .clinical-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .clinical-detail {
+    padding: 18px;
+  }
+
+  .clinical-detail > header,
+  .clinical-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

@@ -34,6 +34,7 @@ const staffModuleLabels = Object.freeze({
   fundraising: "Finances",
   marketing: "Marketing",
   operations: "Operations",
+  clinical: "Clinical Review",
   admin: "Admin"
 });
 
