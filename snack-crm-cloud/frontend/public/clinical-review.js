@@ -1,10 +1,11 @@
 import {
   clinicalReviewActionState,
   clinicalReviewCounts,
+  clinicalReviewDisplayRole,
   clinicalReviewLatestClarification,
   clinicalReviewQueue,
   clinicalReviewStatuses
-} from "./modules/clinical-review.js?v=20260817-clinical-review2";
+} from "./modules/clinical-review.js?v=20260817-clinical-review3";
 
 const icons = {
   home: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/></svg>`,
@@ -44,6 +45,7 @@ let reviews = [];
 let selectedId = new URLSearchParams(location.search).get("appointment") || "";
 let busy = false;
 let assignedOnly = false;
+let advisorPreview = false;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -85,7 +87,8 @@ function statusTone(status) {
 }
 
 function renderNav() {
-  return moduleOrder.filter((id) => access?.modules?.includes(id)).map((id) => {
+  const visibleModules = advisorPreview ? ["clinical"] : access?.modules || [];
+  return moduleOrder.filter((id) => visibleModules.includes(id)).map((id) => {
     const [label, href, iconName, tone] = moduleDefinitions[id];
     return `
       <section class="module-group" data-tone="${tone}">
@@ -120,7 +123,8 @@ function renderDetail(review) {
   if (!review) {
     return `<div class="clinical-empty"><h2>${assignedOnly ? "No clarification requests" : "No appointment notes are waiting"}</h2><p>${assignedOnly ? "Assigned questions will appear here." : "Completed appointment notes will appear here automatically."}</p></div>`;
   }
-  const actions = clinicalReviewActionState(review, role);
+  const displayReview = advisorPreview ? { ...review, canRespond: false } : review;
+  const actions = clinicalReviewActionState(displayReview, clinicalReviewDisplayRole(role, advisorPreview));
   const latestClarification = clinicalReviewLatestClarification(review);
   return `
     <article class="clinical-detail" data-clinical-detail>
@@ -166,7 +170,7 @@ function renderDetail(review) {
 }
 
 function renderSettingsDialog() {
-  if (!role.administrator) return "";
+  if (!role.administrator || advisorPreview) return "";
   return `
     <dialog class="schedule-dialog" data-clinical-settings-dialog>
       <form class="schedule-dialog-form" data-clinical-settings-form>
@@ -191,10 +195,11 @@ function render() {
       <aside class="sidebar" aria-label="Main navigation">
         <div class="brand"><a class="brand-mark" href="./index.html" aria-label="Home"><img src="./favicon.png" alt=""></a><a class="brand-copy" href="./index.html"><strong>SNACK</strong><span>Program Hub</span></a><button class="sidebar-collapse-button" data-toggle-sidebar type="button" aria-label="Collapse navigation">${icons.chevronLeft}</button></div>
         <div class="sidebar-scroll"><nav class="module-nav" aria-label="Clinical Review navigation">${renderNav()}</nav></div>
-        <div class="account"><button class="account-trigger" data-account-menu-toggle type="button" aria-haspopup="menu" aria-expanded="false"><span class="avatar">${escapeHtml((access.displayName || access.email || "SN").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase())}</span><span><strong>${escapeHtml(access.displayName || access.email)}</strong><small>${escapeHtml(access.accessLevelName || settings.roleTitle)}</small></span><span class="account-chevron">${icons.chevronRight}</span></button><div class="account-menu" data-account-menu role="menu" hidden><button data-sign-out role="menuitem" type="button">Sign Out</button></div></div>
+        <div class="account"><button class="account-trigger" data-account-menu-toggle type="button" aria-haspopup="menu" aria-expanded="false"><span class="avatar">${escapeHtml((advisorPreview ? "AP" : access.displayName || access.email || "SN").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase())}</span><span><strong>${escapeHtml(advisorPreview ? "Advisor Preview" : access.displayName || access.email)}</strong><small>${escapeHtml(advisorPreview ? settings.roleTitle : access.accessLevelName || settings.roleTitle)}</small></span><span class="account-chevron">${icons.chevronRight}</span></button><div class="account-menu" data-account-menu role="menu" hidden><button data-sign-out role="menuitem" type="button">Sign Out</button></div></div>
       </aside>
       <main class="main clinical-review-main">
-        <header class="page-header"><div class="page-title"><h1>${assignedOnly ? "Clinical Clarification" : "Clinical Review"}</h1><p>${assignedOnly ? "Answer the question and return the note to the advisor." : "Review recently completed appointment notes."}</p></div>${role.administrator && !assignedOnly ? `<button class="header-link-action" data-open-clinical-settings type="button">Clarification Routing</button>` : ""}</header>
+        <header class="page-header"><div class="page-title"><h1>${assignedOnly ? "Clinical Clarification" : "Clinical Review"}</h1><p>${assignedOnly ? "Answer the question and return the note to the advisor." : "Review recently completed appointment notes."}</p></div>${role.administrator && !assignedOnly ? `<div class="clinical-header-actions"><button class="header-link-action" data-toggle-advisor-preview type="button">${advisorPreview ? "Exit Advisor Preview" : "Preview Advisor View"}</button>${advisorPreview ? "" : `<button class="header-link-action" data-open-clinical-settings type="button">Clarification Routing</button>`}</div>` : ""}</header>
+        ${advisorPreview ? `<p class="clinical-preview-notice" role="status">Advisor Preview is read-only. No review or clarification will be saved.</p>` : ""}
         <section class="summary-strip clinical-summary" aria-label="Clinical review summary"><div class="summary-item"><strong>${counts.ready}</strong><span>Ready for Review</span></div><div class="summary-item"><strong>${counts.clarification}</strong><span>Clarification Requested</span></div><div class="summary-item"><strong>${counts.reviewed}</strong><span>Reviewed</span></div></section>
         <section class="clinical-workspace">
           <div class="panel clinical-list-panel"><div class="panel-header"><div><h2>${assignedOnly ? "Assigned Questions" : "Recently Completed"}</h2><p>Newest notes appear first</p></div></div><div class="list">${ordered.length ? ordered.map((item) => `<button class="list-row ${item.id === selectedId ? "is-selected" : ""}" data-clinical-review-id="${escapeHtml(item.id)}" data-tone="module" type="button"><strong>${escapeHtml(item.clients.join(" + "))}</strong><span class="status-pill" data-status-tone="${statusTone(item.status)}">${escapeHtml(item.status)}</span><span>${escapeHtml(formatDate(item.appointmentDate))} · ${escapeHtml(item.lesson || item.appointmentType || "Appointment")}</span></button>`).join("") : `<p class="list-empty">${assignedOnly ? "No clarification requests are assigned to you." : "No completed appointment notes are available."}</p>`}</div></div>
@@ -223,6 +228,9 @@ async function loadReviews() {
   reviews = result.reviews || [];
   settings = result.settings || {};
   role = result.role || {};
+  advisorPreview = role.administrator
+    && !assignedOnly
+    && new URLSearchParams(location.search).get("preview") === "advisor";
   if (!reviews.some((item) => item.id === selectedId)) selectedId = reviews[0]?.id || "";
   render();
 }
@@ -246,6 +254,14 @@ function bindRenderedEvents() {
     event.currentTarget.setAttribute("aria-expanded", String(open));
   });
   document.querySelector("[data-sign-out]")?.addEventListener("click", () => authApi.signOut(auth).then(() => location.replace("./index.html")));
+  document.querySelector("[data-toggle-advisor-preview]")?.addEventListener("click", () => {
+    const url = new URL(location.href);
+    if (advisorPreview) url.searchParams.delete("preview");
+    else url.searchParams.set("preview", "advisor");
+    history.replaceState({}, "", url);
+    advisorPreview = !advisorPreview;
+    render();
+  });
   document.querySelector("[data-request-clarification]")?.addEventListener("click", () => {
     const form = document.querySelector("[data-clinical-question-form]");
     if (form) { form.hidden = false; form.elements.question.focus(); }
@@ -256,6 +272,10 @@ function bindRenderedEvents() {
   });
   document.querySelector("[data-clinical-question-form]")?.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (advisorPreview) {
+      showToast("Advisor Preview Only — Nothing Was Saved");
+      return;
+    }
     const question = new FormData(event.currentTarget).get("question");
     setBusy(true);
     try {
@@ -268,6 +288,10 @@ function bindRenderedEvents() {
     }
   });
   document.querySelector("[data-mark-clinical-reviewed]")?.addEventListener("click", async () => {
+    if (advisorPreview) {
+      showToast("Advisor Preview Only — Nothing Was Saved");
+      return;
+    }
     setBusy(true);
     try {
       await authedFetch(`/api/clinical-reviews/${encodeURIComponent(selectedId)}/review`, { method: "POST", body: "{}" });

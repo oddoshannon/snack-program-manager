@@ -49,9 +49,15 @@ function clinicalReviewActionState(review = {}, role = {}) {
   };
 }
 
+function clinicalReviewDisplayRole(role = {}, advisorPreview = false) {
+  if (!advisorPreview || !role.administrator) return { ...role, preview: false };
+  return { ...role, reviewer: true, preview: true };
+}
+
 export {
   clinicalReviewActionState,
   clinicalReviewCounts,
+  clinicalReviewDisplayRole,
   clinicalReviewLatestClarification,
   clinicalReviewQueue,
   clinicalReviewStatuses

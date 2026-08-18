@@ -15,6 +15,7 @@ import {
 import {
   clinicalReviewActionState,
   clinicalReviewCounts,
+  clinicalReviewDisplayRole,
   clinicalReviewQueue
 } from "../../frontend/public/modules/clinical-review.js";
 
@@ -132,6 +133,19 @@ test("clinical review queue and buttons keep approved capitalization", () => {
   });
 });
 
+test("Admin Advisor Preview shows reviewer controls without granting reviewer authority", () => {
+  assert.deepEqual(clinicalReviewDisplayRole({ administrator: true, reviewer: false }, true), {
+    administrator: true,
+    reviewer: true,
+    preview: true
+  });
+  assert.deepEqual(clinicalReviewDisplayRole({ administrator: false, reviewer: false }, true), {
+    administrator: false,
+    reviewer: false,
+    preview: false
+  });
+});
+
 test("clinical review is mounted as a protected clean-interface feature", () => {
   const serverSource = fs.readFileSync(path.join(projectDirectory, "backend/server.js"), "utf8");
   const coreSource = fs.readFileSync(path.join(projectDirectory, "backend/lib/core.js"), "utf8");
@@ -143,5 +157,7 @@ test("clinical review is mounted as a protected clean-interface feature", () => 
   assert.match(html, /clean\.css/);
   assert.match(html, /clinical-review\.js/);
   assert.match(frontendSource, /data-clinical-sign-in/);
+  assert.match(frontendSource, /data-toggle-advisor-preview/);
+  assert.match(frontendSource, /Advisor Preview Only — Nothing Was Saved/);
   assert.doesNotMatch(frontendSource, /if \(!user\) \{[\s\S]{0,160}signInWithPopup/);
 });

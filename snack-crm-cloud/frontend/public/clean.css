@@ -14375,6 +14375,28 @@ select:not([multiple]) {
   margin-top: 8px;
 }
 
+.clinical-review-page .nav-button {
+  text-decoration: none;
+}
+
+.clinical-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.clinical-preview-notice {
+  margin: -2px 0 14px;
+  padding: 9px 12px;
+  color: var(--purple-strong);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  background: var(--purple-soft);
+  border: 1px solid var(--module-line);
+  border-radius: 8px;
+}
+
 .clinical-review-page .account-trigger > span:nth-child(2) {
   min-width: 0;
   display: grid;
@@ -14582,6 +14604,12 @@ select:not([multiple]) {
 }
 
 @media (max-width: 620px) {
+  .clinical-header-actions {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .clinical-summary,
   .clinical-facts {
     grid-template-columns: 1fr;
