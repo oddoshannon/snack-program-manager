@@ -15,6 +15,7 @@ import {
 import {
   clinicalReviewActionState,
   clinicalReviewCounts,
+  clinicalReviewDemoRecords,
   clinicalReviewDisplayRole,
   clinicalReviewQueue
 } from "../../frontend/public/modules/clinical-review.js";
@@ -146,6 +147,15 @@ test("Admin Advisor Preview shows reviewer controls without granting reviewer au
   });
 });
 
+test("Advisor Preview uses a varied fictional meeting dataset", () => {
+  const demoRecords = clinicalReviewDemoRecords("2026-08-17");
+  assert.equal(demoRecords.length, 5);
+  assert.deepEqual(clinicalReviewCounts(demoRecords), { ready: 3, clarification: 1, reviewed: 1 });
+  assert.equal(demoRecords.every((item) => item.id.startsWith("demo-") && item.canRespond === false), true);
+  assert.equal(demoRecords.some((item) => item.clients.length > 1), true);
+  assert.equal(demoRecords.some((item) => item.clarifications.some((entry) => entry.answer)), true);
+});
+
 test("clinical review is mounted as a protected clean-interface feature", () => {
   const serverSource = fs.readFileSync(path.join(projectDirectory, "backend/server.js"), "utf8");
   const coreSource = fs.readFileSync(path.join(projectDirectory, "backend/lib/core.js"), "utf8");
@@ -159,5 +169,6 @@ test("clinical review is mounted as a protected clean-interface feature", () => 
   assert.match(frontendSource, /data-clinical-sign-in/);
   assert.match(frontendSource, /data-toggle-advisor-preview/);
   assert.match(frontendSource, /Advisor Preview Only — Nothing Was Saved/);
+  assert.match(frontendSource, /Advisor Preview uses fictional demo records/);
   assert.doesNotMatch(frontendSource, /if \(!user\) \{[\s\S]{0,160}signInWithPopup/);
 });

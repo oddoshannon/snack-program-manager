@@ -1,11 +1,12 @@
 import {
   clinicalReviewActionState,
   clinicalReviewCounts,
+  clinicalReviewDemoRecords,
   clinicalReviewDisplayRole,
   clinicalReviewLatestClarification,
   clinicalReviewQueue,
   clinicalReviewStatuses
-} from "./modules/clinical-review.js?v=20260817-clinical-review3";
+} from "./modules/clinical-review.js?v=20260817-clinical-review4";
 
 const icons = {
   home: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/></svg>`,
@@ -99,8 +100,12 @@ function renderNav() {
   }).join("");
 }
 
-function selectedReview() {
-  return reviews.find((item) => item.id === selectedId) || reviews[0] || null;
+function displayedReviews() {
+  return advisorPreview ? clinicalReviewDemoRecords() : reviews;
+}
+
+function selectedReview(source = displayedReviews()) {
+  return source.find((item) => item.id === selectedId) || source[0] || null;
 }
 
 function renderClarificationHistory(review) {
@@ -186,9 +191,9 @@ function renderSettingsDialog() {
 }
 
 function render() {
-  const ordered = clinicalReviewQueue(reviews);
+  const ordered = clinicalReviewQueue(displayedReviews());
   const counts = clinicalReviewCounts(ordered);
-  const review = selectedReview();
+  const review = selectedReview(ordered);
   if (review) selectedId = review.id;
   app.innerHTML = `
     <div class="app-shell" data-shell data-module-id="clinical" style="--module: var(--purple); --module-soft: var(--purple-soft); --module-line: #c8b7f0;">
@@ -199,7 +204,7 @@ function render() {
       </aside>
       <main class="main clinical-review-main">
         <header class="page-header"><div class="page-title"><h1>${assignedOnly ? "Clinical Clarification" : "Clinical Review"}</h1><p>${assignedOnly ? "Answer the question and return the note to the advisor." : "Review recently completed appointment notes."}</p></div>${role.administrator && !assignedOnly ? `<div class="clinical-header-actions"><button class="header-link-action" data-toggle-advisor-preview type="button">${advisorPreview ? "Exit Advisor Preview" : "Preview Advisor View"}</button>${advisorPreview ? "" : `<button class="header-link-action" data-open-clinical-settings type="button">Clarification Routing</button>`}</div>` : ""}</header>
-        ${advisorPreview ? `<p class="clinical-preview-notice" role="status">Advisor Preview is read-only. No review or clarification will be saved.</p>` : ""}
+        ${advisorPreview ? `<p class="clinical-preview-notice" role="status">Advisor Preview uses fictional demo records and is read-only. No review or clarification will be saved.</p>` : ""}
         <section class="summary-strip clinical-summary" aria-label="Clinical review summary"><div class="summary-item"><strong>${counts.ready}</strong><span>Ready for Review</span></div><div class="summary-item"><strong>${counts.clarification}</strong><span>Clarification Requested</span></div><div class="summary-item"><strong>${counts.reviewed}</strong><span>Reviewed</span></div></section>
         <section class="clinical-workspace">
           <div class="panel clinical-list-panel"><div class="panel-header"><div><h2>${assignedOnly ? "Assigned Questions" : "Recently Completed"}</h2><p>Newest notes appear first</p></div></div><div class="list">${ordered.length ? ordered.map((item) => `<button class="list-row ${item.id === selectedId ? "is-selected" : ""}" data-clinical-review-id="${escapeHtml(item.id)}" data-tone="module" type="button"><strong>${escapeHtml(item.clients.join(" + "))}</strong><span class="status-pill" data-status-tone="${statusTone(item.status)}">${escapeHtml(item.status)}</span><span>${escapeHtml(formatDate(item.appointmentDate))} · ${escapeHtml(item.lesson || item.appointmentType || "Appointment")}</span></button>`).join("") : `<p class="list-empty">${assignedOnly ? "No clarification requests are assigned to you." : "No completed appointment notes are available."}</p>`}</div></div>
