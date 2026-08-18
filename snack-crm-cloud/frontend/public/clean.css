@@ -14333,6 +14333,48 @@ select:not([multiple]) {
   }
 }
 /* Clinical Review */
+.clinical-review-page .secure-gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background: var(--surface-soft);
+}
+
+.clinical-review-page .secure-gate section {
+  width: min(100%, 420px);
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 42px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow-lg);
+}
+
+.clinical-review-page .secure-gate img {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+}
+
+.clinical-review-page .secure-gate h1,
+.clinical-review-page .secure-gate p {
+  margin: 0;
+}
+
+.clinical-review-page .secure-gate p,
+.clinical-review-page .secure-gate small {
+  color: var(--text-muted);
+}
+
+.clinical-review-page .secure-gate button {
+  width: 100%;
+  margin-top: 8px;
+}
+
 .clinical-review-page .account-trigger > span:nth-child(2) {
   min-width: 0;
   display: grid;

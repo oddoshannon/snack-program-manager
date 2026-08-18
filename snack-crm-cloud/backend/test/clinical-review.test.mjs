@@ -136,9 +136,12 @@ test("clinical review is mounted as a protected clean-interface feature", () => 
   const serverSource = fs.readFileSync(path.join(projectDirectory, "backend/server.js"), "utf8");
   const coreSource = fs.readFileSync(path.join(projectDirectory, "backend/lib/core.js"), "utf8");
   const html = fs.readFileSync(path.join(projectDirectory, "frontend/public/clinical-review.html"), "utf8");
+  const frontendSource = fs.readFileSync(path.join(projectDirectory, "frontend/public/clinical-review.js"), "utf8");
   assert.match(serverSource, /app\.use\(clinicalReviewRoutes\)/);
   assert.match(coreSource, /clinical-reviews/);
   assert.match(coreSource, /id: "ClinicalAdvisor"/);
   assert.match(html, /clean\.css/);
   assert.match(html, /clinical-review\.js/);
+  assert.match(frontendSource, /data-clinical-sign-in/);
+  assert.doesNotMatch(frontendSource, /if \(!user\) \{[\s\S]{0,160}signInWithPopup/);
 });

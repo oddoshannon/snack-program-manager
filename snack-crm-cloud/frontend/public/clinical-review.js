@@ -4,7 +4,7 @@ import {
   clinicalReviewLatestClarification,
   clinicalReviewQueue,
   clinicalReviewStatuses
-} from "./modules/clinical-review.js?v=20260817-clinical-review1";
+} from "./modules/clinical-review.js?v=20260817-clinical-review2";
 
 const icons = {
   home: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/></svg>`,
@@ -35,6 +35,7 @@ const app = document.querySelector("#app");
 const toast = document.querySelector("#toast");
 let auth;
 let authApi;
+let signInProvider;
 let currentUser;
 let access = null;
 let role = {};
@@ -314,6 +315,28 @@ function renderLoading(message = "Loading Clinical Review...") {
   app.innerHTML = `<main class="secure-gate"><section><img src="./favicon.png" alt=""><h1>SNACK Program Hub</h1><p>${escapeHtml(message)}</p></section></main>`;
 }
 
+function renderSignIn(message = "Sign in with your SNACK Google account to continue.") {
+  app.innerHTML = `
+    <main class="secure-gate">
+      <section>
+        <img src="./favicon.png" alt="">
+        <h1>Clinical Review</h1>
+        <p>${escapeHtml(message)}</p>
+        <button class="is-primary" data-clinical-sign-in type="button">Sign In with Google</button>
+        <small>Use your @snackprogram.org account.</small>
+      </section>
+    </main>`;
+  document.querySelector("[data-clinical-sign-in]")?.addEventListener("click", async (event) => {
+    event.currentTarget.disabled = true;
+    try {
+      await authApi.signInWithPopup(auth, signInProvider);
+    } catch (error) {
+      console.error(error);
+      renderSignIn("Google sign-in did not finish. Please try again.");
+    }
+  });
+}
+
 async function initialize() {
   renderLoading();
   const [{ initializeApp }, firebaseAuth] = await Promise.all([
@@ -322,15 +345,13 @@ async function initialize() {
   ]);
   authApi = firebaseAuth;
   auth = firebaseAuth.getAuth(initializeApp(window.SNACK_CONFIG.FIREBASE_CONFIG));
+  signInProvider = new firebaseAuth.GoogleAuthProvider();
+  signInProvider.setCustomParameters({ hd: "snackprogram.org" });
   await firebaseAuth.setPersistence(auth, firebaseAuth.browserSessionPersistence);
   firebaseAuth.onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     if (!user) {
-      try {
-        await firebaseAuth.signInWithPopup(auth, new firebaseAuth.GoogleAuthProvider());
-      } catch {
-        renderLoading("Sign in with your SNACK Google account to continue.");
-      }
+      renderSignIn();
       return;
     }
     try {
