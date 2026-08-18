@@ -6,7 +6,7 @@ import {
   clinicalReviewLatestClarification,
   clinicalReviewQueue,
   clinicalReviewStatuses
-} from "./modules/clinical-review.js?v=20260817-clinical-review4";
+} from "./modules/clinical-review.js?v=20260817-clinical-review5";
 
 const icons = {
   home: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/></svg>`,
@@ -87,6 +87,24 @@ function statusTone(status) {
   return "purple";
 }
 
+function renderAppointmentNote(note) {
+  return String(note || "").split("\n").map((line) => {
+    const text = line.trim();
+    if (!text) return `<span class="clinical-note-space" aria-hidden="true"></span>`;
+    if (text === "SNACK Enrollment" || text === "SNACK Nutrition Education" || text === "Lesson Objectives") {
+      return `<h4>${escapeHtml(text)}</h4>`;
+    }
+    if (text.startsWith("• ")) {
+      return `<div class="clinical-note-objective"><span aria-hidden="true">•</span><p>${escapeHtml(text.slice(2))}</p></div>`;
+    }
+    if (text === "SUMMARY:" || text.startsWith("SUMMARY: ")) {
+      return `<p class="clinical-note-summary"><strong>SUMMARY:</strong>${escapeHtml(text.slice(8))}</p>`;
+    }
+    if (text.endsWith(":")) return `<strong class="clinical-note-label">${escapeHtml(text)}</strong>`;
+    return `<p>${escapeHtml(text)}</p>`;
+  }).join("");
+}
+
 function renderNav() {
   const visibleModules = advisorPreview ? ["clinical"] : access?.modules || [];
   return moduleOrder.filter((id) => visibleModules.includes(id)).map((id) => {
@@ -145,7 +163,7 @@ function renderDetail(review) {
       </dl>
       <section class="clinical-note">
         <h3>Appointment Note</h3>
-        <p>${escapeHtml(review.appointmentNote)}</p>
+        <div class="clinical-note-content">${renderAppointmentNote(review.appointmentNote)}</div>
       </section>
       <section class="clinical-goals">
         <h3>${review.participantGoals.length > 1 ? "Goals" : "Goal"}</h3>

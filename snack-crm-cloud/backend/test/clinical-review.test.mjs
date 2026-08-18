@@ -19,6 +19,11 @@ import {
   clinicalReviewDisplayRole,
   clinicalReviewQueue
 } from "../../frontend/public/modules/clinical-review.js";
+import {
+  nutritionEducationObjectives,
+  populateEnrollmentAppointmentNote,
+  populateNutritionEducationAppointmentNote
+} from "../../frontend/public/modules/appointment-note-templates.js";
 
 const testDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectDirectory = path.resolve(testDirectory, "../..");
@@ -149,11 +154,60 @@ test("Admin Advisor Preview shows reviewer controls without granting reviewer au
 
 test("Advisor Preview uses a varied fictional meeting dataset", () => {
   const demoRecords = clinicalReviewDemoRecords("2026-08-17");
-  assert.equal(demoRecords.length, 5);
-  assert.deepEqual(clinicalReviewCounts(demoRecords), { ready: 3, clarification: 1, reviewed: 1 });
+  assert.equal(demoRecords.length, 6);
+  assert.deepEqual(clinicalReviewCounts(demoRecords), { ready: 4, clarification: 1, reviewed: 1 });
   assert.equal(demoRecords.every((item) => item.id.startsWith("demo-") && item.canRespond === false), true);
-  assert.equal(demoRecords.some((item) => item.clients.length > 1), true);
+  assert.equal(demoRecords.some((item) => item.appointmentType === "Enrollment"), true);
   assert.equal(demoRecords.some((item) => item.clarifications.some((entry) => entry.answer)), true);
+  assert.equal(demoRecords.every((item) => item.appointmentNote.includes("SUMMARY:") && item.appointmentNote.includes("Signature:")), true);
+  assert.equal(demoRecords.some((item) => item.appointmentNote.includes("Lesson Objectives")), true);
+});
+
+test("appointment note templates include every approved lesson objective and no unresolved placeholders", () => {
+  assert.deepEqual(Object.keys(nutritionEducationObjectives), [
+    "Nutrient Density",
+    "Sugar",
+    "Food Groups",
+    "Macronutrients",
+    "Micronutrients",
+    "Mindful Eating",
+    "Healthy Habits"
+  ]);
+  assert.deepEqual(Object.values(nutritionEducationObjectives).map((objectives) => objectives.length), [5, 6, 6, 6, 7, 7, 6]);
+  const enrollmentNote = populateEnrollmentAppointmentNote({
+    caregiver: "caregiver",
+    caregiverName: "Demo Caregiver",
+    interestReason: "the family wants practical nutrition support",
+    currentHealthyActivities: "Walks daily.",
+    healthGoals: "Build balanced snacks.",
+    foodPreferences: "Likes berries.",
+    newGoal: "eat breakfast three days this week",
+    nextLesson: "Nutrient Density",
+    nextAppointmentWeeks: "2",
+    signature: "Demo Staff"
+  });
+  const nutritionNote = populateNutritionEducationAppointmentNote({
+    caregiver: "caregiver",
+    caregiverName: "Demo Caregiver",
+    weeksSinceLastAppointment: "2",
+    previousGoal: "Eat breakfast.",
+    rememberedGoal: "Y",
+    accomplishedGoal: "Partially",
+    goalBarriersOrSupport: "Morning schedule.",
+    otherUpdatesOrWins: "Tried berries.",
+    lesson: "Sugar",
+    discussion: "natural and added sugar",
+    practice: "reading labels",
+    newGoal: "drink water with dinner",
+    nextLesson: "Food Groups",
+    progressSummary: "that breakfast was easier on weekends",
+    nextAppointmentWeeks: "2",
+    signature: "Demo Staff"
+  });
+  assert.match(enrollmentNote, /^SNACK Enrollment/);
+  assert.match(nutritionNote, /^SNACK Nutrition Education/);
+  assert.match(nutritionNote, /Define natural sugar and added sugar/);
+  assert.doesNotMatch(`${enrollmentNote}\n${nutritionNote}`, /\[[^\]]+\]/);
 });
 
 test("clinical review is mounted as a protected clean-interface feature", () => {
@@ -170,5 +224,6 @@ test("clinical review is mounted as a protected clean-interface feature", () => 
   assert.match(frontendSource, /data-toggle-advisor-preview/);
   assert.match(frontendSource, /Advisor Preview Only — Nothing Was Saved/);
   assert.match(frontendSource, /Advisor Preview uses fictional demo records/);
+  assert.match(frontendSource, /clinical-note-content/);
   assert.doesNotMatch(frontendSource, /if \(!user\) \{[\s\S]{0,160}signInWithPopup/);
 });

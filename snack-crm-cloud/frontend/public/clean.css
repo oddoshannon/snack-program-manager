@@ -14505,11 +14505,54 @@ select:not([multiple]) {
   padding: 22px 0 0;
 }
 
-.clinical-note p,
 .clinical-history p {
   margin: 10px 0 0;
   line-height: 1.65;
   white-space: pre-wrap;
+}
+
+.clinical-note-content {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  line-height: 1.55;
+}
+
+.clinical-note-content h4,
+.clinical-note-content p {
+  margin: 0;
+}
+
+.clinical-note-content h4 {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.clinical-note-content h4:first-child {
+  margin-top: 0;
+}
+
+.clinical-note-space {
+  height: 5px;
+}
+
+.clinical-note-label {
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+.clinical-note-objective {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  gap: 4px;
+  padding-left: 4px;
+}
+
+.clinical-note-summary {
+  margin-top: 8px !important;
+  padding: 12px;
+  background: var(--surface-soft);
+  border-radius: 8px;
 }
 
 .clinical-goals > div,
